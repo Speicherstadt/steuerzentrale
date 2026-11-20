@@ -18,7 +18,7 @@ const ANWEISUNGEN = {
   betreiber: ["lesen"],
   mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
   kunden: ["lesen", "schreiben"],
-  server: ["anlegen"],
+  server: ["anlegen", "lesen", "sperren"],
 } as const;
 
 export const zugriff = createAccessControl(ANWEISUNGEN);
@@ -38,7 +38,7 @@ export const ROLLEN_ZUGRIFF = {
     betreiber: ["lesen"],
     mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
     kunden: ["lesen", "schreiben"],
-    server: ["anlegen"],
+    server: ["anlegen", "lesen", "sperren"],
   }),
   // servers, installations and updates (later items); sees who else works on the operator; takes
   // on customers and their contracts, which installing an app starts from (docs/plan.md, "Kunden")
@@ -47,15 +47,16 @@ export const ROLLEN_ZUGRIFF = {
     betreiber: ["lesen"],
     mitglieder: ["lesen"],
     kunden: ["lesen", "schreiben"],
-    server: ["anlegen"],
+    server: ["anlegen", "lesen", "sperren"],
   }),
-  // support access to customers (later items); sees who else works on the operator and whom it
-  // helps, but changes no customer or contract
+  // support access to customers (later items); sees who else works on the operator, whom it
+  // helps and the servers they run on, but changes no customer, contract or server
   support: zugriff.newRole({
     ...KEINE_RECHTE_IN_BETTER_AUTH,
     betreiber: ["lesen"],
     mitglieder: ["lesen"],
     kunden: ["lesen"],
+    server: ["lesen"],
   }),
 } as const;
 

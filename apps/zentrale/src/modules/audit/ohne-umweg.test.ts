@@ -6,7 +6,7 @@ import * as schema from "../../db/schema.ts";
 
 /**
  * No code writes past the audit log (Z-102). The only files that may write: the audit writer, the
- * migrations and the key's check value on their own bookkeeping tables and the opening of the database. Every other source of
+ * appending of measurements (heartbeats), the migrations and the key's check value on their own bookkeeping tables and the opening of the database. Every other source of
  * apps/zentrale is scanned for the ways to write. Modelled on Speicherstadt/soll,
  * apps/server/src/modules/audit/ohne-umweg.test.ts.
  */
@@ -22,6 +22,9 @@ const ERLAUBT = new Set([
   // the Zentrale keeps of them (operator, membership, role) goes through `schreiben` (Z-104), as in
   // Speicherstadt/soll, apps/server/src/modules/audit/ohne-umweg.test.ts
   "auth/auth.ts",
+  // heartbeats are measurements, not actions: appended without an audit entry each, deleted only
+  // through `schreiben` by the retention (docs/plan.md, "Audit-Log"; Z-303)
+  "modules/audit/messwerte.ts",
 ]);
 const TABELLEN = [...Object.keys(schema), ...Object.keys(authSchema)].join("|");
 

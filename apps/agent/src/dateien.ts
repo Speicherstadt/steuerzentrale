@@ -6,6 +6,8 @@ export type Dateien = {
   lesen: (pfad: string) => Promise<string | undefined>;
   /** Writes atomically (a temporary file renamed into place) with the given mode */
   schreiben: (pfad: string, inhalt: string, modus: number) => Promise<void>;
+  /** Moves a file into place in one step (rename(2) within one file system) */
+  umbenennen: (von: string, nach: string) => Promise<void>;
 };
 
 export const echteDateien: Dateien = {
@@ -18,4 +20,5 @@ export const echteDateien: Dateien = {
     await chmod(neu, modus);
     await rename(neu, pfad);
   },
+  umbenennen: (von, nach) => rename(von, nach),
 };

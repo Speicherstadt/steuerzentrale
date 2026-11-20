@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pem } from "./pem.ts";
 
 /*
  * Joining a server (BAULISTE.md Z-302): before the agent has a certificate it speaks plain HTTPS to
@@ -9,14 +10,6 @@ import { z } from "zod";
 
 /** The path of the exchange under `agent.<domain>` */
 export const BEITRITT_PFAD = "/api/v1/agent/beitreten";
-
-const pem = (art: string) =>
-  z
-    .string()
-    .max(16_384)
-    .refine((text) => text.trimStart().startsWith(`-----BEGIN ${art}-----`), {
-      message: `not a PEM ${art}`,
-    });
 
 export const BeitrittAnfrage = z
   .object({

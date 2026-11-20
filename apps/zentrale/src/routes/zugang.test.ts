@@ -92,6 +92,21 @@ describe("the public routes", () => {
   );
 });
 
+describe("the agents' routes", () => {
+  it.each(NAMEN.filter((name) => ROUTEN[name].art === "agent"))(
+    "%s refuses a request without a certificate, also a signed-in person's",
+    async (name) => {
+      const { pfad, init } = anfrage(name);
+      expect(await server.browser().json(pfad, init)).toEqual({
+        status: 401,
+        daten: { fehler: "kein_zertifikat" },
+      });
+      for (const rolle of ROLLEN)
+        expect((await personen[rolle].json(pfad, init)).status, rolle).toBe(401);
+    },
+  );
+});
+
 describe("Better Auth's paths", () => {
   it.each(Object.keys(AUTH_PFADE))("%s is reachable", async (eintrag) => {
     const [methode = "GET", pfad = ""] = eintrag.split(" ");

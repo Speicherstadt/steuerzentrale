@@ -2,7 +2,9 @@ import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
 import { beitreten } from "./beitritt/beitreten.ts";
 import { type Dateien, echteDateien } from "./dateien.ts";
 import { dienstPruefen } from "./dienst.ts";
-import { pfadeIn } from "./pfade.ts";
+import { type Pfade, pfadeIn } from "./pfade.ts";
+import { echtOeffnen } from "./verbindung/sockel.ts";
+import { verbindungsSchleife } from "./verbindung/verbinden.ts";
 
 /** What `steuerzentrale-agent --version` prints: its version and the protocol it speaks */
 export const versionLine = (): string =>
@@ -23,9 +25,30 @@ export type CliDeps = {
   /** The one-time token, from standard input: an argument would stand in the process list */
   eingabe: () => Promise<string>;
   architektur: string;
+  /** Starts the connection to the Zentrale (src/verbindung); the process keeps running for it */
+  dienstStarten: (zentrale: string, pfade: Pfade, architektur: "amd64" | "arm64") => void;
   /** Other directories than /etc/steuerzentrale and /var/lib/steuerzentrale, for tests */
   konfig?: string;
   zustand?: string;
+};
+
+const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur) => {
+  verbindungsSchleife(
+    {
+      oeffnen: echtOeffnen,
+      planen: (lauf, ms) => {
+        const t = setTimeout(lauf, ms);
+        return () => clearTimeout(t);
+      },
+      jetzt: Date.now,
+      zufall: Math.random,
+      log: (zeile) => console.log(zeile),
+      dateien: echteDateien,
+      pfade,
+      architektur,
+    },
+    zentrale,
+  );
 };
 
 const echteDeps = (): CliDeps => ({
@@ -33,6 +56,7 @@ const echteDeps = (): CliDeps => ({
   fetch: (url, init) => fetch(url, init),
   eingabe: () => Bun.stdin.text(),
   architektur: process.arch,
+  dienstStarten,
 });
 
 /** `--name wert` pairs and bare `--flag`s; anything else makes the arguments invalid */
@@ -68,9 +92,13 @@ const beitretenBefehl = async (deps: CliDeps, args: string[]): Promise<CliResult
 };
 
 const dienstBefehl = async (deps: CliDeps): Promise<CliResult> => {
-  const geprueft = await dienstPruefen(deps.dateien, pfadeIn(deps.konfig, deps.zustand));
+  const pfade = pfadeIn(deps.konfig, deps.zustand);
+  const architektur = ARCHITEKTUREN[deps.architektur];
+  if (!architektur) return { code: 1, out: `unsupported architecture ${deps.architektur}` };
+  const geprueft = await dienstPruefen(deps.dateien, pfade);
   if (!geprueft.ok)
     return { code: 1, out: JSON.stringify({ msg: "refusing to start", grund: geprueft.grund }) };
+  deps.dienstStarten(geprueft.wert.zentrale, pfade, architektur);
   return {
     code: 0,
     bleiben: true,

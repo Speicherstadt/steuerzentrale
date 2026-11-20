@@ -105,4 +105,23 @@ describe("no operator reaches another's data", () => {
       ].sort(),
     );
   });
+
+  it("GET /api/v1/server and /api/v1/server/:serverId show one's own servers only", async () => {
+    const { teufel, partner } = await zwei();
+    const eigener = await serverHinzufuegen(teufel);
+    await serverHinzufuegen(partner);
+    const liste = (await teufel.json("/api/v1/server")).daten as { server: { serverId: string }[] };
+    expect(liste.server.map((s) => s.serverId)).toEqual([eigener.serverId]);
+    expect((await partner.json(`/api/v1/server/${eigener.serverId}`)).status).toBe(404);
+  });
+
+  it("POST /api/v1/server/:serverId/sperren does not revoke another's server", async () => {
+    const { server, teufel, partner } = await zwei();
+    const eigener = await serverHinzufuegen(teufel);
+    const antwort = await partner.json(`/api/v1/server/${eigener.serverId}/sperren`, {
+      body: { grund: "fremd" },
+    });
+    expect(antwort).toEqual({ status: 404, daten: { fehler: "kein_server" } });
+    expect(server.db.select().from(serverTabelle).get()?.gesperrtAm).toBeNull();
+  });
 });

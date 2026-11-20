@@ -182,7 +182,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   durchläuft (plan.md, „Testserver“), ein benutztes oder abgelaufenes Token und ein Binary mit
   falscher Signatur abgelehnt werden, `shellcheck` grün ist und der Dialog den Befehl zeigt
   (Playwright).
-- [ ] **Z-303 Verbindung und Heartbeat** – WSS mit mTLS an `agent.<domain>`, Meldung alle 30 s;
+- [x] **Z-303 Verbindung und Heartbeat** – WSS mit mTLS an `agent.<domain>`, Meldung alle 30 s;
   Zustände „verbunden“, „seit x min still“, „getrennt“; Wiederverbindung mit Backoff; Zertifikat
   rotieren und sperren; Rate-Limit am Token-Tausch.
   nach: Z-302

@@ -3,7 +3,10 @@ import type { z } from "zod";
 import type { Auth } from "../auth/auth.ts";
 import type { Db, SchreibDb } from "../db/oeffnen.ts";
 import type { Schluesselbund } from "../db/schluessel.ts";
+import type { LogSink } from "../log.ts";
 import type { Auslieferung } from "../modules/server/index.ts";
+import type { Verbindungen } from "../modules/verbindung/verbindungen.ts";
+import type { SocketAdresse } from "./zugang.ts";
 
 /** What the routes need; they stay thin and call into src/modules (docs/plan.md, "Projektstruktur") */
 export type RoutenDeps = {
@@ -20,7 +23,10 @@ export type RoutenDeps = {
   /** The install script and the agent binaries (STEUERZENTRALE_AGENT_DATEIEN) */
   auslieferung: Auslieferung;
   /** The socket's address of a request, for the rate limit of the token exchange */
-  socketAdresse: (request: Request, env: unknown) => string | undefined;
+  socketAdresse: SocketAdresse;
+  /** The agents' open connections (src/modules/verbindung) */
+  verbindungen: Verbindungen;
+  log: LogSink;
 };
 
 /** The request's JSON body parsed against `schema`, or undefined */

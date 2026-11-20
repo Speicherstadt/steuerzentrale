@@ -5,7 +5,13 @@
     "rootDir": "..",
     "types": ["bun"]
   },
-  "references": [{ "path": "../packages/protokoll" }, { "path": "../packages/manifest" }],
+  // the test of agent and Zentrale together (apps/agent/test/zentrale.test.ts) reads both apps
+  "references": [
+    { "path": "../packages/protokoll" },
+    { "path": "../packages/manifest" },
+    { "path": "../apps/zentrale" },
+    { "path": "../apps/agent" }
+  ],
   "include": [
     "*.ts",
     "pr-regeln/*.ts",

@@ -5,6 +5,7 @@ import type { Schluesselbund } from "./db/schluessel.ts";
 import { formatRequestLog, type LogSink, redactUrl } from "./log.ts";
 import { clientAdresse } from "./modules/anmeldung/adresse.ts";
 import type { Auslieferung } from "./modules/server/index.ts";
+import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { einladungRouten } from "./routes/einladungen.ts";
 import { ersterInhaberRouten } from "./routes/erster-inhaber.ts";
@@ -12,7 +13,14 @@ import { kontoRouten } from "./routes/konto.ts";
 import { kundenRouten } from "./routes/kunden.ts";
 import { mitgliederRouten } from "./routes/mitglieder.ts";
 import { serverRouten } from "./routes/server.ts";
-import { type Anfrage, AUTH_PFADE, routenRegistrar, wache } from "./routes/zugang.ts";
+import { verbindungRouten } from "./routes/verbindung.ts";
+import {
+  type Anfrage,
+  AUTH_PFADE,
+  routenRegistrar,
+  type SocketAdresse,
+  wache,
+} from "./routes/zugang.ts";
 
 export type AppDeps = {
   log: LogSink;
@@ -30,7 +38,9 @@ export type AppDeps = {
   /** The install script and the agent binaries (src/modules/server/auslieferung.ts) */
   auslieferung: Auslieferung;
   /** The socket's address of a request (Bun's requestIP in main.ts; a fixed one in tests) */
-  socketAdresse: (request: Request, env: unknown) => string | undefined;
+  socketAdresse: SocketAdresse;
+  /** The agents' open connections, in memory (src/modules/verbindung) */
+  verbindungen: Verbindungen;
 };
 
 const AUTH_BASIS = "/api/auth";
@@ -68,7 +78,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
     );
   });
 
-  const route = routenRegistrar(app, wache(deps.auth, deps.db));
+  const route = routenRegistrar(app, wache(deps.auth, deps.db, deps.socketAdresse));
   // For an external monitor (Z-704): no login, nothing but liveness and version
   route("GET /health", (c) => c.json({ status: "ok", version: deps.version }));
   route("GET /api/auth/*", betterAuthRoute(deps));
@@ -80,6 +90,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   kundenRouten(route, deps);
   serverRouten(route, deps);
   agentRouten(route, deps);
+  verbindungRouten(route, deps);
 
   return app;
 };

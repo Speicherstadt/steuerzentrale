@@ -27,5 +27,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0006_server",
     "sql": "CREATE TABLE `server` (\n\t`betreiber_id` text NOT NULL,\n\t`server_id` text NOT NULL,\n\t`name` text NOT NULL,\n\t`art` text NOT NULL,\n\t`kunde_id` text,\n\t`wartungsfenster` text NOT NULL,\n\t`fingerabdruck` text,\n\t`zertifikat_gueltig_bis` integer,\n\t`beigetreten_am` integer,\n\t`architektur` text,\n\t`agent_version` text,\n\t`angelegt_von` text NOT NULL,\n\t`angelegt_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `server_id`)\n);\n--> statement-breakpoint\nCREATE UNIQUE INDEX `server_fingerabdruck_unique` ON `server` (`fingerabdruck`);"
+  },
+  {
+    "tag": "0007_verbindung",
+    "sql": "ALTER TABLE `server` ADD `fingerabdruck_neu` text;--> statement-breakpoint\nALTER TABLE `server` ADD `zertifikat_neu_gueltig_bis` integer;--> statement-breakpoint\nALTER TABLE `server` ADD `gesperrt_am` integer;--> statement-breakpoint\nCREATE UNIQUE INDEX `server_fingerabdruck_neu_unique` ON `server` (`fingerabdruck_neu`);"
   }
 ];

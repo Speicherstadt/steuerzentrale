@@ -2,7 +2,7 @@ import { tagesbeginn } from "@steuerzentrale/planung";
 import { describe, expect, it } from "vitest";
 import { auditLog, server as serverTabelle, tokens } from "../db/schema.ts";
 import { BEITRITT_GUELTIG_MS } from "../modules/server/index.ts";
-import { NEUER_SERVER, serverHinzufuegen } from "../testhilfen/agent.ts";
+import { NEUER_SERVER, serverHinzufuegen, testAnfrage } from "../testhilfen/agent.ts";
 import { TEST_AGENT_URL, testServer } from "../testhilfen/server.ts";
 
 /** A customer of the person's operator, through the API of Z-801; its id */
@@ -105,5 +105,68 @@ describe("adding a server", () => {
     });
     expect({ status, daten }).toEqual({ status: 400, daten: { fehler: "ungueltig" } });
     expect(server.db.select().from(serverTabelle).all()).toEqual([]);
+  });
+});
+
+// BAULISTE.md Z-303: the servers with the state of their agents, and revoking a certificate
+describe("the servers of the operator", () => {
+  it("lists them with what the agent reported and the state of its connection, never its certificate", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const { serverId } = await serverHinzufuegen(inhaber);
+    const { status, daten } = await inhaber.json("/api/v1/server");
+    expect(status).toBe(200);
+    expect(daten).toEqual({
+      server: [
+        {
+          serverId,
+          name: NEUER_SERVER.name,
+          art: "gemeinsam",
+          kundeId: null,
+          wartungsfenster: NEUER_SERVER.wartungsfenster,
+          angelegtAm: server.jetzt(),
+          beigetretenAm: null,
+          architektur: null,
+          agentVersion: null,
+          zertifikatGueltigBis: null,
+          gesperrtAm: null,
+          agent: { zustand: "getrennt", letzterHeartbeat: null },
+        },
+      ],
+    });
+    expect((await inhaber.json(`/api/v1/server/${serverId}`)).daten).toEqual(
+      (daten as { server: unknown[] }).server[0],
+    );
+    expect((await inhaber.json("/api/v1/server/gibt-es-nicht")).status).toBe(404);
+  });
+
+  it("are revoked once, with a reason, and a revoked server cannot join with its token", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const { serverId, token } = await serverHinzufuegen(inhaber);
+    const pfad = `/api/v1/server/${serverId}/sperren`;
+    expect((await inhaber.json(pfad, { body: {} })).status).toBe(400);
+    expect((await inhaber.json(pfad, { body: { grund: "verloren" } })).status).toBe(200);
+    expect(await inhaber.json(pfad, { body: { grund: "noch mal" } })).toEqual({
+      status: 409,
+      daten: { fehler: "schon_gesperrt" },
+    });
+    expect(server.db.select().from(tokens).all()).toEqual([]);
+    const beitritt = await server
+      .browser()
+      .json("/api/v1/agent/beitreten", { body: await testAnfrage(token) });
+    expect(beitritt.status).toBe(401);
+  });
+
+  it("are revoked by owner and technician, not by support", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const technik = await server.eingeladen(inhaber, "technik");
+    const support = await server.eingeladen(inhaber, "support");
+    const { serverId } = await serverHinzufuegen(inhaber);
+    const pfad = `/api/v1/server/${serverId}/sperren`;
+    expect((await support.json(pfad, { body: { grund: "x" } })).status).toBe(403);
+    expect((await support.json("/api/v1/server")).status).toBe(200);
+    expect((await technik.json(pfad, { body: { grund: "x" } })).status).toBe(200);
   });
 });

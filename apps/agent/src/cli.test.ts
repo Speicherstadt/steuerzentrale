@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 import { speicher, TEST_PUB } from "./beitritt/testhilfen.ts";
 import { type CliDeps, runCli, USAGE, versionLine } from "./cli.ts";
 
-const deps = (eingabe = ""): CliDeps & { gesendet: unknown[] } => {
+const deps = (eingabe = ""): CliDeps & { gesendet: unknown[]; gestartet: unknown[] } => {
   const gesendet: unknown[] = [];
+  const gestartet: unknown[] = [];
   return {
+    dienstStarten: (...args) => gestartet.push(args),
+    gestartet,
     dateien: speicher().dateien,
     fetch: async (_url, init) => {
       gesendet.push(JSON.parse(String(init.body)));
@@ -34,10 +37,37 @@ describe("agent command line", () => {
   });
 
   it("refuses to run as a service on a server that has not joined", async () => {
-    const ergebnis = await runCli(["dienst"], deps());
+    const d = deps();
+    const ergebnis = await runCli(["dienst"], d);
     expect(ergebnis.code).toBe(1);
     expect(ergebnis.bleiben).toBeUndefined();
     expect(ergebnis.out).toContain("has not joined");
+    expect(d.gestartet).toEqual([]);
+  });
+
+  it("starts the connection to its Zentrale as a service on a joined server", async () => {
+    const pem = (art: string) => `-----BEGIN ${art}-----\nAAAA\n-----END ${art}-----\n`;
+    const d = deps();
+    d.dateien = speicher({
+      "/etc/steuerzentrale/manifest.pub": TEST_PUB,
+      "/etc/steuerzentrale/agent.json": JSON.stringify({
+        zentrale: "https://agent.example.de",
+        serverId: "srv-1",
+        testmodus: true,
+      }),
+      "/var/lib/steuerzentrale/agent.key": pem("PRIVATE KEY"),
+      "/var/lib/steuerzentrale/agent.pem": pem("CERTIFICATE"),
+      "/var/lib/steuerzentrale/ca.pem": pem("CERTIFICATE"),
+    }).dateien;
+    const ergebnis = await runCli(["dienst"], d);
+    expect(ergebnis).toMatchObject({ code: 0, bleiben: true });
+    expect(d.gestartet).toEqual([
+      [
+        "https://agent.example.de",
+        expect.objectContaining({ zertifikat: "/var/lib/steuerzentrale/agent.pem" }),
+        "amd64",
+      ],
+    ]);
   });
 
   it("reads the token from standard input, never from an argument", async () => {

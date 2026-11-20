@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
+import { TRENNUNG } from "@steuerzentrale/protokoll";
+import type { Server } from "bun";
 import { onTestFinished } from "vitest";
 import { type AppDeps, createApp } from "../app.ts";
 import { createAuth } from "../auth/auth.ts";
 import { testDatenbank } from "../db/test-db.ts";
 import { einrichtungscodeErzeugen } from "../modules/anmeldung/einrichtungscode.ts";
 import { auslieferung } from "../modules/server/index.ts";
+import { verbindungen } from "../modules/verbindung/verbindungen.ts";
 import { betreiberEinrichten } from "../routes/erster-inhaber.ts";
 import { TEST_AGENT_URL, testAgentDateien } from "./agent-dateien.ts";
 import { authenticator } from "./authenticator.ts";
@@ -59,7 +62,11 @@ const kern = (aufraeumen: (fn: () => void) => void = onTestFinished) => {
     schluessel: datenbank.schluessel,
     agentUrl: TEST_AGENT_URL,
     auslieferung: auslieferung(agentDateien, TEST_AGENT_URL),
-    socketAdresse: (request) => request.headers.get(SOCKET_HEADER) ?? undefined,
+    // a test request names its address; a real one through Bun.serve has its socket's (connection tests)
+    socketAdresse: (request, env) =>
+      request.headers.get(SOCKET_HEADER) ??
+      (env as Server<unknown> | undefined)?.requestIP?.(request)?.address,
+    verbindungen: verbindungen(TRENNUNG.ersetzt),
   };
   const app = createApp(deps);
   return {

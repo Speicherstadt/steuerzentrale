@@ -4,6 +4,8 @@
  * one version behind keeps working with a newer Zentrale.
  */
 const MANIFEST = "schema: 1\nid: beispiel\n";
+const CSR = "-----BEGIN CERTIFICATE REQUEST-----\nMIIB...\n-----END CERTIFICATE REQUEST-----\n";
+const ZERTIFIKAT = "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----\n";
 const SIGNATUR = "untrusted comment: signature\nRUR...\ntrusted comment: beispiel\nAAA...\n";
 
 export const VOM_AGENTEN_V1: readonly Record<string, unknown>[] = [
@@ -83,6 +85,7 @@ export const VOM_AGENTEN_V1: readonly Record<string, unknown>[] = [
     von: "10.8.0.2",
     methode: "publickey",
   },
+  { typ: "zertifikat_anfrage", protokoll: 1, csr: CSR },
 ];
 
 export const VON_DER_ZENTRALE_V1: readonly Record<string, unknown>[] = [
@@ -97,5 +100,18 @@ export const VON_DER_ZENTRALE_V1: readonly Record<string, unknown>[] = [
     manifest: MANIFEST,
     signatur: SIGNATUR,
     zeitlimitS: 1800,
+  },
+  {
+    typ: "zertifikat",
+    protokoll: 1,
+    zertifikat: ZERTIFIKAT,
+    ca: ZERTIFIKAT,
+    gueltigBis: 1_826_536_000_000,
+  },
+  {
+    typ: "willkommen",
+    protokoll: 1,
+    zeit: 1_795_000_000_000,
+    zertifikatGueltigBis: 1_826_536_000_000,
   },
 ];

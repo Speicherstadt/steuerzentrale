@@ -8,7 +8,7 @@ import {
   vomAgentenLesen,
   vonDerZentraleLesen,
 } from "./lesen.ts";
-import { VomAgenten, VonDerZentrale } from "./nachrichten.ts";
+import { TRENNUNG, VomAgenten, VonDerZentrale } from "./nachrichten.ts";
 
 /** The frozen messages of every version, by version; a new version adds its own */
 const BEISPIELE: Record<
@@ -31,6 +31,7 @@ const TYPEN_VOM_AGENTEN = [
   "ergebnis",
   "log_auszug",
   "ssh_anmeldung",
+  "zertifikat_anfrage",
 ];
 
 describe("every message", () => {
@@ -39,7 +40,7 @@ describe("every message", () => {
     expect(beispiele, `add beispiele-v${PROTOKOLL_VERSION}.ts`).toBeDefined();
     expect(new Set(beispiele?.vomAgenten.map((n) => n.typ))).toEqual(new Set(TYPEN_VOM_AGENTEN));
     expect(new Set(beispiele?.vonDerZentrale.map((n) => n.typ))).toEqual(
-      new Set(["willkommen", "auftrag"]),
+      new Set(["willkommen", "auftrag", "zertifikat"]),
     );
   });
 
@@ -107,6 +108,26 @@ describe("versions", () => {
     expect(vomAgentenLesen(JSON.stringify({ typ: "heartbeat", zeit: 1 }))).toEqual({
       ok: false,
       grund: "protokoll: missing",
+    });
+  });
+});
+
+describe("the connection", () => {
+  it("names a close code for every reason the Zentrale ends a connection", () => {
+    expect(new Set(Object.values(TRENNUNG)).size).toBe(Object.keys(TRENNUNG).length);
+    // 4000-4999 are free for applications (RFC 6455, 7.4.2)
+    for (const code of Object.values(TRENNUNG)) expect(code).toBeGreaterThanOrEqual(4000);
+  });
+
+  it("a certificate request carries only a PEM request, never a key", () => {
+    const mitSchluessel = {
+      typ: "zertifikat_anfrage",
+      protokoll: 1,
+      csr: "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----\n",
+    };
+    expect(vomAgentenLesen(JSON.stringify(mitSchluessel))).toMatchObject({
+      ok: false,
+      grund: expect.stringMatching(/^csr: /),
     });
   });
 });

@@ -4,6 +4,7 @@ import { getLocale } from "@steuerzentrale/ui";
 import { createRouter, RouterProvider } from "@tanstack/solid-router";
 import { sitzungsZustand, waechterEinsetzen } from "./anmeldung/sitzung.ts";
 import { apiKunden, kundenQuelleEinsetzen } from "./daten/kunden.ts";
+import { apiServer, serverQuelleEinsetzen } from "./daten/server.ts";
 import { aktuellesThema, wendeThemaAn } from "./rahmen/theme.ts";
 import { routeTree } from "./routeTree.gen.ts";
 
@@ -13,6 +14,7 @@ import { routeTree } from "./routeTree.gen.ts";
 if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
   waechterEinsetzen(sitzungsZustand);
   kundenQuelleEinsetzen(apiKunden);
+  serverQuelleEinsetzen(apiServer);
 }
 
 const router = createRouter({ routeTree, scrollRestoration: true });

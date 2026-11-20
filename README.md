@@ -20,7 +20,10 @@ an, weitere Personen kommen per Einladungslink mit den Rollen Inhaber, Technik o
 **Server hinzufügen:** die Oberfläche zeigt einen Befehl mit Einmal-Token (24 Stunden, einmal nutzbar);
 `install.sh` richtet auf Debian 13 oder Ubuntu 24.04 Podman, unattended-upgrades und den signierten Agenten
 als systemd-Dienst ein, und der Agent tauscht das Token gegen sein Client-Zertifikat
-([Server hinzufügen](docs/server-hinzufuegen.md)).
+([Server hinzufügen](docs/server-hinzufuegen.md)). Danach hält der Agent eine WSS-Verbindung mit
+Heartbeat alle 30 Sekunden; jeder Server zeigt „verbunden“, „seit x min still“ oder „getrennt“, nach
+3 Minuten Stille entsteht ein Ereignis, und ein Zertifikat rotiert vor Ablauf von selbst und lässt
+sich sofort sperren.
 
 **Stand:** in Planung. Plan und Bauliste: [`docs/plan.md`](docs/plan.md), [`BAULISTE.md`](BAULISTE.md).
 
