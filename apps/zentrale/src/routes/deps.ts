@@ -2,6 +2,8 @@ import type { Context } from "hono";
 import type { z } from "zod";
 import type { Auth } from "../auth/auth.ts";
 import type { Db, SchreibDb } from "../db/oeffnen.ts";
+import type { Schluesselbund } from "../db/schluessel.ts";
+import type { Auslieferung } from "../modules/server/index.ts";
 
 /** What the routes need; they stay thin and call into src/modules (docs/plan.md, "Projektstruktur") */
 export type RoutenDeps = {
@@ -11,6 +13,14 @@ export type RoutenDeps = {
   /** Where the interface is reached, for invitation links (STEUERZENTRALE_URL) */
   url: string;
   now: () => number;
+  /** The keys of the database, for the secrets the routes write (the agents' CA) */
+  schluessel: Schluesselbund;
+  /** Where agents reach the Zentrale (STEUERZENTRALE_AGENT_URL), for the install command */
+  agentUrl: string;
+  /** The install script and the agent binaries (STEUERZENTRALE_AGENT_DATEIEN) */
+  auslieferung: Auslieferung;
+  /** The socket's address of a request, for the rate limit of the token exchange */
+  socketAdresse: (request: Request, env: unknown) => string | undefined;
 };
 
 /** The request's JSON body parsed against `schema`, or undefined */

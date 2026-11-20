@@ -13,16 +13,9 @@ const schluesselFeld = (name: string) =>
     return z.NEVER;
   });
 
-/**
- * Where the interface is reached, as people type it in the browser: Better Auth's origin and the
- * domain passkeys are bound to (rpID), so it has no default; the origin alone, no path
- */
-const urlFeld = z
-  .string({
-    error:
-      "STEUERZENTRALE_URL is missing: where the interface is reached, e.g. https://zentrale.example.de",
-  })
-  .transform((wert, ctx) => {
+/** An http(s) origin without a path, with a message that names the variable and what it is for */
+const originFeld = (name: string, wozu: string) =>
+  z.string({ error: `${name} is missing: ${wozu}` }).transform((wert, ctx) => {
     const geparst = URL.parse(wert.trim());
     if (
       geparst &&
@@ -31,12 +24,27 @@ const urlFeld = z
       !geparst.search
     )
       return geparst.origin;
-    ctx.addIssue({
-      code: "custom",
-      message: "STEUERZENTRALE_URL must be an http(s) origin without a path",
-    });
+    ctx.addIssue({ code: "custom", message: `${name} must be an http(s) origin without a path` });
     return z.NEVER;
   });
+
+/**
+ * Where the interface is reached, as people type it in the browser: Better Auth's origin and the
+ * domain passkeys are bound to (rpID), so it has no default; the origin alone, no path
+ */
+const urlFeld = originFeld(
+  "STEUERZENTRALE_URL",
+  "where the interface is reached, e.g. https://zentrale.example.de",
+);
+
+/**
+ * Where agents reach the Zentrale, `agent.<domain>` (docs/plan.md, "Wo die Zentrale läuft"): the
+ * install command and the script name it, so it has no default either
+ */
+const agentUrlFeld = originFeld(
+  "STEUERZENTRALE_AGENT_URL",
+  "where agents reach the Zentrale, e.g. https://agent.example.de",
+);
 
 /** The settings of the Zentrale from the environment; dev uses port 18300 (CLAUDE.md, "Working rules") */
 const EnvSchema = z.object({
@@ -44,6 +52,9 @@ const EnvSchema = z.object({
   STEUERZENTRALE_HOST: z.string().min(1).default("127.0.0.1"),
   STEUERZENTRALE_DATA: z.string().min(1).default("data"),
   STEUERZENTRALE_URL: urlFeld,
+  STEUERZENTRALE_AGENT_URL: agentUrlFeld,
+  // The install script, the agent binaries and their signed checksums (scripts/agent-dateien.ts)
+  STEUERZENTRALE_AGENT_DATEIEN: z.string().min(1).optional(),
   STEUERZENTRALE_SECRET_KEY: schluesselFeld("STEUERZENTRALE_SECRET_KEY"),
   // The previous key, only while rotating (`steuerzentrale schluessel-rotieren`)
   STEUERZENTRALE_SECRET_KEY_ALT: schluesselFeld("STEUERZENTRALE_SECRET_KEY_ALT").optional(),
@@ -55,6 +66,9 @@ export type Env = {
   host: string;
   dataDir: string;
   url: string;
+  agentUrl: string;
+  /** Unset: no install script and no binaries are served (the start logs it) */
+  agentDateien: string | undefined;
   schluessel: Schluesselbund;
 };
 
@@ -66,6 +80,8 @@ export const parseEnv = (env: Record<string, string | undefined>): Env => {
     host: parsed.STEUERZENTRALE_HOST,
     dataDir: parsed.STEUERZENTRALE_DATA,
     url: parsed.STEUERZENTRALE_URL,
+    agentUrl: parsed.STEUERZENTRALE_AGENT_URL,
+    agentDateien: parsed.STEUERZENTRALE_AGENT_DATEIEN,
     schluessel: { aktuell: parsed.STEUERZENTRALE_SECRET_KEY, alt: alt ? [alt] : [] },
   };
 };

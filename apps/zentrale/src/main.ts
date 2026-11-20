@@ -10,6 +10,7 @@ import { parseEnv } from "./env.ts";
 import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
+import { auslieferung } from "./modules/server/index.ts";
 
 const log = (line: string) => console.log(line);
 
@@ -77,10 +78,19 @@ const app = createApp({
   schreibDb,
   auth,
   url: env.url,
+  schluessel: env.schluessel,
+  agentUrl: env.agentUrl,
+  auslieferung: auslieferung(env.agentDateien, env.agentUrl),
   socketAdresse: (request, server) => (server as Server<unknown>).requestIP(request)?.address,
 });
 const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch });
 log(JSON.stringify({ msg: "listening", url: server.url.href, version: VERSION }));
+if (!env.agentDateien)
+  log(
+    JSON.stringify({
+      msg: "STEUERZENTRALE_AGENT_DATEIEN is not set: no install script for new servers",
+    }),
+  );
 
 // Without any member the first owner comes in with this code (docs/plan.md, "Anmeldung an der
 // Zentrale"): the one secret ever written to the log, once, valid 24 hours and once

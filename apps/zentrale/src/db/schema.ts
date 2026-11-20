@@ -206,3 +206,30 @@ export const vertraege = sqliteTable(
     }),
   ],
 );
+
+/**
+ * A managed server (BAULISTE.md Z-302): shared by several customers, of one customer, or at the
+ * customer (`kunde_id` for the last two). Its agent joins once with a one-time token (a row in
+ * `tokens` with the server's id, only the hash) and from then on is known by the SHA-256 fingerprint
+ * of its client certificate; the certificate itself stays on the server. `wartungsfenster` is JSON
+ * `{ tage, von, bis }` in Europe/Berlin (packages/planung, Wartungsfenster).
+ */
+export const server = sqliteTable(
+  "server",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    serverId: text("server_id").notNull(),
+    name: text("name").notNull(),
+    art: text("art").notNull(),
+    kundeId: text("kunde_id"),
+    wartungsfenster: text("wartungsfenster").notNull(),
+    fingerabdruck: text("fingerabdruck").unique(),
+    zertifikatGueltigBis: integer("zertifikat_gueltig_bis"),
+    beigetretenAm: integer("beigetreten_am"),
+    architektur: text("architektur"),
+    agentVersion: text("agent_version"),
+    angelegtVon: text("angelegt_von").notNull(),
+    angelegtAm: integer("angelegt_am").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.betreiberId, t.serverId] })],
+);

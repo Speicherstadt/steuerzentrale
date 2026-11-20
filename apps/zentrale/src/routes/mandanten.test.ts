@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { mitglieder } from "../db/schema.ts";
+import { mitglieder, server as serverTabelle } from "../db/schema.ts";
+import { serverHinzufuegen } from "../testhilfen/agent.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 type Person = Pick<Awaited<ReturnType<TestServer["inhaber"]>>, "json">;
@@ -90,5 +91,18 @@ describe("no operator reaches another's data", () => {
         .filter((m) => m.nutzerId === nutzerId),
     ).toEqual([expect.objectContaining({ betreiberId: partner.betreiberId })]);
     expect(teufel.betreiberId).not.toBe(partner.betreiberId);
+  });
+
+  it("POST /api/v1/server adds the server to one's own operator only", async () => {
+    const { server, teufel, partner } = await zwei();
+    const eigener = await serverHinzufuegen(teufel);
+    const fremder = await serverHinzufuegen(partner);
+    const zeilen = server.db.select().from(serverTabelle).all();
+    expect(zeilen.map((z) => [z.serverId, z.betreiberId]).sort()).toEqual(
+      [
+        [eigener.serverId, teufel.betreiberId],
+        [fremder.serverId, partner.betreiberId],
+      ].sort(),
+    );
   });
 });

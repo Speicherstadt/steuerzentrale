@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { createApp } from "./app.ts";
 import { createAuth } from "./auth/auth.ts";
 import { testDatenbank } from "./db/test-db.ts";
+import { auslieferung } from "./modules/server/index.ts";
 
 const setup = () => {
   const lines: string[] = [];
-  const { db, schreibDb, anmeldeGeheimnis } = testDatenbank();
+  const { db, schreibDb, anmeldeGeheimnis, schluessel } = testDatenbank();
   const url = "http://localhost:28300";
   const app = createApp({
     log: (line) => lines.push(line),
@@ -15,6 +16,9 @@ const setup = () => {
     schreibDb,
     auth: createAuth({ schreibDb, url, geheimnis: anmeldeGeheimnis }),
     url,
+    schluessel,
+    agentUrl: url,
+    auslieferung: auslieferung(undefined, url),
     socketAdresse: () => undefined,
   });
   return { app, lines };

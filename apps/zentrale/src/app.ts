@@ -1,13 +1,17 @@
 import { type Context, Hono } from "hono";
 import { type Auth, CLIENT_HEADER } from "./auth/auth.ts";
 import type { Db, SchreibDb } from "./db/oeffnen.ts";
+import type { Schluesselbund } from "./db/schluessel.ts";
 import { formatRequestLog, type LogSink, redactUrl } from "./log.ts";
 import { clientAdresse } from "./modules/anmeldung/adresse.ts";
+import type { Auslieferung } from "./modules/server/index.ts";
+import { agentRouten } from "./routes/agent.ts";
 import { einladungRouten } from "./routes/einladungen.ts";
 import { ersterInhaberRouten } from "./routes/erster-inhaber.ts";
 import { kontoRouten } from "./routes/konto.ts";
 import { kundenRouten } from "./routes/kunden.ts";
 import { mitgliederRouten } from "./routes/mitglieder.ts";
+import { serverRouten } from "./routes/server.ts";
 import { type Anfrage, AUTH_PFADE, routenRegistrar, wache } from "./routes/zugang.ts";
 
 export type AppDeps = {
@@ -19,6 +23,12 @@ export type AppDeps = {
   auth: Auth;
   /** Where the interface is reached (STEUERZENTRALE_URL), for invitation links */
   url: string;
+  /** The keys the database was opened with (src/modules/geheim) */
+  schluessel: Schluesselbund;
+  /** Where agents reach the Zentrale (STEUERZENTRALE_AGENT_URL), for the install command */
+  agentUrl: string;
+  /** The install script and the agent binaries (src/modules/server/auslieferung.ts) */
+  auslieferung: Auslieferung;
   /** The socket's address of a request (Bun's requestIP in main.ts; a fixed one in tests) */
   socketAdresse: (request: Request, env: unknown) => string | undefined;
 };
@@ -68,6 +78,8 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   mitgliederRouten(route, deps);
   einladungRouten(route, deps);
   kundenRouten(route, deps);
+  serverRouten(route, deps);
+  agentRouten(route, deps);
 
   return app;
 };

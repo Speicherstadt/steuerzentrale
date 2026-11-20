@@ -28,6 +28,12 @@ describe("darf", () => {
     expect(darf("support", "kunden:schreiben")).toBe(false);
   });
 
+  it("lets owner and technik add servers, not support (BAULISTE.md Z-302)", () => {
+    expect(darf("inhaber", "server:anlegen")).toBe(true);
+    expect(darf("technik", "server:anlegen")).toBe(true);
+    expect(darf("support", "server:anlegen")).toBe(false);
+  });
+
   it("gives a member with several roles the rights of each", () => {
     expect(rollenVon("support, inhaber")).toEqual(["support", "inhaber"]);
     expect(darf("support,inhaber", "mitglieder:einladen")).toBe(true);

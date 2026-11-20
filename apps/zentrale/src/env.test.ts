@@ -5,6 +5,7 @@ import { schluesselId } from "./modules/geheim/verschluesseln.ts";
 const KEY = Buffer.alloc(32, 7).toString("base64");
 const ALT = Buffer.alloc(32, 8).toString("base64");
 const URL_ = "https://zentrale.example.de";
+const AGENT_ = "https://agent.example.de";
 
 const fehlerVon = (env: Record<string, string>): string => {
   try {
@@ -17,7 +18,13 @@ const fehlerVon = (env: Record<string, string>): string => {
 
 describe("parseEnv", () => {
   it("listens on localhost:8300 by default, behind the Pforte", () => {
-    expect(parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: URL_ })).toMatchObject({
+    expect(
+      parseEnv({
+        STEUERZENTRALE_SECRET_KEY: KEY,
+        STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
+      }),
+    ).toMatchObject({
       port: 8300,
       host: "127.0.0.1",
       dataDir: "data",
@@ -32,6 +39,7 @@ describe("parseEnv", () => {
         STEUERZENTRALE_DATA: "/var/lib/steuerzentrale",
         STEUERZENTRALE_SECRET_KEY: KEY,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
       }),
     ).toMatchObject({ port: 18300, host: "0.0.0.0", dataDir: "/var/lib/steuerzentrale" });
   });
@@ -42,6 +50,7 @@ describe("parseEnv", () => {
         STEUERZENTRALE_PORT: "70000",
         STEUERZENTRALE_SECRET_KEY: KEY,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
       }),
     ).toThrow();
   });
@@ -51,11 +60,16 @@ describe("parseEnv", () => {
       STEUERZENTRALE_SECRET_KEY: KEY,
       STEUERZENTRALE_SECRET_KEY_ALT: ALT,
       STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: AGENT_,
     });
     expect(env.schluessel.aktuell.id).toBe(schluesselId(Buffer.alloc(32, 7)));
     expect(env.schluessel.alt.map((k) => k.id)).toEqual([schluesselId(Buffer.alloc(32, 8))]);
     expect(
-      parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: URL_ }).schluessel.alt,
+      parseEnv({
+        STEUERZENTRALE_SECRET_KEY: KEY,
+        STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
+      }).schluessel.alt,
     ).toEqual([]);
   });
 
@@ -73,10 +87,19 @@ describe("parseEnv", () => {
   });
 
   it("takes the URL of the interface as its origin", () => {
-    expect(parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: URL_ }).url).toBe(URL_);
     expect(
-      parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: "http://localhost:5182/" })
-        .url,
+      parseEnv({
+        STEUERZENTRALE_SECRET_KEY: KEY,
+        STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
+      }).url,
+    ).toBe(URL_);
+    expect(
+      parseEnv({
+        STEUERZENTRALE_SECRET_KEY: KEY,
+        STEUERZENTRALE_URL: "http://localhost:5182/",
+        STEUERZENTRALE_AGENT_URL: AGENT_,
+      }).url,
     ).toBe("http://localhost:5182");
   });
 
@@ -96,5 +119,36 @@ describe("parseEnv", () => {
         fehlerVon({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: falsch }),
         falsch,
       ).toContain("STEUERZENTRALE_URL must be an http(s) origin without a path");
+  });
+
+  it("takes where agents reach the Zentrale and refuses to start without it (BAULISTE.md Z-302)", () => {
+    const env = parseEnv({
+      STEUERZENTRALE_SECRET_KEY: KEY,
+      STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: "https://agent.example.de/",
+    });
+    expect(env.agentUrl).toBe(AGENT_);
+    expect(env.agentDateien).toBeUndefined();
+    expect(fehlerVon({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: URL_ })).toContain(
+      "STEUERZENTRALE_AGENT_URL is missing",
+    );
+    expect(
+      fehlerVon({
+        STEUERZENTRALE_SECRET_KEY: KEY,
+        STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: "https://agent.example.de/x",
+      }),
+    ).toContain("STEUERZENTRALE_AGENT_URL must be an http(s) origin without a path");
+  });
+
+  it("takes the directory of the agent's files", () => {
+    expect(
+      parseEnv({
+        STEUERZENTRALE_SECRET_KEY: KEY,
+        STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
+        STEUERZENTRALE_AGENT_DATEIEN: "/opt/steuerzentrale/agent",
+      }).agentDateien,
+    ).toBe("/opt/steuerzentrale/agent");
   });
 });

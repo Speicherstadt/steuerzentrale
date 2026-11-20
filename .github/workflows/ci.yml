@@ -58,6 +58,8 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      # minisign for the tests of install/install.sh (scripts/install-sh.test.ts); shellcheck is on the runner
+      - run: sudo apt-get install -y -q minisign
       - run: bun run typecheck
       # Biome, allowed-dependencies.json and no Solid 1.x patterns (scripts/solid-muster.ts)
       - run: bun run lint
@@ -69,6 +71,7 @@ jobs:
       - run: bunx checks
       - if: github.event_name == 'pull_request'
         run: bunx checks pr
+      - run: shellcheck --shell=sh install/install.sh
       - run: bun run test
       - run: bun run build
       # Zentrale and agent as one binary each for both server architectures (docs/plan.md, "Technologie")
@@ -104,10 +107,85 @@ jobs:
       - run: bunx playwright install --with-deps chromium
       - run: bun run e2e
 
+  # BAULISTE.md Z-302: install/install.sh on a real server, a VM in Incus on the runner (KVM), with
+  # systemd and rootless Podman as on Debian 13 and Ubuntu 24.04 (docs/plan.md, "Was sich in der CI
+  # nicht echt testen lässt"). The Zentrale runs on the runner and serves the agent files signed with the
+  # test key, so the script runs in test mode; afterwards the agent's service runs and the fingerprint
+  # of its certificate is the one the Zentrale keeps
+  server:
+    needs: changes
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        system: ["debian/13", "ubuntu/24.04"]
+    env:
+      VM: sz-test-server
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - name: Incus
+        run: |
+          sudo apt-get update -q
+          # incus-agent lets `incus exec` into a VM; qemu and OVMF run it (KVM is on the runner)
+          sudo apt-get install -y -q incus incus-agent qemu-system-x86 ovmf
+          sudo incus admin init --minimal
+          # Docker on the runner drops forwarded packets: let the VMs' bridge out, and answers back in
+          if sudo iptables -n -L DOCKER-USER >/dev/null 2>&1; then
+            sudo iptables -I DOCKER-USER -i incusbr0 -j ACCEPT
+            sudo iptables -I DOCKER-USER -o incusbr0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          fi
+      - name: VM
+        run: |
+          sudo incus launch "images:${{ matrix.system }}" "$VM" --vm -c limits.cpu=2 -c limits.memory=2GiB
+          for i in $(seq 1 120); do sudo incus exec "$VM" -- true 2>/dev/null && break; sleep 2; done
+          sudo incus exec "$VM" -- sh -c 'for i in $(seq 1 60); do getent hosts deb.debian.org >/dev/null && exit 0; sleep 2; done; exit 1'
+      - name: Zentrale with the agent files
+        run: |
+          bun run --cwd apps/agent build
+          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-dateien"
+          host="$(sudo incus network get incusbr0 ipv4.address | cut -d/ -f1)"
+          {
+            echo "STEUERZENTRALE_PORT=28300"
+            echo "STEUERZENTRALE_HOST=0.0.0.0"
+            echo "STEUERZENTRALE_DATA=$RUNNER_TEMP/daten"
+            echo "STEUERZENTRALE_SECRET_KEY=$(head -c 32 /dev/zero | tr '\0' '\7' | base64)"
+            echo "STEUERZENTRALE_URL=http://localhost:28300"
+            echo "STEUERZENTRALE_AGENT_URL=http://$host:28300"
+            echo "STEUERZENTRALE_AGENT_DATEIEN=$RUNNER_TEMP/agent-dateien"
+          } >> "$GITHUB_ENV"
+      - name: install.sh in the VM
+        run: |
+          nohup bun apps/zentrale/src/main.ts > "$RUNNER_TEMP/zentrale.log" 2>&1 &
+          for i in $(seq 1 50); do curl -fsS "$STEUERZENTRALE_AGENT_URL/health" && break; sleep 0.2; done
+          neu="$(bun apps/zentrale/src/testhilfen/testserver.ts anlegen "${{ matrix.system }}")"
+          echo "SERVER_ID=$(jq -r .serverId <<< "$neu")" >> "$GITHUB_ENV"
+          # The command needs curl, as the one the interface shows does
+          sudo incus exec "$VM" -- sh -c 'command -v curl >/dev/null || { apt-get update -q && apt-get install -y -q curl; }'
+          sudo incus exec "$VM" -- sh -c "$(jq -r .befehl <<< "$neu")"
+      - name: The agent runs and has its certificate
+        run: |
+          sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
+          sudo incus exec "$VM" -- podman --version
+          test "$(sudo incus exec "$VM" -- sysctl -n net.ipv4.ip_unprivileged_port_start)" = 80
+          vm="$(sudo incus exec "$VM" -- sh -c "sed '1d;\$d' /var/lib/steuerzentrale/agent.pem | base64 -d | sha256sum | cut -d' ' -f1")"
+          zentrale="$(bun apps/zentrale/src/testhilfen/testserver.ts fingerabdruck "$SERVER_ID")"
+          echo "VM: $vm, Zentrale: $zentrale"
+          test -n "$vm" && test "$vm" = "$zentrale"
+      - if: failure()
+        run: |
+          cat "$RUNNER_TEMP/zentrale.log" || true
+          sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent --no-pager -n 100 || true
+
   # One result for the rules on main (required check "check"), however many parts the jobs split into
   check:
     if: ${{ always() && !github.event.pull_request.draft }}
-    needs: [changes, unit, agent, e2e]
+    needs: [changes, unit, agent, e2e, server]
     runs-on: ubuntu-latest
     steps:
       # A part may be skipped only when the pull request changes no code (job changes); otherwise every
@@ -115,7 +193,7 @@ jobs:
       - env:
           CODE: ${{ needs.changes.outputs.code }}
         run: |
-          for result in "${{ needs.unit.result }}" "${{ needs.agent.result }}" "${{ needs.e2e.result }}"; do
+          for result in "${{ needs.unit.result }}" "${{ needs.agent.result }}" "${{ needs.e2e.result }}" "${{ needs.server.result }}"; do
             if [ "$result" = success ]; then continue; fi
             if [ "$result" = skipped ] && [ "$CODE" = false ]; then continue; fi
             echo "A part ended with: $result"

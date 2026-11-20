@@ -5,6 +5,7 @@ import { installationenAuf, kundenAuf, sperrzeitenAuf } from "../daten/ableitung
 import { bestand } from "../daten/quelle.ts";
 import type { Bestand, Server } from "../daten/typen.ts";
 import { PLATTE_WARNUNG, serverZustand } from "../daten/zustand.ts";
+import { ServerHinzufuegen } from "../seiten/server-hinzufuegen.tsx";
 import { agentText } from "../seiten/server-texte.ts";
 import { Mini } from "../teile/balken.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
@@ -104,7 +105,7 @@ const ServerListe = () => {
   const b = bestand();
   return (
     <div class="grid gap-6">
-      <Seitenkopf titel={m.nav_server()} text={m.server_text()} />
+      <Seitenkopf titel={m.nav_server()} text={m.server_text()} aktion={<ServerHinzufuegen />} />
       <Tabelle
         name={m.server_tabelle()}
         minBreite={1120}

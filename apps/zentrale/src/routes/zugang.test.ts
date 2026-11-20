@@ -79,10 +79,15 @@ describe("the public routes", () => {
     "%s answers without a session",
     async (name) => {
       const { pfad, init } = anfrage(name);
-      const { status, daten } = await server.browser().json(pfad, init);
-      expect(status).not.toBe(401);
-      // Hono's own 404 has no JSON body; a route's answer has one (an unknown token: 404 too)
-      expect(daten).not.toBeNull();
+      const antwort = await server.browser().anfrage(pfad, init);
+      expect(antwort.status).not.toBe(401);
+      // Hono's own 404 is plain text; a route answers JSON (an unknown token: 404 too) or, for
+      // install.sh and the agent's files, what it serves
+      expect(antwort.headers.get("content-type")).toMatch(
+        /^(application\/json|text\/x-shellscript|application\/octet-stream|text\/plain; charset=utf-8)/,
+      );
+      if (antwort.headers.get("content-type")?.startsWith("text/plain"))
+        expect(await antwort.text()).not.toBe("404 Not Found");
     },
   );
 });

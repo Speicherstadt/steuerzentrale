@@ -17,6 +17,11 @@ ein Konto nur dessen Einrichtung. Den ersten Inhaber legt ein Einrichtungscode a
 an, weitere Personen kommen per Einladungslink mit den Rollen Inhaber, Technik oder Support
 ([Anmeldung](docs/anmeldung.md)).
 
+**Server hinzufügen:** die Oberfläche zeigt einen Befehl mit Einmal-Token (24 Stunden, einmal nutzbar);
+`install.sh` richtet auf Debian 13 oder Ubuntu 24.04 Podman, unattended-upgrades und den signierten Agenten
+als systemd-Dienst ein, und der Agent tauscht das Token gegen sein Client-Zertifikat
+([Server hinzufügen](docs/server-hinzufuegen.md)).
+
 **Stand:** in Planung. Plan und Bauliste: [`docs/plan.md`](docs/plan.md), [`BAULISTE.md`](BAULISTE.md).
 
 Lizenz: AGPL-3.0 ([`NOTICE`](NOTICE)). Beiträge mit Developer Certificate of Origin (`git commit -s`), kein CLA;

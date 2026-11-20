@@ -3,6 +3,10 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { oeffneDatenbank } from "./db/oeffnen.ts";
+import { schluesselAus } from "./modules/geheim/verschluesseln.ts";
+import { serverAnlegen } from "./modules/server/index.ts";
+import { testAnfrage } from "./testhilfen/agent.ts";
 
 // The compiled binary carries its migrations: started in an empty data directory it creates the
 // database (Z-102), and it refuses to start on a database whose applied migration was changed
@@ -11,6 +15,7 @@ const binary = join(ordner, "steuerzentrale");
 const KEY = Buffer.alloc(32, 7).toString("base64");
 // The interface's address (here never reached): Better Auth's origin and the passkeys' domain
 const URL_ = "http://localhost:28300";
+const AGENT_ = "http://localhost:28300";
 const target = process.arch === "arm64" ? "linux-arm64" : "linux-x64";
 
 beforeAll(() => {
@@ -49,6 +54,7 @@ describe("the compiled Zentrale", () => {
         STEUERZENTRALE_DATA: daten,
         STEUERZENTRALE_SECRET_KEY: KEY,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
       },
       stdout: "pipe",
     });
@@ -76,6 +82,7 @@ describe("the compiled Zentrale", () => {
         STEUERZENTRALE_DATA: daten,
         STEUERZENTRALE_SECRET_KEY: KEY,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
       },
     });
     await warteAuf("http://127.0.0.1:28391/health");
@@ -90,6 +97,7 @@ describe("the compiled Zentrale", () => {
         STEUERZENTRALE_DATA: daten,
         STEUERZENTRALE_SECRET_KEY: KEY,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
       },
       stderr: "pipe",
     });
@@ -101,7 +109,12 @@ describe("the compiled Zentrale", () => {
   it("refuses to start without a key, and with a key that does not open the database", async () => {
     const daten = join(ordner, "schluessel");
     const ohne = Bun.spawn([binary], {
-      env: { STEUERZENTRALE_PORT: "28393", STEUERZENTRALE_DATA: daten, STEUERZENTRALE_URL: URL_ },
+      env: {
+        STEUERZENTRALE_PORT: "28393",
+        STEUERZENTRALE_DATA: daten,
+        STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
+      },
       stderr: "pipe",
     });
     expect(await ohne.exited).toBe(1);
@@ -115,6 +128,7 @@ describe("the compiled Zentrale", () => {
         STEUERZENTRALE_DATA: daten,
         STEUERZENTRALE_SECRET_KEY: KEY,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
       },
     });
     await warteAuf("http://127.0.0.1:28394/health");
@@ -127,6 +141,7 @@ describe("the compiled Zentrale", () => {
         STEUERZENTRALE_DATA: daten,
         STEUERZENTRALE_SECRET_KEY: falsch,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
       },
       stderr: "pipe",
     });
@@ -144,6 +159,7 @@ describe("the compiled Zentrale", () => {
         STEUERZENTRALE_DATA: daten,
         STEUERZENTRALE_SECRET_KEY: KEY,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
       },
     });
     await warteAuf("http://127.0.0.1:28396/health");
@@ -155,6 +171,7 @@ describe("the compiled Zentrale", () => {
         STEUERZENTRALE_DATA: daten,
         STEUERZENTRALE_SECRET_KEY: neu,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
         STEUERZENTRALE_SECRET_KEY_ALT: KEY,
       },
       stdout: "pipe",
@@ -167,6 +184,7 @@ describe("the compiled Zentrale", () => {
         STEUERZENTRALE_DATA: daten,
         STEUERZENTRALE_SECRET_KEY: KEY,
         STEUERZENTRALE_URL: URL_,
+        STEUERZENTRALE_AGENT_URL: AGENT_,
       },
     });
     expect(await alt.exited).toBe(1);
@@ -192,6 +210,7 @@ describe("the compiled Zentrale", () => {
       STEUERZENTRALE_DATA: daten,
       STEUERZENTRALE_SECRET_KEY: KEY,
       STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: AGENT_,
     };
     const prozess = Bun.spawn([binary], { env, stdout: "pipe" });
     try {
@@ -223,6 +242,51 @@ describe("the compiled Zentrale", () => {
     zweiter.kill();
     await zweiter.exited;
     expect(await new Response(zweiter.stdout).text()).not.toContain("setup code");
+  }, 30_000);
+});
+
+describe("the compiled Zentrale and its agents (BAULISTE.md Z-302)", () => {
+  // In one binary the passkeys' @peculiar/x509 and this one share tsyringe's container: with two
+  // major lines the later one's algorithms broke issuing (allowed-dependencies.json)
+  it("exchanges a join token for a client certificate", async () => {
+    const daten = join(ordner, "beitritt");
+    const port = 28388;
+    const env = {
+      STEUERZENTRALE_PORT: String(port),
+      STEUERZENTRALE_DATA: daten,
+      STEUERZENTRALE_SECRET_KEY: KEY,
+      STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: AGENT_,
+    };
+    const prozess = Bun.spawn([binary], { env, stdout: "ignore" });
+    try {
+      await warteAuf(`http://127.0.0.1:${port}/health`);
+      const schluessel = schluesselAus(KEY);
+      if (!schluessel.ok) throw new Error("test key");
+      const offen = oeffneDatenbank(join(daten, "zentrale.db"), Date.now(), {
+        aktuell: schluessel.schluessel,
+        alt: [],
+      });
+      const kontext = { betreiberId: "b", akteur: "test", jetzt: Date.now(), grund: "Test" };
+      const { token } = serverAnlegen(offen.schreibDb, kontext, {
+        name: "s",
+        art: "gemeinsam",
+        wartungsfenster: { tage: [1], von: "03:30", bis: "04:30" },
+      });
+      offen.schliessen();
+      const antwort = await fetch(`http://127.0.0.1:${port}/api/v1/agent/beitreten`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(await testAnfrage(token)),
+      });
+      expect(antwort.status).toBe(201);
+      expect(((await antwort.json()) as { zertifikat: string }).zertifikat).toContain(
+        "BEGIN CERTIFICATE",
+      );
+    } finally {
+      prozess.kill();
+      await prozess.exited;
+    }
   }, 30_000);
 });
 
