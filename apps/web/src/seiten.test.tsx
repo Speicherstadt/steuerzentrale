@@ -93,6 +93,21 @@ describe("pages", () => {
     expect(ueberschrift(root)).toBe("Studio Lind · Haben");
   });
 
+  it("claim no check as OK on a server whose agent is silent", async () => {
+    // kraft: agent silent for 6 minutes, the checks run every 5; as on the installation page,
+    // the last known values are no fresh check (no green without a check)
+    const root = await oeffne("/server/kraft");
+    const karte = [...root.querySelectorAll("main section")].find(
+      (s) => s.querySelector("h2")?.textContent === "Prüfungen",
+    );
+    expect(karte).toBeDefined();
+    const zustaende = [...(karte?.querySelectorAll("span.inline-flex") ?? [])].map(
+      (z) => z.textContent,
+    );
+    expect(zustaende).not.toContain("OK");
+    expect(karte?.textContent).toContain("Agent still: letzter bekannter Stand");
+  });
+
   it("say so for an unknown object", async () => {
     const root = await oeffne("/kunden/gibt-es-nicht");
     expect(ueberschrift(root)).toBe("Nicht gefunden");

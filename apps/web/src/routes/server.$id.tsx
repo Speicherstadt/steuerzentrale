@@ -189,6 +189,8 @@ const Detail = (props: { sv: Server }) => {
   const b = bestand();
   const installationen = () => installationenAuf(b, props.sv.id);
   const ids = () => new Set([props.sv.id, ...installationen().map((i) => i.id)]);
+  // A silent agent's last values are no check: no OK and no warning, as on the installation page
+  const still = () => props.sv.agent.zustand !== "verbunden";
   return (
     <div class="grid gap-4">
       <Kopf b={b} sv={props.sv} />
@@ -198,10 +200,13 @@ const Detail = (props: { sv: Server }) => {
         <Wartung b={b} sv={props.sv} />
       </div>
       <Karte>
-        <KartenKopf titel={m.server_pruefungen()} text={m.server_pruefungen_text()} />
+        <KartenKopf
+          titel={m.server_pruefungen()}
+          text={still() ? m.inst_units_still() : m.server_pruefungen_text()}
+        />
         <KartenInhalt class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <For each={pruefungen(b, props.sv)}>
-            {(p) => <Pruefzeile {...pruefText(b, p)} ok={p.ok} />}
+            {(p) => <Pruefzeile {...pruefText(b, p)} ok={still() ? null : p.ok} />}
           </For>
         </KartenInhalt>
       </Karte>
