@@ -202,6 +202,8 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | SLA | Stufe je Vertrag: Basis, Plus (Reaktionszeit, frühe Welle möglich), Ruhe (späte Welle) | wer Ruhe kauft, bekommt Updates später |
 | Partner | ein Partner ist ein Betreiber mit eigenen Kunden in derselben Zentrale oder mit eigener Zentrale | IT-Systemhäuser sollen unsere Apps betreiben können |
 | Portal | eigenes Repo; spricht nur über die öffentliche API der Zentrale (Token mit Rechten) und Webhooks | die Zentrale bleibt nicht öffentlich |
+| Was der Kunde sieht | nichts in der Zentrale; Zustand, Backups, Support-Zugänge und Export seiner Installationen zeigt das Portal über lesende Endpunkte der API | Kunden melden sich nie an der Zentrale an |
+| Wo die Zentrale läuft | überall, wo die Agenten ihren Endpunkt per HTTPS erreichen (eigener Server, Büro, hinter einem Tunnel); die Oberfläche bleibt privat | die Agenten verbinden sich immer von sich aus; fällt die Zentrale aus, laufen die Apps weiter |
 | Geräte beim Kunden | nicht verwaltet; die Zentrale zeigt nur, ob eine App solche Teile hat | Fernwartung von Geräten ist ein eigenes Thema |
 | Was sich in der CI nicht echt testen lässt | Registry, S3 und Mail durch lokale Ersatzdienste (Registry-Container, MinIO, Mailpit); echte Server durch Podman mit systemd im Runner | die Kriterien für „fertig“ bleiben erfüllbar |
 | Merge | der Loop merged selbst, wenn CI grün ist und das unabhängige Review keine Befunde mehr hat | er wartet nie auf einen Menschen |

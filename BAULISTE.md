@@ -61,7 +61,8 @@ auf `origin/main`.
   Route ihre Rollen prüft (Test je Route und Rolle) und ein Partner nur seine Kunden sieht (Test je
   Endpunkt).
 - [ ] **Z-105 Oberfläche und Demodaten** – Shell nach DESIGN.md und `design/mockup/`: Seitenleiste,
-  Übersicht, Server, Installationen, Apps, Updates, Backups, Kunden, Support, Einstellungen;
+  Übersicht, Server, Installationen, Updates, Backups, Aufträge, Kunden, Support-Zugänge,
+  Leistungen, Apps, Ereignisse, Audit-Log, Einstellungen; keine Kundenansicht (die ist im Portal);
   `bun run dev:demo` mit Fixtures in `apps/web/src/demo/`, die auch E2E und Screenshots nutzen.
   nach: Z-101
   Fertig, wenn: jede Seite in hell und dunkel, Desktop und Handy ohne axe-Befund rendert (Playwright),
@@ -260,6 +261,11 @@ auf `origin/main`.
   mit Wiederholung.
   Fertig, wenn: eine gefälschte Signatur im Test-Empfänger auffällt und eine Zustellung nach
   Ausfall des Empfängers wiederholt wird.
+- [ ] **Z-904 Lesen für das Portal** – lesende Endpunkte je Kunde: Installationen mit Zustand,
+  letztes Backup und Prüf-Restore, Support-Zugänge, Ereignisse, Export zum Herunterladen (wenn das
+  Manifest ihn anbietet); ein Token des Portals sieht nur den Kunden, für den es fragt.
+  Fertig, wenn: kein Endpunkt Daten eines anderen Kunden liefert (Test je Endpunkt) und keine
+  Antwort ein Geheimnis, einen Linux-Nutzer oder einen Log-Auszug enthält (Test).
 
 ## Phase 10 – Härtung und Release
 
