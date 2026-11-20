@@ -175,12 +175,6 @@ const weitereRegeln = (m: Manifest): Befund[] => [
     pfad: ["optionen"],
     grund: `option ${id} is declared twice`,
   })),
-  ...m.sperrzeiten.flatMap((s, i) => {
-    const [von, bis] = s.monatlich.split("-").map(Number);
-    return (von ?? 0) > (bis ?? 0)
-      ? [{ pfad: ["sperrzeiten", i, "monatlich"], grund: "the first day is after the last" }]
-      : [];
-  }),
 ];
 
 export const regelnPruefen = (m: Manifest): Befund[] => [

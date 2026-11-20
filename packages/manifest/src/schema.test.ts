@@ -40,6 +40,18 @@ describe("the example of docs/plan.md", () => {
   });
 });
 
+describe("freeze windows", () => {
+  it("may cross the month's end (packages/planung reads 28-03 as the 28th to the 3rd)", () => {
+    expect(
+      fehler(
+        mit((m) => {
+          m.sperrzeiten[0].monatlich = "28-03";
+        }),
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("invalid manifests", () => {
   // Each one fails with a message that names the field and the reason
   const faelle: [string, (m: Roh) => void, string][] = [
@@ -182,13 +194,6 @@ describe("invalid manifests", () => {
         m.autoupdate = true;
       },
       "(manifest): ",
-    ],
-    [
-      "a freeze window ending before it starts",
-      (m) => {
-        m.sperrzeiten[0].monatlich = "12-07";
-      },
-      "sperrzeiten.0.monatlich: the first day is after the last",
     ],
     [
       "an env value of a container that is not declared",

@@ -278,7 +278,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-406
   Fertig, wenn: gegen die lokale Registry eine neue Version erkannt wird, ein Manifest ohne gültige
   Signatur beim Import abgelehnt wird und eine Vorabversion nur intern erscheint.
-- [ ] **Z-502 Wellen und Sperrzeiten** – reine Funktion in `packages/planung`: Installationen,
+- [x] **Z-502 Wellen und Sperrzeiten** – reine Funktion in `packages/planung`: Installationen,
   Sperrzeiten, Wartungsfenster, Zeitpunkt → Plan. Zwei Wellen: „intern“ (unsere eigenen
   Installationen) und „alle“, 24 h nach „intern“ ohne Störung; „intern“ ohne eigene Installation
   wartet auf Freigabe; `dringend` läuft sofort durch beide Wellen, eine Sperrzeit übergeht nur der

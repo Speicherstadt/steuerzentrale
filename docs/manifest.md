@@ -39,7 +39,7 @@ Jede Meldung nennt das Feld und den Grund, z. B.
 | `schritte` | `einrichten`, `nach_update`: nur Namen aus `befehle` |
 | `backup` | Teile: `pg_dump` (`container`, `datenbank`, `nutzer`), `volume` (`volume`), `befehl` (`befehl`) |
 | `aktionen` | `nur_lesen`, `export`: `nicht_unterstuetzt`, `{ nicht_unterstuetzt: <Issue> }` oder `{ befehl: <Name> }`; `neustart`, `log_auszug`: `angeboten` (Vorgabe) oder nicht unterstützt |
-| `sperrzeiten` | `{ monatlich: "07-12", grund: … }`: keine Updates und Neustarts an diesen Tagen jedes Monats |
+| `sperrzeiten` | `{ monatlich: "07-12", grund: … }`: keine Updates und Neustarts an diesen Tagen jedes Monats (Berliner Kalendertage); `28-03` reicht über den Monatswechsel |
 | `dns` | Einträge der App (`typ`, `name`, `wert`, `prioritaet`), z. B. MX und SPF für Mail |
 | `env` | Einstellungen: `name`, `ebene` (`betreiber`, `installation`, `auto`), `typ` (`text`, `zahl`, `ja_nein`, `geheim`), `pflicht`, `vorgabe`, `beschreibung`; ein `auto`-Wert hat genau eines von `erzeugen` (`zufall_32`, `zufall_64`), `aus` (`oidc-anbieter`, `adresse`) oder `vorlage` |
 | `dringend` | `true`: das Update läuft sofort durch alle Wellen |
@@ -60,8 +60,7 @@ Unbekannte Felder sind ein Fehler, damit ein Tippfehler nicht still übergangen 
   kann unter demselben Namen ein anderes Image meinen.
 - `rootful` und ein eigener Proxy nur mit `netz.server_fuer_sich: true`; der geteilte Proxy braucht
   `netz.http`.
-- Namen von Containern, Optionen und Einstellungen sind eindeutig; eine Sperrzeit endet nicht vor
-  ihrem Anfang.
+- Namen von Containern, Optionen und Einstellungen sind eindeutig.
 
 ## Signatur
 

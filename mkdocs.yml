@@ -58,6 +58,8 @@ markdown_extensions:
       custom_checkbox: true
 nav:
   - Steuerzentrale: index.md
+  - Betrieb:
+      - Updates: updates.md
   - Für App-Entwickler:
       - Manifest: manifest.md
   - Entwicklung:
