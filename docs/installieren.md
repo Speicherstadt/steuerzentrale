@@ -21,7 +21,7 @@ drei Ergebnissen:
 | --- | --- |
 | Architektur | ein Container der App oder einer gewählten Option, oder eine gewählte Option ohne eigene Container, die Architektur des Servers nicht kennt (Kontext mit `documents` läuft nur auf amd64) |
 | RAM | die Summe der Grenzen (`ram_mb` der App und der gewählten Optionen und aller Installationen auf dem Server) den RAM des Servers übersteigt |
-| Platte | `platte_gb` der App den freien Platz übersteigt (in Stufe 1 ein Planwert) |
+| Platte | `platte_gb` der App den freien Platz übersteigt oder die Summe der Planwerte (`platte_gb` der App und aller Installationen auf dem Server) die Größe der Platte (in Stufe 1 Planwerte) |
 | Feste Ports | ein fester Port (auch in einem Bereich, je Protokoll) schon von einer Installation oder dem Server belegt ist; vergebene Ports (`fest: false`) verteilt die Zentrale |
 | Öffentliche IPv4 | die App eine öffentliche IPv4 braucht und der Server nur private Adressen hat |
 | Mail | die App Mail verschickt und der öffentlichen Adresse ein PTR-Eintrag fehlt oder Port 25 ausgehend gesperrt oder unbekannt ist |

@@ -21,6 +21,8 @@ export type PlatzServer = {
   ramMb: number;
   /** Free space on the volume the installations live on */
   platteFreiMb: number;
+  /** Size of that volume */
+  platteGesamtMb: number;
   ipv4: string[];
   ptr: Record<string, string>;
   port25Ausgehend: boolean | null;
@@ -142,11 +144,17 @@ const ram: Regel = (a) =>
   );
 
 /**
- * Disk is a planned value (docs/plan.md, "Ressourcen"): the app's planned size against the free
- * space the agent measures, which already holds what the other installations use
+ * Disk is a planned value (docs/plan.md, "Ressourcen"), summed like RAM (BAULISTE.md, Z-204): the
+ * planned sizes of all installations against the volume, and the app's against the free space the
+ * agent measures; the tighter of the two decides
  */
-const platte: Regel = (a) =>
-  anteil("platte", a.manifest.ressourcen.platte_gb * 1024, a.server.platteFreiMb);
+const platte: Regel = (a) => {
+  const neu = a.manifest.ressourcen.platte_gb * 1024;
+  const geplant = neu + a.installationen.reduce((s, i) => s + i.platteGb * 1024, 0);
+  return geplant / a.server.platteGesamtMb > neu / a.server.platteFreiMb
+    ? anteil("platte", geplant, a.server.platteGesamtMb)
+    : anteil("platte", neu, a.server.platteFreiMb);
+};
 
 const ports: Regel = (a) => {
   const belegt = [...a.installationen.flatMap((i) => i.festePorts), ...a.server.portsBelegt];
