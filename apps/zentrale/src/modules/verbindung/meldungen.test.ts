@@ -87,6 +87,19 @@ describe("an SSH login", () => {
     expect(zentrale.db.select().from(ereignisse).all()).toHaveLength(1);
   });
 
+  it("cannot flood the events and the audit log: a backlog of 100 passes, then one a minute", async () => {
+    const { zentrale, s } = await verbunden();
+    const audit = zentrale.db.select().from(auditLog).all().length;
+    for (let i = 0; i < 1000; i++)
+      await s.nachricht(JSON.stringify({ ...ANMELDUNG, zeit: 1_795_000_000_000 + i }));
+    expect(zentrale.db.select().from(ereignisse).all()).toHaveLength(100);
+    expect(zentrale.db.select().from(auditLog).all()).toHaveLength(audit + 100);
+    zentrale.stelleUhr(zentrale.jetzt() + 60_000);
+    await s.nachricht(JSON.stringify({ ...ANMELDUNG, zeit: 1_795_000_001_000 }));
+    await s.nachricht(JSON.stringify({ ...ANMELDUNG, zeit: 1_795_000_001_001 }));
+    expect(zentrale.db.select().from(ereignisse).all()).toHaveLength(101);
+  });
+
   it("never stands later than now, whatever the agent's clock says", async () => {
     const { zentrale, s } = await verbunden();
     await s.nachricht(JSON.stringify({ ...ANMELDUNG, zeit: zentrale.jetzt() + 3600_000 }));
