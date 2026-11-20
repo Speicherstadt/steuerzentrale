@@ -28,9 +28,11 @@ const manifest = (extra: Record<string, unknown> = {}): Manifest => {
   return geprueft.manifest;
 };
 
-const anfrage = (
-  aenderung: Partial<PlatzAnfrage> & { server?: Partial<PlatzAnfrage["server"]> } = {},
-): PlatzAnfrage => ({
+type Aenderung = Partial<Omit<PlatzAnfrage, "server">> & {
+  server?: Partial<PlatzAnfrage["server"]>;
+};
+
+const anfrage = (aenderung: Aenderung = {}): PlatzAnfrage => ({
   manifest: manifest(),
   optionen: [],
   installationen: [],
