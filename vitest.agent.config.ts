@@ -4,5 +4,12 @@ import { defineConfig } from "vitest/config";
 // --passWithNoTests: a run without a test fails, and with CI=true a missing Podman fails it too
 // (apps/agent/test/podman.ts).
 export default defineConfig({
-  test: { include: ["apps/agent/**/*.agent.test.ts"], testTimeout: 120_000, pool: "threads" },
+  test: {
+    include: ["apps/agent/**/*.agent.test.ts"],
+    // Builds the example app's images and manifests once, where Podman is (Z-202)
+    globalSetup: ["apps/agent/test/beispiel-setup.ts"],
+    testTimeout: 120_000,
+    hookTimeout: 600_000,
+    pool: "threads",
+  },
 });

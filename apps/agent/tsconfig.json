@@ -4,7 +4,7 @@
     "outDir": "../../node_modules/.tsbuild/agent",
     "types": ["bun"]
   },
-  "include": ["src", "test"],
+  "include": ["src"],
   "references": [
     {
       "path": "../../packages/protokoll"

@@ -122,7 +122,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   scheitern, die Feld und Grund nennt, ein Schritt als Shell-Text und ein Image ohne Digest abgelehnt
   werden, ein verändertes oder unsigniertes Manifest abgelehnt wird (Test) und das JSON Schema in der
   CI neu erzeugt und verglichen wird.
-- [ ] **Z-202 Beispiel-App** – `manifeste/beispiel/`: kleiner HTTP-Dienst mit SQLite-Volume, Health,
+- [x] **Z-202 Beispiel-App** – `manifeste/beispiel/`: kleiner HTTP-Dienst mit SQLite-Volume, Health,
   einer Option, einem Befehl nach dem Update, einem vergebenen Port und einem Backup aus zwei Teilen;
   Image in der CI gebaut, in eine lokale Registry geschoben, in zwei Versionen und einer kaputten
   (Health rot). Die Manifeste der Beispiel-App erzeugt die CI zur Testzeit mit den Digests der eben

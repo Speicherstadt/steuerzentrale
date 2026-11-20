@@ -1,0 +1,39 @@
+# The example app's manifest as template (Z-202): scripts/beispiel-manifeste.ts fills in version and
+# digest of the images CI has just built and signs each manifest with the public test key. Only this
+# template is checked in, never a generated manifest.
+schema: 1
+id: beispiel
+version: "{{VERSION}}"
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/steuerzentrale/tree/main/manifeste/beispiel
+container:
+  - name: app
+    image: "{{IMAGE}}"
+    volumes: [{ name: daten, pfad: /daten }]
+    env: [BEISPIEL_TITEL, BEISPIEL_SCHLUESSEL]
+optionen:
+  - id: worker
+    name: Hintergrundarbeiter
+    container:
+      - { name: worker, image: "{{IMAGE}}", argv: [worker], volumes: [{ name: daten, pfad: /daten }] }
+    ram_mb: 64
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 128, platte_gb: 1 }
+netz:
+  http: { dienst: app, port: 8080, websocket: false, sse: false, max_body_mb: 1, timeout_s: 30 }
+  ports: [{ dienst: app, port: 9000, proto: tcp, fest: false }]
+proxy: geteilt
+anmeldung: eigen
+health: { art: http, dienst: app, pfad: /health }
+befehle:
+  migrieren: { container: app, argv: [bun, /app/server.ts, migrieren] }
+  export: { container: app, argv: [bun, /app/server.ts, export] }
+schritte: { einrichten: [migrieren], nach_update: [migrieren] }
+backup:
+  - { art: volume, volume: daten }
+  - { art: befehl, befehl: export }
+aktionen: { nur_lesen: nicht_unterstuetzt, export: { befehl: export } }
+env:
+  - { name: BEISPIEL_TITEL, ebene: installation, vorgabe: Beispiel }
+  - { name: BEISPIEL_SCHLUESSEL, ebene: auto, erzeugen: zufall_32 }
+hinweis: Beispiel-App der Steuerzentrale, nur für Tests
