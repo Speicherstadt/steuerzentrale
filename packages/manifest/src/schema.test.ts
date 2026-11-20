@@ -385,3 +385,32 @@ describe("secrets in templates and DNS records (review of Z-203)", () => {
     ).toContain("dns.0.wert: DB_PASSWORT is a secret and a DNS record is public");
   });
 });
+
+describe("templates naming a setting of an option (review of Z-203)", () => {
+  const mitOptionswert = (aendern: (m: Roh) => void) =>
+    fehler(
+      mit((m) => {
+        m.optionen = [{ id: "ki", name: "KI", container: [] }];
+        m.env.push({ name: "KI_HOST", ebene: "installation", option: "ki" });
+        aendern(m);
+      }),
+    );
+
+  it("are set only with the same option, since without it the value does not exist", () => {
+    expect(
+      mitOptionswert((m) => {
+        m.env.push({
+          name: "KI_URL",
+          ebene: "auto",
+          vorlage: "https://${env:KI_HOST}",
+          option: "ki",
+        });
+      }),
+    ).toEqual([]);
+    expect(
+      mitOptionswert((m) => {
+        m.env.push({ name: "KI_URL", ebene: "auto", vorlage: "https://${env:KI_HOST}" });
+      }),
+    ).toContain("env.5.vorlage: KI_HOST is set only with the option ki");
+  });
+});
