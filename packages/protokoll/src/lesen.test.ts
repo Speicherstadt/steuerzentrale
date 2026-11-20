@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { VOM_AGENTEN_V1, VON_DER_ZENTRALE_V1 } from "./beispiele-v1.ts";
 import {
   AELTESTE_VERSION,
+  MAX_NACHRICHT_BYTES,
   PROTOKOLL_VERSION,
   schreiben,
   vomAgentenLesen,
@@ -146,5 +147,23 @@ describe("invalid messages", () => {
 
   it("schreiben refuses to send what the schema does not allow", () => {
     expect(() => schreiben(VomAgenten, { typ: "heartbeat", protokoll: 1 } as never)).toThrow();
+  });
+});
+
+describe("size", () => {
+  it("a message larger than MAX_NACHRICHT_BYTES is neither read nor sent", () => {
+    const riesig = {
+      typ: "log_auszug",
+      protokoll: 1,
+      auftragId: "a",
+      zeilen: ["x".repeat(MAX_NACHRICHT_BYTES)],
+    };
+    expect(vomAgentenLesen(JSON.stringify(riesig))).toMatchObject({
+      ok: false,
+      grund: expect.stringContaining("larger than"),
+    });
+    expect(() => schreiben(VomAgenten, riesig as never)).toThrow(/larger than/);
+    const auftrag = { ...VON_DER_ZENTRALE_V1[1], manifest: "x".repeat(MAX_NACHRICHT_BYTES) };
+    expect(vonDerZentraleLesen(JSON.stringify(auftrag)).ok).toBe(false);
   });
 });

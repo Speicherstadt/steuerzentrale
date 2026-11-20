@@ -13,6 +13,18 @@ export const PROTOKOLL_VERSION = 1;
 export const AELTESTE_VERSION = Math.max(1, PROTOKOLL_VERSION - 1);
 
 /**
+ * The largest message in bytes (UTF-8), in both directions: no field can make the other side hold an
+ * unbounded text in memory or in the database (docs/plan.md, "Protokoll und Versionen")
+ */
+export const MAX_NACHRICHT_BYTES = 4 * 1024 * 1024;
+
+// A UTF-16 code unit is at least one UTF-8 byte, so the length alone already refuses most oversize texts
+const zuGross = (text: string): boolean =>
+  text.length > MAX_NACHRICHT_BYTES ||
+  new TextEncoder().encode(text).byteLength > MAX_NACHRICHT_BYTES;
+const GROESSE = `message larger than ${MAX_NACHRICHT_BYTES} bytes`;
+
+/**
  * Upgrades a message of an older version to the next one, by version it comes from. Versions only
  * add: a field new in version n gets its value here for a message of n-1. Empty while version 1 is
  * the only one.
@@ -38,6 +50,7 @@ const lesen = <S extends z.ZodType>(
   text: string,
   optionen: Optionen,
 ): Gelesen<z.output<S>> => {
+  if (zuGross(text)) return { ok: false, grund: GROESSE };
   let roh: unknown;
   try {
     roh = JSON.parse(text);
@@ -81,5 +94,8 @@ export const vonDerZentraleLesen = (text: string): Gelesen<NachrichtVonDerZentra
   lesen(VonDerZentrale, text, { ...STANDARD, aelteste: PROTOKOLL_VERSION });
 
 /** The text sent over the WebSocket, checked against the schema before it leaves */
-export const schreiben = <S extends z.ZodType>(schema: S, nachricht: z.input<S>): string =>
-  JSON.stringify(schema.parse(nachricht));
+export const schreiben = <S extends z.ZodType>(schema: S, nachricht: z.input<S>): string => {
+  const text = JSON.stringify(schema.parse(nachricht));
+  if (zuGross(text)) throw new Error(GROESSE);
+  return text;
+};

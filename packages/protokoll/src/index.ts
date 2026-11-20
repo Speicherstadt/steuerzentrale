@@ -6,6 +6,7 @@ export {
   AUFWERTUNGEN,
   type Aufwertung,
   type Gelesen,
+  MAX_NACHRICHT_BYTES,
   PROTOKOLL_VERSION,
   schreiben,
   vomAgentenLesen,
