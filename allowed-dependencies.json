@@ -60,6 +60,10 @@
       "reason": "Geist Mono for versions, digests and commands, shipped with the UI like Geist (DESIGN.md)",
       "workspaces": ["packages/ui"]
     },
+    "uqr": {
+      "reason": "The QR code with which an authenticator app takes the TOTP secret (docs/plan.md, Anmeldung): a dependency-free TypeScript port of Nayuki's reference QR encoder (MIT), generation only, as in Kennwort; the page draws the SVG itself",
+      "workspaces": ["apps/web"]
+    },
     "@tanstack/solid-router": {
       "reason": "Routing of the SPA with file-based, typed routes, as in Soll; 2.x is the line built for Solid 2 (1.x needs Solid 1; transitive Solid-1 packages listed in docs/solid-2.0/README.md)",
       "workspaces": ["apps/web"],

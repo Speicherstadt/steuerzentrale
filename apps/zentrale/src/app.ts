@@ -1,15 +1,47 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
+import { type Auth, CLIENT_HEADER } from "./auth/auth.ts";
+import type { Db, SchreibDb } from "./db/oeffnen.ts";
 import { formatRequestLog, type LogSink, redactUrl } from "./log.ts";
+import { clientAdresse } from "./modules/anmeldung/adresse.ts";
+import { einladungRouten } from "./routes/einladungen.ts";
+import { ersterInhaberRouten } from "./routes/erster-inhaber.ts";
+import { kontoRouten } from "./routes/konto.ts";
+import { mitgliederRouten } from "./routes/mitglieder.ts";
+import { type Anfrage, AUTH_PFADE, routenRegistrar, wache } from "./routes/zugang.ts";
 
 export type AppDeps = {
   log: LogSink;
   now: () => number;
   version: string;
+  db: Db;
+  schreibDb: SchreibDb;
+  auth: Auth;
+  /** Where the interface is reached (STEUERZENTRALE_URL), for invitation links */
+  url: string;
+  /** The socket's address of a request (Bun's requestIP in main.ts; a fixed one in tests) */
+  socketAdresse: (request: Request, env: unknown) => string | undefined;
+};
+
+const AUTH_BASIS = "/api/auth";
+
+/**
+ * Better Auth's routes, only the paths in AUTH_PFADE, with the client's address in CLIENT_HEADER
+ * for its rate limit; whatever a client put into that header itself is replaced
+ */
+const betterAuthRoute = (deps: AppDeps) => (c: Context<Anfrage>) => {
+  const pfad = new URL(c.req.url).pathname.slice(AUTH_BASIS.length);
+  if (!(`${c.req.method} ${pfad}` in AUTH_PFADE)) return c.json({ fehler: "nicht_gefunden" }, 404);
+  const headers = new Headers(c.req.raw.headers);
+  headers.delete(CLIENT_HEADER);
+  const socket = deps.socketAdresse(c.req.raw, c.env);
+  const adresse = clientAdresse(socket, headers.get("x-forwarded-for"));
+  if (adresse) headers.set(CLIENT_HEADER, adresse);
+  return deps.auth.handler(new Request(c.req.raw, { headers }));
 };
 
 /** The HTTP app of the Zentrale; routes stay thin, logic lives in src/modules (docs/plan.md) */
-export const createApp = (deps: AppDeps): Hono => {
-  const app = new Hono();
+export const createApp = (deps: AppDeps): Hono<Anfrage> => {
+  const app = new Hono<Anfrage>();
 
   app.use(async (c, next) => {
     const start = deps.now();
@@ -25,8 +57,15 @@ export const createApp = (deps: AppDeps): Hono => {
     );
   });
 
+  const route = routenRegistrar(app, wache(deps.auth, deps.db));
   // For an external monitor (Z-704): no login, nothing but liveness and version
-  app.get("/health", (c) => c.json({ status: "ok", version: deps.version }));
+  route("GET /health", (c) => c.json({ status: "ok", version: deps.version }));
+  route("GET /api/auth/*", betterAuthRoute(deps));
+  route("POST /api/auth/*", betterAuthRoute(deps));
+  ersterInhaberRouten(route, deps);
+  kontoRouten(route, deps);
+  mitgliederRouten(route, deps);
+  einladungRouten(route, deps);
 
   return app;
 };

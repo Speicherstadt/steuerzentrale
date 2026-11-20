@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import * as authSchema from "../../db/auth-schema.ts";
 import * as schema from "../../db/schema.ts";
 
 /**
@@ -14,10 +15,15 @@ const ERLAUBT = new Set([
   "modules/audit/schreiben.ts",
   "db/migrieren.ts",
   "db/oeffnen.ts",
-  // the key's check value, bookkeeping like the migrations' (Z-103)
+  // the key's check value and Better Auth's secret, bookkeeping like the migrations' (Z-103, Z-104)
   "db/schluessel.ts",
+  // Better Auth writes its own tables (accounts, sessions, organizations, members, passkeys, TOTP)
+  // on the writable connection, outside the audit log by design (docs/plan.md, "Mandanten"); what
+  // the Zentrale keeps of them (operator, membership, role) goes through `schreiben` (Z-104), as in
+  // Speicherstadt/soll, apps/server/src/modules/audit/ohne-umweg.test.ts
+  "auth/auth.ts",
 ]);
-const TABELLEN = Object.keys(schema).join("|");
+const TABELLEN = [...Object.keys(schema), ...Object.keys(authSchema)].join("|");
 
 const SCHREIBEN = [
   new RegExp(`\\.(insert|update|delete)\\s*\\(\\s*(\\w+\\.)?(${TABELLEN})\\b`),

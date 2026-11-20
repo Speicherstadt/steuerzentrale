@@ -17,9 +17,9 @@ bun install          # übersetzt auch die Texte aus messages/ (Paraglide)
 bun run check        # typecheck, lint, test, build
 bun run test:agent   # der Agent gegen Podman; ohne Podman übersprungen, mit CI=true ein Fehler
 bun run e2e          # Playwright gegen Zentrale (Port 28300) und Oberfläche (Port 5182)
-bun run dev:zentrale # Zentrale auf Port 18300 (STEUERZENTRALE_SECRET_KEY setzen)
+bun run dev:zentrale # Zentrale auf Port 18300 (STEUERZENTRALE_SECRET_KEY setzen; Einrichtungscode im Log)
 bun run dev:web      # Oberfläche auf Port 5181, /api geht an die Zentrale
-bun run dev:demo     # Oberfläche auf Port 5181 mit den Demodaten, ohne Zentrale
+bun run dev:demo     # Oberfläche auf Port 5181 mit den Demodaten, ohne Zentrale und ohne Anmeldung
 bun run db:generate  # neue Migration aus apps/zentrale/src/db/schema.ts
 bun run manifest:schema # JSON Schema des Manifests neu schreiben
 bun run manifeste:signieren # Manifeste der Apps mit dem Test-Schlüssel signieren
@@ -32,6 +32,25 @@ Schlüssel-ID an jedem Wert). Ein Prüfwert in der Datenbank sorgt dafür, dass 
 den Start verweigert. Zum Rotieren den neuen Schlüssel in `STEUERZENTRALE_SECRET_KEY`, den alten in
 `STEUERZENTRALE_SECRET_KEY_ALT` setzen und `steuerzentrale schluessel-rotieren` ausführen; danach
 genügt der neue. Tokens stehen nur als SHA-256 in der Datenbank.
+
+Dazu braucht sie `STEUERZENTRALE_URL`: die Adresse der Oberfläche, wie sie im Browser steht (nur
+Schema, Host und Port, z. B. `https://zentrale.example.de`). Better Auth prüft daran den Origin, und
+Passkeys sind an deren Domain gebunden; `dev:zentrale` setzt `http://localhost:5181`, die E2E-Tests
+`http://localhost:5182`. Das Geheimnis von Better Auth (Sitzungs-Cookies, TOTP-Schlüssel) entsteht beim
+ersten Start und liegt mit `STEUERZENTRALE_SECRET_KEY` verschlüsselt in der Datenbank; das Rotieren
+verschlüsselt es mit, Sitzungen und TOTP bleiben gültig.
+
+Anmeldung und Rollen: `apps/zentrale/src/auth/` (Better Auth mit Organisationen, Passkeys und TOTP;
+Rollen als Zugriffssteuerung des Organization-Plugins in `rollen.ts`). Jede Route steht mit ihrem
+Recht in `apps/zentrale/src/routes/zugang.ts` (`ROUTEN`) und wird nur darüber angelegt; `zugang.test.ts`
+fragt jede Route in jeder Rolle ab. Eine neue Route braucht dort einen Eintrag, sonst ist der Test rot.
+Von Better Auths eigenen Pfaden unter `/api/auth` sind nur die in `AUTH_PFADE` erreichbar. Better Auth
+schreibt seine Tabellen selbst (deshalb ist `auth/auth.ts` im Scan nach Schreibzugriffen erlaubt);
+Betreiber, Mitgliedschaften und Einladungen schreibt die Zentrale über `schreiben`. Die Tests der API
+melden sich über `apps/zentrale/src/testhilfen/` an, mit einem Software-Passkey und TOTP nach RFC 6238.
+Die E2E-Tests richten zuerst den ersten Inhaber mit dem Einrichtungscode aus dem Log der Zentrale ein
+(Projekt `einrichtung`, `e2e/einrichtung.setup.ts`); dessen Sitzung nutzen alle anderen Tests, Passkeys
+laufen dort über den virtuellen Authenticator von Chromium.
 
 Die Zentrale legt ihre Datenbank `zentrale.db` (SQLite, WAL) in `STEUERZENTRALE_DATA` an (Vorgabe:
 `data`). Die Migrationen in `apps/zentrale/drizzle/` stecken im Binary (`migrationen.gen.ts`, erzeugt
@@ -59,7 +78,7 @@ den Ordner von der Prüfung `i18n` aus. Seiten sind dateibasierte Routen von Tan
 | `packages/protokoll` | Nachrichten zwischen Zentrale und Agent, Version |
 | `packages/planung` | Wellen, Sperrzeiten, Wartungsfenster; reine Funktionen |
 | `packages/ui` | Komponenten und Texte der Oberfläche, von Kennwort übernommen |
-| `apps/zentrale` | Hono-Server mit `/health` und Logs ohne Geheimnisse |
+| `apps/zentrale` | Hono-Server: Anmeldung, Rollen, Betreiber, Audit-Log, Geheimnisse, Logs ohne Geheimnisse |
 | `apps/agent` | der Agent auf jedem verwalteten Server |
 | `apps/web` | die Oberfläche (Solid 2, Vite, TanStack Router) mit Demodaten |
 | `manifeste/beispiel` | Beispiel-App für die Tests: Dienst, Containerfile, Manifest-Vorlage |

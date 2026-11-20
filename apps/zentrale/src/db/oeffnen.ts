@@ -3,7 +3,13 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrationen } from "./migrationen.gen.ts";
 import { migrieren } from "./migrieren.ts";
 import * as schema from "./schema.ts";
-import { pruefwertErneuern, type Schluesselbund, schluesselPruefen } from "./schluessel.ts";
+import {
+  anmeldeGeheimnis,
+  anmeldeGeheimnisErneuern,
+  pruefwertErneuern,
+  type Schluesselbund,
+  schluesselPruefen,
+} from "./schluessel.ts";
 
 const oeffneSqlite = (pfad: string): Database => {
   const sqlite = new Database(pfad, { create: true, strict: true });
@@ -33,6 +39,8 @@ export type Datenbank = {
   schreibDb: SchreibDb;
   /** The keys this database was opened with (src/modules/geheim) */
   schluessel: Schluesselbund;
+  /** Better Auth's secret, kept encrypted in the database (src/db/schluessel.ts) */
+  anmeldeGeheimnis: string;
   /** After a rotation: the check value from now on with the current key */
   rotationAbschliessen: () => void;
   /** The writable connection itself, for tests that tamper on purpose */
@@ -50,9 +58,11 @@ export const oeffneDatenbank = (
   schluessel: Schluesselbund,
 ): Datenbank => {
   const sqlite = oeffneSqlite(pfad);
+  let geheimnis: string;
   try {
     migrieren(sqlite, migrationen, jetzt);
     schluesselPruefen(sqlite, schluessel);
+    geheimnis = anmeldeGeheimnis(sqlite, schluessel);
   } catch (fehler) {
     sqlite.close();
     throw fehler;
@@ -66,8 +76,10 @@ export const oeffneDatenbank = (
     db: alsDrizzle(lesend),
     schreibDb: { verbindung: alsDrizzle(sqlite) } as SchreibDb,
     schluessel,
+    anmeldeGeheimnis: geheimnis,
     rotationAbschliessen: () => {
       pruefwertErneuern(sqlite, schluessel.aktuell);
+      anmeldeGeheimnisErneuern(sqlite, schluessel);
       // The write-ahead log still holds the pages with the old ciphertexts; emptying it leaves
       // nothing on the old key behind (sqlite.org/pragma.html#pragma_wal_checkpoint)
       sqlite.run("PRAGMA wal_checkpoint(TRUNCATE)");

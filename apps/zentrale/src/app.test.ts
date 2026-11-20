@@ -1,9 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app.ts";
+import { createAuth } from "./auth/auth.ts";
+import { testDatenbank } from "./db/test-db.ts";
 
 const setup = () => {
   const lines: string[] = [];
-  const app = createApp({ log: (line) => lines.push(line), now: () => 0, version: "1.2.3" });
+  const { db, schreibDb, anmeldeGeheimnis } = testDatenbank();
+  const url = "http://localhost:28300";
+  const app = createApp({
+    log: (line) => lines.push(line),
+    now: () => 0,
+    version: "1.2.3",
+    db,
+    schreibDb,
+    auth: createAuth({ schreibDb, url, geheimnis: anmeldeGeheimnis }),
+    url,
+    socketAdresse: () => undefined,
+  });
   return { app, lines };
 };
 

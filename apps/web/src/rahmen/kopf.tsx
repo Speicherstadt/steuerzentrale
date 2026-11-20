@@ -1,7 +1,8 @@
 import { Icon, IconButton, m } from "@steuerzentrale/ui";
-import { ChevronRight, PanelLeft, ShieldCheck, SunMoon, X } from "@steuerzentrale/ui/icons";
-import { Link, useLocation } from "@tanstack/solid-router";
+import { ChevronRight, LogOut, PanelLeft, ShieldCheck, SunMoon, X } from "@steuerzentrale/ui/icons";
+import { Link, useLocation, useNavigate } from "@tanstack/solid-router";
 import { createEffect, createSignal, For, Show } from "solid-js";
+import { abmelden } from "../anmeldung/sitzung.ts";
 import { bestand } from "../daten/quelle.ts";
 import { pfadStufen } from "./navigation.ts";
 import { Seitenleiste } from "./seitenleiste.tsx";
@@ -100,6 +101,22 @@ const Schublade = () => {
   );
 };
 
+/** Ends the session and goes to the sign-in */
+const Abmelden = () => {
+  const navigate = useNavigate();
+  return (
+    <IconButton
+      label={m.abmelden()}
+      onClick={async () => {
+        await abmelden();
+        await navigate({ to: "/anmelden" });
+      }}
+    >
+      <Icon icon={LogOut} />
+    </IconButton>
+  );
+};
+
 export const Kopf = () => (
   <header class="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur lg:px-6">
     <Schublade />
@@ -115,6 +132,7 @@ export const Kopf = () => (
       >
         <Icon icon={SunMoon} />
       </IconButton>
+      <Abmelden />
     </div>
   </header>
 );

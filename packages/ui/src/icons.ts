@@ -51,6 +51,7 @@ export {
   ListX,
   LoaderCircle,
   Lock,
+  LogOut,
   Mail,
   MemoryStick,
   Menu,

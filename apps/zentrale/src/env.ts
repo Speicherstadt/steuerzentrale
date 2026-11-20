@@ -13,18 +13,50 @@ const schluesselFeld = (name: string) =>
     return z.NEVER;
   });
 
+/**
+ * Where the interface is reached, as people type it in the browser: Better Auth's origin and the
+ * domain passkeys are bound to (rpID), so it has no default; the origin alone, no path
+ */
+const urlFeld = z
+  .string({
+    error:
+      "STEUERZENTRALE_URL is missing: where the interface is reached, e.g. https://zentrale.example.de",
+  })
+  .transform((wert, ctx) => {
+    const geparst = URL.parse(wert.trim());
+    if (
+      geparst &&
+      /^https?:$/.test(geparst.protocol) &&
+      geparst.pathname === "/" &&
+      !geparst.search
+    )
+      return geparst.origin;
+    ctx.addIssue({
+      code: "custom",
+      message: "STEUERZENTRALE_URL must be an http(s) origin without a path",
+    });
+    return z.NEVER;
+  });
+
 /** The settings of the Zentrale from the environment; dev uses port 18300 (CLAUDE.md, "Working rules") */
 const EnvSchema = z.object({
   STEUERZENTRALE_PORT: z.coerce.number().int().min(1).max(65535).default(8300),
   STEUERZENTRALE_HOST: z.string().min(1).default("127.0.0.1"),
   STEUERZENTRALE_DATA: z.string().min(1).default("data"),
+  STEUERZENTRALE_URL: urlFeld,
   STEUERZENTRALE_SECRET_KEY: schluesselFeld("STEUERZENTRALE_SECRET_KEY"),
   // The previous key, only while rotating (`steuerzentrale schluessel-rotieren`)
   STEUERZENTRALE_SECRET_KEY_ALT: schluesselFeld("STEUERZENTRALE_SECRET_KEY_ALT").optional(),
 });
 
 /** `dataDir` holds the database `zentrale.db`; created on the first start */
-export type Env = { port: number; host: string; dataDir: string; schluessel: Schluesselbund };
+export type Env = {
+  port: number;
+  host: string;
+  dataDir: string;
+  url: string;
+  schluessel: Schluesselbund;
+};
 
 export const parseEnv = (env: Record<string, string | undefined>): Env => {
   const parsed = EnvSchema.parse(env);
@@ -33,6 +65,7 @@ export const parseEnv = (env: Record<string, string | undefined>): Env => {
     port: parsed.STEUERZENTRALE_PORT,
     host: parsed.STEUERZENTRALE_HOST,
     dataDir: parsed.STEUERZENTRALE_DATA,
+    url: parsed.STEUERZENTRALE_URL,
     schluessel: { aktuell: parsed.STEUERZENTRALE_SECRET_KEY, alt: alt ? [alt] : [] },
   };
 };

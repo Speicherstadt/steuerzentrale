@@ -1,10 +1,12 @@
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import {
   betreiber,
+  einladungen,
   ereignisse,
   geheimnisse,
   heartbeats,
   logAuszuege,
+  mitglieder,
   tokens,
 } from "../../db/schema.ts";
 
@@ -19,6 +21,8 @@ export const tabellen = {
   ereignisse: { tabelle: ereignisse, schluessel: ["ereignisId"], zeit: ereignisse.zeitpunkt },
   geheimnisse: { tabelle: geheimnisse, schluessel: ["geheimnisId"], zeit: undefined },
   tokens: { tabelle: tokens, schluessel: ["tokenId"], zeit: undefined },
+  mitglieder: { tabelle: mitglieder, schluessel: ["nutzerId"], zeit: undefined },
+  einladungen: { tabelle: einladungen, schluessel: ["einladungId"], zeit: undefined },
   heartbeats: {
     tabelle: heartbeats,
     schluessel: ["serverId", "zeitpunkt"],

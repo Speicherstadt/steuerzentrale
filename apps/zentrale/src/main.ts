@@ -1,10 +1,13 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { VERSION } from "@steuerzentrale/protokoll";
+import type { Server } from "bun";
 import { createApp } from "./app.ts";
+import { createAuth } from "./auth/auth.ts";
 import { oeffneDatenbank } from "./db/oeffnen.ts";
 import type { Schluesselbund } from "./db/schluessel.ts";
 import { parseEnv } from "./env.ts";
+import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
 
@@ -65,6 +68,29 @@ if (process.argv[2] === "schluessel-rotieren") {
 
 const { db, schreibDb } = datenbank;
 aufbewahrungsSchleife(db, schreibDb, Date.now, (lauf, ms) => setInterval(lauf, ms), log);
-const app = createApp({ log, now: Date.now, version: VERSION });
+const auth = createAuth({ schreibDb, url: env.url, geheimnis: datenbank.anmeldeGeheimnis });
+const app = createApp({
+  log,
+  now: Date.now,
+  version: VERSION,
+  db,
+  schreibDb,
+  auth,
+  url: env.url,
+  socketAdresse: (request, server) => (server as Server<unknown>).requestIP(request)?.address,
+});
 const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch });
 log(JSON.stringify({ msg: "listening", url: server.url.href, version: VERSION }));
+
+// Without any member the first owner comes in with this code (docs/plan.md, "Anmeldung an der
+// Zentrale"): the one secret ever written to the log, once, valid 24 hours and once
+const einrichtung = einrichtungscodeErzeugen(db, schreibDb, Date.now());
+if (einrichtung)
+  log(
+    JSON.stringify({
+      msg: "setup code for the first owner",
+      code: einrichtung.code,
+      gueltigBis: new Date(einrichtung.gueltigBis).toISOString(),
+      url: `${env.url}/erster-inhaber`,
+    }),
+  );

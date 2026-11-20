@@ -3,7 +3,8 @@ import { expect, type Page, test } from "@playwright/test";
 
 // Every page of the route tree, in light and dark, on the desktop and a phone, checked with axe; the
 // `pages` check (checks.json) reads the paths in this file. The data are the demo fixtures
-// (apps/web/src/demo/), the detail pages open one object of each kind.
+// (apps/web/src/demo/), the detail pages open one object of each kind. The session is the first
+// owner's (e2e/einrichtung.setup.ts).
 const pages = [
   "/",
   "/server",
@@ -21,6 +22,11 @@ const pages = [
   "/ereignisse",
   "/audit",
   "/einstellungen",
+  // outside the shell (Z-104); with the first owner's session the setup shows its finished state
+  "/anmelden",
+  "/einrichtung",
+  "/einladung",
+  "/erster-inhaber",
 ];
 
 test.use({ locale: "de-DE" });

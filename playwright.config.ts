@@ -11,9 +11,13 @@ const zentralePort = 28300;
 // Where the pinned Playwright's own browser is missing (some sandboxes), CHROMIUM_PATH names another
 const executablePath = process.env.CHROMIUM_PATH;
 const launchOptions = executablePath ? { executablePath } : {};
-// A fresh database per run and a key for tests only (32 bytes of 0x07, publicly known)
-const daten = mkdtempSync(join(tmpdir(), "sz-test-e2e-"));
+// A fresh database per run and a key for tests only (32 bytes of 0x07, publicly known). Workers load
+// this file again: they inherit the directory of the main process through SZ_E2E_DATEN, where the
+// Zentrale's log (with the setup code) and the first owner's session lie (e2e/hilfen/inhaber.ts)
+process.env.SZ_E2E_DATEN ??= mkdtempSync(join(tmpdir(), "sz-test-e2e-"));
+const daten = process.env.SZ_E2E_DATEN;
 const testSchluessel = Buffer.alloc(32, 7).toString("base64");
+const inhaberSitzung = join(daten, "inhaber.json");
 
 export default defineConfig({
   testDir: "e2e",
@@ -24,18 +28,36 @@ export default defineConfig({
   reporter: process.env.CI ? "github" : "list",
   use: { baseURL: `http://localhost:${port}`, trace: "off" },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"], launchOptions } },
-    { name: "phone", grep: /@phone/, use: { ...devices["Pixel 7"], launchOptions } },
+    // The first owner through the setup code, once: its session is every other test's
+    {
+      name: "einrichtung",
+      testMatch: /einrichtung\.setup\.ts/,
+      use: { ...devices["Desktop Chrome"], launchOptions },
+    },
+    {
+      name: "desktop",
+      dependencies: ["einrichtung"],
+      use: { ...devices["Desktop Chrome"], launchOptions, storageState: inhaberSitzung },
+    },
+    {
+      name: "phone",
+      grep: /@phone/,
+      dependencies: ["einrichtung"],
+      use: { ...devices["Pixel 7"], launchOptions, storageState: inhaberSitzung },
+    },
   ],
   webServer: [
     {
-      command: "bun apps/zentrale/src/main.ts",
+      // the log goes to a file: the setup code for the first owner stands there
+      command: `bun apps/zentrale/src/main.ts > ${join(daten, "zentrale.log")} 2>&1`,
       port: zentralePort,
       reuseExistingServer: false,
       env: {
         STEUERZENTRALE_PORT: String(zentralePort),
         STEUERZENTRALE_DATA: daten,
         STEUERZENTRALE_SECRET_KEY: testSchluessel,
+        // the origin people use: the interface on Vite's port, which passes /api on
+        STEUERZENTRALE_URL: `http://localhost:${port}`,
       },
     },
     {

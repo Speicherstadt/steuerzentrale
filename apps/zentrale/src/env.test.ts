@@ -4,6 +4,7 @@ import { schluesselId } from "./modules/geheim/verschluesseln.ts";
 
 const KEY = Buffer.alloc(32, 7).toString("base64");
 const ALT = Buffer.alloc(32, 8).toString("base64");
+const URL_ = "https://zentrale.example.de";
 
 const fehlerVon = (env: Record<string, string>): string => {
   try {
@@ -16,7 +17,7 @@ const fehlerVon = (env: Record<string, string>): string => {
 
 describe("parseEnv", () => {
   it("listens on localhost:8300 by default, behind the Pforte", () => {
-    expect(parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY })).toMatchObject({
+    expect(parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: URL_ })).toMatchObject({
       port: 8300,
       host: "127.0.0.1",
       dataDir: "data",
@@ -30,21 +31,32 @@ describe("parseEnv", () => {
         STEUERZENTRALE_HOST: "0.0.0.0",
         STEUERZENTRALE_DATA: "/var/lib/steuerzentrale",
         STEUERZENTRALE_SECRET_KEY: KEY,
+        STEUERZENTRALE_URL: URL_,
       }),
     ).toMatchObject({ port: 18300, host: "0.0.0.0", dataDir: "/var/lib/steuerzentrale" });
   });
 
   it("refuses a port that is no port", () => {
     expect(() =>
-      parseEnv({ STEUERZENTRALE_PORT: "70000", STEUERZENTRALE_SECRET_KEY: KEY }),
+      parseEnv({
+        STEUERZENTRALE_PORT: "70000",
+        STEUERZENTRALE_SECRET_KEY: KEY,
+        STEUERZENTRALE_URL: URL_,
+      }),
     ).toThrow();
   });
 
   it("reads the key and, while rotating, the old one", () => {
-    const env = parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_SECRET_KEY_ALT: ALT });
+    const env = parseEnv({
+      STEUERZENTRALE_SECRET_KEY: KEY,
+      STEUERZENTRALE_SECRET_KEY_ALT: ALT,
+      STEUERZENTRALE_URL: URL_,
+    });
     expect(env.schluessel.aktuell.id).toBe(schluesselId(Buffer.alloc(32, 7)));
     expect(env.schluessel.alt.map((k) => k.id)).toEqual([schluesselId(Buffer.alloc(32, 8))]);
-    expect(parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY }).schluessel.alt).toEqual([]);
+    expect(
+      parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: URL_ }).schluessel.alt,
+    ).toEqual([]);
   });
 
   it("refuses to start without a key, with a clear message", () => {
@@ -58,5 +70,31 @@ describe("parseEnv", () => {
     const meldung = fehlerVon({ STEUERZENTRALE_SECRET_KEY: kurz });
     expect(meldung).toContain("STEUERZENTRALE_SECRET_KEY must be 32 random bytes in base64");
     expect(meldung).not.toContain(kurz);
+  });
+
+  it("takes the URL of the interface as its origin", () => {
+    expect(parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: URL_ }).url).toBe(URL_);
+    expect(
+      parseEnv({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: "http://localhost:5182/" })
+        .url,
+    ).toBe("http://localhost:5182");
+  });
+
+  it("refuses to start without the URL of the interface, with a clear message", () => {
+    expect(fehlerVon({ STEUERZENTRALE_SECRET_KEY: KEY })).toContain(
+      "STEUERZENTRALE_URL is missing",
+    );
+  });
+
+  it("refuses a URL with a path or another scheme", () => {
+    for (const falsch of [
+      "https://zentrale.example.de/ui",
+      "ftp://zentrale.example.de",
+      "zentrale",
+    ])
+      expect(
+        fehlerVon({ STEUERZENTRALE_SECRET_KEY: KEY, STEUERZENTRALE_URL: falsch }),
+        falsch,
+      ).toContain("STEUERZENTRALE_URL must be an http(s) origin without a path");
   });
 });

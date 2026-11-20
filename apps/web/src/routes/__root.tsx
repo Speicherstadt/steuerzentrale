@@ -1,12 +1,15 @@
 import { m } from "@steuerzentrale/ui";
-import { createRootRoute, Outlet } from "@tanstack/solid-router";
+import { createRootRoute, Outlet, redirect, useLocation } from "@tanstack/solid-router";
+import { Show } from "solid-js";
+import { ohneRahmen, zielVor } from "../anmeldung/sitzung.ts";
 import { Kopf } from "../rahmen/kopf.tsx";
 import { Seitenleiste } from "../rahmen/seitenleiste.tsx";
 
 /**
  * The shell (DESIGN.md; design/mockup/, after shadcn's "dashboard-01"): the sidebar beside the page
  * from md on, the header with the path above the content. Only for operators; customers see the
- * portal. Signing in comes with Z-104.
+ * portal. Sign-in, setup and invitation stand outside it; a page of the shell first asks whether
+ * the account may see it (src/anmeldung/sitzung.ts), the server checks every route anyway.
  */
 const Rahmen = () => (
   <div class="flex min-h-svh w-full bg-sidebar">
@@ -32,4 +35,20 @@ const NichtGefunden = () => (
   </div>
 );
 
-export const Route = createRootRoute({ component: Rahmen, notFoundComponent: NichtGefunden });
+const Wurzel = () => {
+  const ort = useLocation();
+  return (
+    <Show when={!ohneRahmen(ort().pathname)} fallback={<Outlet />}>
+      <Rahmen />
+    </Show>
+  );
+};
+
+export const Route = createRootRoute({
+  beforeLoad: async ({ location }) => {
+    const ziel = await zielVor(location.pathname);
+    if (ziel) throw redirect({ to: ziel });
+  },
+  component: Wurzel,
+  notFoundComponent: NichtGefunden,
+});
