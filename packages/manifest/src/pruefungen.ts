@@ -8,7 +8,10 @@ import type { Manifest } from "./schema.ts";
 
 export type Befund = { pfad: (string | number)[]; grund: string };
 
-/** Programs that would run whatever text they are given; a named command never starts one */
+/**
+ * Programs that would run whatever text they are given; a named command never starts one, neither
+ * as its program nor as the argument of a wrapper (`timeout 60 sh -c …`, `nice bash -c …`)
+ */
 const SHELLS = new Set([
   "sh",
   "bash",
@@ -16,12 +19,26 @@ const SHELLS = new Set([
   "zsh",
   "ash",
   "ksh",
+  "mksh",
+  "csh",
+  "tcsh",
+  "yash",
+  "rbash",
   "fish",
   "busybox",
+  "toybox",
   "env",
   "su",
   "sudo",
 ]);
+
+const shellBefunde = (argv: string[], pfad: (string | number)[]): Befund[] =>
+  argv.flatMap((wert, i) => {
+    const programm = wert.split("/").at(-1) ?? "";
+    return SHELLS.has(programm)
+      ? [{ pfad: [...pfad, i], grund: `${programm} would start a shell` }]
+      : [];
+  });
 
 const doppelt = (werte: string[]): string[] => werte.filter((wert, i) => werte.indexOf(wert) !== i);
 
@@ -88,14 +105,8 @@ const befehlRegeln = (m: Manifest): Befund[] => {
         grund: `${JSON.stringify(name)} is not the name of a command under befehle`,
       });
   };
-  for (const [name, b] of Object.entries(m.befehle)) {
-    const programm = b.argv[0]?.split("/").at(-1) ?? "";
-    if (SHELLS.has(programm))
-      befunde.push({
-        pfad: ["befehle", name, "argv", 0],
-        grund: `${programm} would start a shell`,
-      });
-  }
+  for (const [name, b] of Object.entries(m.befehle))
+    befunde.push(...shellBefunde(b.argv, ["befehle", name, "argv"]));
   for (const art of ["einrichten", "nach_update"] as const)
     for (const [i, name] of m.schritte[art].entries()) pruefe(name, ["schritte", art, i]);
   if (m.health.art === "befehl") pruefe(m.health.befehl, ["health", "befehl"]);

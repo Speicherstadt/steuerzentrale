@@ -66,6 +66,41 @@ describe("invalid manifests", () => {
       "befehle.x.argv.0: sh would start a shell",
     ],
     [
+      "a command that starts a shell through a wrapper",
+      (m) => {
+        m.befehle = { x: { container: "app", argv: ["timeout", "60", "sh", "-c", "id"] } };
+      },
+      "befehle.x.argv.2: sh would start a shell",
+    ],
+    [
+      "a command that starts a shell through nice",
+      (m) => {
+        m.befehle = { x: { container: "app", argv: ["nice", "/bin/bash", "-c", "id"] } };
+      },
+      "befehle.x.argv.1: bash would start a shell",
+    ],
+    [
+      "a command that starts the shell of toybox",
+      (m) => {
+        m.befehle = { x: { container: "app", argv: ["toybox", "sh", "-c", "id"] } };
+      },
+      "befehle.x.argv.0: toybox would start a shell",
+    ],
+    [
+      "a command that starts mksh",
+      (m) => {
+        m.befehle = { x: { container: "app", argv: ["mksh", "-c", "id"] } };
+      },
+      "befehle.x.argv.0: mksh would start a shell",
+    ],
+    [
+      "a command that starts csh",
+      (m) => {
+        m.befehle = { x: { container: "app", argv: ["/bin/csh", "-c", "id"] } };
+      },
+      "befehle.x.argv.0: csh would start a shell",
+    ],
+    [
       "rootful on a shared server",
       (m) => {
         m.rootful = true;
