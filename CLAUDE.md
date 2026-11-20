@@ -38,7 +38,8 @@ into the scratchpad and name the source in comments, tests, `QUELLEN.md` and com
 it settles a detail.
 
 - **The apps**: `Speicherstadt/<app>` for every manifest value (Quadlets in `deploy/quadlet/`, compose
-  files, Dockerfiles, env schema, health route, backup scripts). A value without a source file is not written.
+  files, Dockerfiles, env schema, health route, backup scripts). A value without a source file is not written;
+  the source of an image digest is the registry query `scripts/digest.ts` records (registry, tag, date).
 - **Kennwort and Soll**: `Speicherstadt/kennwort`, `Speicherstadt/soll` for the same stack in
   practice (Solid 2, Hono, Better Auth, Paraglide, `packages/ui`, CI, docs, loop files).
 - **Podman Quadlets**: `podman-systemd.unit(5)` and the Podman docs for rootless operation; the
@@ -50,10 +51,12 @@ it settles a detail.
 
 - Let the agent run anything an app's manifest does not describe, or a manifest without a valid
   signature: no shell, no free `podman exec`, no command as a string, no image without a digest.
-- Put the manifest signing key on the Zentrale or a server; give a server a DNS token or the backup
+- Put the real manifest signing key on the Zentrale, a server or in CI (CI signs only with the
+  public test key in `test/schluessel/`, which release builds reject); give a server a DNS token or the backup
   key of an installation that does not run on it.
 - Open a port on a managed server for the agent; the agent always connects out.
-- Store a secret outside an encrypted column, return one through the API, or write one into a log.
+- Store a secret outside an encrypted column, return one through the API, or write one into a log
+  (the one exception: the one-time setup code for the first owner, docs/plan.md, „Anmeldung“).
 - Hard-code an app: no `if (app === "haben")`; what differs goes into the manifest schema.
 - Update or reboot during an app's freeze window (`sperrzeiten`), or without a backup first.
 - Delete a customer's data before the notice period ends or without a backup.
@@ -93,11 +96,14 @@ bun run e2e               # Playwright against Zentrale and agent in containers
 zensical build --strict   # when docs/ or mkdocs.yml changed
 ```
 
-Database tests run against SQLite in a temporary file; nothing needs a running database.
+Database tests run against SQLite in a temporary file; nothing needs a running database. What cannot
+run locally (Podman, systemd, Incus VMs) is marked „nur CI“ under „Wie geprüft“ in the pull request;
+CI decides.
 
 ## Pull requests
 
-- One item per pull request; it carries only its own commits, each with `Signed-off-by` (DCO).
+- One item per pull request; it carries only its own commits, each with `Signed-off-by` (DCO) of the
+  maintainer (the loop session's Git identity) and Claude as `Co-Authored-By`.
 - Title `Z-xxx: what is built` for a Bauliste item, else `Bereich: was sich ändert` (German, no
   trailing period); the description follows `.github/pull_request_template.md`.
   `.github/workflows/pr-regeln.yml` checks title, sign-off and the ticked item.
@@ -108,7 +114,8 @@ Database tests run against SQLite in a temporary file; nothing needs a running d
 
 ## Working rules
 
-- Commands as root (`sudo`, `pkexec`) are run by the user; don't work around that.
+- Commands as root (`sudo`, `pkexec`) on the user's machine are run by the user; don't work around
+  that. Inside CI workflows `sudo` is allowed (Linux users, lingering, Incus).
 - The user's running processes and containers are not stopped; use other ports for tests (dev:
   Zentrale 18300, Vite 5181; e2e: Zentrale 28300, Vite 5182) and own users and unit names
   (`sz-test-*`).
@@ -190,8 +197,9 @@ behaviour.
   Podman secrets. Rootful only for an app whose manifest says `rootful: true`, which requires
   `server_fuer_sich`. Never set `AutoUpdate`: updates come only through the waves. One Caddy per
   server ("Pforte", user `sz-pforte`, `Network=host`), its admin API on localhost only; each
-  installation publishes its HTTP service only on `127.0.0.1:<port>`, the port assigned by the
-  Zentrale; pasta networking so the client IP arrives.
+  installation has its own `.network` and publishes its HTTP service only with
+  `PublishPort=127.0.0.1:<port>:…`, the port assigned by the Zentrale; the client IP arrives in the
+  Pforte's `X-Forwarded-For`. Podman 4.9 is the minimum: use only keys 4.9 knows.
 - The Zentrale has three hostnames: the UI only over WireGuard, `agent.<domain>` (mTLS per server)
   and `api.<domain>` (tokens for the Portal). DNS records are set by the Zentrale through the
   Cloudflare API, never by a server.

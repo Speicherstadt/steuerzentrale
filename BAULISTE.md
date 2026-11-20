@@ -16,21 +16,27 @@ Die Liste, die der Agenten-Loop abarbeitet, in der Reihenfolge der Bauphasen aus
    keinen offenen Pull Request gibt (Titel beginnt mit seiner Nummer). Ohne `nach:` hängt ein Punkt
    am vorigen Punkt seiner Phase.
 2. **Sofort reservieren**: Branch von aktuellem `origin/main`, Draft-Pull-Request mit Titel
-   `Z-xxx: …`, damit parallele Sessions den Punkt als vergeben sehen.
+   `Z-xxx: …`, damit parallele Sessions den Punkt als vergeben sehen. Danach nach offenen Pull
+   Requests mit derselben Nummer suchen: der mit der niedrigsten Nummer gewinnt, die anderen schließt
+   ihre Session wieder.
 3. **Kriterien zuerst**: Die Zeile „Fertig, wenn“ ist das Minimum. Reicht sie nicht, schärft der
    Loop sie im selben Pull Request nach, bevor er Code schreibt; streichen darf er keins.
-4. Tests zuerst, dann Code, Doku und Texte in `de` und `en`, `bun run check` grün.
+4. Tests zuerst, dann Code, Doku und Texte in `de` und `en`, `bun run check` grün. Was lokal nicht
+   läuft (Podman, systemd, Incus), steht im Pull Request unter „Wie geprüft“ als „nur CI“; maßgeblich
+   ist die CI.
 5. **Unabhängiges Review** durch einen eigenen Sub-Agenten (Skill `tdd-review`): ein Befund braucht
    einen fehlschlagenden Test. Befunde fixen, bis keine mehr kommen.
 6. **CI grün → selbst mergen** (Squash), den Punkt hier im selben Pull Request abhaken. Der Loop
    wartet nie auf einen Menschen. Offene Fragen entscheidet er nach dem Projektplan
    („Entscheidungen“); eine neue Entscheidung schreibt er dort mit Grund hinein.
-7. **Nicht hängen bleiben**: Scheitert ein Punkt dreimal, trägt der Loop ihn mit Grund unter
+7. **Nicht hängen bleiben**: Gescheitert ist ein Versuch, wenn sein Pull Request ohne Merge geschlossen
+   wird oder die CI nach drei Pushes mit Fixes noch rot ist. Scheitert ein Punkt dreimal, trägt der Loop ihn mit Grund unter
    „Zurückgestellt“ ein und macht mit dem nächsten Punkt weiter, der nicht davon abhängt. Was nur
    ein Mensch erledigen kann, steht unten unter „Schritte für Menschen“.
 
-**Parallel**: Nach Z-104 laufen Phase 2 (reine Funktionen) und Z-105 (Oberfläche mit Demodaten)
-unabhängig; nach Z-305 Phase 4 und Z-701 bis Z-703; nach Z-406 die Phasen 5 und 6. Jede Session
+**Parallel**: Nach Z-101 laufen Z-102 bis Z-105 (Fundament), Phase 2 und Z-502 (reine Funktionen)
+unabhängig; nach Z-305 Phase 4; nach Z-406 Phase 5 und Z-702 bis Z-704. Phase 6 beginnt nach Z-603.
+Die Nummern der Punkte bleiben, auch wo sich die Reihenfolge der Phasen geändert hat. Jede Session
 hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 # Stufe 1 – eigener Betrieb
@@ -46,11 +52,14 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   (`bun build --compile` für `linux-x64` und `linux-arm64`), `apps/web` (Solid 2, Vite, SPA);
   Paraglide mit `de` und `en` (`messages/`, `project.inlang` liegt vor) und dazu `i18n` in
   `checks.json`; Playwright; jede Workspace
-  in `tsconfig.json` und `vitest.config.ts` eingetragen; Skripte `test:agent` und `e2e`, die die CI
-  dann ausführt.
-  Fertig, wenn: `bun run check` auf einem frischen Klon grün ist, die CI alle Workspaces prüft, beide
-  Binaries für beide Architekturen gebaut werden, `/health` antwortet (Test) und ein Log weder
-  Query-Werte noch `Authorization`- oder Cookie-Header enthält (Test).
+  in `tsconfig.json` und `vitest.config.ts` eingetragen; Skripte `test:agent` und `e2e` mit je einem
+  ersten Test (der Agent startet und meldet seine Version; die Startseite rendert), die mit `CI=true`
+  fehlschlagen, wenn Podman fehlt oder kein Test lief (kein `--passWithNoTests`); der Job `check` in
+  `ci.yml` nimmt `skipped` bei `agent` und `e2e` ab jetzt nicht mehr an.
+  Fertig, wenn: `bun run check` auf einem frischen Klon grün ist, die CI alle Workspaces prüft und
+  `agent` und `e2e` dort echt laufen, beide Binaries für beide Architekturen gebaut werden, `/health`
+  antwortet (Test) und ein Log weder Query-Werte noch `Authorization`- oder Cookie-Header enthält
+  (Test).
 - [ ] **Z-102 Datenbank und Audit-Log** – Drizzle mit SQLite (WAL), Migrationen eingecheckt und im
   Binary eingebettet; jede Tabelle mit Daten eines Betreibers trägt `betreiber_id` (ausgenommen:
   Manifeste, Tabellen von Better Auth); eine Schreibfunktion, die in derselben Transaktion einen
@@ -68,21 +77,35 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   der Start ohne Schlüssel mit klarer Meldung abbricht, nach dem Rotieren jeder Wert lesbar bleibt
   und mit dem neuen Schlüssel verschlüsselt ist (Test) und ein Token nach dem Speichern nicht mehr
   lesbar ist.
-- [ ] **Z-104 Anmeldung, Rollen, Betreiber** – Better Auth mit Organisationen (eine je Betreiber),
-  Passkey oder TOTP als Pflicht vor dem ersten Zugriff; erster Inhaber über einen Einrichtungscode im
-  Log; Rollen Inhaber, Technik, Support; Einladungen per Link.
-  In Stufe 1 gibt es einen Betreiber; `betreiber_id` steht trotzdem in jeder Tabelle (Z-102).
-  Fertig, wenn: ein Konto ohne zweiten Faktor nichts außer dessen Einrichtung erreicht und jede
-  Route ihre Rollen prüft (Test je Route und Rolle).
 - [ ] **Z-105 Oberfläche und Demodaten** – Shell nach DESIGN.md und `design/mockup/`: Übersicht,
   Server, Installationen, Updates, Backups, Aufträge, Kunden, Support-Zugänge, Leistungen, Apps,
   Ereignisse, Audit-Log, Einstellungen; keine Kundenansicht (die ist im Portal); was das Mockup aus Stufe 2 zeigt
   (Betreiber wechseln, Umzug, dringende Updates), kommt erst mit seinem Punkt; `bun run dev:demo`
   mit Fixtures in `apps/web/src/demo/`, die auch E2E und Screenshots nutzen; `pages` in `checks.json`
   (Routenbaum und `e2e/accessibility.spec.ts`).
+  Die Seiten für Anmeldung und zweiten Faktor baut Z-104.
   nach: Z-101
   Fertig, wenn: jede Seite in hell und dunkel, Desktop und Handy ohne axe-Befund rendert (Playwright),
   jeder Text aus `messages/` kommt (`i18n`-Check) und die Demodaten die acht Apps zeigen.
+- [ ] **Z-104 Anmeldung, Rollen, Betreiber** – Better Auth mit Organisationen (eine je Betreiber) und
+  den Plugins `passkey` und `twoFactor` (plan.md, „Anmeldung“): ein Passkey genügt, ein Passwort nur
+  zusammen mit TOTP; ohne zweiten Faktor erreicht ein Konto nur `/einrichtung`. Erster Inhaber über
+  einen Einrichtungscode im Log (einmalig, 24 h gültig); Rollen Inhaber, Technik, Support über die
+  Zugriffssteuerung des Organization-Plugins; Einladungen per Link. Seiten: Anmeldung, zweiter Faktor
+  einrichten (TOTP mit QR-Code, Passkey), Einladung annehmen. In Stufe 1 gibt es einen Betreiber;
+  `betreiber_id` steht trotzdem in jeder Tabelle (Z-102).
+  nach: Z-102, Z-103, Z-105
+  Fertig, wenn: ein Konto ohne zweiten Faktor nichts außer dessen Einrichtung erreicht, jede Route
+  ihre Rollen prüft (Test je Route und Rolle), der Einrichtungscode nach Gebrauch und nach 24 h
+  abgelehnt wird und Anmeldung mit Passkey (virtueller Authenticator) und mit Passwort und TOTP in
+  Playwright laufen.
+- [ ] **Z-801 Kunden und Verträge** – Kunde mit Kontakt, Vertrag mit SLA (in Stufe 1 nur Basis; Plus und
+  Ruhe mit Z-505), Kündigungsdatum; Liste und Seite je Kunde, zuerst ohne Installationen (die zeigt
+  Z-406).
+  nach: Z-104
+  Fertig, wenn: Kunden angelegt, geändert und mit Kündigungsdatum versehen werden (Playwright), jede
+  Änderung im Audit-Log steht und kein Kunde eines anderen Betreibers erreichbar ist (Test je
+  Endpunkt).
 
 ## Phase 2 – Manifest und Platzierung
 
@@ -101,16 +124,22 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 - [ ] **Z-202 Beispiel-App** – `manifeste/beispiel/`: kleiner HTTP-Dienst mit SQLite-Volume, Health,
   einer Option, einem Befehl nach dem Update, einem vergebenen Port und einem Backup aus zwei Teilen;
   Image in der CI gebaut, in eine lokale Registry geschoben, in zwei Versionen und einer kaputten
-  (Health rot); Manifeste mit einem Test-Schlüssel signiert.
-  Fertig, wenn: die Manifeste gültig und signiert sind und die drei Images in der CI entstehen.
-- [ ] **Z-203 Manifeste der Speicherstadt** – `manifeste/<app>/` für alle acht Apps:
+  (Health rot). Die Manifeste der Beispiel-App erzeugt die CI zur Testzeit mit den Digests der eben
+  gebauten Images und signiert sie mit dem Test-Schlüssel aus `test/schluessel/` (öffentlich bekannt,
+  plan.md, „Signaturen in Tests“); eingecheckt ist nur die Vorlage.
+  Fertig, wenn: die erzeugten Manifeste gültig und signiert sind, die drei Images in der CI
+  entstehen und ein Build für ein Release den Test-Schlüssel ablehnt (Test).
+- [ ] **Z-203 Manifeste der Speicherstadt** – `manifeste/<app>/<version>/` für alle acht Apps:
   `manifest.yml` (Container aus `deploy/quadlet/` oder, wo es keine gibt, aus der Compose-Datei bzw.
-  Doku des App-Repos; eigener Caddy entfällt) und `QUELLEN.md` mit Datei und Commit jeder Angabe;
-  was eine App nicht kann, als `nicht_unterstuetzt`; Kennwort und Soll ohne Image als
-  `noch_nicht_veroeffentlicht`.
-  Fertig, wenn: alle acht gültig sind, `QUELLEN.md` jede Angabe belegt und ein Test die Tabelle „Die
-  Apps der Speicherstadt“ im Plan (Spalten Arch, RAM, Ports, IPv4, Für sich, Anmeldung, Health,
-  Image) gegen die Manifeste prüft.
+  Doku des App-Repos; eigener Caddy entfällt; Images von GHCR, wo die App dort veröffentlicht) und
+  `QUELLEN.md` mit Datei und Commit jeder Angabe; Digests liefert `scripts/digest.ts` aus der Registry
+  (Quelle: Registry, Tag, abgefragt am); was eine App nicht kann, als `nicht_unterstuetzt`; Kennwort
+  und Soll ohne Image als `noch_nicht_veroeffentlicht`. Signiert werden die Manifeste von einem
+  Menschen (Schritte für Menschen); bis dahin liegt die `.minisig` des Test-Schlüssels daneben.
+  Fertig, wenn: alle acht gültig sind, `QUELLEN.md` jede Angabe belegt, `scripts/digest.ts` einen Tag
+  in einen Digest übersetzt (Test gegen die lokale Registry) und ein Test die Tabelle „Die Apps der
+  Speicherstadt“ im Plan (Spalten Arch, RAM, Ports, IPv4, Für sich, Anmeldung, Health, Image) gegen
+  die Manifeste prüft.
 - [ ] **Z-204 Platzierung** – reine Funktion: Manifest, Optionen, Serverfakten, vorhandene
   Installationen, Kunde → `passt` | Hinweise | Gründe. Regeln: Architektur je Container und Option,
   RAM und Platte als Summe der Grenzen, feste Ports doppelt, öffentliche IPv4, Mail (PTR, Port 25
@@ -121,14 +150,17 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   dass eine angenommene Platzierung nie zwei Installationen auf denselben festen Port legt und nie
   mehr RAM vergibt als der Server hat, und Kontext mit `documents` auf arm64 abgelehnt wird.
 - [ ] **Z-205 Quadlets rendern** – reine Funktion: Manifest, Installation, Einstellungen →
-  `.container`-, `.volume`- und `.network`-Units, Podman-Secrets, Caddy-Schnipsel; Namen mit der
-  Installation als Präfix; HTTP-Dienst nur auf `127.0.0.1:<port>`; Netz mit pasta; `MemoryMax` und
-  Quota aus den Ressourcen; `AutoUpdate` nie gesetzt; Images per Digest; `auto`-Werte erzeugt die
-  Zentrale einmal und speichert sie verschlüsselt. Vorbild: `deploy/quadlet/` in Haben und Kontext.
-  nach: Z-201
+  `.container`-, `.volume`- und ein `.network`-Unit je Installation, Podman-Secrets, Caddy-Schnipsel;
+  Namen mit der Installation als Präfix; HTTP-Dienst nur per `PublishPort=127.0.0.1:<port>:…`;
+  `MemoryMax` aus den Ressourcen (Platte nur geplant, plan.md, „Ressourcen“); nur Schlüssel, die
+  Podman 4.9 kennt; `AutoUpdate` nie gesetzt; Images per Digest; erzeugte Werte und Vorlagen aus
+  Z-201, `auto`-Werte erzeugt die Zentrale einmal und speichert sie verschlüsselt. Vorbild:
+  `deploy/quadlet/` in Haben und Kontext.
+  nach: Z-201, Z-203
   Fertig, wenn: Golden Files für jede App mit jeder Option entstehen, jede Unit in der CI
-  `podman-system-generator --user --dryrun` besteht, zwei Installationen derselben App keine Namen
-  und Ports teilen und ein `auto`-Geheimnis bei erneutem Rendern gleich bleibt.
+  `podman-system-generator --user --dryrun` mit Podman 4.9 (Runner) und 5.x (Debian 13) besteht,
+  zwei Installationen derselben App keine Namen und Ports teilen und ein `auto`-Geheimnis bei
+  erneutem Rendern gleich bleibt.
 
 ## Phase 3 – Agent
 
@@ -139,14 +171,16 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: jede Nachricht hin und zurück geprüft ist und ein Agent mit Protokoll `n-1` von der
   Zentrale verstanden wird (Test).
 - [ ] **Z-302 Server hinzufügen** – Einmal-Token (24 h, einmal nutzbar); `agent.<domain>` liefert
-  `install.sh` und die signierten Agent-Binaries; das Skript prüft System, Architektur, cgroup-v2-
-  Delegation und Uhrzeit, installiert Podman (ab 4.4), unattended-upgrades und den Agenten als
-  systemd-Dienst, setzt `net.ipv4.ip_unprivileged_port_start=80`, hinterlegt den öffentlichen
-  Schlüssel für Manifeste; der Agent tauscht das Token gegen ein Client-Zertifikat.
+  `install.sh`, die Agent-Binaries und eine minisign-signierte Prüfsummendatei; das Skript prüft
+  System, Architektur, cgroup-v2-Delegation und Uhrzeit, installiert Podman (ab 4.9), minisign,
+  unattended-upgrades und den Agenten als systemd-Dienst, prüft die Prüfsummen gegen die Signatur,
+  setzt `net.ipv4.ip_unprivileged_port_start=80`, hinterlegt den öffentlichen Schlüssel für
+  Manifeste; der Agent tauscht das Token gegen ein Client-Zertifikat (plan.md, „TLS und Zertifikate“).
   nach: Z-104, Z-301
-  Fertig, wenn: das Skript in einem Debian-13- und einem Ubuntu-24.04-Container (systemd) in der CI
-  durchläuft, ein benutztes oder abgelaufenes Token und ein Binary mit falscher Signatur abgelehnt
-  werden, `shellcheck` grün ist und der Dialog den Befehl zeigt (Playwright).
+  Fertig, wenn: das Skript in je einer Incus-VM mit Debian 13 und Ubuntu 24.04 auf dem Runner
+  durchläuft (plan.md, „Testserver“), ein benutztes oder abgelaufenes Token und ein Binary mit
+  falscher Signatur abgelehnt werden, `shellcheck` grün ist und der Dialog den Befehl zeigt
+  (Playwright).
 - [ ] **Z-303 Verbindung und Heartbeat** – WSS mit mTLS an `agent.<domain>`, Meldung alle 30 s;
   Zustände „verbunden“, „seit x min still“, „getrennt“; Wiederverbindung mit Backoff; Zertifikat
   rotieren und sperren; Rate-Limit am Token-Tausch.
@@ -175,14 +209,15 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Timeout aus dem Manifest.
   nach: Z-305, Z-202, Z-205
   Fertig, wenn: in der CI zwei Installationen der Beispiel-App unter zwei Hostnamen erreichbar sind
-  (lokale CA statt Let's Encrypt), die echte Client-IP bei der App ankommt (Test), Installation A den
+  (lokale CA statt Let's Encrypt), die echte Client-IP im Header `X-Forwarded-For` bei der App
+  ankommt (Test), Installation A den
   Port von B nicht direkt erreicht (Test) und das Entfernen einer die andere nicht unterbricht.
-- [ ] **Z-402 Installieren und Entfernen** – Dialog mit Kunde, App, Server, Optionen und
-  Einstellungen nach Ebenen, Platzierung live; der Agent legt `sz-<installation>` mit Linger an,
-  schreibt Units und Secrets, zieht Images, führt `schritte.einrichten` aus, startet; Entfernen mit
-  Backup vorher.
-  nach: Z-401, Z-204
-  Fertig, wenn: die Beispiel-App in der CI per Auftrag installiert und entfernt wird, ein Fehler im
+- [ ] **Z-402 Installieren** – Dialog mit Kunde, App, Server, Optionen und Einstellungen nach Ebenen,
+  Platzierung live; der Agent legt `sz-<installation>` mit Linger an, schreibt Units und Secrets,
+  zieht Images, führt `schritte.einrichten` aus, startet. Entfernt wird hier nur eine Installation,
+  deren Einrichtung gescheitert ist; Entfernen mit Daten kommt mit Z-604 (erst Backup).
+  nach: Z-401, Z-204, Z-801
+  Fertig, wenn: die Beispiel-App in der CI per Auftrag installiert wird, ein Fehler im
   Einrichtungsschritt nichts halb Installiertes zurücklässt, eine Installation die Dateien einer
   anderen nicht lesen kann (Test) und der Ablauf in Playwright läuft.
 - [ ] **Z-403 Health und Zustand** – Health nach Art aus dem Manifest, dazu der Zustand der
@@ -199,33 +234,62 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   journald, Werte der Secrets ersetzt), nur lesen, wenn das Manifest sie anbietet; jede mit Grund.
   Fertig, wenn: eine nicht angebotene Aktion in der Oberfläche fehlt und vom Agenten abgelehnt wird
   und der Wert eines Secrets im Log-Auszug ersetzt ist.
-- [ ] **Z-406 Server-Detail und Übersicht** – echte Daten statt Demodaten; Übersicht mit allem, was
-  Aufmerksamkeit braucht, nach Schwere.
-  Fertig, wenn: die E2E-Fälle aus Z-105 gegen Zentrale und Agent im Container laufen.
+- [ ] **Z-406 Übersicht und echte Daten** – Übersicht, Server, Server-Detail, Installationen,
+  Installation, Aufträge, Ereignisse, Audit-Log und Einstellungen mit echten Daten statt Demodaten;
+  die Kundenseite zeigt ihre Installationen; Übersicht mit allem, was Aufmerksamkeit braucht, nach
+  Schwere. Spätere Punkte stellen ihre Seite (Backups, Updates, Support-Zugänge, Leistungen) selbst
+  auf echte Daten um.
+  Fertig, wenn: die E2E-Fälle dieser Seiten gegen Zentrale und Agent laufen.
 - [ ] **Z-407 Adressen und DNS** – Adresse `<app>.<kunde>.<domain>`; die Zentrale setzt A und AAAA
   über die Cloudflare-API und entfernt sie mit der Installation.
   nach: Z-402
   Fertig, wenn: in der CI gegen eine nachgebaute Cloudflare-API eine Installation ihren Eintrag
   bekommt und beim Entfernen verliert und kein Server einen DNS-Token erhält (Test).
 
-## Phase 5 – Updates
+## Phase 5 – Backups und Wiederherstellen
 
-- [ ] **Z-501 Versionen** – die Zentrale fragt die Registries nach Tags (Semver) und lädt das
-  signierte Manifest jeder Version; Vorabversionen nur für die Welle „intern“; Markierung `dringend`.
+- [ ] **Z-601 Backups** – Teile aus dem Manifest (`pg_dump`, `volume`, `befehl`); ein
+  restic-Repository mit eigenem Passwort je Installation auf dem S3-Ziel des Betreibers, mit einem
+  S3-Zugang, der nur das Präfix dieser Installation erreicht; Zeitplan als systemd-Timer des Nutzers;
+  Aufbewahrung nach plan.md.
+  nach: Z-406
+  Fertig, wenn: in der CI ein Backup aus zwei Teilen in MinIO landet, der S3-Zugang einer Installation
+  das Präfix einer anderen weder lesen noch löschen kann (MinIO-Policy, Test), die Aufbewahrung alte
+  Snapshots löscht, ein Backup bei getrennter Zentrale trotzdem läuft und ein gescheitertes Backup
+  ein Ereignis erzeugt.
+- [ ] **Z-602 Prüf-Restore** – wöchentlich je Installation unter einem Wegwerf-Nutzer
+  `sz-restore-*` auf einem Server, den die Platzierung als passend meldet; Health prüfen, entfernen.
+  Fertig, wenn: ein absichtlich beschädigtes Backup als „Prüf-Restore gescheitert“ erscheint und ein
+  Server ohne Platz nicht für den Prüf-Restore gewählt wird.
+- [ ] **Z-603 Wiederherstellen** – Snapshot wählen, Grund angeben, vorher Backup vom Ist-Zustand;
+  Ablauf je Backup-Art in der Zentrale (bei `pg_dump`: App-Container stoppen, `pg_restore --clean
+  --if-exists` mit `datenbank` und `nutzer` aus dem Manifest, App starten, Health; bei `volume`: Units
+  stoppen, Volume ersetzen, starten).
+  Fertig, wenn: die Daten nach dem Wiederherstellen dem Snapshot entsprechen (Test je Art) und der
+  Vorgang im Audit-Log steht.
+
+## Phase 6 – Updates
+
+- [ ] **Z-501 Versionen und Manifeste** – die Zentrale fragt die Registries nach Tags (Semver) und
+  zeigt „neue Version, Manifest fehlt“, bis ein signiertes Manifest dieser Version importiert ist
+  (Upload in der Oberfläche oder `zentrale manifest importieren <pfad>`); Vorabversionen nur für die
+  Welle „intern“; Markierung `dringend` im Manifest.
   nach: Z-406
   Fertig, wenn: gegen die lokale Registry eine neue Version erkannt wird, ein Manifest ohne gültige
-  Signatur verworfen wird und eine Vorabversion nur intern erscheint.
+  Signatur beim Import abgelehnt wird und eine Vorabversion nur intern erscheint.
 - [ ] **Z-502 Wellen und Sperrzeiten** – reine Funktion in `packages/planung`: Installationen,
   Sperrzeiten, Wartungsfenster, Zeitpunkt → Plan. Zwei Wellen: „intern“ (unsere eigenen
   Installationen) und „alle“, 24 h nach „intern“ ohne Störung; „intern“ ohne eigene Installation
   wartet auf Freigabe; `dringend` läuft sofort durch beide Wellen, eine Sperrzeit übergeht nur der
   Inhaber mit Grund.
+  nach: Z-101
   Fertig, wenn: Tests Sperrzeiten über den Monatswechsel, Zeitumstellung, Wartungsfenster über
   Mitternacht, eine gestoppte Welle nach einer Störung und ein dringendes Update abdecken und Haben
   nie zwischen dem 7. und 12. aktualisiert wird, außer mit Freigabe.
 - [ ] **Z-503 Update mit Rückkehr** – Backup, Pull per Digest, `schritte.nach_update`, Neustart,
   Health; bei Rot zurück auf die alte Version und das Backup; Welle anhalten; Ereignis; Apps mit
   `health: keine` nur von Hand.
+  nach: Z-501, Z-502, Z-603
   Fertig, wenn: in der CI die Beispiel-App von Version 1 auf 2 kommt, die kaputte Version
   automatisch zurückgenommen wird, mit den Daten von vorher, und eine App ohne Health in keiner
   Welle automatisch aktualisiert wird.
@@ -233,57 +297,39 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   startet sich im Wartungsfenster neu; die Zentrale versteht `n-1`.
   Fertig, wenn: ein Agent in der CI sich aktualisiert und eine falsche Signatur abgelehnt wird.
 
-## Phase 6 – Backups und Kündigung
-
-- [ ] **Z-601 Backups** – Teile aus dem Manifest (`pg_dump`, `volume`, `befehl`); ein
-  restic-Repository und ein Schlüssel je Installation auf dem S3-Ziel des Betreibers; Zeitplan als
-  systemd-Timer des Nutzers; Aufbewahrung nach plan.md.
-  nach: Z-406
-  Fertig, wenn: in der CI ein Backup aus zwei Teilen in MinIO landet, die Aufbewahrung alte Snapshots
-  löscht, ein Backup bei getrennter Zentrale trotzdem läuft und ein gescheitertes Backup ein
-  Ereignis erzeugt.
-- [ ] **Z-602 Prüf-Restore** – wöchentlich je Installation unter einem Wegwerf-Nutzer
-  `sz-restore-*` auf einem Server, den die Platzierung als passend meldet; Health prüfen, entfernen.
-  Fertig, wenn: ein absichtlich beschädigtes Backup als „Prüf-Restore gescheitert“ erscheint und ein
-  Server ohne Platz nicht für den Prüf-Restore gewählt wird.
-- [ ] **Z-603 Wiederherstellen** – Snapshot wählen, Grund angeben, vorher Backup vom Ist-Zustand.
-  Fertig, wenn: die Daten nach dem Wiederherstellen dem Snapshot entsprechen (Test) und der Vorgang
-  im Audit-Log steht.
-- [ ] **Z-604 Kündigung und Löschung** – Vertragsende, 30 Tage nur lesen (wenn angeboten) und Export
-  bzw. letztes Backup für den Kunden, Löschung von Installation, Repository und DNS-Einträgen 90 Tage
-  nach Vertragsende; Löschprotokoll als Ereignis und Webhook.
-  nach: Z-801
-  Fertig, wenn: der Ablauf mit der Beispiel-App in Playwright läuft, vor Ablauf der Frist nichts
-  gelöscht wird und nach der Löschung weder Repository noch DNS-Eintrag noch Linux-Nutzer existieren
-  (Test).
-
-## Phase 7 – Server-Pflege, Kunden, Release
+## Phase 7 – Server-Pflege, Kündigung, Support, Release
 
 - [ ] **Z-701 Betriebssystem** – Status von unattended-upgrades, ausstehende Pakete, „Neustart
   nötig“; Neustart als Auftrag im Wartungsfenster außerhalb aller Sperrzeiten der Apps auf dem
   Server.
   nach: Z-305, Z-502
-  Fertig, wenn: die Planung den Neustart verschiebt, wenn eine Sperrzeit läuft, und ein Neustart im
-  Container der CI ausgeführt und der Server danach wieder verbunden ist.
+  Fertig, wenn: die Planung den Neustart verschiebt, wenn eine Sperrzeit läuft, und ein Neustart in
+  einer Incus-VM der CI ausgeführt und der Server danach wieder verbunden ist.
 - [ ] **Z-702 Prüfungen** – Platte über 80/90 %, Zertifikat in 14 Tagen, Backup älter als 26 h,
   Port offen, der in keinem Manifest steht, Uhrzeit.
   nach: Z-601, Z-401
   Fertig, wenn: jede Prüfung einen Test mit Grenzfall hat und ihr Ergebnis in der Übersicht steht.
-- [ ] **Z-703 Benachrichtigungen** – Ereignisse nach Schwere per Mail (SMTP) und Webhook; Ruhezeiten;
-  eine Meldung je Störung, nicht je Prüfung.
+- [ ] **Z-703 Benachrichtigungen und Webhooks** – Ereignisse nach Schwere per Mail (SMTP) und
+  Webhook; Webhooks signiert (HMAC) und mit Wiederholung, dieselbe Zustellung nutzt später das
+  Portal (Z-903); Ruhezeiten; eine Meldung je Störung, nicht je Prüfung.
   Fertig, wenn: eine Störung, die 10 Prüfungen lang besteht, eine Mail erzeugt (Mailpit) und ihre
-  Behebung eine zweite.
+  Behebung eine zweite, eine gefälschte Signatur im Test-Empfänger auffällt und eine Zustellung nach
+  Ausfall des Empfängers wiederholt wird.
 - [ ] **Z-704 Überwachung von außen und Verfügbarkeit** – die Zentrale prüft jede öffentliche Adresse
   (DNS, Zertifikat, Pforte, Health) unabhängig vom Agenten; Verfügbarkeit je Installation und Monat;
   `/health` der Zentrale für einen externen Prüfdienst.
   nach: Z-407
   Fertig, wenn: „Agent grün, außen rot“ ein Ereignis erzeugt und die Verfügbarkeit aus einer
   Testreihe mit bekannten Ausfällen richtig berechnet wird (Test).
-- [ ] **Z-801 Kunden und Verträge** – Kunde mit Kontakt, Vertrag mit SLA (in Stufe 1 nur Basis; Plus und Ruhe mit Z-505),
-  Kündigungsdatum; ein Kunde mit mehreren Apps auf mehreren Servern.
-  nach: Z-406
-  Fertig, wenn: die Kundenseite alle seine Installationen
-  zeigt.
+- [ ] **Z-604 Kündigung und Löschung** – Vertragsende, 30 Tage nur lesen (wenn angeboten) und Export
+  bzw. letztes Backup für den Kunden als zeitlich begrenzter, vorsignierter S3-Link, den die
+  Oberfläche dem Betreiber zeigt; Löschung von Installation, Repository, S3-Zugang und
+  DNS-Einträgen 90 Tage nach Vertragsende, vorher ein letztes Backup; Löschprotokoll als Ereignis und
+  signierter Webhook (Z-703).
+  nach: Z-801, Z-603, Z-703
+  Fertig, wenn: der Ablauf mit der Beispiel-App in Playwright läuft, vor Ablauf der Frist nichts
+  gelöscht wird, der Link nach seiner Frist abgelehnt wird und nach der Löschung weder Repository
+  noch DNS-Eintrag noch Linux-Nutzer existieren (Test).
 - [ ] **Z-802 Support-Zugang** – zeitlich begrenzt (Vorgabe 2 h), mit Grund; erlaubt Log-Auszug,
   Neustart und die Aktionen der Rolle Support; endet von selbst; erscheint in den Ereignissen des
   Kunden.
@@ -303,14 +349,21 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 - [ ] **Z-1002 Zentrale sichern** – Backup der Zentrale (Datenbank und Schlüssel getrennt),
   Wiederherstellung auf einem neuen Server, Agenten verbinden sich wieder.
   Fertig, wenn: der Ablauf in der CI durchläuft.
-- [ ] **Z-1003 Echte App** – Schreibzeug und Haben aus `manifeste/` in der CI installieren, aktualisieren,
-  sichern und wiederherstellen.
+- [ ] **Z-1003 Echte Apps** – Schreibzeug und Haben aus `manifeste/` in der CI installieren, sichern
+  und wiederherstellen; Schreibzeug zusätzlich in einer Welle aktualisieren; Haben (ohne Health) von
+  Hand mit Grund von einer auf die nächste Version aktualisieren, bewertet nach Units. Als
+  Hersteller-ID des Betreibers der Testwert `74931` (Haben, `packages/elster/src/xml.ts`). Images von
+  GHCR.
+  nach: Z-503, Z-603
   Fertig, wenn: der Lauf grün ist.
-- [ ] **Z-1004 Release** – Image der Zentrale (amd64, arm64) mit Quadlet-Units, Agent-Binaries mit
-  Prüfsummen und minisign-Signatur, Release-Workflow aus firsttris/workflows;
-  `docs/installation.md` mit Ein-Server-Betrieb.
-  Fertig, wenn: ein Release-Kandidat in der CI entsteht und sich nach der Doku auf einem frischen
-  Container installieren lässt.
+- [ ] **Z-1004 Release-Kandidat** – Image der Zentrale (amd64, arm64) mit Quadlet-Units und
+  Agent-Binaries mit Prüfsummen, in der CI mit dem Test-Schlüssel signiert, nur als Workflow-Artefakt
+  und in der lokalen Registry; `docs/installation.md` mit Ein-Server-Betrieb. Echte Signatur, Tag und
+  Push macht ein Mensch (Schritte für Menschen).
+  nach: alle anderen Punkte der Stufe 1; steht ein Punkt der Stufe 1 unter „Zurückgestellt“, wartet
+  Z-1004.
+  Fertig, wenn: ein Release-Kandidat in der CI entsteht und sich nach der Doku in einer Incus-VM
+  installieren lässt.
 
 # Stufe 2 – wachsen
 
@@ -353,10 +406,11 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   einem gemeinsamen Server oder „Server nötig“, kündigen.
   Fertig, wenn: eine Buchung die Beispiel-App in der CI installiert und eine nicht platzierbare
   Buchung mit Grund abgelehnt wird.
-- [ ] **Z-903 Webhooks** – Ereignisse installiert, Wartung geplant, Störung, behoben, gekündigt,
-  gelöscht (mit Löschprotokoll); signiert (HMAC), mit Wiederholung.
-  Fertig, wenn: eine gefälschte Signatur im Test-Empfänger auffällt und eine Zustellung nach Ausfall
-  des Empfängers wiederholt wird.
+- [ ] **Z-903 Webhooks für das Portal** – Ereignisse installiert, Wartung geplant, Störung, behoben,
+  gekündigt, gelöscht (mit Löschprotokoll) an das Portal, über die signierte Zustellung mit
+  Wiederholung aus Z-703.
+  Fertig, wenn: jedes dieser Ereignisse beim Test-Empfänger ankommt und ein Portal nur die
+  Ereignisse seiner Kunden bekommt (Test).
 - [ ] **Z-904 Lesen für das Portal** – lesende Endpunkte je Kunde: Installationen mit Zustand,
   Verfügbarkeit, letztes Backup und Prüf-Restore, Wartungstermine, Support-Zugänge, Ereignisse,
   Export zum Herunterladen (wenn angeboten); ein Token des Portals sieht nur den Kunden, für den es
@@ -395,7 +449,16 @@ Nicht auf dem Weg des Loops.
 - Name und Domain der Steuerzentrale; Zone bei Cloudflare, API-Token nur für die Zentrale.
 - Server für die Zentrale (netcup), WireGuard, S3-Ziel für Backups, Mail-Versand, externer Prüfdienst
   für `/health` der Zentrale.
-- Signierschlüssel (minisign) erzeugen, offline aufbewahren; Manifeste und Agent-Releases signieren.
+- Vor dem Start des Loops: `main` aus `claude/startdateien` anlegen und als Standard-Branch setzen;
+  Repo öffentlich; Ruleset auf `main` (nur per Pull Request, Checks `check` und `pr-regeln` Pflicht,
+  nur Squash); Pages-Quelle „GitHub Actions“.
+- Für die Loop-Sessions: Push auf `Speicherstadt/steuerzentrale`, Lesen auf die App-Repos und
+  `firsttris/workflows`, Netz zu `registry-1.docker.io` und `ghcr.io`; Git-Identität des Maintainers
+  für `Signed-off-by` (plan.md, „DCO“).
+- Signierschlüssel (minisign) erzeugen, offline aufbewahren; Manifeste der Apps (Z-203) und jedes
+  Release signieren.
+- Release (nach Z-1004): Ziel-Registry und Image-Name bestätigen (plan.md), Secret für den Push, Tag
+  setzen, mit dem echten Schlüssel signieren, veröffentlichen.
 - Je App eine eigene interne Installation für die Welle „intern“.
 - Betreiber-Vertrag in den App-Repos: Health ohne Anmeldung, nur lesen, Export, Einrichtungsbefehl
   (Haben#945–#948, #1307; für die anderen Apps noch anzulegen); Images für Kennwort und Soll.

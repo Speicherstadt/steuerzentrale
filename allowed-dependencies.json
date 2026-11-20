@@ -30,6 +30,14 @@
       "reason": "Accounts, organizations (one per operator), passkeys and TOTP (docs/plan.md, Anmeldung)",
       "workspaces": ["apps/zentrale"]
     },
+    "@better-auth/passkey": {
+      "reason": "Passkeys for Better Auth (docs/plan.md, Anmeldung), as in Kennwort and Soll",
+      "workspaces": ["apps/zentrale"]
+    },
+    "@peculiar/x509": {
+      "reason": "The Zentrale issues and checks the X.509 client certificates of the agents (docs/plan.md, TLS und Zertifikate); Bun cannot issue certificates. Only in the Zentrale, never on a managed server",
+      "workspaces": ["apps/zentrale"]
+    },
     "solid-js": {
       "reason": "Solid 2, the UI of the Zentrale, as in Kennwort and Soll",
       "workspaces": ["packages/ui", "apps/web"],

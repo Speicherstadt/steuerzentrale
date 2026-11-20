@@ -63,8 +63,7 @@ deren API); Fernwartung von Geräten beim Kunden (Kontext-Box, Stellwerk-Agenten
 1. In der Zentrale „Server hinzufügen“: Name, Art (gemeinsam, eigen, beim Kunden), Wartungsfenster.
 2. Die Zentrale zeigt einen Befehl mit Einmal-Token (24 h):
    `curl -fsSL https://agent.<domain>/install.sh | sudo sh -s -- --token …`
-3. Das Skript prüft Debian 13 oder Ubuntu 24.04 (amd64, arm64; Debian 12 hat mit Podman 4.3 noch
-   keine Quadlets), cgroup-v2-Delegation und Uhrzeit, installiert Podman, unattended-upgrades und den
+3. Das Skript prüft Debian 13 oder Ubuntu 24.04 (amd64, arm64; Podman ab 4.9), cgroup-v2-Delegation und Uhrzeit, installiert Podman, unattended-upgrades und den
    Agenten (Prüfsumme und Signatur), erlaubt rootless Ports ab 80 und hinterlegt den öffentlichen
    Schlüssel für Manifeste. Der Agent tauscht das Token gegen sein Client-Zertifikat.
 4. Der Server erscheint mit seinen Fakten: CPU, RAM, Platte, Architektur, IPv4, IPv6, PTR, Ports,
@@ -127,7 +126,7 @@ nicht an.
 
 ## Manifest
 
-Eine YAML-Datei je App und Version, geprüft mit dem Zod-Schema aus `packages/manifest`, als JSON
+Eine YAML-Datei je App und Version (`manifeste/<app>/<version>/manifest.yml`), geprüft mit dem Zod-Schema aus `packages/manifest`, als JSON
 Schema veröffentlicht und mit dem Signierschlüssel des Betreibers signiert. Beispiel, gekürzt:
 
 ```yaml
@@ -140,7 +139,7 @@ container:                       # daraus werden Quadlet-Units (Vorbild: deploy/
   - { name: app, image: docker.io/tristanteu/haben@sha256:…, braucht: [db] }
   - { name: db, image: docker.io/tristanteu/haben-db@sha256:… }
 architektur: [amd64, arm64]      # je Container übersteuerbar, z. B. Schreibzeug nur amd64
-ressourcen: { ram_mb: 2048, platte_gb: 10 }   # Grenzen in den Units (MemoryMax, Quota)
+ressourcen: { ram_mb: 2048, platte_gb: 10 }   # RAM als Grenze (MemoryMax), Platte als Planwert
 netz:
   http: { dienst: app, port: 3000, websocket: false, sse: false, max_body_mb: 100, timeout_s: 60 }
   ports: []                      # Kontext: [{ port: 25, proto: tcp, fest: true }], Stellwerk: [{ port: 22001, fest: false }]
@@ -187,25 +186,25 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Was der Agent ausführt | nur Manifeste mit gültiger Signatur des Betreibers; der öffentliche Schlüssel wird bei der Installation hinterlegt, der private liegt offline beim Inhaber, nie auf der Zentrale. Images nur per Digest; Schritte nur als benannte Befehle mit argv, nie als Shell-Text | eine übernommene Zentrale darf keinen Code auf den Servern ausführen können |
 | Aufträge | in der Zentrale gespeichert, idempotent mit ID; der Agent holt, bestätigt, meldet; Aufträge können aufeinander warten, auch über Installationen hinweg | Netze brechen ab; der OIDC-Client entsteht beim Anbieter, bevor die App startet |
 | Orchestrierung | Podman-Quadlets unter systemd, rootless: je Installation ein Linux-Nutzer `sz-<installation>` mit Linger, Units in `~/.config/containers/systemd/`; `AutoUpdate` nie gesetzt; kein Docker, kein Compose | Stack-Vorgabe (`tech-stack.md`); Kunden durch Linux-Nutzer getrennt; Updates nur über die Wellen |
-| Pforte | Caddy rootless unter `sz-pforte` mit `Network=host`; jede Installation veröffentlicht ihren HTTP-Dienst nur auf `127.0.0.1:<port>`, den Port vergibt die Zentrale; Netzwerk mit pasta, damit die Client-IP ankommt; `net.ipv4.ip_unprivileged_port_start=80` | ein Caddy kann den Netzen anderer Nutzer nicht beitreten; die Apps brauchen die echte IP für Rate-Limits |
-| Ressourcen | `ram_mb` und `platte_gb` sind Grenzen in den Units; die Platzierung rechnet mit Überbuchung 1,0 für RAM | ein Kunde darf den gemeinsamen Server nicht füllen |
+| Pforte | Caddy rootless unter `sz-pforte` mit `Network=host`; jede Installation hat ein eigenes `.network` und veröffentlicht ihren HTTP-Dienst nur per `PublishPort=127.0.0.1:<port>:…`, den Port vergibt die Zentrale; die Client-IP kommt im Header `X-Forwarded-For` der Pforte an; `net.ipv4.ip_unprivileged_port_start=80` | ein Caddy kann den Netzen anderer Nutzer nicht beitreten; App und Datenbank teilen das Netz ihrer Installation |
+| Ressourcen | `ram_mb` ist eine Grenze (`MemoryMax`) und die Platzierung rechnet mit Überbuchung 1,0; `platte_gb` ist in Stufe 1 nur Planwert, Z-702 misst die Belegung und warnt | rootless Volumes auf ext4 kennen keine Größenquote; ein Kunde darf den RAM nicht füllen |
 | Ports | feste Ports (Mail) nur einmal je Server; Ports mit `fest: false` vergibt die Zentrale je Installation | ein zweiter Stellwerk-Kunde passt auf denselben Server |
 | Mehrere Kunden auf einem Server | erlaubt („gemeinsam“); eine Installation gehört genau einem Kunden | einfache Trennung, einfaches Löschen |
 | Server beim Kunden | mit Portweiterleitung 80/443 (und den Ports der App) auf den Server; kein Cloudflare Tunnel in 1.0 | ein Tunnel von Cloudflare beendet TLS und sieht die Daten (Unterauftragsverarbeiter in den USA); ein eigener Relay kommt später |
 | DNS | Cloudflare als DNS-Anbieter, nur DNS, kein Proxy; die Zentrale setzt A und AAAA für `<app>.<kunde>.<domain>` per API; Server bekommen nie einen DNS-Token; eigene Domains des Kunden per CNAME, aktiv erst nach Prüfung; Zertifikate per HTTP-01 an der Pforte | ein übernommener Server darf keine Kunden umleiten können; Let's Encrypt erlaubt 50 neue Zertifikate je Domain und Woche, genug für den Start |
 | Mail (Kontext) | die Zentrale zeigt MX, SPF, DKIM, DMARC und PTR aus dem Manifest und prüft sie; setzt sie selbst, wenn die Domain bei uns liegt | sonst landet Mail im Spam |
 | Single Sign-on | hat der Kunde Kontext, ist es sein Anmeldedienst: die Zentrale legt dort per Auftrag den OIDC-Client jeder weiteren App an; ohne Kontext nutzt jede App ihre eigene Anmeldung | ein Anbieter je Kunde, kein zusätzlicher Dienst |
-| Manifeste | zuerst in `manifeste/` dieses Repos mit Quellen; ein App-Repo kann später ein eigenes liefern; jede Version signiert | der Loop ändert keine anderen Repos |
+| Manifeste | Ablage `manifeste/<app>/<version>/manifest.yml` mit `manifest.yml.minisig`, signiert vom Inhaber; die Zentrale bekommt ein Manifest per Import (Upload oder Befehl) und zeigt eine neue Version in der Registry als „Manifest fehlt“, bis es da ist; Digests kommen aus der Registry über `scripts/digest.ts` (Quelle: Registry, Tag, abgefragt am); ein App-Repo kann später ein eigenes Manifest liefern | der Schlüssel liegt offline, also kann die Zentrale nicht selbst signieren; die App-Repos nennen nur Tags |
 | Apps ohne Betreiber-Vertrag | ohne Health keine automatischen Updates (nur von Hand, mit Grund); ohne Image nicht installierbar; nicht angebotene Aktionen fehlen in der Oberfläche | der Loop muss mit dem heutigen Stand der Apps bauen können |
 | Platzierung | reine Funktion: Manifest, Optionen, Serverfakten, Installationen, Kunde → passt, Hinweise, Gründe | testbar ohne Server; dieselbe für Oberfläche, API und Portal |
 | Updates | Wellen nach SLA, 24 h ohne Störung, Ankündigung 72 h vorher, nie in einer Sperrzeit; Backup vorher, Rückkehr bei Rot; dringende Updates sofort | ein Fehler trifft zuerst uns |
 | Welle „intern“ | wir betreiben von jeder App eine eigene Installation; fehlt sie, wartet die Welle auf eine Freigabe von Hand | „intern“ ohne Installation wäre kein Test |
 | OS-Updates | unattended-upgrades für Sicherheitsupdates; Neustart nur im Wartungsfenster und außerhalb jeder Sperrzeit der Apps auf dem Server | Kernel-Updates brauchen Neustarts, Steuertermine nicht |
-| Backups | ein restic-Repository und ein Schlüssel je Installation auf dem S3-Ziel des Betreibers; Zeitplan als systemd-Timer auf dem Server; Aufbewahrung 7 täglich, 4 wöchentlich, 6 monatlich; Prüf-Restore wöchentlich unter einem Wegwerf-Nutzer `sz-restore-*` auf einem Server mit Platz | Löschen eines Kunden heißt, sein Repository zu löschen; Backups laufen auch ohne Zentrale |
+| Backups | ein restic-Repository mit eigenem Passwort je Installation auf dem S3-Ziel des Betreibers, mit einem S3-Zugang, der nur das Präfix dieser Installation erreicht; Zeitplan als systemd-Timer auf dem Server; Aufbewahrung 7 täglich, 4 wöchentlich, 6 monatlich; Prüf-Restore wöchentlich unter einem Wegwerf-Nutzer `sz-restore-*` auf einem Server mit Platz; Wiederherstellen je Backup-Art legt die Zentrale fest (bei `pg_dump`: App stoppen, `pg_restore --clean --if-exists`) | ein Server darf keine fremden Backups lesen oder löschen; Löschen eines Kunden heißt, seine Repositorys und Zugänge zu löschen |
 | Kündigung und Löschung | Vertragsende → 30 Tage nur lesen (wenn die App es kann) und Export bzw. letztes Backup für den Kunden → Löschung der Installation und ihres Repositorys 90 Tage nach Vertragsende; Löschprotokoll als Ereignis und Webhook | Art. 28 Abs. 3 lit. g DSGVO; GoBD-Daten bewahrt der Kunde selbst auf (§ 147 AO), ein bezahlter Archivbetrieb kann später kommen |
 | Daten der Zentrale | Heartbeats und Fakten-Verlauf 30 Tage, Log-Auszüge in Aufträgen 30 Tage, Ereignisse 13 Monate, Audit-Log dauerhaft | Log-Auszüge enthalten personenbezogene Daten der Kunden |
 | Geheimnisse | verschlüsselte Spalten mit `STEUERZENTRALE_SECRET_KEY`, mit Schlüssel-ID, rotierbar; Start ohne Schlüssel verweigert; auf dem Server nur als Podman-Secret | nichts im Klartext |
-| Anmeldung an der Zentrale | Better Auth; jedes Konto braucht einen zweiten Faktor, Passkey oder TOTP; Rollen Inhaber, Technik, Support | wer die Zentrale hat, hat alle Kunden |
+| Anmeldung an der Zentrale | Better Auth mit Organization-Plugin (ein Betreiber je Organisation), `passkey` und `twoFactor`: ein Passkey genügt, ein Passwort nur zusammen mit TOTP; ohne zweiten Faktor nur `/einrichtung`; Rollen Inhaber, Technik, Support über die Zugriffssteuerung des Plugins; der erste Inhaber kommt über einen Einrichtungscode, der einmal ins Log geschrieben wird, einmal nutzbar und 24 h gültig (die einzige Ausnahme von „kein Geheimnis im Log“) | wer die Zentrale hat, hat alle Kunden; ohne ersten Inhaber kommt niemand hinein |
 | Partner | ein Partner ist ein eigener Betreiber in derselben Zentrale: eigene Konten, Kunden, Server, S3-Ziel, Werte je App (eigene ELSTER-Hersteller-ID) und Marke | sperrt das Landesamt eine Hersteller-ID, trifft es nur einen Betreiber |
 | Mandanten | jede Tabelle mit Daten eines Betreibers trägt `betreiber_id`; ausgenommen sind Manifeste und die Tabellen von Better Auth (Mitgliedschaft über deren Organisationen) | Manifeste gelten für alle |
 | Support-Zugang | zeitlich begrenzt (Vorgabe 2 h), mit Grund, im Audit-Log und in den Ereignissen des Kunden | Vertrauen; Art. 28 DSGVO |
@@ -215,9 +214,16 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Was der Kunde sieht | nichts in der Zentrale; Zustand, Verfügbarkeit, Backups, Support-Zugänge, Wartungstermine und Export zeigt das Portal über lesende Endpunkte | Kunden melden sich nie an der Zentrale an |
 | Überwachung von außen | die Zentrale prüft jede öffentliche Adresse (DNS, Zertifikat, Pforte, Health) unabhängig vom Agenten; die Zentrale selbst prüft ein externer Dienst | „Agent grün, außen rot“ muss auffallen |
 | Geräte beim Kunden | nicht verwaltet | eigenes Thema |
-| Was sich in der CI nicht echt testen lässt | Registry, S3, Mail und DNS-API durch lokale Ersatzdienste (Registry-Container, MinIO, Mailpit, nachgebaute Cloudflare-API); Server durch Podman mit systemd im Runner | die Kriterien bleiben erfüllbar |
+| Was sich in der CI nicht echt testen lässt | Registry, S3, Mail und DNS-API durch lokale Ersatzdienste (Registry-Container, MinIO, Mailpit, nachgebaute Cloudflare-API); verwaltete Server sind Incus-VMs auf dem Runner (KVM ist auf den Linux-Runnern verfügbar), in denen `install.sh`, systemd, rootless Podman und Neustarts echt laufen; `sudo` ist in den Workflows erlaubt | rootless Podman mit systemd in einem Docker-Container läuft nicht verlässlich |
 | Stufen | Stufe 1 betreibt Haben, Belegt, Schreibzeug und Fixpunkt für einen Betreiber; Kontext, Stellwerk, Kennwort, Soll, Partner, Portal-API, SLA-Wellen, Umzug und Ausfall folgen in Stufe 2, die ein Mensch freigibt | null gehostete Kunden heute; die ersten zehn brauchen keinen Partner und kein Portal, und Mail-Hosting ist ein eigenes Geschäft |
 | Merge | der Loop merged selbst, wenn CI grün ist und das unabhängige Review keine Befunde mehr hat | er wartet nie auf einen Menschen |
+| TLS und Zertifikate | die Zentrale läuft hinter der Pforte ihres Servers; Caddy beendet TLS für Oberfläche, `agent.` und `api.` und prüft auf `agent.` die Client-Zertifikate (`client_auth require_and_verify`) gegen die CA der Zentrale; den Fingerabdruck gibt Caddy per Header an `127.0.0.1`, und die Zentrale glaubt ihn nur von dort; Zertifikate stellt die Zentrale mit `@peculiar/x509` aus | Bun stellt keine X.509-Zertifikate aus; im Ein-Server-Betrieb hält die Pforte 443 |
+| Signaturen in Tests | ein Test-Schlüsselpaar liegt unter `test/schluessel/`, als öffentlich bekannt markiert; die CI signiert damit die Manifeste der Beispiel-App zur Testzeit und Release-Kandidaten; ein Build für ein Release und der Agent außerhalb von Tests lehnen den Test-Schlüssel ab | der echte Schlüssel liegt offline beim Inhaber |
+| Podman | ab 4.9 (Ubuntu 24.04; Debian 13 hat 5.x); Units nutzen nur Schlüssel, die 4.9 kennt | der GitHub-Runner und Ubuntu 24.04 haben 4.9 |
+| Images der Zentrale selbst | Pforte (Caddy) und restic sind keine Apps und haben kein Manifest; ihre Version und ihr Digest stehen in `packages/manifest/src/system.ts`, Renovate hält sie aktuell, ausgerollt mit dem Update des Agenten | sie gehören zur Steuerzentrale |
+| Release | der Loop baut nur einen Release-Kandidaten mit dem Test-Schlüssel (Workflow-Artefakt, lokale Registry); Tag, echte Signatur und Push macht ein Mensch; Image `ghcr.io/speicherstadt/steuerzentrale`, Agent-Binaries im GitHub-Release | der Signierschlüssel liegt offline |
+| Export bei Kündigung | ein zeitlich begrenzter, vorsignierter S3-Link auf das Archiv des Exports oder letzten Backups; die Oberfläche zeigt ihn dem Betreiber, der ihn weitergibt; ab Stufe 2 übernimmt das Portal | Kunden melden sich nicht an der Zentrale an |
+| DCO | Commits des Loops tragen das `Signed-off-by` des Maintainers (Git-Identität der Loop-Sessions), Claude steht als `Co-Authored-By` darunter | das DCO ist die Erklärung einer Person |
 | Beiträge | DCO (Signed-off-by), kein CLA | Open Source ohne Sonderrechte |
 
 ## Technologie
@@ -233,7 +239,7 @@ statt React, Hono-Server mit SPA statt TanStack Start).
 | Oberfläche | Solid 2 SPA mit TanStack Router 2 (dateibasierte Routen) und TanStack Query 6 (Daten vom Server), Paraglide, Tailwind 4, `packages/ui` von Kennwort, Geist, Zinc | ein Look in der Suite; Router und Query in den Versionen für Solid 2 (Stand in `docs/solid-2.0/README.md`), die Solid-2.0-Doku liegt in `docs/solid-2.0/` |
 | Verbindung | WebSocket über HTTPS mit Client-Zertifikat, Nachrichten als Zod-Schemas mit Version | durch jede Firewall, die HTTPS durchlässt |
 | Signaturen | minisign für Manifeste und Agent-Binaries | klein, ohne Infrastruktur |
-| Auf dem Server | Podman ab 4.4 mit Quadlets, rootless, pasta; Caddy als Pforte; restic; unattended-upgrades | |
+| Auf dem Server | Podman ab 4.9 mit Quadlets, rootless; Caddy als Pforte; restic; minisign; unattended-upgrades | |
 | DNS | Cloudflare-API, nur DNS | schon im Einsatz |
 | Doku | Zensical auf GitHub Pages | wie die anderen Apps |
 
