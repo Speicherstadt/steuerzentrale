@@ -120,6 +120,6 @@ export const installationen: Installation[] = [
     health: "unbekannt",
     grund: "Agent seit 6 Min. still",
     werte: { FIXPUNKT_MAX_UPLOAD_GB: "20", FIXPUNKT_MAX_JOBS: "1" },
-    verfuegbarkeit: { "2026-10": 100, "2026-11": 99.9 },
+    verfuegbarkeit: { "2026-11": 99.9 },
   }),
 ];

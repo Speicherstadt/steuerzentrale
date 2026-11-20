@@ -1,6 +1,7 @@
 import { render } from "@solidjs/web";
 import { setLocale } from "@steuerzentrale/ui";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/solid-router";
+import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { routeTree } from "./routeTree.gen.ts";
 
@@ -106,6 +107,20 @@ describe("pages", () => {
     );
     expect(zustaende).not.toContain("OK");
     expect(karte?.textContent).toContain("Agent still: letzter bekannter Stand");
+  });
+
+  it("bill no month before a customer's contract began", async () => {
+    // Ingenieurbüro Kraft is a customer since 06.11.2026: October has no availability or data of it
+    const root = await oeffne("/leistungen");
+    const oktober = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(
+      (t) => t.textContent === "Oktober 2026",
+    );
+    oktober?.click();
+    flush();
+    const tabelle = root.querySelector('[role="tabpanel"]');
+    expect(tabelle?.querySelector("[aria-label]")?.getAttribute("aria-label")).toContain("Oktober");
+    expect(tabelle?.textContent).toContain("Fotografie Aust");
+    expect(tabelle?.textContent).not.toContain("Ingenieurbüro Kraft");
   });
 
   it("say so for an unknown object", async () => {

@@ -1,7 +1,7 @@
 import { m, Tabs } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
 import { For } from "solid-js";
-import { appVon, installationenVon, supportMinuten } from "../daten/ableitungen.ts";
+import { appVon, installationenVon, monatVon, supportMinuten } from "../daten/ableitungen.ts";
 import { bestand } from "../daten/quelle.ts";
 import type { Bestand } from "../daten/typen.ts";
 import { gb, minuten, prozent } from "../format/zahl.ts";
@@ -16,7 +16,8 @@ import { AppZeichen } from "../teile/zeichen.tsx";
 const Monat = (props: { b: Bestand; monat: string }) => {
   const zeilen = () =>
     props.b.kunden
-      .filter((k) => !k.intern)
+      // A month before the contract began has nothing to show, not 100 % of nothing
+      .filter((k) => !k.intern && monatVon(k.seit) <= props.monat)
       .map((k) => {
         const installationen = installationenVon(props.b, k.id);
         return {
