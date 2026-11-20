@@ -14,7 +14,6 @@ export {
 /** The manifest schema version this build reads (docs/plan.md, "Manifest": `schema: 1`) */
 export const MANIFEST_SCHEMA = 1;
 export { manifestJsonSchema } from "./json-schema.ts";
-export { schluesselVertrauen, TEST_SCHLUESSEL_ID, type Zweck } from "./vertrauen.ts";
 export {
   type Befund as PlatzBefund,
   festePorts,
@@ -27,3 +26,4 @@ export {
   ramBedarf,
   WARNSCHWELLE,
 } from "./platzierung.ts";
+export { schluesselVertrauen, TEST_SCHLUESSEL_ID, type Zweck } from "./vertrauen.ts";
