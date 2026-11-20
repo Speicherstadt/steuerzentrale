@@ -51,6 +51,13 @@ describe("invalid manifests", () => {
       "container.0.image: an image needs registry, name and digest",
     ],
     [
+      "an image without registry",
+      (m) => {
+        m.container[0].image = `tristanteu/haben@${DIGEST}`;
+      },
+      "container.0.image: an image needs registry, name and digest",
+    ],
+    [
       "a step as shell text",
       (m) => {
         m.befehle = { migrieren: { container: "app", argv: ["bun", "migrate"] } };

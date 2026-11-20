@@ -11,8 +11,13 @@ const envName = z.string().regex(/^[A-Z][A-Z0-9_]*$/, "uppercase letters, digits
 const port = z.number().int().min(1).max(65535);
 const architektur = z.enum(["amd64", "arm64"]);
 
-/** An image only by digest: a tag can change under the same name (CLAUDE.md, "Never") */
-export const IMAGE = /^[a-z0-9][a-z0-9.-]*(:[0-9]+)?(\/[a-z0-9._-]+)+@sha256:[0-9a-f]{64}$/;
+/**
+ * An image only by digest: a tag can change under the same name (CLAUDE.md, "Never"). The first part
+ * is a registry only with a dot, a port or as localhost (distribution/reference, normalize.go); else
+ * Podman would resolve a short name through the search registries
+ */
+export const IMAGE =
+  /^(?:[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)+(?::[0-9]+)?|[a-z0-9][a-z0-9-]*:[0-9]+|localhost)(\/[a-z0-9._-]+)+@sha256:[0-9a-f]{64}$/;
 const image = z.union([
   z
     .string()
