@@ -235,14 +235,24 @@ const vorlageRegeln = (m: Manifest): Befund[] => [
   ...geheimnisBefunde(m),
 ];
 
+/** The settings of an option a template names, when the template's setting lacks that option */
+const fremdeOptionswerte = (m: Manifest, e: Manifest["env"][number]): Befund["grund"][] =>
+  [...(e.vorlage ?? "").matchAll(/\$\{env:([^{}]*)\}/g)].flatMap(([, name]) => {
+    const ziel = m.env.find((z) => z.name === name);
+    return ziel?.option !== undefined && ziel.option !== e.option
+      ? [`${name} is set only with the option ${ziel.option}`]
+      : [];
+  });
+
 /** A setting that belongs to an option is set only while that option is on */
 const optionRegeln = (m: Manifest): Befund[] => {
   const optionen = new Set(m.optionen.map((o) => o.id));
-  return m.env.flatMap((e, i) =>
-    e.option !== undefined && !optionen.has(e.option)
+  return m.env.flatMap((e, i) => [
+    ...(e.option !== undefined && !optionen.has(e.option)
       ? [{ pfad: ["env", i, "option"], grund: `no option named ${e.option}` }]
-      : [],
-  );
+      : []),
+    ...fremdeOptionswerte(m, e).map((grund) => ({ pfad: ["env", i, "vorlage"], grund })),
+  ]);
 };
 
 const weitereRegeln = (m: Manifest): Befund[] => [
