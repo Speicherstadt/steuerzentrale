@@ -9,7 +9,9 @@ import * as schema from "./schema.ts";
  */
 const AUSGENOMMEN = new Set<string>([]);
 
-const tabellen = Object.values(schema).filter((wert): wert is SQLiteTable => wert instanceof SQLiteTable);
+const tabellen = Object.values(schema as Record<string, unknown>).filter(
+  (wert): wert is SQLiteTable => wert instanceof SQLiteTable,
+);
 
 describe("tenancy", () => {
   it("finds the tables of the schema", () => {

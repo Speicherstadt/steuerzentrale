@@ -34,7 +34,9 @@ const spalte = (name: TabellenName, feld: string): SQLiteColumn =>
 const wo = (name: TabellenName, betreiberId: string, schluessel: Record<string, unknown>): SQL => {
   const fehlt = tabellen[name].schluessel.filter((feld) => schluessel[feld] === undefined);
   if (fehlt.length > 0) throw new Error(`${name}: key ${fehlt.join(", ")} missing`);
-  const bedingungen = tabellen[name].schluessel.map((feld) => eq(spalte(name, feld), schluessel[feld]));
+  const bedingungen = tabellen[name].schluessel.map((feld) =>
+    eq(spalte(name, feld), schluessel[feld]),
+  );
   return and(eq(spalte(name, "betreiberId"), betreiberId), ...bedingungen) as SQL;
 };
 
@@ -104,10 +106,12 @@ const schreiberFuer = (tx: Tx, kontext: Kontext, aktion: string): Schreiber => {
     },
     loeschenVor: (name, grenze) => {
       const { tabelle, zeit } = tabellen[name];
+      // bun:sqlite's run() reports no row count through Drizzle; the deleted instants do
       const geloescht = tx
         .delete(tabelle)
         .where(and(eq(spalte(name, "betreiberId"), kontext.betreiberId), lt(zeit, grenze)))
-        .run().changes;
+        .returning({ zeitpunkt: zeit })
+        .all().length;
       anhaengen(name, { art: "loeschenVor", grenze, geloescht });
       return geloescht;
     },

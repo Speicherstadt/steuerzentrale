@@ -67,10 +67,7 @@
       "indexes": {
         "audit_log_betreiber": {
           "name": "audit_log_betreiber",
-          "columns": [
-            "betreiber_id",
-            "zeitpunkt"
-          ],
+          "columns": ["betreiber_id", "zeitpunkt"],
           "isUnique": false
         }
       },
@@ -166,19 +163,14 @@
       "indexes": {
         "ereignisse_zeitpunkt": {
           "name": "ereignisse_zeitpunkt",
-          "columns": [
-            "zeitpunkt"
-          ],
+          "columns": ["zeitpunkt"],
           "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "ereignisse_betreiber_id_ereignis_id_pk": {
-          "columns": [
-            "betreiber_id",
-            "ereignis_id"
-          ],
+          "columns": ["betreiber_id", "ereignis_id"],
           "name": "ereignisse_betreiber_id_ereignis_id_pk"
         }
       },
@@ -220,20 +212,14 @@
       "indexes": {
         "heartbeats_zeitpunkt": {
           "name": "heartbeats_zeitpunkt",
-          "columns": [
-            "zeitpunkt"
-          ],
+          "columns": ["zeitpunkt"],
           "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "heartbeats_betreiber_id_server_id_zeitpunkt_pk": {
-          "columns": [
-            "betreiber_id",
-            "server_id",
-            "zeitpunkt"
-          ],
+          "columns": ["betreiber_id", "server_id", "zeitpunkt"],
           "name": "heartbeats_betreiber_id_server_id_zeitpunkt_pk"
         }
       },
@@ -282,19 +268,14 @@
       "indexes": {
         "log_auszuege_zeitpunkt": {
           "name": "log_auszuege_zeitpunkt",
-          "columns": [
-            "zeitpunkt"
-          ],
+          "columns": ["zeitpunkt"],
           "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "log_auszuege_betreiber_id_auszug_id_pk": {
-          "columns": [
-            "betreiber_id",
-            "auszug_id"
-          ],
+          "columns": ["betreiber_id", "auszug_id"],
           "name": "log_auszuege_betreiber_id_auszug_id_pk"
         }
       },

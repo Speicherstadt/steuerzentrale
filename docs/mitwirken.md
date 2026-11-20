@@ -19,7 +19,16 @@ bun run test:agent   # der Agent gegen Podman; ohne Podman übersprungen, mit CI
 bun run e2e          # Playwright gegen Zentrale (Port 28300) und Oberfläche (Port 5182)
 bun run dev:zentrale # Zentrale auf Port 18300
 bun run dev:web      # Oberfläche auf Port 5181, /api geht an die Zentrale
+bun run db:generate  # neue Migration aus apps/zentrale/src/db/schema.ts
 ```
+
+Die Zentrale legt ihre Datenbank `zentrale.db` (SQLite, WAL) in `STEUERZENTRALE_DATA` an (Vorgabe:
+`data`). Die Migrationen in `apps/zentrale/drizzle/` stecken im Binary (`migrationen.gen.ts`, erzeugt
+von `bun run db:generate`); eine schon angewendete Migration wird nie mehr geändert, sonst verweigert
+die Zentrale den Start. Geschrieben wird nur über `schreiben` (`apps/zentrale/src/modules/audit`),
+das in derselben Transaktion einen Eintrag ins Audit-Log anfügt; alle anderen Module lesen über eine
+Verbindung, die nicht schreiben kann. Ein Test sucht im Code nach Schreibzugriffen an `schreiben`
+vorbei.
 
 `bun run build` baut Zentrale und Agent als je ein Binary für `linux-x64` und `linux-arm64`
 (`apps/*/dist/`) und die Oberfläche als statische Seite.

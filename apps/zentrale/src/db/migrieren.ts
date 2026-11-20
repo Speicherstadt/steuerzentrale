@@ -31,7 +31,9 @@ export const migrieren = (
   const bekannt = new Set(migrationen.map((migration) => migration.tag));
   const unbekannt = [...angewendet.keys()].filter((tag) => !bekannt.has(tag));
   if (unbekannt.length > 0)
-    throw new Error(`migration ${unbekannt.join(", ")} was applied but is missing from this binary`);
+    throw new Error(
+      `migration ${unbekannt.join(", ")} was applied but is missing from this binary`,
+    );
   const neu = migrationen.filter((migration) => {
     const hash = angewendet.get(migration.tag);
     if (hash !== undefined && hash !== sha256(migration.sql))

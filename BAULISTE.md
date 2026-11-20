@@ -61,7 +61,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   `agent` und `e2e` dort echt laufen, beide Binaries für beide Architekturen gebaut werden, `/health`
   antwortet (Test) und ein Log weder Query-Werte noch `Authorization`- oder Cookie-Header enthält
   (Test).
-- [ ] **Z-102 Datenbank und Audit-Log** – Drizzle mit SQLite (WAL), Migrationen eingecheckt und im
+- [x] **Z-102 Datenbank und Audit-Log** – Drizzle mit SQLite (WAL), Migrationen eingecheckt und im
   Binary eingebettet; jede Tabelle mit Daten eines Betreibers trägt `betreiber_id` (ausgenommen:
   Manifeste, Tabellen von Better Auth); eine Schreibfunktion, die in derselben Transaktion einen
   Eintrag ins Audit-Log schreibt (Akteur, Zeitpunkt, Aktion, Ziel, Grund); das Audit-Log ist nur
