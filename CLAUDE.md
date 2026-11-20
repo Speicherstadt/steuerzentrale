@@ -46,8 +46,10 @@ it settles a detail.
 
 ## Never
 
-- Let the agent run anything an app's manifest does not describe: no shell, no free `podman exec`,
-  no command from the Zentrale as a string.
+- Let the agent run anything an app's manifest does not describe, or a manifest without a valid
+  signature: no shell, no free `podman exec`, no command as a string, no image without a digest.
+- Put the manifest signing key on the Zentrale or a server; give a server a DNS token or the backup
+  key of an installation that does not run on it.
 - Open a port on a managed server for the agent; the agent always connects out.
 - Store a secret outside an encrypted column, return one through the API, or write one into a log.
 - Hard-code an app: no `if (app === "haben")`; what differs goes into the manifest schema.
@@ -79,7 +81,7 @@ Update what the change affects, in the same pull request, and only that:
 Green before every push, then check CI:
 
 ```sh
-bun run typecheck && bun run lint && bun run test && bun run build
+bun run check             # typecheck, lint, test, build
 bun run test:agent        # agent against Podman with systemd; CI has both
 bun run e2e               # Playwright against Zentrale and agent in containers
 zensical build --strict   # when docs/ or mkdocs.yml changed
@@ -128,11 +130,20 @@ behaviour.
   lingering), its units in `~/.config/containers/systemd/`, own network and volumes, secrets as
   Podman secrets. Rootful only for an app whose manifest says `rootful: true`, which requires
   `server_fuer_sich`. Never set `AutoUpdate`: updates come only through the waves. One Caddy per
-  server ("Pforte", user `sz-pforte`), its admin API on localhost only.
-- Every table carries `betreiber_id`; every query filters by it; a test per endpoint proves that no
+  server ("Pforte", user `sz-pforte`, `Network=host`), its admin API on localhost only; each
+  installation publishes its HTTP service only on `127.0.0.1:<port>`, the port assigned by the
+  Zentrale; pasta networking so the client IP arrives.
+- The Zentrale has three hostnames: the UI only over WireGuard, `agent.<domain>` (mTLS per server)
+  and `api.<domain>` (tokens for the Portal). DNS records are set by the Zentrale through the
+  Cloudflare API, never by a server.
+- A partner is another operator (`betreiber`) in the same Zentrale, with its own servers, S3 target,
+  app values and brand; there is no partner role.
+- Every table with an operator's data carries `betreiber_id` (exempt: manifests, Better Auth's
+  tables); every query filters by it; a test per endpoint proves that no
   operator or partner sees another's data. Writes go through one function that appends to the
   audit log in the same transaction.
 - Secrets: encrypted columns with the key from `STEUERZENTRALE_SECRET_KEY` (32 bytes, base64); the
-  Zentrale refuses to start without it. Agent keys and API tokens are stored as hashes.
+  Zentrale refuses to start without it. Agent certificates are stored as fingerprints, API tokens
+  as hashes; the key can be rotated (key ID on every ciphertext).
 - Times: instants as UTC milliseconds; freeze and maintenance windows in `Europe/Berlin`, DST
   changes tested.
