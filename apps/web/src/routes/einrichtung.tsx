@@ -52,7 +52,12 @@ const EinrichtungSeite = () => {
             >
               <TotpKarte verbunden={d().totp} fertig={laden} />
             </Show>
-            <PasskeyKarte anzahl={d().passkeys} mitPasswort={d().passwort} fertig={laden} />
+            <PasskeyKarte
+              anzahl={d().passkeys}
+              mitPasswort={d().passwort}
+              totp={d().totp}
+              fertig={laden}
+            />
             <Button variant="ghost" onClick={raus}>
               {m.abmelden()}
             </Button>

@@ -39,8 +39,9 @@ mehr an.
 
 Ein Konto ohne zweiten Faktor erreicht nur die Seite **Zweiter Faktor** (`/einrichtung`) und in der
 API nur `GET /api/v1/einrichtung`; jede andere Route antwortet `403 zweiter_faktor_fehlt`. Hat ein
-Konto ein Passwort, gehört die Authenticator-App dazu, auch wenn es schon Passkeys hat: sonst käme man
-mit dem Passwort allein hinein. Die App verbindet man mit dem QR-Code oder dem angezeigten Schlüssel;
+Konto ein Passwort, gehört die Authenticator-App dazu, und einen Passkey legt es erst danach an: sonst
+käme man mit dem Passwort allein hinein, oder wer es kannte, hätte sich vorher einen Passkey angelegt.
+Sitzungen, die nur mit dem Passwort angemeldet wurden, enden, sobald die App bestätigt ist. Die App verbindet man mit dem QR-Code oder dem angezeigten Schlüssel;
 dabei erscheinen einmal zehn Ersatzcodes für den Fall, dass das Telefon fehlt. Ein Gerät als
 „vertrauenswürdig“ zu merken, das den Code beim nächsten Mal überspringt, gibt es nicht.
 

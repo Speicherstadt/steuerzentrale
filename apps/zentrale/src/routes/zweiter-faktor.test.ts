@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PASSWORT, testServer } from "../testhilfen/server.ts";
+import { authenticator } from "../testhilfen/authenticator.ts";
+import { PASSWORT, TEST_URL, testServer } from "../testhilfen/server.ts";
 import { totpCode } from "../testhilfen/totp.ts";
 import { ROUTEN, type RoutenName } from "./zugang.ts";
 
@@ -61,8 +62,12 @@ describe("an account without a second factor", () => {
   it("with a password, does not get on with a passkey alone", async () => {
     const server = testServer();
     const inhaber = await server.ersterInhaber();
-    await server.passkeyEinrichten(inhaber);
+    // the passkey comes only after TOTP (see below); the account stays without its second factor
+    await expect(server.passkeyEinrichten(inhaber)).rejects.toThrow("403");
     expect((await inhaber.json("/api/v1/ich")).daten).toEqual({ fehler: "zweiter_faktor_fehlt" });
+    await server.totpEinrichten(inhaber);
+    await server.passkeyEinrichten(inhaber);
+    expect((await inhaber.json("/api/v1/einrichtung")).daten).toMatchObject({ passkeys: 1 });
   });
 
   it("without a password, gets on with a passkey", async () => {
@@ -108,6 +113,29 @@ describe("an account without a second factor", () => {
     });
     expect((await spaeter.anfrage("/api/v1/ich")).status).toBe(200);
     expect((await inhaber.anfrage("/api/v1/ich")).status).toBe(200);
+  });
+
+  it("with a password, a passkey added before TOTP does not sign in without it later", async () => {
+    const server = testServer();
+    const inhaber = await server.ersterInhaber();
+    // someone with the password alone, while the account still lacks TOTP
+    const frueher = server.browser();
+    await frueher.anfrage("/api/auth/sign-in/email", {
+      body: { email: inhaber.email, password: PASSWORT },
+    });
+    const geraet = authenticator(TEST_URL);
+    const registrieren = await frueher.json("/api/auth/passkey/generate-register-options");
+    if (registrieren.status === 200)
+      await frueher.anfrage("/api/auth/passkey/verify-registration", {
+        body: { response: geraet.registrieren(registrieren.daten), name: "Fremd" },
+      });
+    await server.totpEinrichten(inhaber);
+    const neu = server.browser();
+    const optionen = await neu.json("/api/auth/passkey/generate-authenticate-options");
+    await neu.anfrage("/api/auth/passkey/verify-authentication", {
+      body: { response: geraet.anmelden(optionen.daten) },
+    });
+    expect((await neu.anfrage("/api/v1/ich")).status).not.toBe(200);
   });
 
   it("without a session, gets 401 everywhere but the public routes", async () => {

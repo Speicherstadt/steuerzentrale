@@ -106,10 +106,11 @@ export const TotpKarte = (props: { verbunden: boolean; fertig: () => void }) => 
   );
 };
 
-/** Adds a passkey of this device or a security key */
+/** Adds a passkey of this device or a security key; with a password only after TOTP */
 export const PasskeyKarte = (props: {
   anzahl: number;
   mitPasswort: boolean;
+  totp: boolean;
   fertig: () => void;
 }) => {
   const [fehler, setFehler] = createSignal("");
@@ -124,7 +125,11 @@ export const PasskeyKarte = (props: {
       <KartenKopf
         titel={m.einr_passkey_titel()}
         text={m.einr_passkey_text()}
-        aktion={<Button onClick={anlegen}>{m.einr_passkey_knopf()}</Button>}
+        aktion={
+          !props.mitPasswort || props.totp ? (
+            <Button onClick={anlegen}>{m.einr_passkey_knopf()}</Button>
+          ) : undefined
+        }
       />
       <KartenInhalt class="grid gap-2">
         <p>{m.einr_passkeys({ n: String(props.anzahl) })}</p>

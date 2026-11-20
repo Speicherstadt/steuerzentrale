@@ -106,7 +106,7 @@
   "einr_abgemeldet": "Not signed in: the setup needs the session of an invitation, the setup code or a sign-in.",
   "einr_fertig": "The second factor is set up.",
   "einr_passkey_knopf": "Add a passkey",
-  "einr_passkey_mit_passwort": "With a password a passkey alone is not enough: the authenticator app is needed too.",
+  "einr_passkey_mit_passwort": "With a password a passkey alone is not enough: it can be added once the authenticator app is set up.",
   "einr_passkey_text": "Sign in with fingerprint, face or security key",
   "einr_passkey_titel": "Passkey",
   "einr_passkeys": "Passkeys added: {n}",

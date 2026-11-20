@@ -106,7 +106,7 @@
   "einr_abgemeldet": "Nicht angemeldet: die Einrichtung braucht die Sitzung aus Einladung, Einrichtungscode oder Anmeldung.",
   "einr_fertig": "Der zweite Faktor ist eingerichtet.",
   "einr_passkey_knopf": "Passkey anlegen",
-  "einr_passkey_mit_passwort": "Mit Passwort genügt ein Passkey allein nicht: dazu gehört die Authenticator-App.",
+  "einr_passkey_mit_passwort": "Mit Passwort genügt ein Passkey allein nicht: er kommt erst nach der Authenticator-App dazu.",
   "einr_passkey_text": "Anmeldung mit Fingerabdruck, Gesicht oder Sicherheitsschlüssel",
   "einr_passkey_titel": "Passkey",
   "einr_passkeys": "Angelegte Passkeys: {n}",

@@ -1,7 +1,12 @@
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthEndpoint, createAuthMiddleware } from "better-auth/api";
+import {
+  APIError,
+  createAuthEndpoint,
+  createAuthMiddleware,
+  getSessionFromCtx,
+} from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { organization, twoFactor } from "better-auth/plugins";
 import { z } from "zod";
@@ -99,10 +104,30 @@ const kontoPlugin = () => ({
 });
 
 /** A device trusted for 30 days would sign in with the password alone (docs/plan.md) */
-const keinVertrautesGeraet = createAuthMiddleware(async (ctx) => {
+const keinVertrautesGeraet = async (ctx: { path: string; body?: unknown }) => {
   if (!ctx.path.startsWith("/two-factor/verify")) return;
   if ((ctx.body as { trustDevice?: unknown } | undefined)?.trustDevice)
     throw new APIError("BAD_REQUEST", { message: "trust_device_not_allowed" });
+};
+
+/**
+ * An account with a password adds a passkey only once TOTP is confirmed: before, a session needs
+ * the password alone, and a passkey added by whoever had it would sign in without a code even after
+ * the owner set up TOTP.
+ */
+const PASSKEY_ANLEGEN = new Set([
+  "/passkey/generate-register-options",
+  "/passkey/verify-registration",
+]);
+
+const passkeyErstNachTotp = createAuthMiddleware(async (ctx) => {
+  await keinVertrautesGeraet(ctx);
+  if (!PASSKEY_ANLEGEN.has(ctx.path)) return;
+  const sitzung = await getSessionFromCtx(ctx);
+  if (!sitzung || sitzung.user.twoFactorEnabled === true) return;
+  const konten = await ctx.context.internalAdapter.findAccounts(sitzung.user.id);
+  if (konten.some((konto) => konto.providerId === "credential" && konto.password))
+    throw new APIError("FORBIDDEN", { message: "totp_zuerst" });
 });
 
 /**
@@ -163,7 +188,7 @@ const betterAuthFuer = ({ schreibDb, url, geheimnis }: AuthDeps) =>
     },
     advanced: { ipAddress: { ipAddressHeaders: [CLIENT_HEADER] } },
     telemetry: { enabled: false },
-    hooks: { before: keinVertrautesGeraet, after: andereSitzungenBeenden },
+    hooks: { before: passkeyErstNachTotp, after: andereSitzungenBeenden },
     plugins: [
       passkey({
         rpID: new URL(url).hostname,
