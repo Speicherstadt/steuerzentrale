@@ -14,4 +14,16 @@ export {
 /** The manifest schema version this build reads (docs/plan.md, "Manifest": `schema: 1`) */
 export const MANIFEST_SCHEMA = 1;
 export { manifestJsonSchema } from "./json-schema.ts";
+export {
+  type Befund as PlatzBefund,
+  festePorts,
+  type PlatzAnfrage,
+  type PlatzInstallation,
+  type Platzierung,
+  type PlatzKunde,
+  type PlatzServer,
+  platzieren,
+  ramBedarf,
+  WARNSCHWELLE,
+} from "./platzierung.ts";
 export { schluesselVertrauen, TEST_SCHLUESSEL_ID, type Zweck } from "./vertrauen.ts";

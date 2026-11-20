@@ -141,7 +141,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   in einen Digest übersetzt (Test gegen die lokale Registry) und ein Test die Tabelle „Die Apps der
   Speicherstadt“ im Plan (Spalten Arch, RAM, Ports, IPv4, Für sich, Anmeldung, Health, Image) gegen
   die Manifeste prüft.
-- [ ] **Z-204 Platzierung** – reine Funktion: Manifest, Optionen, Serverfakten, vorhandene
+- [x] **Z-204 Platzierung** – reine Funktion: Manifest, Optionen, Serverfakten, vorhandene
   Installationen, Kunde → `passt` | Hinweise | Gründe. Regeln: Architektur je Container und Option,
   RAM und Platte als Summe der Grenzen, feste Ports doppelt, öffentliche IPv4, Mail (PTR, Port 25
   ausgehend), Server für sich (beide Richtungen), `rootful` und eigener Proxy nur mit Server für
