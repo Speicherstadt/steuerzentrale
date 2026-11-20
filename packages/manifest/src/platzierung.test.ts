@@ -108,6 +108,20 @@ describe("placement", () => {
       expect(
         codes(anfrage({ manifest: nurAmd, server: { architektur: "arm64" } })).gruende,
       ).toEqual(["architektur"]));
+    it("passt nicht with a chosen option of another architecture that brings no container", () => {
+      const nurOption = manifest({
+        optionen: [{ id: "extra", name: "Extra", architektur: ["amd64"] }],
+      });
+      expect(
+        platzieren(
+          anfrage({ manifest: nurOption, optionen: ["extra"], server: { architektur: "arm64" } }),
+        ),
+      ).toEqual({
+        art: "passt_nicht",
+        gruende: [{ code: "architektur", werte: { option: "extra", server: "arm64" } }],
+        hinweise: [],
+      });
+    });
   });
 
   describe("RAM as the sum of the limits", () => {
