@@ -1,0 +1,44 @@
+import type { Db, SchreibDb } from "../../db/oeffnen.ts";
+import { betreiber } from "../../db/schema.ts";
+import { schreiben } from "../audit/index.ts";
+import type { AufbewahrteTabelle } from "../audit/tabellen.ts";
+import { aufbewahrungsGrenzen, TAG_MS } from "./grenzen.ts";
+
+export type Geloescht = Record<AufbewahrteTabelle, number>;
+
+/** One retention run for every operator, each in its own transaction with its audit entries */
+export const aufbewahren = (db: Db, schreibDb: SchreibDb, jetzt: number): Geloescht => {
+  const grenzen = aufbewahrungsGrenzen(jetzt);
+  const summe: Geloescht = { heartbeats: 0, logAuszuege: 0, ereignisse: 0 };
+  const alle = db.select({ betreiberId: betreiber.betreiberId }).from(betreiber).all();
+  for (const { betreiberId } of alle) {
+    const kontext = { betreiberId, akteur: "system", jetzt, grund: "Aufbewahrung (docs/plan.md)" };
+    schreiben(schreibDb, kontext, "aufbewahrung", (s) => {
+      for (const name of Object.keys(grenzen) as AufbewahrteTabelle[])
+        summe[name] += s.loeschenVor(name, grenzen[name]);
+    });
+  }
+  return summe;
+};
+
+export type Planer = (lauf: () => void, ms: number) => void;
+
+/** Runs the retention now and then once a day */
+export const aufbewahrungsSchleife = (
+  db: Db,
+  schreibDb: SchreibDb,
+  jetzt: () => number,
+  planen: Planer,
+  log: (zeile: string) => void,
+): void => {
+  const lauf = () => {
+    try {
+      const geloescht = aufbewahren(db, schreibDb, jetzt());
+      log(JSON.stringify({ msg: "retention", geloescht }));
+    } catch (fehler) {
+      log(JSON.stringify({ msg: "retention failed", fehler: String(fehler) }));
+    }
+  };
+  lauf();
+  planen(lauf, TAG_MS);
+};
