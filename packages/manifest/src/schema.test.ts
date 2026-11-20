@@ -101,6 +101,26 @@ describe("invalid manifests", () => {
       "befehle.x.argv.0: csh would start a shell",
     ],
     [
+      "a container whose command starts a shell",
+      (m) => {
+        m.container[0].argv = ["sh", "-c", "id"];
+      },
+      "container.0.argv.0: sh would start a shell",
+    ],
+    [
+      "an option container whose command starts a shell",
+      (m) => {
+        m.optionen = [
+          {
+            id: "extra",
+            name: "Extra",
+            container: [{ name: "extra", image: m.container[0].image, argv: ["bash", "-c", "id"] }],
+          },
+        ];
+      },
+      "optionen.0.container.0.argv.0: bash would start a shell",
+    ],
+    [
       "rootful on a shared server",
       (m) => {
         m.rootful = true;

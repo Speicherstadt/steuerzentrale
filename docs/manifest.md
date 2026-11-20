@@ -54,7 +54,8 @@ Unbekannte Felder sind ein Fehler, damit ein Tippfehler nicht still übergangen 
   `container.env`.
 - Ein Schritt ist der Name eines Befehls, nie Shell-Text. Ein Befehl startet keine Shell (`sh`,
   `bash`, `env`, …), auch nicht über ein vorangestelltes Programm (`timeout 60 sh -c …`): kein
-  Element von `argv` ist eine Shell, `argv` wird ohne Shell ausgeführt.
+  Element von `argv` ist eine Shell, `argv` wird ohne Shell ausgeführt. Dasselbe gilt für das `argv`
+  eines Containers, auch in Optionen.
 - Images nur per Digest; ein Tag kann unter demselben Namen ein anderes Image meinen.
 - `rootful` und ein eigener Proxy nur mit `netz.server_fuer_sich: true`; der geteilte Proxy braucht
   `netz.http`.

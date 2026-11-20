@@ -58,6 +58,7 @@ const containerRegeln = (m: Manifest): Befund[] => {
     grund: `container ${name} is declared twice`,
   }));
   for (const { c, pfad } of container) {
+    befunde.push(...shellBefunde(c.argv ?? [], [...pfad, "argv"]));
     for (const [i, ziel] of c.braucht.entries())
       if (!namen.has(ziel))
         befunde.push({ pfad: [...pfad, "braucht", i], grund: `no container named ${ziel}` });
