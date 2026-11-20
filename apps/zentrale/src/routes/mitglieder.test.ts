@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { member } from "../db/auth-schema.ts";
 import { auditLog, mitglieder } from "../db/schema.ts";
-import { testServer } from "../testhilfen/server.ts";
+import { PASSWORT, testServer } from "../testhilfen/server.ts";
 
 describe("the members of an operator", () => {
   it("are listed with name, address and role", async () => {
@@ -81,6 +81,29 @@ describe("the members of an operator", () => {
         .all()
         .map((m) => m.userId),
     ).toEqual([inhaber.nutzerId]);
+  });
+
+  it.each([
+    ["removed", { method: "DELETE" }],
+    ["demoted", { method: "PATCH", body: { rolle: "support" } }],
+  ] as const)("keep no way back in through their own open invitations when %s", async (_, init) => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const zweite = await server.eingeladen(inhaber, "inhaber", "zweite@betreiber.test");
+    const { daten } = await zweite.json("/api/v1/einladungen", { body: { rolle: "inhaber" } });
+    const token = String((daten as { link: string }).link).split("#")[1] ?? "";
+    const vonInhaber = await inhaber.json("/api/v1/einladungen", { body: { rolle: "technik" } });
+    expect(vonInhaber.status).toBe(201);
+    const geaendert = await inhaber.anfrage(`/api/v1/mitglieder/${zweite.nutzerId}`, init);
+    expect(geaendert.ok).toBe(true);
+    const zurueck = await server.browser().json("/api/v1/einladung/annehmen", {
+      body: { token, name: "Wieder da", email: "wieder@betreiber.test", passwort: PASSWORT },
+    });
+    expect(zurueck.status).toBe(404);
+    // the invitations of those who still may invite stay
+    expect((await inhaber.json("/api/v1/einladungen")).daten).toMatchObject({
+      einladungen: [{ rolle: "technik" }],
+    });
   });
 
   it("are unknown by an id outside the operator", async () => {

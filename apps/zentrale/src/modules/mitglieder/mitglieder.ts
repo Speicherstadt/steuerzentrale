@@ -1,8 +1,10 @@
 import { and, eq } from "drizzle-orm";
+import { darf } from "../../auth/rollen.ts";
 import { user } from "../../db/auth-schema.ts";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import { betreiber, mitglieder } from "../../db/schema.ts";
 import { type Kontext, type Schreiber, schreiben } from "../audit/index.ts";
+import { einladungenVonZurueckziehen } from "./einladungen.ts";
 
 /*
  * Operators and their members as the Zentrale keeps them: the operator row and the mirror of Better
@@ -84,9 +86,11 @@ export const rolleAendern = (
 ): Aenderung => {
   const geprueft = pruefen(db, kontext, nutzerId, rolle === "inhaber");
   if (!geprueft.ok) return geprueft;
-  schreiben(schreibDb, kontext, "mitglied.rolle", (s) =>
-    s.aendern("mitglieder", { nutzerId }, { rolle }),
-  );
+  schreiben(schreibDb, kontext, "mitglied.rolle", (s) => {
+    s.aendern("mitglieder", { nutzerId }, { rolle });
+    if (!darf(rolle, "mitglieder:einladen"))
+      einladungenVonZurueckziehen(db, s, { betreiberId: kontext.betreiberId, nutzerId });
+  });
   return geprueft;
 };
 
@@ -98,8 +102,9 @@ export const mitgliedEntfernen = (
 ): Aenderung => {
   const geprueft = pruefen(db, kontext, nutzerId, false);
   if (!geprueft.ok) return geprueft;
-  schreiben(schreibDb, kontext, "mitglied.entfernen", (s) =>
-    s.loeschen("mitglieder", { nutzerId }),
-  );
+  schreiben(schreibDb, kontext, "mitglied.entfernen", (s) => {
+    s.loeschen("mitglieder", { nutzerId });
+    einladungenVonZurueckziehen(db, s, { betreiberId: kontext.betreiberId, nutzerId });
+  });
   return geprueft;
 };

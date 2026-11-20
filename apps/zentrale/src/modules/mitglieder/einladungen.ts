@@ -91,6 +91,26 @@ export const einladungAngenommen = (
   jetzt: number,
 ) => s.aendern("einladungen", { einladungId }, { angenommenVon: nutzerId, angenommenAm: jetzt });
 
+/** Removes an open invitation and its token, within the writer's transaction */
+const offeneEntfernen = (s: Schreiber, einladungId: string) => {
+  if (s.vorhanden("tokens", { tokenId: einladungId }))
+    s.loeschen("tokens", { tokenId: einladungId });
+  s.loeschen("einladungen", { einladungId });
+};
+
+/**
+ * Withdraws the open invitations a member made, when the member is removed or loses the right to
+ * invite: a link kept back would otherwise let them in again with a new account, in its role
+ */
+export const einladungenVonZurueckziehen = (
+  db: Db,
+  s: Schreiber,
+  mitglied: { betreiberId: string; nutzerId: string },
+) => {
+  for (const einladung of offeneEinladungen(db, mitglied.betreiberId))
+    if (einladung.angelegtVon === mitglied.nutzerId) offeneEntfernen(s, einladung.einladungId);
+};
+
 /** Withdraws an open invitation with its token; an accepted one stays as a record */
 export const einladungZurueckziehen = (
   db: Db,
@@ -102,10 +122,6 @@ export const einladungZurueckziehen = (
     (einladung) => einladung.einladungId === einladungId,
   );
   if (!offen) return false;
-  schreiben(schreibDb, kontext, "einladung.zurueckziehen", (s) => {
-    if (s.vorhanden("tokens", { tokenId: einladungId }))
-      s.loeschen("tokens", { tokenId: einladungId });
-    s.loeschen("einladungen", { einladungId });
-  });
+  schreiben(schreibDb, kontext, "einladung.zurueckziehen", (s) => offeneEntfernen(s, einladungId));
   return true;
 };

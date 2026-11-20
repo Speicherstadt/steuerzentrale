@@ -55,7 +55,8 @@ Browser selbst schickt.
 Der Inhaber lädt weitere Personen mit einer Rolle ein und bekommt einen Link
 `https://zentrale.example.de/einladung#…`. Der Teil nach `#` ist der Schlüssel: er erreicht weder ein
 Server-Log noch einen Referer, in der Datenbank steht nur sein SHA-256. Ein Link gilt sieben Tage und
-einmal; offene Einladungen lassen sich zurückziehen. Wer ihn öffnet, legt ein Konto an (Name,
+einmal; offene Einladungen lassen sich zurückziehen. Wird ein Mitglied entfernt oder verliert es das
+Recht einzuladen, ziehen sich seine offenen Einladungen von selbst zurück. Wer ihn öffnet, legt ein Konto an (Name,
 E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 
 ## Rollen
