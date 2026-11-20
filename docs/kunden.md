@@ -25,7 +25,8 @@ Updates kommen mit allen anderen, nach der internen Welle ([Updates](updates.md)
 Welle) und Ruhe (späte Welle) kennt die Datenbank schon; angeboten werden sie erst mit Z-505.
 
 Vertragsbeginn und Vertragsende sind Tage. Die Zentrale speichert den Beginn dieses Tages in
-`Europe/Berlin` als Zeitpunkt in UTC-Millisekunden; die Oberfläche zeigt ihn als TT.MM.JJJJ. Das
+`Europe/Berlin` als Zeitpunkt in UTC-Millisekunden; die Oberfläche zeigt ihn als TT.MM.JJJJ. Einen
+Zeitpunkt, der nicht der Beginn eines Tages in Berlin ist, lehnt die API mit `400 ungueltig` ab. Das
 Vertragsende liegt nie vor dem Beginn.
 
 ## Kündigung
@@ -87,7 +88,8 @@ Die Antwort ist der Kunde:
 }
 ```
 
-Fehler: `400 ungueltig` (Feld fehlt oder passt nicht, auch ohne Grund), `404 kein_kunde`,
+Fehler: `400 ungueltig` (Feld fehlt oder passt nicht, auch ohne Grund oder mit einem Tag, der
+nicht um 00:00 in Berlin beginnt), `404 kein_kunde`,
 `409 ende_vor_beginn`.
 
 ## Was noch fehlt

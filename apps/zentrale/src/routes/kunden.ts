@@ -1,3 +1,4 @@
+import { tagesbeginn } from "@steuerzentrale/planung";
 import type { Context } from "hono";
 import { z } from "zod";
 import {
@@ -17,7 +18,15 @@ import type { Anfrage, Registrar } from "./zugang.ts";
  */
 
 const text = (max: number) => z.string().trim().min(1).max(max);
-const tag = z.number().int().min(0).max(8_640_000_000_000_000);
+// A contract day is the start of that day in Berlin (docs/kunden.md); the bound keeps the check
+// within the range Intl can format
+const LETZTER_TAG = Date.UTC(9999, 11, 31);
+const tag = z
+  .number()
+  .int()
+  .min(0)
+  .max(LETZTER_TAG)
+  .refine((t) => t <= LETZTER_TAG && tagesbeginn(t) === t);
 const grund = text(500);
 
 const stammdaten = {
