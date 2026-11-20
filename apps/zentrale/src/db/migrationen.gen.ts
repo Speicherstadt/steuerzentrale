@@ -19,5 +19,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0004_mitglieder",
     "sql": "CREATE TABLE `einladungen` (\n\t`betreiber_id` text NOT NULL,\n\t`einladung_id` text NOT NULL,\n\t`rolle` text NOT NULL,\n\t`gueltig_bis` integer NOT NULL,\n\t`angelegt_von` text NOT NULL,\n\t`angelegt_am` integer NOT NULL,\n\t`angenommen_von` text,\n\t`angenommen_am` integer,\n\tPRIMARY KEY(`betreiber_id`, `einladung_id`)\n);\n--> statement-breakpoint\nCREATE TABLE `mitglieder` (\n\t`betreiber_id` text NOT NULL,\n\t`nutzer_id` text NOT NULL,\n\t`rolle` text NOT NULL,\n\t`angelegt_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `nutzer_id`)\n);\n--> statement-breakpoint\nCREATE INDEX `mitglieder_nutzer` ON `mitglieder` (`nutzer_id`);"
+  },
+  {
+    "tag": "0005_kunden",
+    "sql": "CREATE TABLE `kunden` (\n\t`betreiber_id` text NOT NULL,\n\t`kunde_id` text NOT NULL,\n\t`name` text NOT NULL,\n\t`kontakt_name` text NOT NULL,\n\t`kontakt_email` text NOT NULL,\n\t`kontakt_telefon` text,\n\t`notiz` text,\n\t`angelegt_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `kunde_id`)\n);\n--> statement-breakpoint\nCREATE TABLE `vertraege` (\n\t`betreiber_id` text NOT NULL,\n\t`vertrag_id` text NOT NULL,\n\t`kunde_id` text NOT NULL,\n\t`sla` text NOT NULL,\n\t`beginn` integer NOT NULL,\n\t`ende` integer,\n\t`angelegt_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `vertrag_id`),\n\tFOREIGN KEY (`betreiber_id`,`kunde_id`) REFERENCES `kunden`(`betreiber_id`,`kunde_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE UNIQUE INDEX `vertraege_kunde` ON `vertraege` (`betreiber_id`,`kunde_id`);"
   }
 ];

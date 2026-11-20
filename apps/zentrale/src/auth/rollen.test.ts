@@ -21,6 +21,13 @@ describe("darf", () => {
     }
   });
 
+  it("lets every role read customers, and only owner and technik write them (Z-801)", () => {
+    for (const rolle of ROLLEN) expect(darf(rolle, "kunden:lesen"), rolle).toBe(true);
+    expect(darf("inhaber", "kunden:schreiben")).toBe(true);
+    expect(darf("technik", "kunden:schreiben")).toBe(true);
+    expect(darf("support", "kunden:schreiben")).toBe(false);
+  });
+
   it("gives a member with several roles the rights of each", () => {
     expect(rollenVon("support, inhaber")).toEqual(["support", "inhaber"]);
     expect(darf("support,inhaber", "mitglieder:einladen")).toBe(true);

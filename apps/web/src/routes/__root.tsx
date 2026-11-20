@@ -4,6 +4,7 @@ import { Show } from "solid-js";
 import { ohneRahmen, zielVor } from "../anmeldung/sitzung.ts";
 import { Kopf } from "../rahmen/kopf.tsx";
 import { Seitenleiste } from "../rahmen/seitenleiste.tsx";
+import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
 
 /**
  * The shell (DESIGN.md; design/mockup/, after shadcn's "dashboard-01"): the sidebar beside the page
@@ -25,13 +26,6 @@ const Rahmen = () => (
         <Outlet />
       </main>
     </div>
-  </div>
-);
-
-const NichtGefunden = () => (
-  <div class="grid gap-1">
-    <h1 class="text-2xl font-semibold tracking-tight">{m.nicht_gefunden_titel()}</h1>
-    <p class="text-muted-foreground">{m.nicht_gefunden_text()}</p>
   </div>
 );
 

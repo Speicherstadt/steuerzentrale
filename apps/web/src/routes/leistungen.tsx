@@ -17,7 +17,7 @@ const Monat = (props: { b: Bestand; monat: string }) => {
   const zeilen = () =>
     props.b.kunden
       // A month before the contract began has nothing to show, not 100 % of nothing
-      .filter((k) => !k.intern && monatVon(k.seit) <= props.monat)
+      .filter((k) => !k.intern && monatVon(k.vertrag.beginn) <= props.monat)
       .map((k) => {
         const installationen = installationenVon(props.b, k.id);
         return {

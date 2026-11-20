@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { kundeAnlegen } from "./hilfen/kunden.ts";
 
 // Every page of the route tree, in light and dark, on the desktop and a phone, checked with axe; the
 // `pages` check (checks.json) reads the paths in this file. The data are the demo fixtures
@@ -31,6 +32,11 @@ const pages = [
 
 test.use({ locale: "de-DE" });
 
+const ECHT: Record<string, (page: Page) => Promise<string>> = {
+  "/kunden/praxis-weber": async (page) =>
+    `/kunden/${(await kundeAnlegen(page.request, "Praxis Weber")).id}`,
+};
+
 const pruefen = async (page: Page) => {
   await expect(page.locator("main h1")).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
@@ -48,8 +54,9 @@ for (const theme of ["light", "dark"] as const) {
 
     for (const path of pages) {
       test(`axe finds nothing on ${path} @phone`, async ({ page }) => {
-        await page.goto(path);
-        await expect(page).toHaveURL(path);
+        const ziel = (await ECHT[path]?.(page)) ?? path;
+        await page.goto(ziel);
+        await expect(page).toHaveURL(ziel);
         await pruefen(page);
       });
     }

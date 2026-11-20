@@ -1,4 +1,12 @@
-import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  foreignKey,
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 /*
  * The tables of the Zentrale. Every table with data of an operator carries `betreiber_id`
@@ -150,4 +158,51 @@ export const einladungen = sqliteTable(
     angenommenAm: integer("angenommen_am"),
   },
   (t) => [primaryKey({ columns: [t.betreiberId, t.einladungId] })],
+);
+
+/**
+ * A customer of an operator with one contact person (BAULISTE.md Z-801); customers never sign in
+ * to the Zentrale (docs/plan.md, "Was der Kunde sieht")
+ */
+export const kunden = sqliteTable(
+  "kunden",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    kundeId: text("kunde_id").notNull(),
+    name: text("name").notNull(),
+    kontaktName: text("kontakt_name").notNull(),
+    kontaktEmail: text("kontakt_email").notNull(),
+    kontaktTelefon: text("kontakt_telefon"),
+    notiz: text("notiz"),
+    angelegtAm: integer("angelegt_am").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.betreiberId, t.kundeId] })],
+);
+
+/** The service levels of a contract (docs/plan.md, "SLA"); stage 1 offers only `basis` (Z-505) */
+export const SLAS = ["basis", "plus", "ruhe"] as const;
+
+/**
+ * A customer's contract with its SLA, the day it begins and, once the customer gave notice, the day
+ * it ends (docs/plan.md, "Kündigung und Löschung"); in stage 1 one per customer, made with it
+ */
+export const vertraege = sqliteTable(
+  "vertraege",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    vertragId: text("vertrag_id").notNull(),
+    kundeId: text("kunde_id").notNull(),
+    sla: text("sla", { enum: SLAS }).notNull(),
+    beginn: integer("beginn").notNull(),
+    ende: integer("ende"),
+    angelegtAm: integer("angelegt_am").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.betreiberId, t.vertragId] }),
+    uniqueIndex("vertraege_kunde").on(t.betreiberId, t.kundeId),
+    foreignKey({
+      columns: [t.betreiberId, t.kundeId],
+      foreignColumns: [kunden.betreiberId, kunden.kundeId],
+    }),
+  ],
 );

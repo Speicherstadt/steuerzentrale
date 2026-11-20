@@ -60,6 +60,7 @@ nav:
   - Steuerzentrale: index.md
   - Betrieb:
       - Anmeldung und Rollen: anmeldung.md
+      - Kunden und Verträge: kunden.md
       - Apps installieren: installieren.md
       - Updates: updates.md
   - Für App-Entwickler:

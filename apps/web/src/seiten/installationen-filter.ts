@@ -17,9 +17,12 @@ export const passt = (b: Bestand, i: Installation, filter: Filter) => {
 export const gefunden = (b: Bestand, i: Installation, frage: string) => {
   const q = frage.trim().toLowerCase();
   if (!q) return true;
-  return [titel(b, i), i.adresse, serverVon(b, i.server).name, kundeVon(b, i.kunde).kontakt].some(
-    (text) => text.toLowerCase().includes(q),
-  );
+  return [
+    titel(b, i),
+    i.adresse,
+    serverVon(b, i.server).name,
+    kundeVon(b, i.kunde).kontakt.email,
+  ].some((text) => text.toLowerCase().includes(q));
 };
 
 export const gefiltert = (b: Bestand, filter: Filter, frage: string) =>

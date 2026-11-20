@@ -36,6 +36,13 @@
       "when": 1795208831209,
       "tag": "0004_mitglieder",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1795212036253,
+      "tag": "0005_kunden",
+      "breakpoints": true
     }
   ]
 }

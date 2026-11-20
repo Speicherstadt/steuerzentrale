@@ -1,7 +1,16 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { beforeEach, describe, expect, it } from "vitest";
-import { berlin } from "../demo/zeit.ts";
-import { datum, monatName, monatUndVormonat, uhrzeit, vor, zeitpunkt } from "./zeit.ts";
+import {
+  berlin,
+  datum,
+  isoTag,
+  monatName,
+  monatUndVormonat,
+  tageSpaeter,
+  uhrzeit,
+  vor,
+  zeitpunkt,
+} from "./zeit.ts";
 
 const jetzt = berlin("2026-11-20", "10:42");
 
@@ -51,5 +60,22 @@ describe("times in Europe/Berlin", () => {
     expect(monatUndVormonat(jetzt)).toEqual(["2026-10", "2026-11"]);
     expect(monatUndVormonat(berlin("2027-01-01", "00:30"))).toEqual(["2026-12", "2027-01"]);
     expect(monatName("2026-11")).toBe("November 2026");
+  });
+});
+
+// Contract dates (Z-801): a date field's day is the start of that day in Berlin, and back
+describe("days of a date field", () => {
+  it("are the start of the day in Berlin, in summer and winter", () => {
+    expect(berlin("2026-11-30")).toBe(Date.UTC(2026, 10, 29, 23));
+    expect(berlin("2026-07-01")).toBe(Date.UTC(2026, 5, 30, 22));
+    expect(isoTag(berlin("2026-11-30"))).toBe("2026-11-30");
+    expect(isoTag(Date.UTC(2026, 10, 29, 23, 30))).toBe("2026-11-30");
+  });
+
+  it("move by calendar days across a change of daylight saving time", () => {
+    expect(datum(tageSpaeter(berlin("2026-11-30"), 90))).toBe("28.02.2027");
+    // 29.03.2027: the night of 28.03. has 23 hours
+    expect(isoTag(tageSpaeter(berlin("2027-03-27"), 2))).toBe("2027-03-29");
+    expect(tageSpaeter(berlin("2027-03-27"), 2)).toBe(berlin("2027-03-29"));
   });
 });

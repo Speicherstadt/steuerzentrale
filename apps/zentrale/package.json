@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.26",
+    "@steuerzentrale/planung": "workspace:*",
     "@steuerzentrale/protokoll": "workspace:*",
     "better-auth": "1.7.26",
     "drizzle-orm": "0.45.4",

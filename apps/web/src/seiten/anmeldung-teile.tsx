@@ -37,6 +37,7 @@ const TEXTE: Record<string, () => string> = {
   einladung_ungueltig: m.fehler_einladung_ungueltig,
   code_ungueltig: m.fehler_code_ungueltig,
   abgeschlossen: m.fehler_abgeschlossen,
+  keine_berechtigung: m.fehler_keine_berechtigung,
   INVALID_CODE: m.fehler_code,
   INVALID_EMAIL_OR_PASSWORD: m.fehler_falsch,
 };
