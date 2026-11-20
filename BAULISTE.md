@@ -1,8 +1,14 @@
 # Bauliste
 
 Die Liste, die der Agenten-Loop abarbeitet, in der Reihenfolge der Bauphasen aus dem
-[Projektplan](docs/plan.md). Die Steuerzentrale 1.0 ist fertig, wenn jeder Punkt abgehakt ist und
-die Schritte für Menschen am Ende erledigt sind.
+[Projektplan](docs/plan.md). Sie hat zwei Stufen:
+
+- **Stufe 1 – eigener Betrieb** (Phasen 1 bis 7): genug, um die ersten zehn Kunden mit Haben,
+  Belegt, Schreibzeug und Fixpunkt auf unseren Servern zu betreiben. Mit dem letzten Punkt der
+  Stufe 1 erscheint die Steuerzentrale 1.0.
+- **Stufe 2 – wachsen** (Phasen 8 bis 12): Partner, Kontext mit Mail und Single Sign-on, Wellen nach
+  SLA, Umzug und Ausfall automatisiert, API für das Portal. Der Loop beginnt Stufe 2 erst, wenn ein
+  Mensch die Zeile „Stufe 2 freigegeben“ unten abhakt; bis dahin endet er nach Stufe 1.
 
 ## So arbeitet der Loop
 
@@ -24,8 +30,10 @@ die Schritte für Menschen am Ende erledigt sind.
    ein Mensch erledigen kann, steht unten unter „Schritte für Menschen“.
 
 **Parallel**: Nach Z-104 laufen Phase 2 (reine Funktionen) und Z-105 (Oberfläche mit Demodaten)
-unabhängig; nach Z-305 Phase 4 und Z-701 bis Z-703; nach Z-406 die Phasen 5, 6 und 8. Jede Session
+unabhängig; nach Z-305 Phase 4 und Z-701 bis Z-703; nach Z-406 die Phasen 5 und 6. Jede Session
 hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
+
+# Stufe 1 – eigener Betrieb
 
 ## Phase 1 – Fundament
 
@@ -58,12 +66,13 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 - [ ] **Z-104 Anmeldung, Rollen, Betreiber** – Better Auth mit Organisationen (eine je Betreiber),
   Passkey oder TOTP als Pflicht vor dem ersten Zugriff; erster Inhaber über einen Einrichtungscode im
   Log; Rollen Inhaber, Technik, Support; Einladungen per Link.
-  Fertig, wenn: ein Konto ohne zweiten Faktor nichts außer dessen Einrichtung erreicht, jede Route
-  ihre Rollen prüft (Test je Route und Rolle) und ein Konto eines Betreibers keine Daten eines
-  anderen Betreibers sieht (Test je Endpunkt mit zwei Betreibern).
+  In Stufe 1 gibt es einen Betreiber; `betreiber_id` steht trotzdem in jeder Tabelle (Z-102).
+  Fertig, wenn: ein Konto ohne zweiten Faktor nichts außer dessen Einrichtung erreicht und jede
+  Route ihre Rollen prüft (Test je Route und Rolle).
 - [ ] **Z-105 Oberfläche und Demodaten** – Shell nach DESIGN.md und `design/mockup/`: Übersicht,
   Server, Installationen, Updates, Backups, Aufträge, Kunden, Support-Zugänge, Leistungen, Apps,
-  Ereignisse, Audit-Log, Einstellungen; keine Kundenansicht (die ist im Portal); `bun run dev:demo`
+  Ereignisse, Audit-Log, Einstellungen; keine Kundenansicht (die ist im Portal); was das Mockup aus Stufe 2 zeigt
+  (Betreiber wechseln, Umzug, dringende Updates), kommt erst mit seinem Punkt; `bun run dev:demo`
   mit Fixtures in `apps/web/src/demo/`, die auch E2E und Screenshots nutzen.
   nach: Z-101
   Fertig, wenn: jede Seite in hell und dunkel, Desktop und Handy ohne axe-Befund rendert (Playwright),
@@ -176,11 +185,10 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   `health: keine` nur nach Units bewertet wird und 5 Minuten Rot ein Ereignis „Störung“ erzeugen.
 - [ ] **Z-404 Einstellungen** – Ebenen aus dem Manifest; Formular aus dem Schema (keine App fest
   eingebaut); Änderung erzeugt den Auftrag „neu konfigurieren“; Geheimnisse nie zurück an die
-  Oberfläche; `aus: oidc-anbieter` erzeugt einen vorgeschalteten Auftrag beim Anbieter des Kunden.
+  Oberfläche.
   Fertig, wenn: das Formular für jedes der acht Manifeste ohne App-spezifischen Code entsteht
-  (Test), ein fehlender Pflichtwert des Betreibers die Installation blockiert, kein Geheimnis in
-  einer API-Antwort steht (Test) und der OIDC-Client beim Anbieter vor dem Start der App angelegt
-  ist (Test mit der Beispiel-App als Anbieter).
+  (Test), ein fehlender Pflichtwert des Betreibers die Installation blockiert, und kein Geheimnis in
+  einer API-Antwort steht (Test).
 - [ ] **Z-405 Neustart, Logs, nur lesen** – Aktionen Neustart, Log-Auszug (letzte 500 Zeilen aus
   journald, Werte der Secrets ersetzt), nur lesen, wenn das Manifest sie anbietet; jede mit Grund.
   Fertig, wenn: eine nicht angebotene Aktion in der Oberfläche fehlt und vom Agenten abgelehnt wird
@@ -188,14 +196,11 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 - [ ] **Z-406 Server-Detail und Übersicht** – echte Daten statt Demodaten; Übersicht mit allem, was
   Aufmerksamkeit braucht, nach Schwere.
   Fertig, wenn: die E2E-Fälle aus Z-105 gegen Zentrale und Agent im Container laufen.
-- [ ] **Z-407 Adressen und DNS** – Adresse `<app>.<kunde>.<domain>` oder eigene Domain des Kunden;
-  die Zentrale setzt A und AAAA über die Cloudflare-API; eine eigene Domain wird erst nach
-  erfolgreicher CNAME-Prüfung aktiv; DNS-Einträge aus dem Manifest (Kontext: MX, SPF, DKIM, DMARC)
-  werden angezeigt, geprüft und gesetzt, wenn die Domain bei uns liegt.
+- [ ] **Z-407 Adressen und DNS** – Adresse `<app>.<kunde>.<domain>`; die Zentrale setzt A und AAAA
+  über die Cloudflare-API und entfernt sie mit der Installation.
   nach: Z-402
   Fertig, wenn: in der CI gegen eine nachgebaute Cloudflare-API eine Installation ihren Eintrag
-  bekommt und beim Entfernen verliert, eine eigene Domain ohne CNAME nicht aktiv wird, fehlende
-  Mail-Einträge als Hinweis erscheinen und kein Server einen DNS-Token erhält (Test).
+  bekommt und beim Entfernen verliert und kein Server einen DNS-Token erhält (Test).
 
 ## Phase 5 – Updates
 
@@ -204,14 +209,14 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-406
   Fertig, wenn: gegen die lokale Registry eine neue Version erkannt wird, ein Manifest ohne gültige
   Signatur verworfen wird und eine Vorabversion nur intern erscheint.
-- [ ] **Z-502 Wellen, Sperrzeiten, Ankündigung** – reine Funktion in `packages/planung`:
-  Installationen, SLA, Sperrzeiten, Wartungsfenster, Zeitpunkt → Plan. Wellen intern, früh,
-  standard, spät, jede nach 24 h ohne Störung; Termin je Kunde mindestens 72 h vorher; „intern“
-  ohne eigene Installation wartet auf Freigabe; `dringend` läuft sofort durch alle Wellen, eine
-  Sperrzeit übergeht nur der Inhaber mit Grund.
+- [ ] **Z-502 Wellen und Sperrzeiten** – reine Funktion in `packages/planung`: Installationen,
+  Sperrzeiten, Wartungsfenster, Zeitpunkt → Plan. Zwei Wellen: „intern“ (unsere eigenen
+  Installationen) und „alle“, 24 h nach „intern“ ohne Störung; „intern“ ohne eigene Installation
+  wartet auf Freigabe; `dringend` läuft sofort durch beide Wellen, eine Sperrzeit übergeht nur der
+  Inhaber mit Grund.
   Fertig, wenn: Tests Sperrzeiten über den Monatswechsel, Zeitumstellung, Wartungsfenster über
-  Mitternacht, eine gestoppte Welle nach einer Störung, die 72-h-Ankündigung und ein dringendes
-  Update abdecken und Haben nie zwischen dem 7. und 12. aktualisiert wird, außer mit Freigabe.
+  Mitternacht, eine gestoppte Welle nach einer Störung und ein dringendes Update abdecken und Haben
+  nie zwischen dem 7. und 12. aktualisiert wird, außer mit Freigabe.
 - [ ] **Z-503 Update mit Rückkehr** – Backup, Pull per Digest, `schritte.nach_update`, Neustart,
   Health; bei Rot zurück auf die alte Version und das Backup; Welle anhalten; Ereignis; Apps mit
   `health: keine` nur von Hand.
@@ -222,7 +227,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   startet sich im Wartungsfenster neu; die Zentrale versteht `n-1`.
   Fertig, wenn: ein Agent in der CI sich aktualisiert und eine falsche Signatur abgelehnt wird.
 
-## Phase 6 – Backups, Umzug und Kündigung
+## Phase 6 – Backups und Kündigung
 
 - [ ] **Z-601 Backups** – Teile aus dem Manifest (`pg_dump`, `volume`, `befehl`); ein
   restic-Repository und ein Schlüssel je Installation auf dem S3-Ziel des Betreibers; Zeitplan als
@@ -245,18 +250,8 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: der Ablauf mit der Beispiel-App in Playwright läuft, vor Ablauf der Frist nichts
   gelöscht wird und nach der Löschung weder Repository noch DNS-Eintrag noch Linux-Nutzer existieren
   (Test).
-- [ ] **Z-605 Umzug einer Installation** – von Server A nach B (z. B. gemeinsam nach eigen): Backup,
-  Restore auf B, DNS umschalten, A erst nach grünem Health entfernen; nie in einer Sperrzeit.
-  nach: Z-603, Z-407
-  Fertig, wenn: in der CI die Beispiel-App umzieht, die Daten gleich sind und die Quelle bei rotem
-  Health auf B stehen bleibt.
-- [ ] **Z-606 Server wiederherstellen** – einen Server als verloren markieren; alle seine
-  Installationen aus den letzten Backups auf einen oder mehrere neue Server bringen.
-  nach: Z-605
-  Fertig, wenn: in der CI zwei Installationen eines gelöschten Servers auf einem neuen wieder laufen
-  und die Dauer als Ereignis gemessen wird.
 
-## Phase 7 – Server-Pflege und Überwachung
+## Phase 7 – Server-Pflege, Kunden, Release
 
 - [ ] **Z-701 Betriebssystem** – Status von unattended-upgrades, ausstehende Pakete, „Neustart
   nötig“; Neustart als Auftrag im Wartungsfenster außerhalb aller Sperrzeiten der Apps auf dem
@@ -265,8 +260,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: die Planung den Neustart verschiebt, wenn eine Sperrzeit läuft, und ein Neustart im
   Container der CI ausgeführt und der Server danach wieder verbunden ist.
 - [ ] **Z-702 Prüfungen** – Platte über 80/90 %, Zertifikat in 14 Tagen, Backup älter als 26 h,
-  Port offen, der in keinem Manifest steht, für Mail: PTR (IPv4 und IPv6), Port 25 ausgehend, Eintrag
-  auf einer Blacklist, Rate-Limit für ausgehende Mail gesetzt; Uhrzeit.
+  Port offen, der in keinem Manifest steht, Uhrzeit.
   nach: Z-601, Z-401
   Fertig, wenn: jede Prüfung einen Test mit Grenzfall hat und ihr Ergebnis in der Übersicht steht.
 - [ ] **Z-703 Benachrichtigungen** – Ereignisse nach Schwere per Mail (SMTP) und Webhook; Ruhezeiten;
@@ -279,32 +273,70 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-407
   Fertig, wenn: „Agent grün, außen rot“ ein Ereignis erzeugt und die Verfügbarkeit aus einer
   Testreihe mit bekannten Ausfällen richtig berechnet wird (Test).
-
-## Phase 8 – Kunden, Support und Betreiber
-
-- [ ] **Z-801 Kunden und Verträge** – Kunde mit Kontakt, Vertrag mit SLA (Basis, Plus, Ruhe),
+- [ ] **Z-801 Kunden und Verträge** – Kunde mit Kontakt, Vertrag mit SLA (in Stufe 1 nur Basis; Plus und Ruhe mit Z-505),
   Kündigungsdatum; ein Kunde mit mehreren Apps auf mehreren Servern.
   nach: Z-406
-  Fertig, wenn: die SLA die Welle bestimmt (Test) und die Kundenseite alle seine Installationen
+  Fertig, wenn: die Kundenseite alle seine Installationen
   zeigt.
 - [ ] **Z-802 Support-Zugang** – zeitlich begrenzt (Vorgabe 2 h), mit Grund; erlaubt Log-Auszug,
   Neustart und die Aktionen der Rolle Support; endet von selbst; erscheint in den Ereignissen des
   Kunden.
   Fertig, wenn: nach Ablauf jeder Zugriff abgelehnt wird (Test) und der Zugang im Audit-Log mit Grund
   steht.
+- [ ] **Z-804 Leistungen** – je Kunde und Monat: Installationen, Speicher, Support-Zeit,
+  Verfügbarkeit; Export als CSV.
+  nach: Z-704
+  Fertig, wenn: die Summen aus den Ereignissen berechnet werden (Test) und der Export gültiges CSV
+  nach RFC 4180 ist.
+- [ ] **Z-1001 Sicherheitsprüfung** – `docs/sicherheit.md`: Bedrohungsmodell, Notzugang per SSH,
+  TOMs nach Art. 32 DSGVO als Anlage zum Auftragsverarbeitungsvertrag.
+  nach: Z-804
+  Fertig, wenn: jede Bedrohung einen Test oder eine begründete Annahme hat, darunter: eine Zentrale
+  mit fremdem Manifest bringt keinen Code auf einen Server (Test), ein gestohlenes Agent-Zertifikat
+  erzeugt keine Aufträge (Test), Rate-Limits an Anmeldung und Token-Tausch greifen (Test).
+- [ ] **Z-1002 Zentrale sichern** – Backup der Zentrale (Datenbank und Schlüssel getrennt),
+  Wiederherstellung auf einem neuen Server, Agenten verbinden sich wieder.
+  Fertig, wenn: der Ablauf in der CI durchläuft.
+- [ ] **Z-1003 Echte App** – Schreibzeug und Haben aus `manifeste/` in der CI installieren, aktualisieren,
+  sichern und wiederherstellen.
+  Fertig, wenn: der Lauf grün ist.
+- [ ] **Z-1004 Release** – Image der Zentrale (amd64, arm64) mit Quadlet-Units, Agent-Binaries mit
+  Prüfsummen und minisign-Signatur, Release-Workflow aus firsttris/workflows;
+  `docs/installation.md` mit Ein-Server-Betrieb.
+  Fertig, wenn: ein Release-Kandidat in der CI entsteht und sich nach der Doku auf einem frischen
+  Container installieren lässt.
+
+# Stufe 2 – wachsen
+
+- [ ] **Stufe 2 freigegeben** – hakt ein Mensch ab, wenn die ersten Kunden auf Stufe 1 laufen; bis
+  dahin beginnt der Loop keinen Punkt dieser Stufe.
+
+## Phase 8 – Weitere Betreiber (Partner)
+
 - [ ] **Z-803 Weitere Betreiber (Partner)** – ein Partner ist ein eigener Betreiber in derselben
   Zentrale: eigene Konten, Kunden, Server, S3-Ziel, Werte je App und Marke im Hinweis der
   Installation.
   Fertig, wenn: kein Endpunkt einem Betreiber Daten eines anderen liefert (Test je Endpunkt), eine
   Installation die Hersteller-ID ihres Betreibers bekommt (Test) und Backups beider Betreiber in
   getrennten Repositorys landen.
-- [ ] **Z-804 Leistungen** – je Kunde und Monat: Installationen, Speicher, Support-Zeit,
-  Verfügbarkeit; Export als CSV.
-  nach: Z-704
-  Fertig, wenn: die Summen aus den Ereignissen berechnet werden (Test) und der Export gültiges CSV
-  nach RFC 4180 ist.
 
-## Phase 9 – API für das Portal
+## Phase 9 – Kontext, Mail und Single Sign-on
+
+- [ ] **Z-409 Kontext, eigene Domains und Mail** – eigene Domain des Kunden, aktiv erst nach
+  erfolgreicher CNAME-Prüfung; DNS-Einträge aus dem Manifest (MX, SPF, DKIM, DMARC) anzeigen, prüfen
+  und setzen, wenn die Domain bei uns liegt; Prüfungen für Mail: PTR (IPv4 und IPv6), Port 25
+  ausgehend, Blacklists, Rate-Limit für ausgehende Mail; `rootful` für Kontext auf einem Server für
+  sich.
+  Fertig, wenn: eine eigene Domain ohne CNAME nicht aktiv wird, fehlende Mail-Einträge als Hinweis
+  erscheinen, jede Mail-Prüfung einen Test mit Grenzfall hat und Kontext in der CI auf einem Server
+  für sich startet.
+- [ ] **Z-408 Single Sign-on über Kontext** – `aus: oidc-anbieter` erzeugt einen vorgeschalteten
+  Auftrag beim Anbieter des Kunden (Kontext), der den OIDC-Client anlegt; die App startet erst danach.
+  nach: Z-409
+  Fertig, wenn: der OIDC-Client beim Anbieter vor dem Start der App angelegt ist (Test mit der
+  Beispiel-App als Anbieter) und das Entfernen der App den Client wieder löscht.
+
+## Phase 10 – API für das Portal
 
 - [ ] **Z-901 API-Tokens und OpenAPI** – `api.<domain>`; Tokens mit Rechten (lesen, Kunden anlegen,
   buchen, kündigen), Rate-Limit, OpenAPI aus den Zod-Schemas, `docs/api.md`.
@@ -326,25 +358,27 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: kein Endpunkt Daten eines anderen Kunden liefert (Test je Endpunkt) und keine
   Antwort ein Geheimnis, einen Linux-Nutzer oder einen Log-Auszug enthält (Test).
 
-## Phase 10 – Härtung und Release
+## Phase 11 – Wellen nach SLA
 
-- [ ] **Z-1001 Sicherheitsprüfung** – `docs/sicherheit.md`: Bedrohungsmodell, Notzugang per SSH,
-  TOMs nach Art. 32 DSGVO als Anlage zum Auftragsverarbeitungsvertrag.
-  nach: Z-904
-  Fertig, wenn: jede Bedrohung einen Test oder eine begründete Annahme hat, darunter: eine Zentrale
-  mit fremdem Manifest bringt keinen Code auf einen Server (Test), ein gestohlenes Agent-Zertifikat
-  erzeugt keine Aufträge (Test), Rate-Limits an Anmeldung, Token-Tausch und API greifen (Test).
-- [ ] **Z-1002 Zentrale sichern** – Backup der Zentrale (Datenbank und Schlüssel getrennt),
-  Wiederherstellung auf einem neuen Server, Agenten verbinden sich wieder.
-  Fertig, wenn: der Ablauf in der CI durchläuft.
-- [ ] **Z-1003 Echte App** – Schreibzeug aus `manifeste/` in der CI installieren, aktualisieren,
-  sichern und wiederherstellen.
-  Fertig, wenn: der Lauf grün ist.
-- [ ] **Z-1004 Release** – Image der Zentrale (amd64, arm64) mit Quadlet-Units, Agent-Binaries mit
-  Prüfsummen und minisign-Signatur, Release-Workflow aus firsttris/workflows;
-  `docs/installation.md` mit Ein-Server-Betrieb.
-  Fertig, wenn: ein Release-Kandidat in der CI entsteht und sich nach der Doku auf einem frischen
-  Container installieren lässt.
+- [ ] **Z-505 Wellen nach SLA und Ankündigung** – Wellen intern, früh (Plus), standard (Basis),
+  spät (Ruhe), jede nach 24 h ohne Störung; Termin je Kunde mindestens 72 h vorher, als Webhook an
+  das Portal.
+  nach: Z-903
+  Fertig, wenn: die SLA die Welle bestimmt (Test), die 72-h-Ankündigung für jede Installation vor
+  ihrem Update als Webhook ausgeht (Test) und „spät“ nie vor „standard“ läuft.
+
+## Phase 12 – Umzug und Ausfall
+
+- [ ] **Z-605 Umzug einer Installation** – von Server A nach B (z. B. gemeinsam nach eigen): Backup,
+  Restore auf B, DNS umschalten, A erst nach grünem Health entfernen; nie in einer Sperrzeit.
+  nach: Z-603, Z-407
+  Fertig, wenn: in der CI die Beispiel-App umzieht, die Daten gleich sind und die Quelle bei rotem
+  Health auf B stehen bleibt.
+- [ ] **Z-606 Server wiederherstellen** – einen Server als verloren markieren; alle seine
+  Installationen aus den letzten Backups auf einen oder mehrere neue Server bringen.
+  nach: Z-605
+  Fertig, wenn: in der CI zwei Installationen eines gelöschten Servers auf einem neuen wieder laufen
+  und die Dauer als Ereignis gemessen wird.
 
 ## Zurückgestellt
 

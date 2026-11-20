@@ -85,9 +85,9 @@ deren API); Fernwartung von Geräten beim Kunden (Kontext-Box, Stellwerk-Agenten
 ### Ablauf: Update
 
 1. Eine neue Version erscheint in der Registry mit signiertem Manifest.
-2. Die Zentrale plant Wellen: intern → früh (SLA Plus) → standard (Basis) → spät (Ruhe), jede erst
-   nach 24 h ohne Störung, nie in einer Sperrzeit, und kündigt jedem Kunden den Termin 72 h vorher an
-   (Webhook an das Portal). Ein als **dringend** markiertes Update (Sicherheitslücke,
+2. Die Zentrale plant Wellen: in Stufe 1 „intern“ und „alle“, ab Stufe 2 intern → früh (SLA Plus) →
+   standard (Basis) → spät (Ruhe); jede erst nach 24 h ohne Störung, nie in einer Sperrzeit; ab
+   Stufe 2 bekommt jeder Kunde den Termin 72 h vorher (Webhook an das Portal). Ein als **dringend** markiertes Update (Sicherheitslücke,
    Mindestversion von ERiC) läuft sofort durch alle Wellen; eine Sperrzeit übergeht nur der Inhaber
    mit Grund.
 3. Je Installation: Backup, Image ziehen, Schritte nach dem Update, Neustart, Health; bei Rot zurück
@@ -216,6 +216,7 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Überwachung von außen | die Zentrale prüft jede öffentliche Adresse (DNS, Zertifikat, Pforte, Health) unabhängig vom Agenten; die Zentrale selbst prüft ein externer Dienst | „Agent grün, außen rot“ muss auffallen |
 | Geräte beim Kunden | nicht verwaltet | eigenes Thema |
 | Was sich in der CI nicht echt testen lässt | Registry, S3, Mail und DNS-API durch lokale Ersatzdienste (Registry-Container, MinIO, Mailpit, nachgebaute Cloudflare-API); Server durch Podman mit systemd im Runner | die Kriterien bleiben erfüllbar |
+| Stufen | Stufe 1 betreibt Haben, Belegt, Schreibzeug und Fixpunkt für einen Betreiber; Kontext, Stellwerk, Kennwort, Soll, Partner, Portal-API, SLA-Wellen, Umzug und Ausfall folgen in Stufe 2, die ein Mensch freigibt | null gehostete Kunden heute; die ersten zehn brauchen keinen Partner und kein Portal, und Mail-Hosting ist ein eigenes Geschäft |
 | Merge | der Loop merged selbst, wenn CI grün ist und das unabhängige Review keine Befunde mehr hat | er wartet nie auf einen Menschen |
 | Beiträge | DCO (Signed-off-by), kein CLA | Open Source ohne Sonderrechte |
 
@@ -286,9 +287,18 @@ ist. Er wartet nie auf einen Menschen.
 5. **Echt testen**: der Agent läuft in der CI gegen Podman mit systemd, mit einer Beispiel-App aus
    diesem Repo; eine echte App (Schreibzeug) in der Härtung.
 
-Reihenfolge: 1 Fundament · 2 Manifest und Platzierung · 3 Agent · 4 Installationen · 5 Updates ·
-6 Backups, Umzug und Kündigung · 7 Server-Pflege und Überwachung · 8 Kunden, Support, Betreiber ·
-9 API für das Portal · 10 Härtung und Release.
+Zwei Stufen, damit die ersten Kunden früh laufen und Stufe 2 aus echtem Betrieb lernt:
+
+- **Stufe 1 – eigener Betrieb** (41 Punkte): 1 Fundament · 2 Manifest und Platzierung · 3 Agent ·
+  4 Installationen mit DNS · 5 Updates (Wellen „intern“ und „alle“) · 6 Backups und Kündigung ·
+  7 Server-Pflege, Prüfung von außen, Kunden, Support-Zugang, Leistungen, Härtung, Release 1.0.
+  Betrieben werden Haben, Belegt, Schreibzeug und Fixpunkt auf unseren Servern, ein Betreiber.
+- **Stufe 2 – wachsen** (10 Punkte), erst nach Freigabe durch einen Menschen: 8 weitere Betreiber
+  (Partner) · 9 Kontext mit eigenen Domains, Mail und Single Sign-on · 10 API für das Portal ·
+  11 Wellen nach SLA mit Ankündigung · 12 Umzug und Ausfall automatisiert.
+
+Das Schema trägt Stufe 2 schon (`betreiber_id`, SLA, `braucht`/`bietet`, `dns`), damit später keine
+Migration alter Daten nötig ist; gebaut wird es erst mit seinem Punkt.
 
 ## Tests
 
