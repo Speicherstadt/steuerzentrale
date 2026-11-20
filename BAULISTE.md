@@ -44,7 +44,8 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   `packages/planung`, `packages/ui` (von Kennwort kopiert, Quelle im Kommentar), `apps/zentrale`
   (Bun, Hono, Zod, `/health`, Logs ohne Geheimnisse, `bun build --compile`), `apps/agent`
   (`bun build --compile` für `linux-x64` und `linux-arm64`), `apps/web` (Solid 2, Vite, SPA);
-  Paraglide mit `de` und `en` (`messages/`, `project.inlang` liegt vor); Playwright; jede Workspace
+  Paraglide mit `de` und `en` (`messages/`, `project.inlang` liegt vor) und dazu `i18n` in
+  `checks.json`; Playwright; jede Workspace
   in `tsconfig.json` und `vitest.config.ts` eingetragen; Skripte `test:agent` und `e2e`, die die CI
   dann ausführt.
   Fertig, wenn: `bun run check` auf einem frischen Klon grün ist, die CI alle Workspaces prüft, beide
@@ -77,7 +78,8 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Server, Installationen, Updates, Backups, Aufträge, Kunden, Support-Zugänge, Leistungen, Apps,
   Ereignisse, Audit-Log, Einstellungen; keine Kundenansicht (die ist im Portal); was das Mockup aus Stufe 2 zeigt
   (Betreiber wechseln, Umzug, dringende Updates), kommt erst mit seinem Punkt; `bun run dev:demo`
-  mit Fixtures in `apps/web/src/demo/`, die auch E2E und Screenshots nutzen.
+  mit Fixtures in `apps/web/src/demo/`, die auch E2E und Screenshots nutzen; `pages` in `checks.json`
+  (Routenbaum und `e2e/accessibility.spec.ts`).
   nach: Z-101
   Fertig, wenn: jede Seite in hell und dunkel, Desktop und Handy ohne axe-Befund rendert (Playwright),
   jeder Text aus `messages/` kommt (`i18n`-Check) und die Demodaten die acht Apps zeigen.

@@ -2,13 +2,5 @@
   "fileSize": {
     "include": ["apps/*/src/**/*.{ts,tsx}", "packages/*/src/**/*.{ts,tsx}", "scripts/**/*.ts"]
   },
-  "cycles": { "modules": ["packages/*", "apps/*"] },
-  "i18n": {
-    "project": "project.inlang",
-    "include": ["apps/web/src/**/*.{ts,tsx}", "packages/ui/src/**/*.{ts,tsx}"]
-  },
-  "pages": {
-    "routeTree": "apps/web/src/routeTree.gen.ts",
-    "specs": ["e2e/accessibility.spec.ts"]
-  }
+  "cycles": { "modules": ["packages/*", "apps/*"] }
 }

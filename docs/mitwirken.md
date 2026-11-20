@@ -37,7 +37,7 @@ und dass kein Code Muster aus Solid 1.x nutzt. Die Oberfläche ist Solid 2.0; de
 | Prüfung | Was | Workflow |
 | --- | --- | --- |
 | PR-Regeln | Titel, `Signed-off-by` an jedem Commit, Punkt der Bauliste abgehakt; Hinweise bei Code ohne Doku und Fix ohne Test | `pr-regeln.yml` |
-| Unit | Typen, Biome, erlaubte Abhängigkeiten, keine Muster aus Solid 1.x (`scripts/solid-muster.ts`), Dateigröße und Zyklen (`checks.json`), Vitest, Build, `bun audit` | `ci.yml` |
+| Unit | Typen, Biome, erlaubte Abhängigkeiten, keine Muster aus Solid 1.x (`scripts/solid-muster.ts`), Dateigröße, Funktionslänge und Zyklen (`checks.json`; Texte und Seiten kommen mit der Oberfläche dazu), Vitest, Build, `bun audit` | `ci.yml` |
 | Agent | der Agent gegen Podman mit systemd | `ci.yml` |
 | E2E | Playwright, Desktop und Handy, mit axe | `ci.yml` |
 | Doku | `zensical build --strict`, jede Seite mit `description` | `docs.yml` |
