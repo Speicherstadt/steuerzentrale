@@ -165,7 +165,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 3 – Agent
 
-- [ ] **Z-301 Protokoll** – Nachrichten in `packages/protokoll` als Zod-Schemas mit Version: Hallo,
+- [x] **Z-301 Protokoll** – Nachrichten in `packages/protokoll` als Zod-Schemas mit Version: Hallo,
   Heartbeat, Fakten, Zustand der Installationen, Auftrag (mit Manifest und Signatur), Fortschritt,
   Ergebnis, Log-Auszug, SSH-Anmeldung.
   nach: Z-101
