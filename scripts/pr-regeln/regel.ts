@@ -9,8 +9,8 @@ export type Report = { level: "error" | "warning"; message: string };
 const CONVENTIONAL = /^(feat|fix|docs|test|refactor|chore|style|perf|build|ci|revert)(\(.*\))?!?:/;
 /** A Bauliste item: "Z-205: Quadlets rendern" */
 const ITEM = /^(Z-\d{3,4}): \S.*$/;
-/** Anything else: "Bereich: was sich ändert", one to three words before the colon */
-const AREA = /^\p{L}[\p{L}\d-]*(?: [\p{L}\d-]+){0,2}: \S.*$/u;
+/** Anything else: "Bereich: was sich ändert", one to three words before the colon; a word may carry a version ("Solid 2.0") */
+const AREA = /^\p{L}[\p{L}\d.-]*(?: [\p{L}\d.-]+){0,2}: \S.*$/u;
 
 /** The squash merge turns the title into the commit on main */
 export function checkTitle(title: string): Report[] {

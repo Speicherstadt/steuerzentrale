@@ -10,6 +10,7 @@ describe("checkTitle", () => {
     "Z-1004: Release",
     "Doku: Manifest-Felder erklärt",
     "CI: Podman-Job",
+    "Solid 2.0: Doku im Repo",
   ])("passes %s", (title) => {
     expect(checkTitle(title)).toEqual([]);
   });

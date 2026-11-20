@@ -15,6 +15,9 @@ copyright: >-
   <a href="https://teufel-it.de/de/impressum/">Impressum</a> ·
   <a href="https://speicherstadt.app/datenschutz/">Datenschutz</a>
 use_directory_urls: false
+# docs/solid-2.0/ is an unchanged copy of the Solid docs for people and agents in the repo, not part of the site
+exclude_docs: |
+  solid-2.0/
 validation:
   anchors: warn
 theme:

@@ -59,9 +59,11 @@ jobs:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
+      # Biome, allowed-dependencies.json and no Solid 1.x patterns (scripts/solid-muster.ts)
       - run: bun run lint
       # The shared rule checks of firsttris/workflows (checks.json: files past 400 lines, functions past 80,
-      # rings of imports between packages, Paraglide texts, pages with an axe test). Installed without saving,
+      # rings of imports between packages; Z-101 adds the Paraglide texts, Z-105 the pages with an axe test,
+      # once messages/ and the route tree exist). Installed without saving,
       # as in Kennwort: the agents' sandbox cannot fetch a GitHub tarball, so it stays out of bun.lock.
       - run: bun add --dev --no-save "github:firsttris/workflows#v1"
       - run: bunx checks
