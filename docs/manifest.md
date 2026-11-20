@@ -141,7 +141,9 @@ Anführungszeichen, maskiert `\` und `"` und verdoppelt `%` und `$`, weil system
 Spezifizierer und Variablen ersetzt; im Container kommt das Element unverändert an. Ein leeres
 Element lehnt schon die Prüfung des Manifests ab: Quadlet schreibt ein leeres Wort als nichts
 (`escapeWords` in `pkg/systemd/parser/split.go`), und mit dem Generator von 4.9 endet `Exec=` an
-dieser Stelle sogar. Steuerzeichen sind ebenso abgelehnt.
+dieser Stelle sogar. Steuerzeichen sind ebenso abgelehnt. Ein Element, das nur `;` ist, lehnt das
+Rendern ab: Quadlet schreibt es ohne Anführungszeichen in `ExecStart=`, und systemd liest es dort als
+Ende des Befehls und verweigert den Dienst.
 
 ### Route der Pforte
 

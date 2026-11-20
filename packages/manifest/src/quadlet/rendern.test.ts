@@ -157,6 +157,21 @@ describe("containers", () => {
     }
   });
 
+  it("refuse a lone ; in argv: Quadlet writes it bare and systemd splits ExecStart= there", () => {
+    // Quadlet v4.9.0 and v5 turn Exec="redis-server" ";" "x" into ExecStart=… redis-server ; x, and
+    // systemd 255 refuses the service: "more than one ExecStart= setting" (systemd.service(5))
+    const m = beispiel();
+    const kaputt = {
+      ...m,
+      container: [
+        { ...m.container[0], argv: ["worker", ";", "x"] } as Manifest["container"][number],
+      ],
+    };
+    expect(gruende(testAnfrage(kaputt, []))).toEqual([
+      expect.stringMatching(/^container\.0\.argv\.1: /),
+    ]);
+  });
+
   it("mount their files read-only from the installation's home", () => {
     const k = gerendert(testAnfrage(appManifest("kontext"), []));
     expect(k.units["kontext-k1-livekit.container"]).toContain(

@@ -17,10 +17,13 @@ export const hatSteuerzeichen = (text: string): boolean => STEUERZEICHEN.test(te
  * One word of a systemd command line, or null for a word that cannot be written: one with a control
  * character, or the empty word, which Quadlet loses when it writes ExecStart= (escapeWords in
  * pkg/systemd/parser/split.go writes it as nothing, in v4.9.0 as in v5.4; tried with the v4.9.0
- * generator, `Exec="--save" "" "a b"` even ends after --save)
+ * generator, `Exec="--save" "" "a b"` even ends after --save), or a lone ";", which Quadlet writes
+ * bare into ExecStart= (tried with the v4.9.0 and v5 generators), where systemd reads it as the end
+ * of the command and refuses the service (systemd 255, `systemd-analyze verify`: "more than one
+ * ExecStart= setting")
  */
 export const systemdWort = (wort: string): string | null => {
-  if (wort === "" || hatSteuerzeichen(wort)) return null;
+  if (wort === "" || wort === ";" || hatSteuerzeichen(wort)) return null;
   const maskiert = wort
     .replaceAll("\\", "\\\\")
     .replaceAll('"', '\\"')

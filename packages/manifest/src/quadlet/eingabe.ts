@@ -60,7 +60,10 @@ const containerBefunde = ({ c, pfad }: AktiverContainer): Befund[] => {
     if (systemdWort(wort) === null)
       befunde.push({
         pfad: [...pfad, "argv", i],
-        grund: "an argument is empty or has a control character; Quadlet drops an empty one",
+        grund:
+          wort === ";"
+            ? "a lone ; ends the command in ExecStart, where Quadlet writes it bare"
+            : "an argument is empty or has a control character; Quadlet drops an empty one",
       });
   for (const [art, liste] of [
     ["volumes", c.volumes],
