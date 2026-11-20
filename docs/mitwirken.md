@@ -40,6 +40,15 @@ Passkeys sind an deren Domain gebunden; `dev:zentrale` setzt `http://localhost:5
 ersten Start und liegt mit `STEUERZENTRALE_SECRET_KEY` verschlüsselt in der Datenbank; das Rotieren
 verschlüsselt es mit, Sitzungen und TOTP bleiben gültig.
 
+Für Server braucht sie `STEUERZENTRALE_AGENT_URL`, die Adresse, unter der die Agenten sie erreichen
+(`https://agent.<domain>`, nur Origin; `dev:zentrale` setzt `http://localhost:18300`, die E2E-Tests
+`http://localhost:28300`), und `STEUERZENTRALE_AGENT_DATEIEN`, das Verzeichnis mit `install.sh`, den
+Agent-Binaries und `SHA256SUMS` mit Signatur. `bun run build && bun scripts/agent-dateien.ts <verzeichnis>`
+legt es an, signiert mit dem Test-Schlüssel ([Server hinzufügen](server-hinzufuegen.md)). Die Tests von
+`install/install.sh` (`scripts/install-sh.test.ts`) brauchen `minisign` und `sha256sum`, die des Agenten
+`openssl`; die CI prüft das Skript mit `shellcheck --shell=sh install/install.sh` und lässt es im Job
+`server` in je einer Incus-VM mit Debian 13 und Ubuntu 24.04 laufen (nur CI).
+
 Anmeldung und Rollen: `apps/zentrale/src/auth/` (Better Auth mit Organisationen, Passkeys und TOTP;
 Rollen als Zugriffssteuerung des Organization-Plugins in `rollen.ts`). Jede Route steht mit ihrem
 Recht in `apps/zentrale/src/routes/zugang.ts` (`ROUTEN`) und wird nur darüber angelegt; `zugang.test.ts`

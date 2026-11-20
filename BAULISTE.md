@@ -171,7 +171,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-101
   Fertig, wenn: jede Nachricht hin und zurück geprüft ist und ein Agent mit Protokoll `n-1` von der
   Zentrale verstanden wird (Test).
-- [ ] **Z-302 Server hinzufügen** – Einmal-Token (24 h, einmal nutzbar); `agent.<domain>` liefert
+- [x] **Z-302 Server hinzufügen** – Einmal-Token (24 h, einmal nutzbar); `agent.<domain>` liefert
   `install.sh`, die Agent-Binaries und eine minisign-signierte Prüfsummendatei; das Skript prüft
   System, Architektur, cgroup-v2-Delegation und Uhrzeit, installiert Podman (ab 4.9), minisign,
   unattended-upgrades und den Agenten als systemd-Dienst, prüft die Prüfsummen gegen die Signatur,

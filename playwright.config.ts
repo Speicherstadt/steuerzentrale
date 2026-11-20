@@ -58,6 +58,8 @@ export default defineConfig({
         STEUERZENTRALE_SECRET_KEY: testSchluessel,
         // the origin people use: the interface on Vite's port, which passes /api on
         STEUERZENTRALE_URL: `http://localhost:${port}`,
+        // where agents reach it: the install command of the dialog "Server hinzufügen" names it
+        STEUERZENTRALE_AGENT_URL: `http://localhost:${zentralePort}`,
       },
     },
     {

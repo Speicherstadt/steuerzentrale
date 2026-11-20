@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@steuerzentrale/manifest": "workspace:*",
-    "@steuerzentrale/protokoll": "workspace:*"
+    "@steuerzentrale/protokoll": "workspace:*",
+    "zod": "4.6.7"
   }
 }

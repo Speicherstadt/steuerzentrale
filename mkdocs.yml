@@ -61,6 +61,7 @@ nav:
   - Betrieb:
       - Anmeldung und Rollen: anmeldung.md
       - Kunden und Verträge: kunden.md
+      - Server hinzufügen: server-hinzufuegen.md
       - Apps installieren: installieren.md
       - Updates: updates.md
   - Für App-Entwickler:

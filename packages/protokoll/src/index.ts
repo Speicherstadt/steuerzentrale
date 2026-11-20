@@ -1,6 +1,7 @@
 // Messages between the Zentrale and the agent, shared by both so they cannot drift apart
 // (docs/plan.md, "Technologie").
 
+export { BEITRITT_PFAD, BeitrittAnfrage, BeitrittAntwort } from "./beitritt.ts";
 export {
   AELTESTE_VERSION,
   AUFWERTUNGEN,

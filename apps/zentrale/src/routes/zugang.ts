@@ -9,7 +9,8 @@ import { mitgliedschaftenVon, mitgliedVon } from "../modules/mitglieder/index.ts
 export type Anfrage = { Variables: { nutzerId: string; betreiberId: string; rolle: string } };
 
 /**
- * Who may reach a route: everyone (the setup code and an invitation's token are the key there),
+ * Who may reach a route: everyone (the setup code, an invitation's token and a server's join token
+ * are the key there),
  * any signed-in account, also one without its second factor (only the setup of that factor),
  * Better Auth itself (its own checks, AUTH_PFADE), or a member whose role has the right.
  */
@@ -51,6 +52,11 @@ export const ROUTEN = {
   "PUT /api/v1/kunden/:kundeId": recht("kunden:schreiben"),
   "PUT /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
   "DELETE /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
+  "POST /api/v1/server": recht("server:anlegen"),
+  // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
+  "GET /install.sh": oeffentlich,
+  "GET /agent/:datei": oeffentlich,
+  "POST /api/v1/agent/beitreten": oeffentlich,
 } as const satisfies Record<string, Zugang>;
 
 export type RoutenName = keyof typeof ROUTEN;

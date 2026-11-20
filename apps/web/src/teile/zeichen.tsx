@@ -86,7 +86,7 @@ export const AgentZeichen = (props: { zustand: AgentZustand; text: string }) => 
   <Zustand icon={AGENT[props.zustand].icon} farbe={AGENT[props.zustand].farbe} text={props.text} />
 );
 
-const ART: Record<Art, { icon: IconNode; text: () => string }> = {
+export const ART: Record<Art, { icon: IconNode; text: () => string }> = {
   gemeinsam: { icon: Users, text: () => m.server_art_gemeinsam() },
   eigen: { icon: ServerIcon, text: () => m.server_art_eigen() },
   kunde: { icon: Building2, text: () => m.server_art_kunde() },

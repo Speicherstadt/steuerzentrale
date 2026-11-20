@@ -8,6 +8,7 @@ import {
   kunden,
   logAuszuege,
   mitglieder,
+  server,
   tokens,
   vertraege,
 } from "../../db/schema.ts";
@@ -27,6 +28,7 @@ export const tabellen = {
   einladungen: { tabelle: einladungen, schluessel: ["einladungId"], zeit: undefined },
   kunden: { tabelle: kunden, schluessel: ["kundeId"], zeit: undefined },
   vertraege: { tabelle: vertraege, schluessel: ["vertragId"], zeit: undefined },
+  server: { tabelle: server, schluessel: ["serverId"], zeit: undefined },
   heartbeats: {
     tabelle: heartbeats,
     schluessel: ["serverId", "zeitpunkt"],

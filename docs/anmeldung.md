@@ -68,11 +68,12 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 | einladen, Rollen ändern, Mitglieder entfernen | ja | – | – |
 | Kunden und Verträge sehen | ja | ja | ja |
 | Kunden anlegen, ändern, kündigen | ja | ja | – |
+| Server hinzufügen | ja | ja | – |
 
 Die Rollen sind die Zugriffssteuerung des Organization-Plugins von Better Auth; jeder Betreiber ist
 dort eine Organisation mit derselben ID. Ein Betreiber behält immer einen Inhaber: der letzte kann
 seine Rolle nicht abgeben und nicht entfernt werden. Wer entfernt wird, verliert den Zugang sofort.
-Weitere Rechte (Server, Installationen, Support-Zugänge) kommen mit ihren Punkten der Bauliste.
+Weitere Rechte (Installationen, Support-Zugänge) kommen mit ihren Punkten der Bauliste.
 Technik legt Kunden an und pflegt ihre Verträge, weil eine Installation von ihnen ausgeht; Support
 sieht sie nur ([Kunden und Verträge](kunden.md)).
 

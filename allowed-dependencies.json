@@ -35,8 +35,9 @@
       "workspaces": ["apps/zentrale"]
     },
     "@peculiar/x509": {
-      "reason": "The Zentrale issues and checks the X.509 client certificates of the agents (docs/plan.md, TLS und Zertifikate); Bun cannot issue certificates. Only in the Zentrale, never on a managed server",
-      "workspaces": ["apps/zentrale"]
+      "reason": "The Zentrale issues and checks the X.509 client certificates of the agents (docs/plan.md, TLS und Zertifikate); Bun cannot issue certificates. Only in the Zentrale, never on a managed server. Major 1, the line @simplewebauthn/server (passkeys) uses: two lines in one binary share tsyringe's container, and the later one's algorithms break the other's ASN.1 (Z-302)",
+      "workspaces": ["apps/zentrale"],
+      "major": 1
     },
     "solid-js": {
       "reason": "Solid 2, the UI of the Zentrale, as in Kennwort and Soll",

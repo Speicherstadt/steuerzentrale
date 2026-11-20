@@ -1,14 +1,17 @@
 import { randomUUID } from "node:crypto";
-import { createApp } from "../app.ts";
+import { onTestFinished } from "vitest";
+import { type AppDeps, createApp } from "../app.ts";
 import { createAuth } from "../auth/auth.ts";
 import { testDatenbank } from "../db/test-db.ts";
 import { einrichtungscodeErzeugen } from "../modules/anmeldung/einrichtungscode.ts";
+import { auslieferung } from "../modules/server/index.ts";
 import { betreiberEinrichten } from "../routes/erster-inhaber.ts";
+import { TEST_AGENT_URL, testAgentDateien } from "./agent-dateien.ts";
 import { authenticator } from "./authenticator.ts";
 import { type Browser, browserFuer, erfolgreich, SOCKET_HEADER, TEST_URL } from "./browser.ts";
 import { totpCode, totpSchluessel } from "./totp.ts";
 
-export { TEST_URL };
+export { TEST_AGENT_URL, TEST_URL };
 export const PASSWORT = "lang-genug-und-geheim-1";
 
 /** Sets up TOTP for the signed-in account; returns the key of its authenticator app */
@@ -34,17 +37,18 @@ export const passkeyEinrichten = async (b: Browser) => {
 };
 
 /** A Zentrale on a fresh test database with Better Auth */
-const kern = (aufraeumen?: (fn: () => void) => void) => {
+const kern = (aufraeumen: (fn: () => void) => void = onTestFinished) => {
   const uhr = { ms: 1_800_000_000_000 };
   const jetzt = () => uhr.ms;
   const datenbank = testDatenbank(undefined, aufraeumen);
+  const agentDateien = testAgentDateien(aufraeumen);
   const log: string[] = [];
   const auth = createAuth({
     schreibDb: datenbank.schreibDb,
     url: TEST_URL,
     geheimnis: datenbank.anmeldeGeheimnis,
   });
-  const app = createApp({
+  const deps: AppDeps = {
     log: (zeile) => log.push(zeile),
     now: jetzt,
     version: "test",
@@ -52,9 +56,23 @@ const kern = (aufraeumen?: (fn: () => void) => void) => {
     schreibDb: datenbank.schreibDb,
     auth,
     url: TEST_URL,
+    schluessel: datenbank.schluessel,
+    agentUrl: TEST_AGENT_URL,
+    auslieferung: auslieferung(agentDateien, TEST_AGENT_URL),
     socketAdresse: (request) => request.headers.get(SOCKET_HEADER) ?? undefined,
-  });
-  return { ...datenbank, uhr, jetzt, log, auth, app, browser: browserFuer(app) };
+  };
+  const app = createApp(deps);
+  return {
+    ...datenbank,
+    uhr,
+    jetzt,
+    log,
+    auth,
+    app,
+    deps,
+    agentDateien,
+    browser: browserFuer(app),
+  };
 };
 
 type Kern = ReturnType<typeof kern>;
@@ -101,8 +119,7 @@ const personen = (k: Kern) => {
   const weitererBetreiber = async (name: string, email: string) => {
     const b = k.browser();
     const betreiberId = randomUUID();
-    const deps = { ...k, url: TEST_URL, now: k.jetzt };
-    const konto = await betreiberEinrichten(deps, betreiberId, {
+    const konto = await betreiberEinrichten(k.deps, betreiberId, {
       betreiber: name,
       name: `Inhaber ${name}`,
       email,

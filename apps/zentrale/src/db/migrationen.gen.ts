@@ -23,5 +23,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0005_kunden",
     "sql": "CREATE TABLE `kunden` (\n\t`betreiber_id` text NOT NULL,\n\t`kunde_id` text NOT NULL,\n\t`name` text NOT NULL,\n\t`kontakt_name` text NOT NULL,\n\t`kontakt_email` text NOT NULL,\n\t`kontakt_telefon` text,\n\t`notiz` text,\n\t`angelegt_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `kunde_id`)\n);\n--> statement-breakpoint\nCREATE TABLE `vertraege` (\n\t`betreiber_id` text NOT NULL,\n\t`vertrag_id` text NOT NULL,\n\t`kunde_id` text NOT NULL,\n\t`sla` text NOT NULL,\n\t`beginn` integer NOT NULL,\n\t`ende` integer,\n\t`angelegt_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `vertrag_id`),\n\tFOREIGN KEY (`betreiber_id`,`kunde_id`) REFERENCES `kunden`(`betreiber_id`,`kunde_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE UNIQUE INDEX `vertraege_kunde` ON `vertraege` (`betreiber_id`,`kunde_id`);"
+  },
+  {
+    "tag": "0006_server",
+    "sql": "CREATE TABLE `server` (\n\t`betreiber_id` text NOT NULL,\n\t`server_id` text NOT NULL,\n\t`name` text NOT NULL,\n\t`art` text NOT NULL,\n\t`kunde_id` text,\n\t`wartungsfenster` text NOT NULL,\n\t`fingerabdruck` text,\n\t`zertifikat_gueltig_bis` integer,\n\t`beigetreten_am` integer,\n\t`architektur` text,\n\t`agent_version` text,\n\t`angelegt_von` text NOT NULL,\n\t`angelegt_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `server_id`)\n);\n--> statement-breakpoint\nCREATE UNIQUE INDEX `server_fingerabdruck_unique` ON `server` (`fingerabdruck`);"
   }
 ];

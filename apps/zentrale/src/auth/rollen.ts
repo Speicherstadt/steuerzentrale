@@ -18,6 +18,7 @@ const ANWEISUNGEN = {
   betreiber: ["lesen"],
   mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
   kunden: ["lesen", "schreiben"],
+  server: ["anlegen"],
 } as const;
 
 export const zugriff = createAccessControl(ANWEISUNGEN);
@@ -37,6 +38,7 @@ export const ROLLEN_ZUGRIFF = {
     betreiber: ["lesen"],
     mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
     kunden: ["lesen", "schreiben"],
+    server: ["anlegen"],
   }),
   // servers, installations and updates (later items); sees who else works on the operator; takes
   // on customers and their contracts, which installing an app starts from (docs/plan.md, "Kunden")
@@ -45,6 +47,7 @@ export const ROLLEN_ZUGRIFF = {
     betreiber: ["lesen"],
     mitglieder: ["lesen"],
     kunden: ["lesen", "schreiben"],
+    server: ["anlegen"],
   }),
   // support access to customers (later items); sees who else works on the operator and whom it
   // helps, but changes no customer or contract
