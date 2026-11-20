@@ -108,6 +108,18 @@ describe("rotating the key", () => {
     );
   });
 
+  it("leaves no value on the old key in the database file, the append-only audit log included", () => {
+    const alt = testSchluessel(7);
+    const neu = testSchluessel(9);
+    const erst = mitGeheimnis(testDatenbank({ aktuell: alt, alt: [] }));
+    erst.schliessen();
+    const beide = oeffneDatenbank(erst.pfad, 2, { aktuell: neu, alt: [alt] });
+    rotieren(beide, 2);
+    // A rotation follows a leaked key: with it, nothing in the file may still open a secret
+    expect(dateiInhalt(erst.pfad).includes(`v1.${alt.id}.`)).toBe(false);
+    beide.schliessen();
+  });
+
   it("writes nothing when a value cannot be decrypted", () => {
     const offen = mitGeheimnis();
     offen.sqlite.run("UPDATE geheimnisse SET wert = 'v1.00000000.AAAA'");
