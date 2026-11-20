@@ -17,11 +17,15 @@ export const testSchluessel = (fuellung = 7) => {
   return geparst.schluessel;
 };
 
-export const testDatenbank = (bund: Schluesselbund = { aktuell: testSchluessel(), alt: [] }) => {
+/** Removed after the running test, or with `aufraeumen` (afterAll) for one shared by a file */
+export const testDatenbank = (
+  bund: Schluesselbund = { aktuell: testSchluessel(), alt: [] },
+  aufraeumen: (fn: () => void) => void = onTestFinished,
+) => {
   const ordner = mkdtempSync(join(tmpdir(), "sz-test-db-"));
   const pfad = join(ordner, "zentrale.db");
   const offen = oeffneDatenbank(pfad, 0, bund);
-  onTestFinished(() => {
+  aufraeumen(() => {
     offen.schliessen();
     rmSync(ordner, { recursive: true, force: true });
   });

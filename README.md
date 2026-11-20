@@ -10,6 +10,11 @@ Leistungen, die Apps mit ihren Manifesten, Ereignisse, Audit-Log und Einstellung
 Deutsch und Englisch, auch auf dem Handy. Bis die Zentrale ihre API hat, zeigt sie Demodaten mit den acht
 Apps der Speicherstadt (`bun run dev:demo`).
 
+**Anmeldung:** mit Passkey oder mit Passwort und Authenticator-App (TOTP); ohne zweiten Faktor erreicht
+ein Konto nur dessen Einrichtung. Den ersten Inhaber legt ein Einrichtungscode aus dem Log der Zentrale
+an, weitere Personen kommen per Einladungslink mit den Rollen Inhaber, Technik oder Support
+([Anmeldung](docs/anmeldung.md)).
+
 **Stand:** in Planung. Plan und Bauliste: [`docs/plan.md`](docs/plan.md), [`BAULISTE.md`](BAULISTE.md).
 
 Lizenz: AGPL-3.0 ([`NOTICE`](NOTICE)). Beiträge mit Developer Certificate of Origin (`git commit -s`), kein CLA;

@@ -1,0 +1,118 @@
+import type { Handler, Hono, MiddlewareHandler } from "hono";
+import type { Auth } from "../auth/auth.ts";
+import { darf, type Recht, ROLLEN, type Rolle } from "../auth/rollen.ts";
+import type { Db } from "../db/oeffnen.ts";
+import { faktorenVon, zweiterFaktorVorhanden } from "../modules/anmeldung/faktoren.ts";
+import { mitgliedschaftenVon, mitgliedVon } from "../modules/mitglieder/index.ts";
+
+/** Who calls, for which operator, in which role: set by the guard for every route with a right */
+export type Anfrage = { Variables: { nutzerId: string; betreiberId: string; rolle: string } };
+
+/**
+ * Who may reach a route: everyone (the setup code and an invitation's token are the key there),
+ * any signed-in account, also one without its second factor (only the setup of that factor),
+ * Better Auth itself (its own checks, AUTH_PFADE), or a member whose role has the right.
+ */
+export type Zugang =
+  | { art: "oeffentlich" }
+  | { art: "einrichtung" }
+  | { art: "better-auth" }
+  | { art: "recht"; recht: Recht };
+
+const oeffentlich = { art: "oeffentlich" } as const;
+const einrichtung = { art: "einrichtung" } as const;
+const betterAuth = { art: "better-auth" } as const;
+const recht = (name: Recht) => ({ art: "recht", recht: name }) as const;
+
+/**
+ * Every route of the Zentrale with who may reach it (BAULISTE.md Z-104). A route is registered only
+ * through this list (`routenRegistrar`), and a test requests every route in every role
+ * (zugang.test.ts), so a route without an entry cannot exist.
+ */
+export const ROUTEN = {
+  "GET /health": oeffentlich,
+  "GET /api/auth/*": betterAuth,
+  "POST /api/auth/*": betterAuth,
+  "GET /api/v1/erster-inhaber": oeffentlich,
+  "POST /api/v1/erster-inhaber": oeffentlich,
+  "POST /api/v1/einladung/ansehen": oeffentlich,
+  "POST /api/v1/einladung/annehmen": oeffentlich,
+  "GET /api/v1/einrichtung": einrichtung,
+  "GET /api/v1/ich": recht("betreiber:lesen"),
+  "GET /api/v1/mitglieder": recht("mitglieder:lesen"),
+  "PATCH /api/v1/mitglieder/:nutzerId": recht("mitglieder:rolle"),
+  "DELETE /api/v1/mitglieder/:nutzerId": recht("mitglieder:entfernen"),
+  "GET /api/v1/einladungen": recht("mitglieder:einladen"),
+  "POST /api/v1/einladungen": recht("mitglieder:einladen"),
+  "DELETE /api/v1/einladungen/:einladungId": recht("mitglieder:einladen"),
+} as const satisfies Record<string, Zugang>;
+
+export type RoutenName = keyof typeof ROUTEN;
+
+/**
+ * The paths of Better Auth reachable over HTTP, under /api/auth; every other one (sign-up, the
+ * organization routes, account changes, disabling TOTP) answers 404. `sitzung` paths need a session
+ * (Better Auth checks it), also one without a second factor: they set that factor up.
+ */
+export const AUTH_PFADE: Readonly<Record<string, "oeffentlich" | "sitzung">> = {
+  "POST /sign-in/email": "oeffentlich",
+  "GET /passkey/generate-authenticate-options": "oeffentlich",
+  "POST /passkey/verify-authentication": "oeffentlich",
+  "POST /two-factor/verify-totp": "oeffentlich",
+  "POST /two-factor/verify-backup-code": "oeffentlich",
+  // signing out without a session does nothing and answers 200
+  "POST /sign-out": "oeffentlich",
+  "GET /get-session": "sitzung",
+  "GET /passkey/generate-register-options": "sitzung",
+  "POST /passkey/verify-registration": "sitzung",
+  "GET /passkey/list-user-passkeys": "sitzung",
+  "POST /two-factor/enable": "sitzung",
+};
+
+/** The roles that reach a route; for a public one or the setup: every role */
+export const rollenFuer = (zugang: Zugang): readonly Rolle[] =>
+  zugang.art === "recht" ? ROLLEN.filter((rolle) => darf(rolle, zugang.recht)) : ROLLEN;
+
+/**
+ * The operator of a request: the one active in the session, else the only one the account is a
+ * member of; with several and none active there is none (a later item adds switching)
+ */
+const betreiberDerSitzung = (
+  db: Db,
+  sitzung: { nutzerId: string; betreiberId: string | null },
+): string | undefined => {
+  if (sitzung.betreiberId) return sitzung.betreiberId;
+  const alle = mitgliedschaftenVon(db, sitzung.nutzerId);
+  return alle.length === 1 ? alle[0] : undefined;
+};
+
+/** The guard of one route; the role comes from `mitglieder`, so a removed member loses access at once */
+export const wache =
+  (auth: Auth, db: Db) =>
+  (zugang: Zugang): MiddlewareHandler<Anfrage> =>
+  async (c, next) => {
+    if (zugang.art === "oeffentlich" || zugang.art === "better-auth") return next();
+    const sitzung = await auth.sitzung(c.req.raw.headers);
+    if (!sitzung) return c.json({ fehler: "nicht_angemeldet" }, 401);
+    c.set("nutzerId", sitzung.nutzerId);
+    if (zugang.art === "einrichtung") return next();
+    if (!zweiterFaktorVorhanden(faktorenVon(db, sitzung.nutzerId)))
+      return c.json({ fehler: "zweiter_faktor_fehlt" }, 403);
+    const betreiberId = betreiberDerSitzung(db, sitzung);
+    const mitglied = betreiberId ? mitgliedVon(db, betreiberId, sitzung.nutzerId) : undefined;
+    if (!mitglied) return c.json({ fehler: "kein_betreiber" }, 403);
+    if (!darf(mitglied.rolle, zugang.recht)) return c.json({ fehler: "keine_berechtigung" }, 403);
+    c.set("betreiberId", mitglied.betreiberId);
+    c.set("rolle", mitglied.rolle);
+    return next();
+  };
+
+export type Registrar = (name: RoutenName, handler: Handler<Anfrage>) => void;
+
+/** Registers a route under its entry in ROUTEN, behind the guard of that entry */
+export const routenRegistrar =
+  (app: Hono<Anfrage>, schutz: (zugang: Zugang) => MiddlewareHandler<Anfrage>): Registrar =>
+  (name, handler) => {
+    const [methode, pfad] = name.split(" ") as [string, string];
+    app.on(methode, pfad, schutz(ROUTEN[name]), handler);
+  };

@@ -1,0 +1,112 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ROLLEN, type Rolle } from "../auth/rollen.ts";
+import { type TestServer, testServer } from "../testhilfen/server.ts";
+import { AUTH_PFADE, ROUTEN, type RoutenName, rollenFuer } from "./zugang.ts";
+
+/*
+ * BAULISTE.md Z-104: every route checks its roles. The cases come from ROUTEN, the one list of all
+ * routes: a route registered without an entry fails the first test, an entry fails in every role
+ * whose answer does not match the list. Path parameters are filled with ids that exist nowhere, so
+ * no request changes anything that another one needs.
+ */
+const NAMEN = Object.keys(ROUTEN) as RoutenName[];
+const MIT_RECHT = NAMEN.filter((name) => ROUTEN[name].art === "recht");
+const ABGEWIESEN = [
+  "nicht_angemeldet",
+  "zweiter_faktor_fehlt",
+  "kein_betreiber",
+  "keine_berechtigung",
+];
+
+const anfrage = (name: RoutenName) => {
+  const [methode = "GET", pfad = ""] = name.split(" ");
+  const ohneKoerper = methode === "GET" || methode === "DELETE";
+  return {
+    pfad: pfad.replace(/:\w+/g, "gibt-es-nicht").replace("*", "get-session"),
+    init: { method: methode, ...(ohneKoerper ? {} : { body: { rolle: "support" } }) },
+  };
+};
+
+type Person = Awaited<ReturnType<TestServer["eingeladen"]>>;
+let server: TestServer;
+const personen = {} as Record<Rolle, Pick<Person, "json">>;
+
+beforeAll(async () => {
+  server = testServer(afterAll);
+  const inhaber = await server.inhaber();
+  personen.inhaber = inhaber;
+  personen.technik = await server.eingeladen(inhaber, "technik");
+  personen.support = await server.eingeladen(inhaber, "support");
+}, 60_000);
+
+describe("the list of routes", () => {
+  it("holds exactly the routes the app registers", () => {
+    const registriert = new Set(
+      server.app.routes
+        .filter((route) => route.method !== "ALL")
+        .map((route) => `${route.method} ${route.path}`),
+    );
+    expect([...registriert].sort()).toEqual([...NAMEN].sort());
+  });
+
+  it("gives every route that needs a right at least one role", () => {
+    for (const name of MIT_RECHT) expect(rollenFuer(ROUTEN[name]).length, name).toBeGreaterThan(0);
+  });
+});
+
+describe.each(MIT_RECHT)("%s", (name) => {
+  const erlaubt = rollenFuer(ROUTEN[name]);
+
+  it.each(ROLLEN)("as %s answers by the list", async (rolle) => {
+    const { pfad, init } = anfrage(name);
+    const { status, daten } = await personen[rolle].json(pfad, init);
+    const fehler = (daten as { fehler?: string } | null)?.fehler;
+    if (erlaubt.includes(rolle)) {
+      expect(ABGEWIESEN, `${rolle}: ${status} ${fehler}`).not.toContain(fehler);
+      expect(status, rolle).not.toBe(401);
+    } else expect({ status, fehler }).toEqual({ status: 403, fehler: "keine_berechtigung" });
+  });
+
+  it("refuses a request without a session", async () => {
+    const { pfad, init } = anfrage(name);
+    const { status } = await server.browser().json(pfad, init);
+    expect(status).toBe(401);
+  });
+});
+
+describe("the public routes", () => {
+  it.each(NAMEN.filter((name) => ROUTEN[name].art === "oeffentlich"))(
+    "%s answers without a session",
+    async (name) => {
+      const { pfad, init } = anfrage(name);
+      const { status, daten } = await server.browser().json(pfad, init);
+      expect(status).not.toBe(401);
+      // Hono's own 404 has no JSON body; a route's answer has one (an unknown token: 404 too)
+      expect(daten).not.toBeNull();
+    },
+  );
+});
+
+describe("Better Auth's paths", () => {
+  it.each(Object.keys(AUTH_PFADE))("%s is reachable", async (eintrag) => {
+    const [methode = "GET", pfad = ""] = eintrag.split(" ");
+    const antwort = await server.browser().anfrage(`/api/auth${pfad}`, {
+      method: methode,
+      ...(methode === "POST" ? { body: {} } : {}),
+    });
+    expect(antwort.status).not.toBe(404);
+  });
+
+  it("needs a session where the list says so", async () => {
+    for (const [eintrag, art] of Object.entries(AUTH_PFADE)) {
+      if (art !== "sitzung" || eintrag === "GET /get-session") continue;
+      const [methode = "GET", pfad = ""] = eintrag.split(" ");
+      const antwort = await server.browser().anfrage(`/api/auth${pfad}`, {
+        method: methode,
+        ...(methode === "POST" ? { body: {} } : {}),
+      });
+      // Better Auth checks the body before the session: an empty one may end there first
+      expect([400, 401], eintrag).toContain(antwort.status);
+    }
+  });
+});

@@ -2,7 +2,7 @@ import { render } from "@solidjs/web";
 import { setLocale } from "@steuerzentrale/ui";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/solid-router";
 import { flush } from "solid-js";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { routeTree } from "./routeTree.gen.ts";
 
 // The pages in the router, rendered from the demo fixtures: heading, path and content
@@ -11,7 +11,14 @@ afterEach(() => {
   dispose();
   document.body.innerHTML = "";
 });
-beforeEach(() => setLocale("de", { reload: false }));
+beforeEach(() => {
+  setLocale("de", { reload: false });
+  // The pages of the sign-in ask the Zentrale; here no one is signed in
+  vi.stubGlobal("fetch", async () =>
+    Response.json({ fehler: "nicht_angemeldet" }, { status: 401 }),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
 
 const oeffne = async (pfad: string) => {
   const router = createRouter({
@@ -46,11 +53,27 @@ const ALLE = [
   ["/ereignisse", "Ereignisse"],
   ["/audit", "Audit-Log"],
   ["/einstellungen", "Einstellungen"],
+  ["/anmelden", "Anmelden"],
+  ["/einrichtung", "Zweiter Faktor"],
+  ["/einladung", "Einladung"],
+  ["/erster-inhaber", "Zentrale einrichten"],
 ] as const;
 
 describe("every page", () => {
   it.each(ALLE)("%s renders its heading", async (pfad, titel) => {
     expect(ueberschrift(await oeffne(pfad))).toBe(titel);
+  });
+
+  it("of the sign-in stands outside the shell, a page of the shell inside it", async () => {
+    expect((await oeffne("/anmelden")).querySelector("aside")).toBeNull();
+    dispose();
+    expect((await oeffne("/server")).querySelector("aside")).not.toBeNull();
+  });
+
+  it("of the setup says when no one is signed in", async () => {
+    const root = await oeffne("/einrichtung");
+    await new Promise((fertig) => setTimeout(fertig, 0));
+    expect(root.textContent).toContain("Nicht angemeldet");
   });
 });
 

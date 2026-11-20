@@ -6,7 +6,10 @@ import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlit
  * the migrations' own bookkeeping (src/db/migrieren.ts). Instants are UTC milliseconds.
  */
 
-/** An operator; partners are operators too (docs/plan.md, "Partner") */
+/**
+ * An operator; partners are operators too (docs/plan.md, "Partner"). `betreiber_id` is the id of
+ * the operator's organization in Better Auth (docs/plan.md, "Anmeldung an der Zentrale")
+ */
 export const betreiber = sqliteTable("betreiber", {
   betreiberId: text("betreiber_id").primaryKey(),
   name: text("name").notNull(),
@@ -109,4 +112,42 @@ export const tokens = sqliteTable(
     angelegtAm: integer("angelegt_am").notNull(),
   },
   (t) => [primaryKey({ columns: [t.betreiberId, t.tokenId] })],
+);
+
+/**
+ * A person's membership of an operator with its role (inhaber, technik, support): the mirror of
+ * Better Auth's `member`, written through `schreiben`, so every membership and role change stands in
+ * the audit log; the routes read the role from here (src/routes/zugang.ts)
+ */
+export const mitglieder = sqliteTable(
+  "mitglieder",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    nutzerId: text("nutzer_id").notNull(),
+    rolle: text("rolle").notNull(),
+    angelegtAm: integer("angelegt_am").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.betreiberId, t.nutzerId] }),
+    index("mitglieder_nutzer").on(t.nutzerId),
+  ],
+);
+
+/**
+ * An invitation by link into an operator with a role; its token is a row in `tokens` with the same
+ * id (only the hash), removed when the invitation is accepted or withdrawn
+ */
+export const einladungen = sqliteTable(
+  "einladungen",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    einladungId: text("einladung_id").notNull(),
+    rolle: text("rolle").notNull(),
+    gueltigBis: integer("gueltig_bis").notNull(),
+    angelegtVon: text("angelegt_von").notNull(),
+    angelegtAm: integer("angelegt_am").notNull(),
+    angenommenVon: text("angenommen_von"),
+    angenommenAm: integer("angenommen_am"),
+  },
+  (t) => [primaryKey({ columns: [t.betreiberId, t.einladungId] })],
 );

@@ -10,12 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnmeldenRouteImport } from './routes/anmelden'
 import { Route as AppsRouteImport } from './routes/apps'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AuftraegeRouteImport } from './routes/auftraege'
 import { Route as BackupsRouteImport } from './routes/backups'
+import { Route as EinladungRouteImport } from './routes/einladung'
+import { Route as EinrichtungRouteImport } from './routes/einrichtung'
 import { Route as EinstellungenRouteImport } from './routes/einstellungen'
 import { Route as EreignisseRouteImport } from './routes/ereignisse'
+import { Route as ErsterInhaberRouteImport } from './routes/erster-inhaber'
 import { Route as LeistungenRouteImport } from './routes/leistungen'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as UpdatesRouteImport } from './routes/updates'
@@ -29,6 +33,11 @@ import { Route as ServerIdRouteImport } from './routes/server.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnmeldenRoute = AnmeldenRouteImport.update({
+  id: '/anmelden',
+  path: '/anmelden',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppsRoute = AppsRouteImport.update({
@@ -51,6 +60,16 @@ const BackupsRoute = BackupsRouteImport.update({
   path: '/backups',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EinladungRoute = EinladungRouteImport.update({
+  id: '/einladung',
+  path: '/einladung',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EinrichtungRoute = EinrichtungRouteImport.update({
+  id: '/einrichtung',
+  path: '/einrichtung',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EinstellungenRoute = EinstellungenRouteImport.update({
   id: '/einstellungen',
   path: '/einstellungen',
@@ -59,6 +78,11 @@ const EinstellungenRoute = EinstellungenRouteImport.update({
 const EreignisseRoute = EreignisseRouteImport.update({
   id: '/ereignisse',
   path: '/ereignisse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ErsterInhaberRoute = ErsterInhaberRouteImport.update({
+  id: '/erster-inhaber',
+  path: '/erster-inhaber',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeistungenRoute = LeistungenRouteImport.update({
@@ -109,12 +133,16 @@ const ServerIdRoute = ServerIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/anmelden': typeof AnmeldenRoute
   '/apps': typeof AppsRoute
   '/audit': typeof AuditRoute
   '/auftraege': typeof AuftraegeRoute
   '/backups': typeof BackupsRoute
+  '/einladung': typeof EinladungRoute
+  '/einrichtung': typeof EinrichtungRoute
   '/einstellungen': typeof EinstellungenRoute
   '/ereignisse': typeof EreignisseRoute
+  '/erster-inhaber': typeof ErsterInhaberRoute
   '/leistungen': typeof LeistungenRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
@@ -127,12 +155,16 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/anmelden': typeof AnmeldenRoute
   '/apps': typeof AppsRoute
   '/audit': typeof AuditRoute
   '/auftraege': typeof AuftraegeRoute
   '/backups': typeof BackupsRoute
+  '/einladung': typeof EinladungRoute
+  '/einrichtung': typeof EinrichtungRoute
   '/einstellungen': typeof EinstellungenRoute
   '/ereignisse': typeof EreignisseRoute
+  '/erster-inhaber': typeof ErsterInhaberRoute
   '/leistungen': typeof LeistungenRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
@@ -146,12 +178,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/anmelden': typeof AnmeldenRoute
   '/apps': typeof AppsRoute
   '/audit': typeof AuditRoute
   '/auftraege': typeof AuftraegeRoute
   '/backups': typeof BackupsRoute
+  '/einladung': typeof EinladungRoute
+  '/einrichtung': typeof EinrichtungRoute
   '/einstellungen': typeof EinstellungenRoute
   '/ereignisse': typeof EreignisseRoute
+  '/erster-inhaber': typeof ErsterInhaberRoute
   '/leistungen': typeof LeistungenRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
@@ -166,12 +202,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/anmelden'
     | '/apps'
     | '/audit'
     | '/auftraege'
     | '/backups'
+    | '/einladung'
+    | '/einrichtung'
     | '/einstellungen'
     | '/ereignisse'
+    | '/erster-inhaber'
     | '/leistungen'
     | '/support'
     | '/updates'
@@ -184,12 +224,16 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/anmelden'
     | '/apps'
     | '/audit'
     | '/auftraege'
     | '/backups'
+    | '/einladung'
+    | '/einrichtung'
     | '/einstellungen'
     | '/ereignisse'
+    | '/erster-inhaber'
     | '/leistungen'
     | '/support'
     | '/updates'
@@ -202,12 +246,16 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/anmelden'
     | '/apps'
     | '/audit'
     | '/auftraege'
     | '/backups'
+    | '/einladung'
+    | '/einrichtung'
     | '/einstellungen'
     | '/ereignisse'
+    | '/erster-inhaber'
     | '/leistungen'
     | '/support'
     | '/updates'
@@ -221,12 +269,16 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnmeldenRoute: typeof AnmeldenRoute
   AppsRoute: typeof AppsRoute
   AuditRoute: typeof AuditRoute
   AuftraegeRoute: typeof AuftraegeRoute
   BackupsRoute: typeof BackupsRoute
+  EinladungRoute: typeof EinladungRoute
+  EinrichtungRoute: typeof EinrichtungRoute
   EinstellungenRoute: typeof EinstellungenRoute
   EreignisseRoute: typeof EreignisseRoute
+  ErsterInhaberRoute: typeof ErsterInhaberRoute
   LeistungenRoute: typeof LeistungenRoute
   SupportRoute: typeof SupportRoute
   UpdatesRoute: typeof UpdatesRoute
@@ -245,6 +297,13 @@ declare module '@tanstack/solid-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/anmelden': {
+      id: '/anmelden'
+      path: '/anmelden'
+      fullPath: '/anmelden'
+      preLoaderRoute: typeof AnmeldenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/apps': {
@@ -275,6 +334,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof BackupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/einladung': {
+      id: '/einladung'
+      path: '/einladung'
+      fullPath: '/einladung'
+      preLoaderRoute: typeof EinladungRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/einrichtung': {
+      id: '/einrichtung'
+      path: '/einrichtung'
+      fullPath: '/einrichtung'
+      preLoaderRoute: typeof EinrichtungRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/einstellungen': {
       id: '/einstellungen'
       path: '/einstellungen'
@@ -287,6 +360,13 @@ declare module '@tanstack/solid-router' {
       path: '/ereignisse'
       fullPath: '/ereignisse'
       preLoaderRoute: typeof EreignisseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/erster-inhaber': {
+      id: '/erster-inhaber'
+      path: '/erster-inhaber'
+      fullPath: '/erster-inhaber'
+      preLoaderRoute: typeof ErsterInhaberRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leistungen': {
@@ -357,12 +437,16 @@ declare module '@tanstack/solid-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnmeldenRoute: AnmeldenRoute,
   AppsRoute: AppsRoute,
   AuditRoute: AuditRoute,
   AuftraegeRoute: AuftraegeRoute,
   BackupsRoute: BackupsRoute,
+  EinladungRoute: EinladungRoute,
+  EinrichtungRoute: EinrichtungRoute,
   EinstellungenRoute: EinstellungenRoute,
   EreignisseRoute: EreignisseRoute,
+  ErsterInhaberRoute: ErsterInhaberRoute,
   LeistungenRoute: LeistungenRoute,
   SupportRoute: SupportRoute,
   UpdatesRoute: UpdatesRoute,

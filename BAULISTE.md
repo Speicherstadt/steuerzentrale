@@ -88,7 +88,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-101
   Fertig, wenn: jede Seite in hell und dunkel, Desktop und Handy ohne axe-Befund rendert (Playwright),
   jeder Text aus `messages/` kommt (`i18n`-Check) und die Demodaten die acht Apps zeigen.
-- [ ] **Z-104 Anmeldung, Rollen, Betreiber** – Better Auth mit Organisationen (eine je Betreiber) und
+- [x] **Z-104 Anmeldung, Rollen, Betreiber** – Better Auth mit Organisationen (eine je Betreiber) und
   den Plugins `passkey` und `twoFactor` (plan.md, „Anmeldung“): ein Passkey genügt, ein Passwort nur
   zusammen mit TOTP; ohne zweiten Faktor erreicht ein Konto nur `/einrichtung`. Erster Inhaber über
   einen Einrichtungscode im Log (einmalig, 24 h gültig); Rollen Inhaber, Technik, Support über die

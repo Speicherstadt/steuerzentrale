@@ -4,6 +4,6 @@ import { defineConfig } from "drizzle-kit";
 // applied migration stops the start (src/db/migrieren.ts). Layout from Speicherstadt/soll.
 export default defineConfig({
   dialect: "sqlite",
-  schema: "./src/db/schema.ts",
+  schema: ["./src/db/schema.ts", "./src/db/auth-schema.ts"],
   out: "./drizzle",
 });
