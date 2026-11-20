@@ -98,7 +98,12 @@ export const ansichtZustand = (b: Bestand, a: ServerAnsicht): ServerZustand => {
   if (a.demo) return serverZustand(b, a.demo);
   if (a.platte !== null && a.platte >= PLATTE_STOERUNG) return "platte";
   if (a.neustart) return "neustart";
-  const alleBekannt = a.faktenAm !== null && a.updates !== null && a.uhrMs !== null;
+  const alleBekannt =
+    a.faktenAm !== null &&
+    a.updates !== null &&
+    a.uhrMs !== null &&
+    a.platten !== null &&
+    a.neustart !== null;
   const gut = a.updates === 0 && Math.abs(a.uhrMs ?? 0) < UHR_GRENZE_MS;
   return alleBekannt && gut ? "ok" : "pruefen";
 };
