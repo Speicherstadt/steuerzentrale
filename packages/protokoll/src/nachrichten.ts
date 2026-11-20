@@ -56,9 +56,21 @@ export const Fakten = z.object({
   uhrzeitAbweichungMs: z.number().int().nullable(),
 });
 
+// The ActiveState values of systemd (`systemctl --state=help`; "refreshing" since systemd 257),
+// plus "unknown" for a unit the agent cannot read
 const unit = z.object({
   name: z.string().min(1),
-  aktiv: z.enum(["active", "inactive", "failed", "activating", "deactivating", "unknown"]),
+  aktiv: z.enum([
+    "active",
+    "reloading",
+    "inactive",
+    "failed",
+    "activating",
+    "deactivating",
+    "maintenance",
+    "refreshing",
+    "unknown",
+  ]),
 });
 const health = z.object({
   zustand: z.enum(["gruen", "gelb", "rot", "unbekannt"]),

@@ -167,3 +167,32 @@ describe("size", () => {
     expect(vonDerZentraleLesen(JSON.stringify(auftrag)).ok).toBe(false);
   });
 });
+
+describe("state of the installations", () => {
+  // `systemctl --state=help` (systemd 255, Ubuntu 24.04) lists these active states; systemd 257
+  // (Debian 13) adds "refreshing". One unit in any of them must not make the whole message invalid.
+  it.each([
+    "active",
+    "reloading",
+    "inactive",
+    "failed",
+    "activating",
+    "deactivating",
+    "maintenance",
+    "refreshing",
+  ])("reads a unit in the systemd state %s", (aktiv) => {
+    const zustand = {
+      typ: "zustand",
+      protokoll: 1,
+      zeit: 1,
+      installationen: [
+        {
+          installationId: "i",
+          units: [{ name: "i-app.service", aktiv }],
+          health: { zustand: "gruen", grund: "" },
+        },
+      ],
+    };
+    expect(vomAgentenLesen(JSON.stringify(zustand))).toMatchObject({ ok: true });
+  });
+});
