@@ -87,6 +87,26 @@
               "additionalProperties": false
             }
           },
+          "dateien": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pfad": {
+                  "type": "string",
+                  "format": "starts_with",
+                  "pattern": "^\\/.*"
+                },
+                "inhalt": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["pfad", "inhalt"],
+              "additionalProperties": false
+            }
+          },
           "argv": {
             "minItems": 1,
             "type": "array",
@@ -328,6 +348,26 @@
                       }
                     },
                     "required": ["name", "pfad"],
+                    "additionalProperties": false
+                  }
+                },
+                "dateien": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "pfad": {
+                        "type": "string",
+                        "format": "starts_with",
+                        "pattern": "^\\/.*"
+                      },
+                      "inhalt": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": ["pfad", "inhalt"],
                     "additionalProperties": false
                   }
                 },
@@ -793,7 +833,7 @@
           },
           "erzeugen": {
             "type": "string",
-            "enum": ["zufall_32", "zufall_64"]
+            "enum": ["zufall_32", "zufall_64", "zufall_hex_32"]
           },
           "aus": {
             "type": "string",
@@ -801,6 +841,10 @@
           },
           "vorlage": {
             "type": "string"
+          },
+          "option": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
           }
         },
         "required": ["name", "ebene"],

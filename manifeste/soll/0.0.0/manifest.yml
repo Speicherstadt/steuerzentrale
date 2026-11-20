@@ -1,0 +1,46 @@
+# Soll 0.0.0 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
+schema: 1
+id: soll
+version: 0.0.0
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/soll
+container:
+  - name: app
+    image:
+      noch_nicht_veroeffentlicht: >-
+        Soll hat noch kein Image (Bauliste von Soll, S-905 offen); auf GHCR gibt es keines
+        (scripts/digest.ts, 2026-11-20)
+    volumes:
+      - { name: daten, pfad: /daten }
+    env: [SOLL_URL, SOLL_SECRET_KEY]
+    feste_env:
+      SOLL_PORT: "8200"
+      SOLL_DATA_DIR: /daten
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 512, platte_gb: 1 }
+netz:
+  http: { dienst: app, port: 8200, websocket: false, sse: false }
+  ports: []
+  oeffentliche_ipv4: false
+  mail: false
+  server_fuer_sich: false
+proxy: geteilt
+rootful: false
+optionen: []
+braucht: []
+bietet: []
+anmeldung: eigen
+health: { art: http, dienst: app, pfad: /health }
+befehle: {}
+schritte: { einrichten: [], nach_update: [] }
+backup:
+  - { art: volume, volume: daten }
+aktionen:
+  nur_lesen: nicht_unterstuetzt
+  export: nicht_unterstuetzt
+sperrzeiten: []
+dns: []
+env:
+  - { name: SOLL_URL, ebene: auto, aus: adresse }
+  - { name: SOLL_SECRET_KEY, ebene: auto, typ: geheim, erzeugen: zufall_32 }
+hinweis: Soll ist Open Source (AGPL), https://github.com/Speicherstadt/soll

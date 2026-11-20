@@ -170,6 +170,54 @@ const envRegeln = (m: Manifest): Befund[] => {
   return befunde;
 };
 
+/**
+ * What a `vorlage` or a DNS record may name as `${…}` (docs/manifest.md, "Vorlagen"): the
+ * installation's address and host, the server's public IPv4, the port the Zentrale assigned to a
+ * published port, and another setting that is no template itself (so templates never form a
+ * cycle). Containers reach each other by their name in the manifest, which needs no placeholder
+ */
+const platzhalterGrund = (m: Manifest, platzhalter: string): string | null => {
+  if (["adresse", "host", "ipv4"].includes(platzhalter)) return null;
+  const [art, ...teile] = platzhalter.split(":");
+  if (art === "port" && teile.length === 2) {
+    const [dienst, port] = [teile[0], Number(teile[1])];
+    const veroeffentlicht = [...m.netz.ports, ...(m.netz.http ? [m.netz.http] : [])];
+    return veroeffentlicht.some((p) => p.dienst === dienst && p.port === port)
+      ? null
+      : `no port ${teile[1]} of ${dienst} under netz`;
+  }
+  if (art === "env" && teile.length === 1) {
+    const ziel = m.env.find((e) => e.name === teile[0]);
+    if (!ziel) return `${teile[0]} is not declared under env`;
+    return ziel.vorlage === undefined ? null : `${teile[0]} is a template itself`;
+  }
+  return `\${${platzhalter}} is no placeholder (adresse, host, ipv4, port:, env:)`;
+};
+
+const platzhalterBefunde = (m: Manifest, text: string, pfad: (string | number)[]): Befund[] =>
+  [...text.matchAll(/\$\{([^{}]*)\}/g)].flatMap(([, platzhalter]) => {
+    const grund = platzhalterGrund(m, platzhalter ?? "");
+    return grund ? [{ pfad, grund }] : [];
+  });
+
+const vorlageRegeln = (m: Manifest): Befund[] => [
+  ...m.env.flatMap((e, i) => platzhalterBefunde(m, e.vorlage ?? "", ["env", i, "vorlage"])),
+  ...m.dns.flatMap((d, i) => [
+    ...platzhalterBefunde(m, d.name, ["dns", i, "name"]),
+    ...platzhalterBefunde(m, d.wert, ["dns", i, "wert"]),
+  ]),
+];
+
+/** A setting that belongs to an option is set only while that option is on */
+const optionRegeln = (m: Manifest): Befund[] => {
+  const optionen = new Set(m.optionen.map((o) => o.id));
+  return m.env.flatMap((e, i) =>
+    e.option !== undefined && !optionen.has(e.option)
+      ? [{ pfad: ["env", i, "option"], grund: `no option named ${e.option}` }]
+      : [],
+  );
+};
+
 const weitereRegeln = (m: Manifest): Befund[] => [
   ...doppelt(m.optionen.map((o) => o.id)).map((id) => ({
     pfad: ["optionen"],
@@ -184,5 +232,7 @@ export const regelnPruefen = (m: Manifest): Befund[] => [
   ...volumeRegeln(m),
   ...serverRegeln(m),
   ...envRegeln(m),
+  ...vorlageRegeln(m),
+  ...optionRegeln(m),
   ...weitereRegeln(m),
 ];

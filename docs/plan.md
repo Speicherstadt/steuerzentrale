@@ -103,14 +103,14 @@ dem Release.
 
 | App | Container | Arch | RAM | HTTP | Ports | IPv4 | Für sich | Anmeldung | Health | Image |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| haben | app, db | amd64, arm64 | 2048 | ja | – | nein | nein | oidc | keine (Haben#946) | ja |
-| belegt | app, worker, db | amd64, arm64 | 2048 | ja | ftp (Option) | nein | nein | oidc | http /healthz | ja |
-| kontext | kontext, stalwart, redis, livekit, caddy | amd64, arm64 | 4096 | eigen | 25, 465, 587, 993, 7881, 7882/udp, 5060, 20000-20100/udp | ja | ja | anbieter | http /healthz | ja |
+| haben | app, db | amd64, arm64 | 2048 | ja | – | nein | nein | oidc | http /api/health | ja |
+| belegt | app, worker, db, ftp (Option) | amd64, arm64 | 2048 | ja | ftp (Option) | nein | nein | oidc | http /healthz | noch nicht |
+| kontext | kontext, stalwart, redis, livekit, livekit-sip, caddy, schreibzeug (Option) | amd64, arm64 | 4096 | eigen | 25, 465, 587, 993, 7881, 7882/udp, 5060, 20000-20100/udp, 80, 443, 443/udp | ja | ja | anbieter | http /healthz | ja |
 | schreibzeug | app | amd64 | 1024 | ja | – | nein | nein | oidc | http /api/health | ja |
 | stellwerk | zentrale | amd64, arm64 | 1024 | ja | 22001 (je Installation) | ja | nein | eigen | keine (nur mit Anmeldung) | ja |
-| fixpunkt | app, nodeodm (Option) | amd64, arm64 | 8192 | ja | – | nein | nein | eigen | http /api/health | ja |
-| kennwort | app | amd64, arm64 | 512 | ja | – | nein | nein | oidc | http /health | noch nicht |
-| soll | app | amd64, arm64 | 512 | ja | – | nein | nein | oidc | http /health | noch nicht |
+| fixpunkt | app, nodeodm (Option) | amd64, arm64 | 8192 | ja | – | nein | nein | eigen | http /api/health | noch nicht |
+| kennwort | app | amd64, arm64 | 512 | ja | – | nein | nein | eigen | http /health | noch nicht |
+| soll | app | amd64, arm64 | 512 | ja | – | nein | nein | eigen | http /health | noch nicht |
 
 Besonderes: Haben hat eine Sperrzeit (7. bis 12. jedes Monats, Umsatzsteuer-Voranmeldung, mit
 Puffer für Fristen am Wochenende nach § 108 Abs. 3 AO) und eine Hersteller-ID beim Betreiber. Kontext
@@ -120,9 +120,11 @@ Platte (Grenze je Installation). Fixpunkt nimmt Uploads bis 20 GB, Schreibzeug b
 Fixpunkt SSE. Geräte beim Kunden (Kontext-Box, Stellwerk-Agenten, Tablet-Terminal von Soll,
 Desktop-Apps) verwaltet die Steuerzentrale nicht.
 
-Keine App hat heute Nur-lesen-Modus, Export, Status-Befehl oder einen Einrichtungsbefehl
-(Haben#945–#948). Bis dahin steht im Manifest `nicht_unterstuetzt` und die Zentrale bietet die Aktion
-nicht an.
+Keine App hat heute Nur-lesen-Modus oder Export (Haben#945–#948), und nur Kontext hat einen
+Einrichtungsbefehl ohne Rückfrage (`setup-stalwart` mit `STALWART_ADMIN`). Bis dahin steht im Manifest
+`nicht_unterstuetzt` und die Zentrale bietet die Aktion nicht an. Die Tabelle wird gegen die Manifeste
+geprüft (`scripts/manifeste.test.ts`); „noch nicht“ heißt: für die Version des Manifests gibt es kein
+veröffentlichtes Image.
 
 ## Manifest
 
@@ -198,6 +200,11 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Single Sign-on | hat der Kunde Kontext, ist es sein Anmeldedienst: die Zentrale legt dort per Auftrag den OIDC-Client jeder weiteren App an; ohne Kontext nutzt jede App ihre eigene Anmeldung | ein Anbieter je Kunde, kein zusätzlicher Dienst |
 | Manifest-Schema | Feldnamen deutsch wie im Plan; unbekannte Felder sind ein Fehler; Verweise (Container, Befehle, Volumes, Einstellungen) prüft eine eigene Regelstufe nach dem Zod-Schema; ein Befehl darf keine Shell starten (`sh`, `bash`, `env`, …); `pg_dump` nennt `datenbank` und `nutzer`; die Signatur wird über die exakten Bytes vor dem YAML geprüft, beide minisign-Formate (`ED`, `Ed`) | ein Tippfehler darf nicht still übergangen werden; benannte Befehle wären sonst ein Umweg zur Shell |
 | Manifeste | Ablage `manifeste/<app>/<version>/manifest.yml` mit `manifest.yml.minisig`, signiert vom Inhaber; die Zentrale bekommt ein Manifest per Import (Upload oder Befehl) und zeigt eine neue Version in der Registry als „Manifest fehlt“, bis es da ist; Digests kommen aus der Registry über `scripts/digest.ts` (Quelle: Registry, Tag, abgefragt am); ein App-Repo kann später ein eigenes Manifest liefern | der Schlüssel liegt offline, also kann die Zentrale nicht selbst signieren; die App-Repos nennen nur Tags |
+| Images der Manifeste | ein App-Image von GHCR, wo die App dorthin veröffentlicht und es öffentlich abrufbar ist, sonst von Docker Hub; fremde Images (Postgres, Stalwart, LiveKit, Redis, Caddy, NodeODM) mit dem Tag aus den Quadlets oder der Compose-Datei der App; gibt es für die Version des Manifests kein Image (Belegt, Fixpunkt, Kennwort, Soll im November 2026), steht dort `noch_nicht_veroeffentlicht` mit dem Ergebnis der Abfrage, nie ein geratener Digest | Speicherstadt veröffentlicht unter `ghcr.io/speicherstadt`; ein Digest ohne Abfrage wäre nicht belegt |
+| Was aus den Container-Dateien der Apps entfällt | der eigene Caddy (die Pforte ersetzt ihn; nur Kontext behält seinen, `proxy: eigen`), Backup- und Restore-Container und ihre Timer (die Steuerzentrale sichert selbst mit restic), Profile, die der Plan nicht nennt, und Geräte beim Kunden | sonst liefen zwei Proxys und zwei Sicherungen nebeneinander |
+| Planwerte der Manifeste | `platte_gb` ist ein Planwert der Steuerzentrale, kein Wert der App: Haben 10, Belegt 20, Kontext 50, Schreibzeug 10, Stellwerk 100, Fixpunkt 200, Kennwort 1, Soll 1; `ram_mb` aus der Tabelle oben; `timeout_s` bleibt bei der Vorgabe, nur Belegt bekommt 3600 s für Exporte aus Paperless-ngx in einer Anfrage | keine App nennt ihren Plattenbedarf; Z-702 misst die Belegung und zeigt, wo ein Wert falsch ist |
+| Namen im Netz der Installation | jeder Container ist im Netz seiner Installation unter seinem Namen aus dem Manifest erreichbar (Netzwerk-Alias, Z-205); Vorlagen und Konfigurationsdateien nennen ihn so (`db:5432`, `kontext:3000`) | so bleiben Caddyfile und `livekit.yaml` von Kontext unverändert, und keine Vorlage braucht den Namen der Installation |
+| Vorlagen und erzeugte Werte | eine `vorlage` und ein DNS-Eintrag kennen `${adresse}`, `${host}`, `${ipv4}`, `${port:<dienst>:<port>}` (der vergebene Port) und `${env:<NAME>}` (eine Einstellung, die selbst keine Vorlage ist); andere geschweifte Klammern sind Text; `zufall_32` und `zufall_64` sind Zufallsbytes in Base64 (Standardalphabet), `zufall_hex_32` sind 32 Zufallsbytes als Hex für Werte in einer URL; eine Einstellung mit `option` gilt nur, solange die Option an ist; `dateien` sind Konfigurationsdateien mit festem Inhalt, nur lesbar eingehängt | Haben, Belegt und Soll verlangen 32 Byte Base64, ein Passwort in `DATABASE_URL` darf kein `+`, `/` oder `=` enthalten; Kontext braucht Caddyfile und `livekit.yaml`; Kontexts Dokumente und Fixpunkts NodeODM brauchen Werte nur mit ihrer Option |
 | Apps ohne Betreiber-Vertrag | ohne Health keine automatischen Updates (nur von Hand, mit Grund); ohne Image nicht installierbar; nicht angebotene Aktionen fehlen in der Oberfläche | der Loop muss mit dem heutigen Stand der Apps bauen können |
 | Platzierung | reine Funktion: Manifest, Optionen, Serverfakten, Installationen, Kunde → passt, Hinweise, Gründe | testbar ohne Server; dieselbe für Oberfläche, API und Portal |
 | Updates | Wellen nach SLA, 24 h ohne Störung, Ankündigung 72 h vorher, nie in einer Sperrzeit; Backup vorher, Rückkehr bei Rot; dringende Updates sofort | ein Fehler trifft zuerst uns |

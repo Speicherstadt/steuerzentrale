@@ -1,0 +1,43 @@
+# Stellwerk 0.1.12 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
+schema: 1
+id: stellwerk
+version: 0.1.12
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/stellwerk
+container:
+  - name: zentrale
+    image: docker.io/tristanteu/stellwerk@sha256:41f38458d09c1c5f3865e23a7719739cb5d71fdf0272cbe652b8c2db84810291
+    volumes:
+      - { name: daten, pfad: /data }
+    env: [STELLWERK_HUB_ADDRESS, STELLWERK_PUBLIC_URL]
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 1024, platte_gb: 100 }
+netz:
+  http: { dienst: zentrale, port: 8080, websocket: true, sse: false }
+  ports:
+    - { dienst: zentrale, port: 22001, proto: tcp, fest: false }
+  oeffentliche_ipv4: true
+  mail: false
+  server_fuer_sich: false
+proxy: geteilt
+rootful: false
+optionen: []
+braucht: []
+bietet: []
+anmeldung: eigen
+health:
+  art: keine
+  hinweis: "nur mit Anmeldung: die Zentrale hat keinen Endpunkt ohne Sitzung (crates/zentrale/src/api/mod.rs)"
+befehle: {}
+schritte: { einrichten: [], nach_update: [] }
+backup:
+  - { art: volume, volume: daten }
+aktionen:
+  nur_lesen: nicht_unterstuetzt
+  export: nicht_unterstuetzt
+sperrzeiten: []
+dns: []
+env:
+  - { name: STELLWERK_HUB_ADDRESS, ebene: auto, vorlage: "tcp://${host}:${port:zentrale:22001}" }
+  - { name: STELLWERK_PUBLIC_URL, ebene: auto, aus: adresse }
+hinweis: Stellwerk ist Open Source (AGPL), https://github.com/Speicherstadt/stellwerk

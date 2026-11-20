@@ -1,0 +1,97 @@
+# Haben 0.12.0 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
+schema: 1
+id: haben
+version: 0.12.0
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/haben
+container:
+  - name: app
+    image: ghcr.io/speicherstadt/haben@sha256:9b6a9d6d957297df189ec6a7a5a61cad799a4b04102cb7b51e19b03dc94a3ec7
+    braucht: [db]
+    volumes:
+      - { name: belege, pfad: /var/lib/haben/belege }
+      - { name: eric-log, pfad: /var/lib/haben/eric-log }
+      - { name: eric, pfad: /var/lib/haben/eric }
+    env:
+      - DATABASE_URL
+      - BETTER_AUTH_URL
+      - BETTER_AUTH_SECRET
+      - HABEN_ENCRYPTION_KEY
+      - ELSTER_HERSTELLER_ID
+      - ERIC_AUTO_INSTALL
+      - FINTS_PRODUKT_ID
+      - ANTHROPIC_API_KEY
+      - OIDC_ONLY
+      - OIDC_ISSUER
+      - OIDC_CLIENT_ID
+      - OIDC_CLIENT_SECRET
+      - OIDC_GROUP_INHABER
+      - OIDC_GROUP_STEUERBERATUNG
+  - name: db
+    image: ghcr.io/speicherstadt/haben-db@sha256:028a904a9814a93e0b1ab5705e3e878a43703479aeee1ec9f43aab05d2fc8808
+    volumes:
+      - { name: db, pfad: /var/lib/postgresql/data }
+    env: [POSTGRES_PASSWORD]
+    feste_env: { POSTGRES_USER: haben, POSTGRES_DB: haben }
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 2048, platte_gb: 10 }
+netz:
+  http: { dienst: app, port: 3000, websocket: false, sse: false, max_body_mb: 250 }
+  ports: []
+  oeffentliche_ipv4: false
+  mail: false
+  server_fuer_sich: false
+proxy: geteilt
+rootful: false
+optionen: []
+braucht: []
+bietet: []
+anmeldung: oidc
+health: { art: http, dienst: app, pfad: /api/health }
+befehle: {}
+schritte: { einrichten: [], nach_update: [] }
+backup:
+  - { art: pg_dump, container: db, datenbank: haben, nutzer: haben }
+  - { art: volume, volume: belege }
+aktionen:
+  nur_lesen: { nicht_unterstuetzt: "Haben#945–#948" }
+  export: { nicht_unterstuetzt: "Haben#945–#948" }
+sperrzeiten:
+  - { monatlich: "07-12", grund: Umsatzsteuer-Voranmeldung }
+dns: []
+env:
+  - { name: POSTGRES_PASSWORD, ebene: auto, typ: geheim, erzeugen: zufall_hex_32 }
+  - name: DATABASE_URL
+    ebene: auto
+    typ: geheim
+    vorlage: "postgres://haben:${env:POSTGRES_PASSWORD}@db:5432/haben"
+  - { name: BETTER_AUTH_URL, ebene: auto, aus: adresse }
+  - { name: BETTER_AUTH_SECRET, ebene: auto, typ: geheim, erzeugen: zufall_32 }
+  - { name: HABEN_ENCRYPTION_KEY, ebene: auto, typ: geheim, erzeugen: zufall_32 }
+  - name: ELSTER_HERSTELLER_ID
+    ebene: betreiber
+    pflicht: true
+    beschreibung: Hersteller-ID für ELSTER (fünf Ziffern); ohne sie geht nur die Testübermittlung
+  - name: ERIC_AUTO_INSTALL
+    ebene: betreiber
+    beschreibung: "ja: ERiC beim Start von download.elster.de laden (Zustimmung zu den Nutzungsbedingungen von ERiC)"
+  - name: FINTS_PRODUKT_ID
+    ebene: betreiber
+    beschreibung: Registrierungsnummer der Deutschen Kreditwirtschaft für FinTS; ohne sie bleibt FinTS aus
+  - name: ANTHROPIC_API_KEY
+    ebene: betreiber
+    typ: geheim
+    beschreibung: Schlüssel für die KI-Auslesung von Belegen; ohne ihn keine KI-Auslesung
+  - name: OIDC_ONLY
+    ebene: installation
+    typ: ja_nein
+    vorgabe: false
+    beschreibung: "true: nur Anmeldung über den Anbieter des Kunden, Rollen aus den Gruppen"
+  - { name: OIDC_ISSUER, ebene: auto, aus: oidc-anbieter }
+  - { name: OIDC_CLIENT_ID, ebene: auto, aus: oidc-anbieter }
+  - { name: OIDC_CLIENT_SECRET, ebene: auto, typ: geheim, aus: oidc-anbieter }
+  - { name: OIDC_GROUP_INHABER, ebene: installation, beschreibung: Gruppe der Inhaber beim Anbieter (nur mit OIDC_ONLY) }
+  - name: OIDC_GROUP_STEUERBERATUNG
+    ebene: installation
+    beschreibung: Gruppe der Steuerberatung beim Anbieter (nur mit OIDC_ONLY)
+hinweis: Haben ist Open Source (AGPL), https://github.com/Speicherstadt/haben

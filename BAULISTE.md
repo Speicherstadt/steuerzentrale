@@ -130,7 +130,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   plan.md, „Signaturen in Tests“); eingecheckt ist nur die Vorlage.
   Fertig, wenn: die erzeugten Manifeste gültig und signiert sind, die drei Images in der CI
   entstehen und ein Build für ein Release den Test-Schlüssel ablehnt (Test).
-- [ ] **Z-203 Manifeste der Speicherstadt** – `manifeste/<app>/<version>/` für alle acht Apps:
+- [x] **Z-203 Manifeste der Speicherstadt** – `manifeste/<app>/<version>/` für alle acht Apps:
   `manifest.yml` (Container aus `deploy/quadlet/` oder, wo es keine gibt, aus der Compose-Datei bzw.
   Doku des App-Repos; eigener Caddy entfällt; Images von GHCR, wo die App dort veröffentlicht) und
   `QUELLEN.md` mit Datei und Commit jeder Angabe; Digests liefert `scripts/digest.ts` aus der Registry

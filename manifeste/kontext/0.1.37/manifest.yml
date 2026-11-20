@@ -1,0 +1,300 @@
+# Kontext 0.1.37 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
+schema: 1
+id: kontext
+version: 0.1.37
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/kontext
+container:
+  - name: kontext
+    image: ghcr.io/speicherstadt/kontext@sha256:e36307756e0f6ed5ebcf525cc96ef8889049a62ca44eb5e791452b5b67b547c7
+    braucht: [stalwart]
+    volumes:
+      - { name: kontext-data, pfad: /data }
+    env:
+      - BETTER_AUTH_URL
+      - BETTER_AUTH_SECRET
+      - STALWART_ADMIN_KEY
+      - STALWART_ADMIN
+      - LIVEKIT_API_SECRET
+      - SCHREIBZEUG_URL
+      - SCHREIBZEUG_CLIENT_SECRET
+    feste_env:
+      STALWART_URL: http://stalwart:8080
+      LIVEKIT_URL: http://livekit:7880
+      LIVEKIT_API_KEY: kontext
+  - name: stalwart
+    image: docker.io/stalwartlabs/stalwart@sha256:5ebdf474b237161742fe4309396af4ae8797c938e8e6eb7e2d4837332c4f9851
+    volumes:
+      - { name: stalwart-config, pfad: /etc/stalwart }
+      - { name: stalwart-data, pfad: /var/lib/stalwart }
+    env: [STALWART_HOSTNAME, STALWART_PUBLIC_URL, STALWART_BLOB_KEY]
+  - name: redis
+    image: docker.io/library/redis@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
+    argv: [redis-server, --save, "", --appendonly, "no"]
+  - name: livekit
+    image: docker.io/livekit/livekit-server@sha256:25cd902de7cacbd5f1f779f6a6ac1eae20ba8f56b0935934ce6b0ab80d1e3d20
+    braucht: [redis]
+    argv: [--config, /etc/livekit.yaml, --udp-port, "7882"]
+    dateien:
+      - pfad: /etc/livekit.yaml
+        inhalt: |
+          # LiveKit for calls in the chat (Apache 2.0, livekit/livekit config-sample.yaml).
+          # The key and secret come from LIVEKIT_KEYS ("kontext: <secret>"), the same pair as the Kontext
+          # server's LIVEKIT_API_KEY and LIVEKIT_API_SECRET.
+          #
+          # Signalling goes through Caddy (https://$KONTEXT_DOMAIN/rtc). Media go straight to the server:
+          # open TCP 7881 and UDP 7882 in the firewall. One UDP port carries every call (ICE/UDP mux),
+          # which is plenty for a small business.
+          port: 7880
+          # Shared with LiveKit SIP (telephony): both talk over it.
+          redis:
+            address: redis:6379
+          rtc:
+            tcp_port: 7881
+            # The server's public address, found via STUN (the browsers must reach it).
+            use_external_ip: true
+          webhook:
+            api_key: kontext
+            urls:
+              - http://kontext:3000/api/calls/webhook
+          room:
+            # An unanswered call does not keep its room for long.
+            empty_timeout: 60
+            departure_timeout: 10
+          logging:
+            level: warn
+    env: [LIVEKIT_KEYS]
+  - name: livekit-sip
+    image: docker.io/livekit/sip@sha256:92361877818f865ece21c171b9703a4c68b133136a3e721f86dda42984c9c400
+    braucht: [redis, livekit]
+    env: [SIP_CONFIG_BODY]
+  - name: caddy
+    image: docker.io/library/caddy@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    braucht: [kontext]
+    volumes:
+      - { name: caddy-data, pfad: /data }
+      - { name: caddy-config, pfad: /config }
+    dateien:
+      - pfad: /etc/caddy/Caddyfile
+        inhalt: |
+          # One customer = one server: Kontext on https://$KONTEXT_DOMAIN.
+          # Caddy gets the certificate; the app, sign-in and JMAP go to the Kontext server, which talks to
+          # Stalwart. Mail clients reach Stalwart directly on the mail ports and through /dav and autoconfig.
+          # With documents, Schreibzeug has an address of its own ($SCHREIBZEUG_URL, e.g.
+          # https://dokumente.firma.de): the same site as Kontext, so its frame and cookies need no detour.
+          {
+          	email {$ACME_EMAIL}
+          }
+
+          # Behind every reverse_proxy: only the address Caddy saw counts, so no client names another one to
+          # dodge or cause a ban. Stalwart (clientIpSource "xForwardedFor", one hop) takes the last entry
+          # of X-Forwarded-For (crates/common/src/network/forwarded.rs); Forwarded goes too, for any other
+          # setting.
+          (client_address) {
+          	header_up X-Forwarded-For {remote_host}
+          	header_up -Forwarded
+          	header_up -X-Real-IP
+          }
+
+          (security_headers) {
+          	header {
+          		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+          		X-Content-Type-Options nosniff
+          		Referrer-Policy no-referrer
+          		-Server
+          	}
+          }
+
+          {$KONTEXT_DOMAIN} {
+          	# The live streams (Kontext's /api/live, Stalwart's JMAP push) uncompressed: a compressor
+          	# may hold events back until its buffer is full.
+          	# The app's own files come from Kontext already compressed (Brotli, made at build time,
+          	# dev/precompress.ts); Caddy passes an encoded answer on as it is.
+          	@compressible not path /api/live /jmap/eventsource*
+          	encode @compressible zstd gzip
+
+          	# CalDAV/CardDAV and autoconfiguration for mail programs and phones, straight to Stalwart: its
+          	# DAV lives under /dav/cal, /dav/card, /dav/file, /dav/pal and /dav/itip
+          	# (DavResourceName in crates/groupware/src/lib.rs). The rest of /dav is Kontext's task boards;
+          	# Kontext also answers the OAuth discovery for agents (MCP, RFC 9728 / 8414) and WKD.
+          	# SCIM (Stalwart Enterprise): the company's identity provider creates and changes accounts at
+          	# /scim/v2 with its own token (crates/scim of stalwartlabs/stalwart; docs/company.md, SSO).
+          	@stalwart {
+          		path /dav/cal /dav/cal/* /dav/card /dav/card/* /dav/file /dav/file/* /dav/pal /dav/pal/* /dav/itip /dav/itip/*
+          		path /.well-known/* /mail/config-v1.1.xml /autodiscover/*
+          		path /scim/v2 /scim/v2/*
+          		not path /.well-known/oauth-protected-resource* /.well-known/oauth-authorization-server* /.well-known/openpgpkey/*
+          	}
+          	handle @stalwart {
+          		reverse_proxy stalwart:8080 {
+          			import client_address
+          		}
+          	}
+
+          	# Calls: LiveKit's signalling (WebSocket); the media go to it directly (TCP 7881, UDP 7882)
+          	handle /rtc* {
+          		reverse_proxy livekit:7880 {
+          			import client_address
+          		}
+          	}
+
+          	handle {
+          		reverse_proxy kontext:3000 {
+          			import client_address
+          			flush_interval -1
+          		}
+          	}
+
+          	import security_headers
+          	header {
+          		# Camera, microphone and the screen only for Kontext itself (calls in the chat)
+          		Permissions-Policy "camera=(self), microphone=(self), display-capture=(self), geolocation=()"
+          		# Only where the answer brings none: the server sets the app's own (server/headers.ts), and
+          		# its downloads and chat files bring "sandbox", which this must not replace.
+          		?Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; frame-src 'self' blob: {$SCHREIBZEUG_URL:https://schreibzeug.internal}; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+          	}
+          }
+
+          # The mail domain's MTA-STS policy (RFC 8461), which Stalwart writes: other mail servers fetch it
+          # from https://mta-sts.<domain>/.well-known/mta-sts.txt. Without MAIL_DOMAIN the placeholder
+          # answers nobody and gets no public certificate (.internal).
+          mta-sts.{$MAIL_DOMAIN:firma.internal} {
+          	handle /.well-known/mta-sts.txt {
+          		reverse_proxy stalwart:8080 {
+          			import client_address
+          		}
+          	}
+          	handle {
+          		respond 404
+          	}
+          	import security_headers
+          }
+
+          # WKD (the advanced method): Thunderbird and others look up the company's OpenPGP keys at
+          # https://openpgpkey.<domain>/.well-known/openpgpkey/<domain>/hu/…, which Kontext answers.
+          openpgpkey.{$MAIL_DOMAIN:firma.internal} {
+          	handle /.well-known/openpgpkey/* {
+          		reverse_proxy kontext:3000 {
+          			import client_address
+          		}
+          	}
+          	handle {
+          		respond 404
+          	}
+          	import security_headers
+          }
+
+          # Schreibzeug (the module "Dokumente"). Without SCHREIBZEUG_URL the placeholder answers nobody and
+          # gets no public certificate (.internal). Schreibzeug sets which site may frame it (Kontext's).
+          {$SCHREIBZEUG_URL:https://schreibzeug.internal} {
+          	encode zstd gzip
+
+          	handle {
+          		reverse_proxy schreibzeug:3000 {
+          			import client_address
+          			flush_interval -1
+          		}
+          	}
+
+          	import security_headers
+          }
+    env: [KONTEXT_DOMAIN, MAIL_DOMAIN, ACME_EMAIL, SCHREIBZEUG_URL]
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 4096, platte_gb: 50 }
+netz:
+  http: null
+  ports:
+    - { dienst: stalwart, port: 25, fest: true }
+    - { dienst: stalwart, port: 465, fest: true }
+    - { dienst: stalwart, port: 587, fest: true }
+    - { dienst: stalwart, port: 993, fest: true }
+    - { dienst: livekit, port: 7881, fest: true }
+    - { dienst: livekit, port: 7882, proto: udp, fest: true }
+    - { dienst: livekit-sip, port: 5060, fest: true }
+    - { dienst: livekit-sip, port: 20000, bis: 20100, proto: udp, fest: true }
+    - { dienst: caddy, port: 80, fest: true }
+    - { dienst: caddy, port: 443, fest: true }
+    - { dienst: caddy, port: 443, proto: udp, fest: true }
+  oeffentliche_ipv4: true
+  mail: true
+  server_fuer_sich: true
+proxy: eigen
+rootful: false
+optionen:
+  - id: documents
+    name: Dokumente (Schreibzeug)
+    architektur: [amd64]
+    ram_mb: 1024
+    container:
+      - name: schreibzeug
+        image: ghcr.io/speicherstadt/schreibzeug@sha256:41baec9bfe28f7603fe59723d44e7a92d7ba1950cea4dd21f12b18ecd2fce09b
+        architektur: [amd64]
+        braucht: [kontext]
+        volumes:
+          - { name: schreibzeug-data, pfad: /data }
+        env: [SCHREIBZEUG_URL, SCHREIBZEUG_EMBED_ORIGIN, OIDC_ISSUER, OIDC_CLIENT_SECRET]
+        feste_env: { OIDC_CLIENT_ID: schreibzeug }
+braucht: []
+bietet: [oidc-anbieter, smtp]
+anmeldung: anbieter
+health: { art: http, dienst: kontext, pfad: /healthz, port: 3000 }
+befehle:
+  setup-stalwart: { container: kontext, argv: [bun, server/setup-stalwart.ts] }
+schritte: { einrichten: [setup-stalwart], nach_update: [setup-stalwart] }
+backup:
+  - { art: volume, volume: stalwart-data }
+  - { art: volume, volume: stalwart-config }
+  - { art: volume, volume: kontext-data }
+  - { art: volume, volume: schreibzeug-data }
+aktionen:
+  nur_lesen: nicht_unterstuetzt
+  export: nicht_unterstuetzt
+sperrzeiten: []
+dns:
+  - { typ: A, name: "${env:STALWART_HOSTNAME}", wert: "${ipv4}" }
+  - { typ: A, name: "mta-sts.${env:MAIL_DOMAIN}", wert: "${ipv4}" }
+  - { typ: A, name: "openpgpkey.${env:MAIL_DOMAIN}", wert: "${ipv4}" }
+  - { typ: MX, name: "${env:MAIL_DOMAIN}", wert: "${env:STALWART_HOSTNAME}", prioritaet: 10 }
+  - { typ: TXT, name: "${env:MAIL_DOMAIN}", wert: "v=spf1 mx -all" }
+  - { typ: TXT, name: "_dmarc.${env:MAIL_DOMAIN}", wert: "v=DMARC1; p=none; rua=mailto:dmarc@${env:MAIL_DOMAIN}" }
+env:
+  - { name: BETTER_AUTH_URL, ebene: auto, aus: adresse }
+  - { name: BETTER_AUTH_SECRET, ebene: auto, typ: geheim, erzeugen: zufall_64 }
+  - name: STALWART_ADMIN
+    ebene: installation
+    typ: geheim
+    pflicht: true
+    beschreibung: "Admin-Zugang von Stalwart als name:passwort, für den Einrichtungsbefehl setup-stalwart"
+  - name: STALWART_ADMIN_KEY
+    ebene: installation
+    typ: geheim
+    beschreibung: API-Schlüssel des Kontos kontext-server, den setup-stalwart einmal ausgibt (Firmenverwaltung)
+  - { name: STALWART_HOSTNAME, ebene: installation, pflicht: true, beschreibung: "Name des Mailservers (MX, PTR), z. B. mail.firma.de" }
+  - { name: STALWART_PUBLIC_URL, ebene: auto, aus: adresse }
+  - { name: STALWART_BLOB_KEY, ebene: auto, typ: geheim, erzeugen: zufall_32 }
+  - { name: LIVEKIT_API_SECRET, ebene: auto, typ: geheim, erzeugen: zufall_32 }
+  - { name: LIVEKIT_KEYS, ebene: auto, typ: geheim, vorlage: "kontext: ${env:LIVEKIT_API_SECRET}" }
+  - name: SIP_CONFIG_BODY
+    ebene: auto
+    typ: geheim
+    vorlage: >-
+      {api_key: kontext, api_secret: "${env:LIVEKIT_API_SECRET}", ws_url: "ws://livekit:7880",
+      redis: {address: "redis:6379"}, sip_port: 5060, rtp_port: "20000-20100", use_external_ip: true,
+      symmetric_rtp: true, hide_inbound_port: true, logging: {level: warn}}
+  - { name: KONTEXT_DOMAIN, ebene: auto, vorlage: "${host}" }
+  - { name: MAIL_DOMAIN, ebene: installation, pflicht: true, beschreibung: "Mail-Domain des Kunden, z. B. firma.de" }
+  - { name: ACME_EMAIL, ebene: betreiber, pflicht: true, beschreibung: Adresse für Let's Encrypt }
+  - name: SCHREIBZEUG_URL
+    ebene: installation
+    pflicht: true
+    beschreibung: "Eigene Adresse der Dokumente, z. B. https://dokumente.firma.de"
+    option: documents
+  - { name: SCHREIBZEUG_CLIENT_SECRET, ebene: auto, typ: geheim, erzeugen: zufall_32, option: documents }
+  - { name: SCHREIBZEUG_EMBED_ORIGIN, ebene: auto, aus: adresse, option: documents }
+  - { name: OIDC_ISSUER, ebene: auto, vorlage: "${adresse}/api/auth", option: documents }
+  - name: OIDC_CLIENT_SECRET
+    ebene: auto
+    typ: geheim
+    vorlage: "${env:SCHREIBZEUG_CLIENT_SECRET}"
+    option: documents
+hinweis: Kontext ist Open Source (AGPL), https://github.com/Speicherstadt/kontext
