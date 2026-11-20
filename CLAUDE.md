@@ -14,6 +14,8 @@ Zentrale knows only manifests. Open source (AGPL), contributions under the DCO.
 | Why: goals, architecture, the apps, manifest, decisions, stack, data model, security, tests | `docs/plan.md` |
 | Look and behaviour of the UI | `DESIGN.md`, the mockup in `design/mockup/` (read the screen before building it) |
 | The manifest of each app and the source of every value | `manifeste/<app>/` |
+| Setup, commands, what CI and the PR rules check | `docs/mitwirken.md` |
+| Runtime packages a workspace may use, with the reason | `allowed-dependencies.json` |
 
 The documentation is in `docs/`, German only. Links in the README and the docs point to the site,
 not to `docs/*.md`.
@@ -58,6 +60,8 @@ it settles a detail.
 - Change another Speicherstadt repository from this loop; the apps are sources to read.
 - Point tests at a real server or real customer data; skip, weaken or delete a test or a gate to get
   green; report a skipped test as passed.
+- Add a runtime dependency without an entry and reason in `allowed-dependencies.json`, or with a
+  version that is not exact.
 - Push to `main`, merge without the independent review, create or comment on issues and pull
   requests without being asked.
 - Stop the user's processes or containers, or work around `sudo`.
@@ -92,6 +96,9 @@ Database tests run against SQLite in a temporary file; nothing needs a running d
 ## Pull requests
 
 - One item per pull request; it carries only its own commits, each with `Signed-off-by` (DCO).
+- Title `Z-xxx: what is built` for a Bauliste item, else `Bereich: was sich ändert` (German, no
+  trailing period); the description follows `.github/pull_request_template.md`.
+  `.github/workflows/pr-regeln.yml` checks title, sign-off and the ticked item.
 - Before every push check whether the branch's pull request is still open. If it is merged, start
   again from the current `origin/main` and open a **new** pull request.
 - An independent review by a separate subagent before the merge (`tdd-review`).

@@ -1,0 +1,16 @@
+name: Wunsch
+description: Eine Funktion oder ein Feld im Manifest, das fehlt.
+labels: [wunsch]
+body:
+  - type: textarea
+    id: anlass
+    attributes:
+      label: Anlass
+      description: Welches Problem beim Betrieb der Apps soll das lösen?
+    validations:
+      required: true
+  - type: textarea
+    id: vorschlag
+    attributes:
+      label: Vorschlag
+      description: Wie es aussehen könnte; bei einem Manifest-Feld die App, die es braucht, mit Quelle.

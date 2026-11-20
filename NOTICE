@@ -1,0 +1,17 @@
+Steuerzentrale
+Copyright (C) 2026 Tristan Teufel and contributors
+
+Steuerzentrale is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License, version 3, as published by the Free Software
+Foundation (see LICENSE). It comes without any warranty.
+
+Contributions are accepted under the Developer Certificate of Origin (https://developercertificate.org/):
+every commit carries a "Signed-off-by" line. There is no contributor license agreement.
+
+Additional terms under section 7(b) of the license
+--------------------------------------------------
+
+Modified versions of Steuerzentrale, and works based on it, must preserve the author
+attribution "Steuerzentrale by Tristan Teufel" together with a link to
+https://github.com/Speicherstadt/steuerzentrale in the Appropriate Legal Notices they
+display, at least wherever the original shows its author and source code link.

@@ -1,0 +1,2 @@
+# Documentation (mkdocs.yml, .github/workflows/docs.yml), built with Zensical
+zensical==0.1.2

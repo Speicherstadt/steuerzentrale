@@ -1,0 +1,32 @@
+# Checks rules on the pull request itself (scripts/pr-regeln): title „Z-xxx: …“ or „Bereich: …“,
+# Signed-off-by on every commit (DCO), the Bauliste item ticked; hints on code without docs and a fix
+# without a test. Runs, unlike ci.yml, also for drafts and docs-only changes, because the title becomes
+# the commit on main with the squash merge. With pull_request, not pull_request_target: code from forks
+# runs with read access only. Modelled on Speicherstadt/haben, .github/workflows/pr-regeln.yml.
+name: PR-Regeln
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review, converted_to_draft]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-regeln-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-regeln:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Base and head of the pull request for git log and git diff
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      # Without bun install: the script needs only node: modules
+      - run: bun scripts/pr-regeln/pruefen.ts

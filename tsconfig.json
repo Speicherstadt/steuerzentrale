@@ -1,0 +1,6 @@
+{
+  // Solution file: every package and app adds itself under "references" (Z-101); `tsc -b` checks them
+  // all (scripts/workspaces.test.ts fails when one is missing)
+  "files": [],
+  "references": [{ "path": "scripts" }]
+}

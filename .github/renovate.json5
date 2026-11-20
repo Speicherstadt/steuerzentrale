@@ -1,0 +1,36 @@
+// Renovate (GitHub App, https://github.com/apps/renovate): the shared settings of firsttris/workflows
+// (renovate/default.json5): minor and patch updates once a month in one pull request that merges
+// itself when CI is green, majors on request in the "Dependency Dashboard" issue.
+// The packages that verify signatures (@noble/*) and Bun get pull requests of their own that never
+// merge themselves. Check with `bunx --package renovate renovate-config-validator .github/renovate.json5`.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["github>firsttris/workflows//renovate/default.json5"],
+  customManagers: [
+    {
+      // The Bun of package.json (packageManager; CI takes its version from there)
+      customType: "regex",
+      managerFilePatterns: ["/^package\\.json$/"],
+      matchStrings: ['"packageManager": "bun@(?<currentValue>\\d+\\.\\d+\\.\\d+)"'],
+      depNameTemplate: "bun",
+      datasourceTemplate: "npm",
+    },
+  ],
+  packageRules: [
+    {
+      // The agent trusts a manifest only through these: every change is read before it is merged
+      matchPackageNames: ["@noble/**"],
+      groupName: "noble",
+      schedule: ["at any time"],
+      automerge: false,
+      dependencyDashboardApproval: false,
+    },
+    {
+      matchPackageNames: ["bun", "oven/bun", "docker.io/oven/bun"],
+      groupName: "Bun",
+      schedule: ["at any time"],
+      automerge: false,
+      dependencyDashboardApproval: false,
+    },
+  ],
+}

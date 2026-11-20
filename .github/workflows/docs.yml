@@ -1,0 +1,71 @@
+# Builds docs/ with Zensical and publishes it on GitHub Pages (Speicherstadt/steuerzentrale).
+# A custom domain comes later (docs/CNAME), once the name is settled (docs/plan.md, Offene Fragen).
+# On a pull request it only builds (--strict), so broken links show up before the merge.
+# One-time prerequisite: Settings → Pages → Source "GitHub Actions"
+# (configure-pages with enablement switches it on by itself on the first run).
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "overrides/**"
+      - "requirements-docs.txt"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "overrides/**"
+      - "requirements-docs.txt"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('docs-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.15"
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+      - run: pip install -r requirements-docs.txt
+      - uses: actions/configure-pages@v6
+        if: github.event_name != 'pull_request'
+        with:
+          enablement: true
+      - run: zensical build --strict
+      # Every page has its own description for search engines
+      - run: test -z "$(grep -L '^description:' docs/*.md)"
+      - uses: actions/upload-pages-artifact@v5
+        if: github.event_name != 'pull_request'
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

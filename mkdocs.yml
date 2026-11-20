@@ -1,0 +1,60 @@
+# Documentation as a website, built with Zensical, which reads this file as it is
+# (https://zensical.org/docs/setup/basics/); .github/workflows/docs.yml publishes it on GitHub Pages.
+# Locally: pip install -r requirements-docs.txt && zensical serve
+# German only.
+site_name: Steuerzentrale
+site_description: >-
+  Steuerzentrale: installiert, aktualisiert, sichert und überwacht die Apps der Speicherstadt auf
+  Servern, mit einem Agenten je Server und signierten Manifesten.
+site_author: Tristan Teufel
+repo_url: https://github.com/Speicherstadt/steuerzentrale
+repo_name: Speicherstadt/steuerzentrale
+edit_uri: edit/main/docs/
+copyright: >-
+  Lizenz AGPL-3.0 · © Tristan Teufel und Mitwirkende ·
+  <a href="https://teufel-it.de/de/impressum/">Impressum</a> ·
+  <a href="https://speicherstadt.app/datenschutz/">Datenschutz</a>
+use_directory_urls: false
+validation:
+  anchors: warn
+theme:
+  name: material
+  language: de
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - toc.follow
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      toggle: { icon: material/weather-night, name: Dunkel }
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle: { icon: material/weather-sunny, name: Hell }
+plugins:
+  - search
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+nav:
+  - Steuerzentrale: index.md
+  - Entwicklung:
+      - Projektplan: plan.md
+      - Mitwirken: mitwirken.md

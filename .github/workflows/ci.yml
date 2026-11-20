@@ -1,0 +1,124 @@
+name: CI
+
+# Text only (Markdown, docs/, the license) changes no code: on main paths-ignore filters it, docs.yml checks docs/.
+# A pull request always runs, so a required check never stays "Pending"; there the job changes skips the checks.
+# The layout follows Speicherstadt/kennwort (.github/workflows/ci.yml): a changes job, parts side by side, one result.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call: # a later release.yml runs the same checks before publishing
+  workflow_dispatch:
+
+# A new push to a pull request cancels its outdated run; runs on main finish
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # What a pull request touches. A job skipped by its `if` counts as passed for the rules on main, so every job
+  # has !cancelled() and compares with 'false': when changes does not run (push, release, manual) or fails, its
+  # outputs are empty and everything runs
+  changes:
+    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - id: filter
+        run: |
+          set -euo pipefail
+          changed="$(git -c core.quotePath=false diff --no-renames --name-only HEAD^1 HEAD)"
+          printf '%s\n' "$changed"
+          # docs/plan.md is read by tests (Z-203 checks the app table against the manifests): it counts as code
+          tested='^docs/plan\.md$'
+          other="$(grep -Ev '\.md$|^docs/|^LICENSE$' <<< "$changed" || true)$(grep -E "$tested" <<< "$changed" || true)"
+          if [ -n "$changed" ] && [ -z "$other" ]; then code=false; else code=true; fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+  unit:
+    needs: changes
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The whole history: `checks pr` compares the branch with its base
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+      # The shared rule checks of firsttris/workflows (checks.json: files past 400 lines, functions past 80,
+      # rings of imports between packages, Paraglide texts, pages with an axe test). Installed without saving,
+      # as in Kennwort: the agents' sandbox cannot fetch a GitHub tarball, so it stays out of bun.lock.
+      - run: bun add --dev --no-save "github:firsttris/workflows#v1"
+      - run: bunx checks
+      - if: github.event_name == 'pull_request'
+        run: bunx checks pr
+      - run: bun run test
+      - run: bun run build
+      # Known vulnerabilities in the dependencies fail the run
+      - run: bun audit
+
+  # The agent against real Podman with systemd (Z-302 onwards); skipped until apps/agent has a test:agent script
+  agent:
+    needs: changes
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - id: present
+        run: |
+          if grep -q '"test:agent"' package.json; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.present.outputs.run == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - if: steps.present.outputs.run == 'true'
+        run: bun install --frozen-lockfile
+      - if: steps.present.outputs.run == 'true'
+        run: podman --version && bun run test:agent
+
+  # What a user does, desktop and @phone; skipped until Z-105 adds playwright.config.ts
+  e2e:
+    needs: changes
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: present
+        run: |
+          if [ -f playwright.config.ts ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.present.outputs.run == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - if: steps.present.outputs.run == 'true'
+        run: bun install --frozen-lockfile
+      - if: steps.present.outputs.run == 'true'
+        run: bunx playwright install --with-deps chromium
+      - if: steps.present.outputs.run == 'true'
+        run: bun run e2e
+
+  # One result for the rules on main (required check "check"), however many parts the jobs split into
+  check:
+    if: ${{ always() && !github.event.pull_request.draft }}
+    needs: [changes, unit, agent, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for result in "${{ needs.unit.result }}" "${{ needs.agent.result }}" "${{ needs.e2e.result }}"; do
+            case "$result" in success | skipped) ;; *) echo "A part ended with: $result"; exit 1 ;; esac
+          done

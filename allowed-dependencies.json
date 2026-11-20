@@ -1,0 +1,45 @@
+{
+  "$comment": "Runtime packages a workspace may depend on, each with the reason (docs/plan.md, Technologie). The agent runs on every managed server, the Zentrale holds every customer: few packages, each one read. `bun run lint` fails on a dependency missing here or used by a workspace not listed for it. Workspace packages (@steuerzentrale/*) need no entry. A new entry comes in the pull request that needs it.",
+  "packages": {
+    "zod": {
+      "reason": "Zod 4: every value that crosses a boundary (manifest, messages between Zentrale and agent, API) is parsed against a schema; no dependencies of its own",
+      "workspaces": ["packages/manifest", "packages/protokoll", "apps/zentrale", "apps/agent"]
+    },
+    "yaml": {
+      "reason": "Manifests are YAML (docs/plan.md, Manifest); a parser without dependencies of its own",
+      "workspaces": ["packages/manifest"]
+    },
+    "@noble/curves": {
+      "reason": "Ed25519 to verify minisign signatures of manifests and agent binaries; audited, pure TypeScript",
+      "workspaces": ["packages/manifest", "apps/agent"]
+    },
+    "@noble/hashes": {
+      "reason": "BLAKE2b, the prehash of minisign signatures; audited, pure TypeScript",
+      "workspaces": ["packages/manifest", "apps/agent"]
+    },
+    "hono": {
+      "reason": "HTTP and WebSocket server of the Zentrale (docs/plan.md, Technologie, as in Kennwort and Soll)",
+      "workspaces": ["apps/zentrale"]
+    },
+    "drizzle-orm": {
+      "reason": "SQLite with migrations in the binary (docs/plan.md, Technologie)",
+      "workspaces": ["apps/zentrale"]
+    },
+    "better-auth": {
+      "reason": "Accounts, organizations (one per operator), passkeys and TOTP (docs/plan.md, Anmeldung)",
+      "workspaces": ["apps/zentrale"]
+    },
+    "solid-js": {
+      "reason": "Solid 2, the UI of the Zentrale, as in Kennwort and Soll",
+      "workspaces": ["packages/ui", "apps/web"]
+    },
+    "@solidjs/web": {
+      "reason": "Solid 2's DOM renderer, split out of solid-js in 2.0",
+      "workspaces": ["packages/ui", "apps/web"]
+    },
+    "lucide": {
+      "reason": "Icon data for the Icon component of packages/ui (lucide-solid carries only Solid 1), as in Soll",
+      "workspaces": ["packages/ui"]
+    }
+  }
+}

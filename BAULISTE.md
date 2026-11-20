@@ -37,12 +37,16 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 1 – Fundament
 
-- [ ] **Z-101 Repo-Gerüst** – Workspaces `packages/manifest`, `packages/protokoll`,
+- [ ] **Z-101 Repo-Gerüst** – Vorhanden sind schon (wie in Kennwort und Soll): `package.json` mit
+  `check`, Biome, TypeScript (`tsconfig.base.json`, Solution `tsconfig.json`), Vitest, die Liste
+  erlaubter Abhängigkeiten, CI (`ci.yml`, `docs.yml`, `pr-regeln.yml`), Renovate, Vorlagen für Pull
+  Requests und Issues, Zensical-Doku. Dazu kommen die Workspaces `packages/manifest`, `packages/protokoll`,
   `packages/planung`, `packages/ui` (von Kennwort kopiert, Quelle im Kommentar), `apps/zentrale`
   (Bun, Hono, Zod, `/health`, Logs ohne Geheimnisse, `bun build --compile`), `apps/agent`
   (`bun build --compile` für `linux-x64` und `linux-arm64`), `apps/web` (Solid 2, Vite, SPA);
-  Paraglide mit `de` und `en`; Biome, Vitest, Playwright; `checks.json`; Zensical-Doku. Skripte:
-  `check` = `typecheck`, `lint`, `test`, `build`; `test:agent` und `e2e` laufen getrennt in der CI.
+  Paraglide mit `de` und `en` (`messages/`, `project.inlang` liegt vor); Playwright; jede Workspace
+  in `tsconfig.json` und `vitest.config.ts` eingetragen; Skripte `test:agent` und `e2e`, die die CI
+  dann ausführt.
   Fertig, wenn: `bun run check` auf einem frischen Klon grün ist, die CI alle Workspaces prüft, beide
   Binaries für beide Architekturen gebaut werden, `/health` antwortet (Test) und ein Log weder
   Query-Werte noch `Authorization`- oder Cookie-Header enthält (Test).

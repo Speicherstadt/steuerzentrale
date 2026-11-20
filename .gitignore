@@ -1,0 +1,25 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+data/
+coverage/
+test-results/
+playwright-report/
+
+# Temporary Claude Code worktrees (e.g. for the TDD review)
+.claude/worktrees/
+
+# Documentation (zensical build)
+site/
+.cache/
+
+# macOS
+.DS_Store
+
+# Paraglide output, compiled from messages/ by `bun run i18n`
+packages/ui/src/paraglide/
+project.inlang/cache/
+project.inlang/.gitignore

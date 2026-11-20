@@ -1,0 +1,24 @@
+name: Fehler
+description: Etwas funktioniert anders als beschrieben.
+labels: [fehler]
+body:
+  - type: textarea
+    id: was
+    attributes:
+      label: Was ist passiert?
+      description: Was du getan hast, was du erwartet hast und was stattdessen kam.
+    validations:
+      required: true
+  - type: textarea
+    id: wo
+    attributes:
+      label: Wo?
+      description: Zentrale oder Agent, Version, Betriebssystem und Podman-Version des Servers, betroffene App.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log-Auszug
+      description: Ohne Geheimnisse, Tokens oder Kundendaten.
+      render: text
