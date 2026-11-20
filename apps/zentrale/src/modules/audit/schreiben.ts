@@ -3,7 +3,13 @@ import { and, eq, lt } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import { auditLog } from "../../db/schema.ts";
-import { type AufbewahrteTabelle, type Tabelle, type TabellenName, tabellen } from "./tabellen.ts";
+import {
+  type AufbewahrteTabelle,
+  type Tabelle,
+  type TabellenName,
+  tabellen,
+  verschluesselteSpalten,
+} from "./tabellen.ts";
 
 /** Who writes, for which operator, when and why (docs/plan.md, "Sicherheit": every write with a reason) */
 export type Kontext = { betreiberId: string; akteur: string; jetzt: number; grund: string };
@@ -21,6 +27,8 @@ export type Schreiber = {
     werte: Partial<Neu<N>>,
   ) => Zeile<N>;
   loeschen: <N extends TabellenName>(name: N, schluessel: Schluessel<N>) => Zeile<N>;
+  /** Whether the operator's row exists, as this transaction sees it (the read-only `db` does not) */
+  vorhanden: <N extends TabellenName>(name: N, schluessel: Schluessel<N>) => boolean;
   /** Deletes the operator's rows older than `grenze` (retention); returns how many */
   loeschenVor: (name: AufbewahrteTabelle, grenze: number) => number;
 };
@@ -42,6 +50,14 @@ const wo = (name: TabellenName, betreiberId: string, schluessel: Record<string, 
 
 const zielVon = (name: TabellenName, zeile: Record<string, unknown>): string =>
   [name, ...tabellen[name].schluessel.map((feld) => String(zeile[feld]))].join(":");
+
+/** A row or change as the audit log keeps it: encrypted values only marked, never copied */
+const fuerAudit = (name: TabellenName, werte: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(werte).map(([feld, wert]) =>
+      verschluesselteSpalten[name]?.includes(feld) ? [feld, "[verschlüsselt]"] : [feld, wert],
+    ),
+  );
 
 const eineZeile = <T>(zeilen: T[], name: string): T => {
   if (zeilen.length !== 1) throw new Error(`${name}: expected one row, found ${zeilen.length}`);
@@ -74,7 +90,7 @@ const schreiberFuer = (tx: Tx, kontext: Kontext, aktion: string): Schreiber => {
           .all(),
         name,
       ) as Record<string, unknown>;
-      anhaengen(zielVon(name, zeile), { art: "einfuegen", zeile });
+      anhaengen(zielVon(name, zeile), { art: "einfuegen", zeile: fuerAudit(name, zeile) });
       return zeile as never;
     },
     aendern: (name, schluessel, werte) => {
@@ -89,7 +105,7 @@ const schreiberFuer = (tx: Tx, kontext: Kontext, aktion: string): Schreiber => {
           .all(),
         name,
       ) as Record<string, unknown>;
-      anhaengen(zielVon(name, zeile), { art: "aendern", werte: neu });
+      anhaengen(zielVon(name, zeile), { art: "aendern", werte: fuerAudit(name, neu) });
       return zeile as never;
     },
     loeschen: (name, schluessel) => {
@@ -101,9 +117,15 @@ const schreiberFuer = (tx: Tx, kontext: Kontext, aktion: string): Schreiber => {
           .all(),
         name,
       ) as Record<string, unknown>;
-      anhaengen(zielVon(name, zeile), { art: "loeschen", zeile });
+      anhaengen(zielVon(name, zeile), { art: "loeschen", zeile: fuerAudit(name, zeile) });
       return zeile as never;
     },
+    vorhanden: (name, schluessel) =>
+      tx
+        .select()
+        .from(tabellen[name].tabelle as never)
+        .where(wo(name, kontext.betreiberId, schluessel))
+        .all().length > 0,
     loeschenVor: (name, grenze) => {
       const { tabelle, zeit } = tabellen[name];
       // bun:sqlite's run() reports no row count through Drizzle; the deleted instants do

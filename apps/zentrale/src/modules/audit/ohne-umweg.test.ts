@@ -5,12 +5,18 @@ import * as schema from "../../db/schema.ts";
 
 /**
  * No code writes past the audit log (Z-102). The only files that may write: the audit writer, the
- * migrations on their own bookkeeping table and the opening of the database. Every other source of
+ * migrations and the key's check value on their own bookkeeping tables and the opening of the database. Every other source of
  * apps/zentrale is scanned for the ways to write. Modelled on Speicherstadt/soll,
  * apps/server/src/modules/audit/ohne-umweg.test.ts.
  */
 const SRC = join(import.meta.dirname, "../..");
-const ERLAUBT = new Set(["modules/audit/schreiben.ts", "db/migrieren.ts", "db/oeffnen.ts"]);
+const ERLAUBT = new Set([
+  "modules/audit/schreiben.ts",
+  "db/migrieren.ts",
+  "db/oeffnen.ts",
+  // the key's check value, bookkeeping like the migrations' (Z-103)
+  "db/schluessel.ts",
+]);
 const TABELLEN = Object.keys(schema).join("|");
 
 const SCHREIBEN = [

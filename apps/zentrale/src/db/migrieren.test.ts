@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { migrationen } from "./migrationen.gen.ts";
 import { migrieren } from "./migrieren.ts";
 import { oeffneDatenbank } from "./oeffnen.ts";
-import { testDatenbank } from "./test-db.ts";
+import { testDatenbank, testSchluessel } from "./test-db.ts";
 
 const zwei = [
   { tag: "0000_a", sql: "CREATE TABLE a (x INTEGER);" },
@@ -58,7 +58,9 @@ describe("oeffneDatenbank", () => {
     sqlite.run("UPDATE zentrale_migrationen SET hash = 'anders' WHERE tag = ?", [
       migrationen[0]?.tag ?? "",
     ]);
-    expect(() => oeffneDatenbank(pfad, 1)).toThrow("was changed after it was applied");
+    expect(() => oeffneDatenbank(pfad, 1, { aktuell: testSchluessel(), alt: [] })).toThrow(
+      "was changed after it was applied",
+    );
   });
 
   it("opens in WAL mode", () => {

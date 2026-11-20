@@ -17,10 +17,17 @@ bun install          # übersetzt auch die Texte aus messages/ (Paraglide)
 bun run check        # typecheck, lint, test, build
 bun run test:agent   # der Agent gegen Podman; ohne Podman übersprungen, mit CI=true ein Fehler
 bun run e2e          # Playwright gegen Zentrale (Port 28300) und Oberfläche (Port 5182)
-bun run dev:zentrale # Zentrale auf Port 18300
+bun run dev:zentrale # Zentrale auf Port 18300 (STEUERZENTRALE_SECRET_KEY setzen)
 bun run dev:web      # Oberfläche auf Port 5181, /api geht an die Zentrale
 bun run db:generate  # neue Migration aus apps/zentrale/src/db/schema.ts
 ```
+
+Die Zentrale startet nur mit `STEUERZENTRALE_SECRET_KEY` (32 Zufallsbytes in Base64,
+`openssl rand -base64 32`); damit sind die Geheimnisse in der Datenbank verschlüsselt (AES-256-GCM,
+Schlüssel-ID an jedem Wert). Ein Prüfwert in der Datenbank sorgt dafür, dass ein falscher Schlüssel
+den Start verweigert. Zum Rotieren den neuen Schlüssel in `STEUERZENTRALE_SECRET_KEY`, den alten in
+`STEUERZENTRALE_SECRET_KEY_ALT` setzen und `steuerzentrale schluessel-rotieren` ausführen; danach
+genügt der neue. Tokens stehen nur als SHA-256 in der Datenbank.
 
 Die Zentrale legt ihre Datenbank `zentrale.db` (SQLite, WAL) in `STEUERZENTRALE_DATA` an (Vorgabe:
 `data`). Die Migrationen in `apps/zentrale/drizzle/` stecken im Binary (`migrationen.gen.ts`, erzeugt

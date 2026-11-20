@@ -7,5 +7,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0001_audit_nur_anfuegen",
     "sql": "-- The audit log is append-only: no row may be changed or removed, not even by the Zentrale itself\nCREATE TRIGGER `audit_log_kein_aendern` BEFORE UPDATE ON `audit_log`\nBEGIN\n\tSELECT RAISE(ABORT, 'audit_log is append-only');\nEND;\n--> statement-breakpoint\nCREATE TRIGGER `audit_log_kein_loeschen` BEFORE DELETE ON `audit_log`\nBEGIN\n\tSELECT RAISE(ABORT, 'audit_log is append-only');\nEND;\n"
+  },
+  {
+    "tag": "0002_geheimnisse",
+    "sql": "CREATE TABLE `geheimnisse` (\n\t`betreiber_id` text NOT NULL,\n\t`geheimnis_id` text NOT NULL,\n\t`zweck` text NOT NULL,\n\t`wert` text NOT NULL,\n\t`geaendert_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `geheimnis_id`)\n);\n--> statement-breakpoint\nCREATE TABLE `tokens` (\n\t`betreiber_id` text NOT NULL,\n\t`token_id` text NOT NULL,\n\t`zweck` text NOT NULL,\n\t`hash` text NOT NULL,\n\t`gueltig_bis` integer,\n\t`angelegt_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `token_id`)\n);\n--> statement-breakpoint\nCREATE UNIQUE INDEX `tokens_hash_unique` ON `tokens` (`hash`);"
   }
 ];

@@ -2,16 +2,25 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { onTestFinished } from "vitest";
+import { schluesselAus } from "../modules/geheim/verschluesseln.ts";
 import { oeffneDatenbank } from "./oeffnen.ts";
+import type { Schluesselbund } from "./schluessel.ts";
 
 /**
  * A fresh, migrated database in a temporary file for the running test (CLAUDE.md: SQLite in a temporary
  * file, never real data); removed after the test. From Speicherstadt/soll.
  */
-export const testDatenbank = () => {
+/** A fixed key for tests only (publicly known, never a real installation's) */
+export const testSchluessel = (fuellung = 7) => {
+  const geparst = schluesselAus(Buffer.alloc(32, fuellung).toString("base64"));
+  if (!geparst.ok) throw new Error("test key");
+  return geparst.schluessel;
+};
+
+export const testDatenbank = (bund: Schluesselbund = { aktuell: testSchluessel(), alt: [] }) => {
   const ordner = mkdtempSync(join(tmpdir(), "sz-test-db-"));
   const pfad = join(ordner, "zentrale.db");
-  const offen = oeffneDatenbank(pfad, 0);
+  const offen = oeffneDatenbank(pfad, 0, bund);
   onTestFinished(() => {
     offen.schliessen();
     rmSync(ordner, { recursive: true, force: true });

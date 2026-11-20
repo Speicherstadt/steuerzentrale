@@ -15,6 +15,13 @@
       "when": 1795205437562,
       "tag": "0001_audit_nur_anfuegen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795205797303,
+      "tag": "0002_geheimnisse",
+      "breakpoints": true
     }
   ]
 }
