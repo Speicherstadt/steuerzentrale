@@ -58,7 +58,7 @@ Geräten beim Kunden (Kontext-Box, Stellwerk-Agenten, Desktop-Apps).
   Zertifikate und leitet jede Subdomain an ihre Installation. Apps, die einen eigenen Caddy
   mitbringen, laufen ohne ihn (Option im Manifest).
 - **Ein-Server-Betrieb**: Zentrale und Agent auf derselben Maschine, für Selbsthoster und Partner
-  mit wenigen Kunden. Derselbe Code, nur eine Compose-Datei.
+  mit wenigen Kunden. Derselbe Code, die Zentrale als eine Quadlet-Unit mehr.
 - **Portal**: öffentliche Website mit Buchung und Bezahlung, ein eigenes Repo. Es spricht mit der
   Zentrale nur über deren API (Kunde anlegen, App buchen, kündigen) und bekommt Ereignisse per
   Webhook (installiert, Störung, gekündigt). Es kommt nach der Steuerzentrale.
@@ -68,8 +68,9 @@ Geräten beim Kunden (Kontext-Box, Stellwerk-Agenten, Desktop-Apps).
 1. In der Zentrale „Server hinzufügen“: Name, Art (gemeinsam, eigen, beim Kunden), Wartungsfenster.
 2. Die Zentrale zeigt einen Befehl mit Einmal-Token (24 h gültig):
    `curl -fsSL https://zentrale.example/install.sh | sudo sh -s -- --token …`
-3. Das Skript prüft das System (Debian 12/13 oder Ubuntu 24.04, amd64 oder arm64), installiert
-   Docker, unattended-upgrades und den Agenten, und der Agent tauscht das Einmal-Token gegen seinen
+3. Das Skript prüft das System (Debian 13 oder Ubuntu 24.04, amd64 oder arm64; Debian 12 hat mit
+   Podman 4.3 noch keine Quadlets), installiert
+   Podman, unattended-upgrades und den Agenten, und der Agent tauscht das Einmal-Token gegen seinen
    dauerhaften Schlüssel.
 4. Der Server erscheint mit seinen Fakten: CPU, RAM, Platte, Architektur, öffentliche IPv4 und
    IPv6, PTR, freie Ports.
@@ -82,8 +83,9 @@ Geräten beim Kunden (Kontext-Box, Stellwerk-Agenten, Desktop-Apps).
    Warnungen oder Gründe, warum es nicht geht.
 2. Einstellungen nach Ebenen: was der Betreiber einmal setzt (Hersteller-ID für ELSTER), was je
    Installation gilt (Subdomain, Grenzen), was die Zentrale selbst erzeugt (Schlüssel, Secrets).
-3. Die Zentrale rendert Compose-Datei und `.env` aus Manifest und Einstellungen (reine Funktion)
-   und schickt den Auftrag. Der Agent zieht die Images, führt die Einrichtungsschritte des Manifests
+3. Die Zentrale rendert die Quadlet-Dateien (`.container`, `.volume`, `.network`) und die Podman-Secrets
+   aus Manifest und Einstellungen (reine Funktion) und schickt den Auftrag. Der Agent legt einen eigenen
+   Linux-Nutzer für die Installation an, zieht die Images, führt die Einrichtungsschritte des Manifests
    aus, startet, trägt die Subdomain in die Pforte ein und meldet, sobald der Health-Check grün ist.
 
 ### Ablauf: Update
@@ -102,7 +104,7 @@ Manifest in ihr eigenes Repo und veröffentlicht es mit jedem Release.
 
 | App | Was | Container | Netz | Ressourcen | Anmeldung | Besonderes |
 | --- | --- | --- | --- | --- | --- | --- |
-| Haben | Buchhaltung, ELSTER | App, Postgres, Backup, Caddy (`deploy/compose.yml`) | HTTP | 2 GB RAM | OIDC | Sperrzeit 7.–10.; Hersteller-ID beim Betreiber; CLI für Instanzen; Health fehlt noch (Haben#946) |
+| Haben | Buchhaltung, ELSTER | App, Postgres, Backup, Caddy (`deploy/quadlet/`, `deploy/compose.yml`) | HTTP | 2 GB RAM | OIDC | Sperrzeit 7.–10.; Hersteller-ID beim Betreiber; CLI für Instanzen; Health fehlt noch (Haben#946) |
 | Belegt | Belege, GoBD-Archiv | App, Worker, Postgres, Restic; Profile journal, backup, ftp, ki, … | HTTP, optional FTP | 2 GB RAM | OIDC | eigener Caddy (Profil `https`); Backup mit Prüf-Restore |
 | Kontext | Mail, Kalender, Kontakte, Anrufe | Stalwart, Caddy, LiveKit, Redis, App; Profile calls, documents | 25, 465, 587, 993, 7881/tcp, 7882/udp, 5060, 20000–20100/udp | 4 GB RAM | ist selbst Anbieter (Stalwart) | braucht öffentliche IPv4 mit PTR und einen Server für sich; nicht hinter Cloudflare; `setup-stalwart` nach jedem Update; Kontext-Box beim Kunden |
 | Schreibzeug | Dokumente, gemeinsames Schreiben | App, SQLite | HTTP, WebSocket | 1 GB RAM | OIDC | nur amd64; steckt auch in Kontext (Profil documents) |
@@ -111,8 +113,12 @@ Manifest in ihr eigenes Repo und veröffentlicht es mit jedem Release.
 | Kennwort | Passwörter im Team | App, SQLite | HTTP | 512 MB RAM | OIDC über Kontext | in Entwicklung |
 | Soll | Zeiterfassung, Dienstplan | App, SQLite | HTTP | 512 MB RAM | OIDC | in Entwicklung; Tablet-Terminal beim Kunden |
 
-Was daraus für das Manifest folgt: Ports und öffentliche IP, „Server für sich“, Compose-Profile als
-wählbare Optionen, Abhängigkeiten (Schreibzeug in Kontext, Kennwort braucht einen OIDC-Anbieter),
+Haben und Kontext liefern Quadlets (`deploy/quadlet/`), Belegt und Schreibzeug nur Compose, Stellwerk und
+Fixpunkt ein Image oder Binary. Das Manifest beschreibt deshalb die Container selbst; die Quadlets
+erzeugt die Zentrale daraus.
+
+Was daraus für das Manifest folgt: Ports und öffentliche IP, „Server für sich“, Optionen (bisher
+Compose-Profile), Abhängigkeiten (Schreibzeug in Kontext, Kennwort braucht einen OIDC-Anbieter),
 RAM, Platte und Architektur, Einrichtungsschritte und Schritte nach dem Update, eigener oder
 geteilter Proxy, Backup-Art, Health ohne Anmeldung. Keine App hat heute einen Nur-lesen-Modus,
 einen Status-Befehl oder Sperrzeiten im Code; bis dahin sagt das Manifest „nicht unterstützt“ und
@@ -130,9 +136,9 @@ name: Haben
 beschreibung: Buchhaltung für Selbständige
 lizenz: AGPL-3.0-only
 quelle: https://github.com/Speicherstadt/haben
-compose: compose.yml            # liegt neben dem Manifest
-images:
-  - tristanteu/haben              # aus deploy/compose.yml in Speicherstadt/haben
+container:                      # daraus werden Quadlet-Units; Quelle: deploy/quadlet/ in Speicherstadt/haben
+  - { name: app, image: docker.io/tristanteu/haben, volumes: [belege, eric], braucht: [db] }
+  - { name: db, image: docker.io/tristanteu/haben-db, volumes: [db] }
 architektur: [amd64, arm64]
 ressourcen: { ram_mb: 2048, platte_gb: 10 }
 netz:
@@ -140,8 +146,9 @@ netz:
   ports: []                          # direkt am Server, z. B. 25/tcp bei Kontext
   oeffentliche_ipv4: false
   server_fuer_sich: false
-proxy: geteilt                  # Caddy aus deploy/compose.yml bleibt aus; eigen: App braucht 80/443
-optionen: []                    # Compose-Profile, z. B. Belegt: ki, ftp
+proxy: geteilt                  # haben-caddy entfällt, die Pforte übernimmt; eigen: App braucht 80/443
+rootful: false                  # true nur mit server_fuer_sich (Kontext, wie dessen Quadlets)
+optionen: []                    # schalten Container zu, z. B. Belegt: ki, ftp
 braucht: []                     # z. B. Kennwort: [oidc-anbieter]
 bietet: []                      # z. B. Kontext: [oidc-anbieter, smtp]
 anmeldung: oidc                 # oidc | eigen | anbieter
@@ -179,24 +186,24 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | --- | --- | --- |
 | Wo die Zentrale läuft | genau einmal, auf einem eigenen Server; im Ein-Server-Betrieb neben dem Agenten | ein Ort für alle Kunden; Selbsthoster brauchen keine zweite Maschine |
 | Wer die Verbindung aufbaut | immer der Agent, ausgehend per WSS; Token je Server, rotiert | Server beim Kunden stehen hinter NAT; kein offener Port auf dem Server |
-| Was der Agent darf | nur Aktionen aus dem Manifest der Installation, mit Argumenten nach Schema; keine Shell, kein `docker exec` mit freiem Befehl | ein übernommener Zugang zur Zentrale darf nicht beliebigen Code auf allen Servern ausführen |
+| Was der Agent darf | nur Aktionen aus dem Manifest der Installation, mit Argumenten nach Schema; keine Shell, kein `podman exec` mit freiem Befehl | ein übernommener Zugang zur Zentrale darf nicht beliebigen Code auf allen Servern ausführen |
 | Aufträge | in der Zentrale gespeichert, idempotent mit ID, der Agent holt und bestätigt; ein Auftrag läuft nach Verbindungsabbruch weiter oder wird wiederholt | Netze brechen ab; ein doppelter Auftrag darf nichts doppelt tun |
-| Orchestrierung | Docker Compose je Installation, ein Verzeichnis `/srv/steuerzentrale/<installation>`; kein Kubernetes, kein Swarm | alle Apps liefern Compose; ein Kunde, ein Projekt, leicht zu verstehen |
+| Orchestrierung | Podman-Quadlets unter systemd, rootless: je Installation ein eigener Linux-Nutzer (`sz-<installation>`, `loginctl enable-linger`) mit seinen Units in `~/.config/containers/systemd/`; kein Docker, kein Compose, kein Kubernetes | Stack-Vorgabe (`tech-stack.md`: Podman Quadlets); Kunden auf einem Server sind durch Linux-Nutzer getrennt, kein Root-Daemon; systemd übernimmt Neustarts, Abhängigkeiten und Logs; Haben und Kontext liefern schon Quadlets |
 | Proxy | Pforte (Caddy) je Server, Subdomains als Caddy-Konfiguration vom Agenten; Apps mit eigenem Caddy nur auf einem Server für sich | 80/443 gibt es einmal je Server |
 | Manifeste | zuerst in `manifeste/` dieses Repos mit Quellen; ein App-Repo kann später ein eigenes liefern, das dann Vorrang hat | der Loop ändert keine anderen Repos; die Apps sollen ihr Manifest selbst pflegen |
 | Platzierung | reine Funktion: Manifest, Serverfakten und vorhandene Installationen → passt, Warnungen, Gründe | testbar ohne Server; dieselbe Funktion für Oberfläche, API und Portal |
-| Mehrere Kunden auf einem Server | erlaubt („gemeinsam“), jede Installation ein eigenes Compose-Projekt mit eigenem Netz und Volume | günstige Pakete; Kontext und Apps mit eigenem Caddy bleiben allein |
+| Mehrere Kunden auf einem Server | erlaubt („gemeinsam“), jede Installation unter eigenem Nutzer mit eigenem Netz und eigenen Volumes | günstige Pakete; Kontext und Apps mit eigenem Caddy bleiben allein |
 | Updates | Wellen intern → früh → standard → spät; jede Welle nach 24 h ohne Störung; nie in einer Sperrzeit; Backup vorher, Rückkehr bei rotem Health | ein Fehler trifft zuerst uns |
 | OS-Updates | unattended-upgrades für Sicherheitsupdates; Neustart nur im Wartungsfenster und außerhalb jeder Sperrzeit der Apps auf dem Server | Kernel-Updates brauchen Neustarts, Steuertermine nicht |
 | Backups | Art aus dem Manifest, verschlüsselt mit restic an ein S3-Ziel je Betrieb; Prüf-Restore wöchentlich in einem Wegwerf-Projekt | ein Backup zählt erst, wenn es sich zurückspielen ließ |
-| Geheimnisse | verschlüsselte Spalten mit `STEUERZENTRALE_SECRET_KEY`; Start ohne Schlüssel verweigert; auf dem Server nur in der `.env` der Installation (0600) | nichts im Klartext in der Datenbank oder im Repo |
+| Geheimnisse | verschlüsselte Spalten mit `STEUERZENTRALE_SECRET_KEY`; Start ohne Schlüssel verweigert; auf dem Server nur als Podman-Secret des Nutzers der Installation | nichts im Klartext in der Datenbank oder im Repo |
 | Anmeldung an der Zentrale | Better Auth, Passkey oder TOTP Pflicht für jedes Konto; Rollen Inhaber, Technik, Support, Partner (sieht nur eigene Kunden) | wer die Zentrale hat, hat alle Kunden |
 | Support-Zugang | zeitlich begrenzt (Vorgabe 2 h), mit Grund, im Audit-Log und in der Ereignisliste des Kunden | Vertrauen; DSGVO Art. 28 (Auftragsverarbeitung) |
 | SLA | Stufe je Vertrag: Basis, Plus (Reaktionszeit, frühe Welle möglich), Ruhe (späte Welle) | wer Ruhe kauft, bekommt Updates später |
 | Partner | ein Partner ist ein Betreiber mit eigenen Kunden in derselben Zentrale oder mit eigener Zentrale | IT-Systemhäuser sollen unsere Apps betreiben können |
 | Portal | eigenes Repo; spricht nur über die öffentliche API der Zentrale (Token mit Rechten) und Webhooks | die Zentrale bleibt nicht öffentlich |
 | Geräte beim Kunden | nicht verwaltet; die Zentrale zeigt nur, ob eine App solche Teile hat | Fernwartung von Geräten ist ein eigenes Thema |
-| Was sich in der CI nicht echt testen lässt | Registry, S3 und Mail durch lokale Ersatzdienste (Registry-Container, MinIO, Mailpit); echte Server durch Docker-in-Docker im Runner | die Kriterien für „fertig“ bleiben erfüllbar |
+| Was sich in der CI nicht echt testen lässt | Registry, S3 und Mail durch lokale Ersatzdienste (Registry-Container, MinIO, Mailpit); echte Server durch Podman mit systemd im Runner | die Kriterien für „fertig“ bleiben erfüllbar |
 | Merge | der Loop merged selbst, wenn CI grün ist und das unabhängige Review keine Befunde mehr hat | er wartet nie auf einen Menschen |
 | Beiträge | DCO (Signed-off-by), kein CLA | Open Source ohne Sonderrechte |
 
@@ -212,23 +219,24 @@ zwei Abweichungen wie dort (Solid 2 statt React, Hono-Server und SPA statt TanSt
 | Agent | TypeScript, `bun build --compile` für amd64 und arm64, systemd-Dienst | teilt `packages/protokoll` und `packages/manifest` mit der Zentrale, kein Typen-Drift |
 | Oberfläche | Solid 2 SPA, Paraglide, Tailwind 4, `packages/ui` von Kennwort, Geist, Zinc-Tokens | ein Look in der Suite |
 | Verbindung | WebSocket über HTTPS, Nachrichten als Zod-Schemas mit Version | durch jede Firewall, die HTTPS durchlässt |
-| Proxy auf dem Server | Caddy mit Admin-API nur auf localhost | automatische Zertifikate |
+| Auf dem Server | Podman mit Quadlets unter systemd, rootless; `podman auto-update` aus | Updates nur über die Wellen der Zentrale, sonst greifen Sperrzeit und Backup vorher nicht |
+| Pforte | Caddy als rootless Quadlet, Admin-API nur auf localhost; `net.ipv4.ip_unprivileged_port_start=80` | rootless darf sonst nicht auf 80/443; so in Haben `docs/installation.md` |
 | Backup | restic | verschlüsselt, dedupliziert, S3 |
-| Betrieb | Docker-Image der Zentrale, Agent als Binary, Release-Workflow aus firsttris/workflows | |
+| Betrieb | Image der Zentrale (amd64, arm64, als Quadlet betrieben), Agent als Binary, Release-Workflow aus firsttris/workflows | |
 | Doku | Zensical auf GitHub Pages | wie die anderen Apps |
 
 ## Projektstruktur
 
 | Pfad | Inhalt |
 | --- | --- |
-| `packages/manifest` | Zod-Schema, Laden und Prüfen, JSON Schema, Platzierung, Compose rendern; reine Funktionen |
+| `packages/manifest` | Zod-Schema, Laden und Prüfen, JSON Schema, Platzierung, Quadlets rendern; reine Funktionen |
 | `packages/protokoll` | Nachrichten zwischen Zentrale und Agent, Aufträge und ihre Zustände |
 | `packages/planung` | Update-Wellen, Sperrzeiten, Wartungsfenster, Prüfungen der Server; reine Funktionen |
 | `packages/ui` | Komponenten nach DESIGN.md, von Kennwort |
 | `apps/zentrale` | Hono-API, Drizzle, Better Auth, Agent-Verbindungen; Routen dünn, Logik in `src/modules` |
-| `apps/agent` | Verbindung, Systemdaten, Ausführung der Aufträge mit Docker Compose und Caddy |
+| `apps/agent` | Verbindung, Systemdaten, Ausführung der Aufträge mit Podman, systemd und Caddy |
 | `apps/web` | Solid-SPA der Zentrale |
-| `manifeste/` | ein Verzeichnis je App: `manifest.yml`, `compose.yml`, Quellen |
+| `manifeste/` | ein Verzeichnis je App: `manifest.yml` und `QUELLEN.md` |
 | `install/` | `install.sh` für neue Server |
 | `e2e/` | Playwright gegen Zentrale und einen Agenten im Container |
 
@@ -261,7 +269,7 @@ Punkt ab, bis jedes Häkchen gesetzt und jede Prüfung grün ist. Er wartet nie 
 3. **Entscheiden statt fragen**: offene Fragen nach „Entscheidungen“; neue mit Grund dort eintragen.
 4. **Nicht hängen bleiben**: dreimal gescheitert heißt zurückgestellt, weiter mit dem nächsten
    unabhängigen Punkt.
-5. **Echt testen**: der Agent wird in der CI gegen echtes Docker getestet, mit einer Beispiel-App
+5. **Echt testen**: der Agent wird in der CI gegen echtes Podman mit systemd getestet, mit einer Beispiel-App
    aus diesem Repo; eine echte App der Speicherstadt erst in der Härtung.
 
 Reihenfolge: 1 Fundament · 2 Manifest und Platzierung · 3 Agent · 4 Installationen · 5 Updates ·
@@ -274,10 +282,10 @@ Reihenfolge: 1 Fundament · 2 Manifest und Platzierung · 3 Agent · 4 Installat
 | --- | --- | --- |
 | Manifest | jedes Manifest in `manifeste/` gültig; ungültige Beispiele mit Fehlermeldung | Vitest |
 | Platzierung | Ports doppelt, RAM knapp, Architektur, Server für sich, Abhängigkeit fehlt | Vitest, fast-check |
-| Compose | gerenderte Dateien als Golden Files je App und Option | Vitest |
+| Quadlets | gerenderte Units als Golden Files je App und Option; jede besteht `podman-system-generator --dryrun` | Vitest, CI |
 | Planung | Wellen, Sperrzeiten über Monatswechsel, Wartungsfenster, Zeitumstellung | Vitest |
 | Protokoll | jede Nachricht hin und zurück; alte Agent-Version gegen neue Zentrale | Vitest |
-| Agent | installieren, aktualisieren, Rückkehr, Backup, Restore, entfernen mit der Beispiel-App | Vitest mit Docker in der CI |
+| Agent | installieren, aktualisieren, Rückkehr, Backup, Restore, entfernen mit der Beispiel-App | Vitest mit Podman in der CI |
 | Mandanten | kein Endpunkt liefert Daten eines anderen Betreibers oder Partners | Vitest mit SQLite |
 | Abläufe | Server hinzufügen, App installieren, Update, Support-Zugang | Playwright, Zentrale und Agent im Container |
 | Barrierefreiheit | jede Seite | axe, `pages`-Check |

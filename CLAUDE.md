@@ -35,17 +35,18 @@ Base details on the sources, not on memory. Clone repositories shallowly (`git c
 into the scratchpad and name the source in comments, tests, `QUELLEN.md` and commit messages where
 it settles a detail.
 
-- **The apps**: `Speicherstadt/<app>` for every manifest value (compose files, Dockerfiles, env
-  schema, health route, backup scripts). A value without a source file is not written.
+- **The apps**: `Speicherstadt/<app>` for every manifest value (Quadlets in `deploy/quadlet/`, compose
+  files, Dockerfiles, env schema, health route, backup scripts). A value without a source file is not written.
 - **Kennwort and Soll**: `Speicherstadt/kennwort`, `Speicherstadt/soll` for the same stack in
   practice (Solid 2, Hono, Better Auth, Paraglide, `packages/ui`, CI, docs, loop files).
-- **Docker Compose**: the Compose Specification (compose-spec.io); **Caddy**: its admin API docs;
+- **Podman Quadlets**: `podman-systemd.unit(5)` and the Podman docs for rootless operation; the
+  Quadlets of Haben and Kontext as examples; **Caddy**: its admin API docs;
   **restic**: its docs for repositories, `backup`, `forget`, `check`, `restore`.
 - **firsttris/workflows**: `tech-stack.md`, the reusable release workflows.
 
 ## Never
 
-- Let the agent run anything an app's manifest does not describe: no shell, no free `docker exec`,
+- Let the agent run anything an app's manifest does not describe: no shell, no free `podman exec`,
   no command from the Zentrale as a string.
 - Open a port on a managed server for the agent; the agent always connects out.
 - Store a secret outside an encrypted column, return one through the API, or write one into a log.
@@ -64,7 +65,7 @@ it settles a detail.
 Update what the change affects, in the same pull request, and only that:
 
 - the tests for what changed: Vitest next to the code, database tests next to the module, agent
-  tests against Docker in CI, Playwright for what a user does (desktop and `@phone`); a bug fix
+  tests against Podman with systemd in CI, Playwright for what a user does (desktop and `@phone`); a bug fix
   starts with a failing test;
 - the docs in `docs/` that describe it (German only); `docs/manifest.md` with every schema change;
 - `README.md` (German) when a feature a user sees is added, changed or removed;
@@ -79,7 +80,7 @@ Green before every push, then check CI:
 
 ```sh
 bun run typecheck && bun run lint && bun run test && bun run build
-bun run test:agent        # agent against Docker; needs a Docker daemon (CI has one)
+bun run test:agent        # agent against Podman with systemd; CI has both
 bun run e2e               # Playwright against Zentrale and agent in containers
 zensical build --strict   # when docs/ or mkdocs.yml changed
 ```
@@ -98,7 +99,7 @@ Database tests run against SQLite in a temporary file; nothing needs a running d
 
 - Commands as root (`sudo`, `pkexec`) are run by the user; don't work around that.
 - The user's running processes and containers are not stopped; use other ports for tests (dev:
-  Zentrale 18300, Vite 5181; e2e: Zentrale 28300, Vite 5182) and own Compose project names
+  Zentrale 18300, Vite 5181; e2e: Zentrale 28300, Vite 5182) and own users and unit names
   (`sz-test-*`).
 - Language: code, comments and commits in English; `README.md` and the docs in German; the app
   through Paraglide with `messages/de.json` and `messages/en.json`.
@@ -118,13 +119,16 @@ behaviour.
 
 ## Project specifics
 
-- Pure functions, no I/O: `packages/manifest` (schema, placement, rendering Compose, `.env` and
-  Caddy snippets) and `packages/planung` (update waves, freeze windows, maintenance windows, server
+- Pure functions, no I/O: `packages/manifest` (schema, placement, rendering Quadlet units, Podman
+  secrets and Caddy snippets) and `packages/planung` (update waves, freeze windows, maintenance windows, server
   checks). The Zentrale and the agent only call them.
 - Jobs are stored in the Zentrale, carry an ID and are idempotent; the agent fetches, acknowledges,
   reports progress and result. A job names a manifest action and its arguments, never a command.
-- One Compose project per installation in `/srv/steuerzentrale/<installation>`, own network and
-  volumes, `.env` with mode 0600. One Caddy per server ("Pforte"), its admin API on localhost only.
+- Podman Quadlets under systemd, rootless: one Linux user per installation (`sz-<installation>`,
+  lingering), its units in `~/.config/containers/systemd/`, own network and volumes, secrets as
+  Podman secrets. Rootful only for an app whose manifest says `rootful: true`, which requires
+  `server_fuer_sich`. Never set `AutoUpdate`: updates come only through the waves. One Caddy per
+  server ("Pforte", user `sz-pforte`), its admin API on localhost only.
 - Every table carries `betreiber_id`; every query filters by it; a test per endpoint proves that no
   operator or partner sees another's data. Writes go through one function that appends to the
   audit log in the same transaction.

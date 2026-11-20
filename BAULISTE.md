@@ -72,7 +72,7 @@ auf `origin/main`.
 
 - [ ] **Z-201 Manifest-Schema** – Zod-Schema in `packages/manifest` nach `docs/plan.md` („Manifest“):
   Images, Architektur, Ressourcen, Netz (HTTP-Dienst, Ports, öffentliche IPv4, Server für sich),
-  Proxy, Optionen (Compose-Profile), `braucht`/`bietet`, Anmeldung, Health, Schritte, Backup,
+  Container, Proxy, `rootful`, Optionen, `braucht`/`bietet`, Anmeldung, Health, Schritte, Backup,
   Aktionen, Sperrzeiten, Einstellungen mit Ebenen; JSON Schema als Datei; `docs/manifest.md` für
   App-Entwickler.
   nach: Z-101
@@ -84,25 +84,27 @@ auf `origin/main`.
   CI gebaut und in eine lokale Registry geschoben, in zwei Versionen und einer kaputten (Health rot).
   Fertig, wenn: das Manifest gültig ist und die drei Images in der CI entstehen.
 - [ ] **Z-203 Manifeste der Speicherstadt** – `manifeste/<app>/` für Haben, Belegt, Kontext,
-  Schreibzeug, Stellwerk, Fixpunkt, Kennwort und Soll, jeweils `manifest.yml`, `compose.yml` (aus
-  dem App-Repo abgeleitet, eigener Caddy als abschaltbares Profil) und `QUELLEN.md` mit Datei und
-  Commit jeder Angabe; was eine App nicht kann, als `nicht_unterstuetzt`.
+  Schreibzeug, Stellwerk, Fixpunkt, Kennwort und Soll, jeweils `manifest.yml` (Container aus
+  `deploy/quadlet/` oder, wo es keine gibt, aus der Compose-Datei des App-Repos abgeleitet; eigener
+  Caddy entfällt) und `QUELLEN.md` mit Datei und Commit jeder Angabe; was eine App nicht kann, als `nicht_unterstuetzt`.
   Fertig, wenn: alle acht gültig sind, `QUELLEN.md` jede Angabe belegt und ein Test die Tabelle „Die
   Apps der Speicherstadt“ im Plan gegen die Manifeste prüft (Ports, öffentliche IP, Server für sich,
   Architektur).
 - [ ] **Z-204 Platzierung** – reine Funktion: Manifest, Optionen, Serverfakten und vorhandene
   Installationen → `passt` | Warnungen | Gründe. Regeln: Architektur, RAM und Platte mit Reserve,
-  doppelte Ports, öffentliche IPv4 und PTR, Server für sich (in beide Richtungen), eigener Proxy
+  doppelte Ports, öffentliche IPv4 und PTR, Server für sich (in beide Richtungen), `rootful` nur mit Server für sich, eigener Proxy
   braucht 80/443, `braucht` ohne passendes `bietet` beim Kunden.
   Fertig, wenn: jede Regel einen Fall „passt“, „Grenze“ und „passt nicht“ hat, fast-check zeigt,
   dass eine angenommene Platzierung nie zwei Installationen auf denselben Port legt, und Kontext auf
   einem gemeinsamen Server mit Haben abgelehnt wird.
-- [ ] **Z-205 Compose rendern** – reine Funktion: Manifest, Installation, Einstellungen → Compose-
-  Datei, `.env`, Caddy-Schnipsel; Projektname aus der Installation, eigenes Netz und Volumes;
-  `auto`-Werte erzeugt die Zentrale einmal und speichert sie verschlüsselt.
-  Fertig, wenn: Golden Files für jede App mit jeder Option entstehen, zwei Installationen derselben
-  App auf einem Server keine Namen teilen und ein `auto`-Geheimnis bei erneutem Rendern gleich
-  bleibt.
+- [ ] **Z-205 Quadlets rendern** – reine Funktion: Manifest, Installation, Einstellungen →
+  `.container`-, `.volume`- und `.network`-Units, Podman-Secrets, Caddy-Schnipsel; Namen mit der
+  Installation als Präfix, eigenes Netz und eigene Volumes, `AutoUpdate` nie gesetzt; `auto`-Werte
+  erzeugt die Zentrale einmal und speichert sie verschlüsselt. Vorbild: `deploy/quadlet/` in Haben
+  und Kontext.
+  Fertig, wenn: Golden Files für jede App mit jeder Option entstehen, jede Unit in der CI
+  `podman-system-generator --dryrun` besteht, zwei Installationen derselben App keine Namen teilen
+  und ein `auto`-Geheimnis bei erneutem Rendern gleich bleibt.
 
 ## Phase 3 – Agent
 
@@ -112,10 +114,11 @@ auf `origin/main`.
   Fertig, wenn: jede Nachricht hin und zurück geprüft ist und ein Agent mit Protokoll `n-1` von der
   Zentrale verstanden wird (Test).
 - [ ] **Z-302 Server hinzufügen** – Einmal-Token (24 h, einmal nutzbar) in der Zentrale;
-  `install/install.sh` prüft System und Architektur, installiert Docker, unattended-upgrades, den
-  Agenten als systemd-Dienst und tauscht das Token gegen einen Schlüssel.
+  `install/install.sh` prüft System und Architektur, installiert Podman (ab 4.4, wegen Quadlets),
+  unattended-upgrades, den Agenten als systemd-Dienst, setzt
+  `net.ipv4.ip_unprivileged_port_start=80` und tauscht das Token gegen einen Schlüssel.
   nach: Z-104
-  Fertig, wenn: das Skript in einem Debian-12- und einem Ubuntu-24.04-Container (systemd) in der CI
+  Fertig, wenn: das Skript in einem Debian-13- und einem Ubuntu-24.04-Container (systemd) in der CI
   durchläuft, ein benutztes oder abgelaufenes Token abgelehnt wird, `shellcheck` grün ist und der
   Dialog in der Oberfläche den Befehl zeigt (Playwright).
 - [ ] **Z-303 Verbindung und Heartbeat** – Agent verbindet sich per WSS, meldet alle 30 s; die
@@ -124,7 +127,7 @@ auf `origin/main`.
   Fertig, wenn: ein Test Verbindungsabbruch, Wiederverbindung und gesperrten Schlüssel abdeckt und
   ein stiller Server nach 3 min ein Ereignis erzeugt.
 - [ ] **Z-304 Serverfakten** – CPU, RAM, Platte je Mount, Architektur, OS und Kernel, „Neustart
-  nötig“, ausstehende Updates, Docker-Version, öffentliche IPv4/IPv6, PTR, belegte Ports.
+  nötig“, ausstehende Updates, Podman-Version, öffentliche IPv4/IPv6, PTR, belegte Ports.
   Fertig, wenn: die Fakten in der CI im Container gelesen werden und die Platzierung (Z-204) sie
   ohne Umweg nutzt.
 - [ ] **Z-305 Aufträge** – Warteschlange in der Zentrale, Agent holt, bestätigt, meldet Fortschritt
@@ -136,19 +139,21 @@ auf `origin/main`.
 
 ## Phase 4 – Installationen
 
-- [ ] **Z-401 Pforte** – Agent richtet Caddy als eigenes Compose-Projekt ein, Admin-API nur auf
+- [ ] **Z-401 Pforte** – Agent richtet Caddy als rootless Quadlet unter dem Nutzer `sz-pforte` ein, Admin-API nur auf
   localhost; Subdomains hinzufügen und entfernen ohne Neustart.
   nach: Z-305
   Fertig, wenn: in der CI zwei Installationen der Beispiel-App unter zwei Hostnamen erreichbar sind
   (lokale CA statt Let's Encrypt) und das Entfernen einer die andere nicht unterbricht.
 - [ ] **Z-402 Installieren und Entfernen** – Dialog in der Oberfläche mit Kunde, App, Server,
-  Optionen und Einstellungen nach Ebenen, Platzierung live; Agent legt
-  `/srv/steuerzentrale/<installation>` an, zieht Images, führt `schritte.einrichten` aus, startet;
+  Optionen und Einstellungen nach Ebenen, Platzierung live; Agent legt den
+  Nutzer `sz-<installation>` mit `loginctl enable-linger` an, schreibt die Units nach
+  `~/.config/containers/systemd/`, zieht Images, führt `schritte.einrichten` aus, startet;
   Entfernen mit Backup vorher und Frist.
   Fertig, wenn: die Beispiel-App in der CI per Auftrag installiert und entfernt wird, ein Fehler im
-  Einrichtungsschritt nichts halb Installiertes zurücklässt und der Ablauf in Playwright läuft.
+  Einrichtungsschritt nichts halb Installiertes zurücklässt, eine Installation die Dateien einer
+  anderen nicht lesen kann (Test) und der Ablauf in Playwright läuft.
 - [ ] **Z-403 Health und Zustand** – Agent prüft Health aus dem Manifest und den Zustand der
-  Container; Zentrale zeigt grün, gelb, rot mit Grund und Verlauf.
+  systemd-Units und Container; Zentrale zeigt grün, gelb, rot mit Grund und Verlauf.
   Fertig, wenn: die kaputte Beispiel-App rot wird, ein beendeter Container gelb und ein Ereignis mit
   Zeitpunkt entsteht.
 - [ ] **Z-404 Einstellungen** – Ebenen `betreiber`, `installation`, `auto` aus dem Manifest;
@@ -160,7 +165,7 @@ auf `origin/main`.
 - [ ] **Z-405 Neustart, Logs, nur lesen** – Aktionen Neustart, Log-Auszug (letzte 500 Zeilen, ohne
   Geheimnisse), nur lesen und wieder schreiben, wenn das Manifest sie anbietet.
   Fertig, wenn: eine nicht angebotene Aktion in der Oberfläche fehlt und vom Agenten abgelehnt wird
-  und ein Wert aus der `.env` im Log-Auszug ersetzt ist.
+  und der Wert eines Secrets im Log-Auszug (journald) ersetzt ist.
 - [ ] **Z-406 Server-Detail und Übersicht** – echte Daten statt Demodaten: Server mit Fakten,
   Installationen, Ereignissen; Übersicht mit allem, was Aufmerksamkeit braucht.
   Fertig, wenn: die E2E-Fälle aus Z-105 gegen Zentrale und Agent im Container laufen.
@@ -270,7 +275,7 @@ auf `origin/main`.
   installieren, aktualisieren und sichern.
   Fertig, wenn: der Lauf grün ist; scheitert er an der App, steht der Grund als Issue-Entwurf in
   `docs/betreiber-vertrag.md`.
-- [ ] **Z-1004 Release** – Docker-Image der Zentrale (amd64, arm64), Agent-Binaries mit Prüfsummen
+- [ ] **Z-1004 Release** – Image der Zentrale (amd64, arm64) mit Quadlet-Units, Agent-Binaries mit Prüfsummen
   und Signatur, Release-Workflow aus firsttris/workflows; `docs/installation.md` mit Ein-Server-
   Betrieb.
   Fertig, wenn: ein Release-Kandidat in der CI entsteht und sich nach der Doku auf einem frischen
