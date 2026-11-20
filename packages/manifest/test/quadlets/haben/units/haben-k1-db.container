@@ -1,0 +1,26 @@
+# haben 0.12.0 for the installation haben-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=haben 0.12.0, db (haben-k1)
+
+[Container]
+ContainerName=haben-k1-db
+Image=ghcr.io/speicherstadt/haben-db@sha256:028a904a9814a93e0b1ab5705e3e878a43703479aeee1ec9f43aab05d2fc8808
+Network=haben-k1.network:alias=db
+Label="de.speicherstadt.steuerzentrale.installation=haben-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=haben"
+Label="de.speicherstadt.steuerzentrale.version=0.12.0"
+NoNewPrivileges=true
+Volume=haben-k1-db.volume:/var/lib/postgresql/data
+Environment="POSTGRES_USER=haben"
+Environment="POSTGRES_DB=haben"
+Secret=haben-k1-postgres-password,type=env,target=POSTGRES_PASSWORD
+
+[Service]
+Slice=haben-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

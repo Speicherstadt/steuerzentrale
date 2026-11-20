@@ -1,0 +1,1 @@
+container.0.image: app has no published image (Kennwort hat noch kein Image (Bauliste von Kennwort, K-703 offen); auf GHCR gibt es keines (scripts/digest.ts, 2026-11-20)); an app without an image cannot be installed

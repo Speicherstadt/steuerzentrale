@@ -1,0 +1,33 @@
+# kontext 0.1.37 for the installation kontext-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=kontext 0.1.37, caddy (kontext-k1)
+Requires=kontext-k1-kontext.service
+After=kontext-k1-kontext.service
+
+[Container]
+ContainerName=kontext-k1-caddy
+Image=docker.io/library/caddy@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+Network=kontext-k1.network:alias=caddy
+Label="de.speicherstadt.steuerzentrale.installation=kontext-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=kontext"
+Label="de.speicherstadt.steuerzentrale.version=0.1.37"
+NoNewPrivileges=true
+PublishPort=80:80/tcp
+PublishPort=443:443/tcp
+PublishPort=443:443/udp
+Volume=kontext-k1-caddy-data.volume:/data
+Volume=kontext-k1-caddy-config.volume:/config
+Volume=%h/.config/steuerzentrale/dateien/caddy/etc/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+Environment="KONTEXT_DOMAIN=kontext-k1.kunde.example"
+Environment="MAIL_DOMAIN=test-mail_domain"
+Environment="ACME_EMAIL=test-acme_email"
+
+[Service]
+Slice=kontext-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

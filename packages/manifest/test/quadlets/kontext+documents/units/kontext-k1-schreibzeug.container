@@ -1,0 +1,30 @@
+# kontext 0.1.37 for the installation kontext-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=kontext 0.1.37, schreibzeug (kontext-k1)
+Requires=kontext-k1-kontext.service
+After=kontext-k1-kontext.service
+
+[Container]
+ContainerName=kontext-k1-schreibzeug
+Image=ghcr.io/speicherstadt/schreibzeug@sha256:41baec9bfe28f7603fe59723d44e7a92d7ba1950cea4dd21f12b18ecd2fce09b
+Network=kontext-k1.network:alias=schreibzeug
+Label="de.speicherstadt.steuerzentrale.installation=kontext-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=kontext"
+Label="de.speicherstadt.steuerzentrale.version=0.1.37"
+NoNewPrivileges=true
+Volume=kontext-k1-schreibzeug-data.volume:/data
+Environment="OIDC_CLIENT_ID=schreibzeug"
+Environment="SCHREIBZEUG_URL=test-schreibzeug_url"
+Environment="SCHREIBZEUG_EMBED_ORIGIN=https://kontext-k1.kunde.example"
+Environment="OIDC_ISSUER=https://kontext-k1.kunde.example/api/auth"
+Secret=kontext-k1-oidc-client-secret,type=env,target=OIDC_CLIENT_SECRET
+
+[Service]
+Slice=kontext-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

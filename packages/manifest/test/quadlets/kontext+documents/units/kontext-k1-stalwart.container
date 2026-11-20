@@ -1,0 +1,31 @@
+# kontext 0.1.37 for the installation kontext-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=kontext 0.1.37, stalwart (kontext-k1)
+
+[Container]
+ContainerName=kontext-k1-stalwart
+Image=docker.io/stalwartlabs/stalwart@sha256:5ebdf474b237161742fe4309396af4ae8797c938e8e6eb7e2d4837332c4f9851
+Network=kontext-k1.network:alias=stalwart
+Label="de.speicherstadt.steuerzentrale.installation=kontext-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=kontext"
+Label="de.speicherstadt.steuerzentrale.version=0.1.37"
+NoNewPrivileges=true
+PublishPort=25:25/tcp
+PublishPort=465:465/tcp
+PublishPort=587:587/tcp
+PublishPort=993:993/tcp
+Volume=kontext-k1-stalwart-config.volume:/etc/stalwart
+Volume=kontext-k1-stalwart-data.volume:/var/lib/stalwart
+Environment="STALWART_HOSTNAME=test-stalwart_hostname"
+Environment="STALWART_PUBLIC_URL=https://kontext-k1.kunde.example"
+Secret=kontext-k1-stalwart-blob-key,type=env,target=STALWART_BLOB_KEY
+
+[Service]
+Slice=kontext-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

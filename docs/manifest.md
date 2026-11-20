@@ -55,7 +55,9 @@ Unbekannte Felder sind ein Fehler, damit ein Tippfehler nicht still übergangen 
 - Ein Schritt ist der Name eines Befehls, nie Shell-Text. Ein Befehl startet keine Shell (`sh`,
   `bash`, `env`, …), auch nicht über ein vorangestelltes Programm (`timeout 60 sh -c …`): kein
   Element von `argv` ist eine Shell, `argv` wird ohne Shell ausgeführt. Dasselbe gilt für das `argv`
-  eines Containers, auch in Optionen.
+  eines Containers, auch in Optionen. Ein Element im `argv` eines Containers ist nie leer und
+  enthält kein Steuerzeichen (Zeilenumbruch, Tabulator, …): Quadlet verliert ein leeres Wort, wenn es
+  `ExecStart=` schreibt (unten, „Quadlets“).
 - Images nur per Digest und mit Registry (`docker.io/…`, `ghcr.io/…`, `localhost:5000/…`); ein Tag
   kann unter demselben Namen ein anderes Image meinen.
 - `rootful` und ein eigener Proxy nur mit `netz.server_fuer_sich: true`; der geteilte Proxy braucht
@@ -86,6 +88,73 @@ env:
   - { name: DATABASE_URL, ebene: auto, typ: geheim, vorlage: "postgres://haben:${env:POSTGRES_PASSWORD}@db:5432/haben" }
   - { name: STELLWERK_HUB_ADDRESS, ebene: auto, vorlage: "tcp://${host}:${port:zentrale:22001}" }
 ```
+
+## Quadlets
+
+Aus Manifest, Installation und Einstellungen rendert die Zentrale die Units einer Installation mit
+einer reinen Funktion (`quadletsRendern` in `packages/manifest`); der Agent schreibt sie nur. Gleiche
+Eingabe ergibt gleiche Ausgabe: Die Funktion erzeugt nichts, auch kein Geheimnis. Werte mit
+`erzeugen` erzeugt die Zentrale einmal, speichert sie verschlüsselt und gibt sie hinein.
+
+| Datei | Ort beim Nutzer `sz-<installation>` | Inhalt |
+| --- | --- | --- |
+| `<installation>-<container>.container` | `~/.config/containers/systemd/` | je laufendem Container, auch aus eingeschalteten Optionen |
+| `<installation>-<volume>.volume` | `~/.config/containers/systemd/` | je Volume, geteilt von allen Containern, die es nennen |
+| `<installation>.network` | `~/.config/containers/systemd/` | das eigene Netz der Installation |
+| `<installation>.slice` | `~/.config/systemd/user/` | `MemoryMax` aus `ressourcen.ram_mb` plus dem RAM eingeschalteter Optionen; alle Container laufen darin (`Slice=`), ein Container mit eigenem `ram_mb` hat zusätzlich sein eigenes `MemoryMax` |
+| `<container><pfad>` | `~/.config/steuerzentrale/dateien/` | die `dateien` eines Containers, nur lesbar eingehängt (`Volume=%h/…:<pfad>:ro`) |
+| Podman-Secrets | `podman secret create` | je geheimer Einstellung ein Secret `<installation>-<name>` (`DATABASE_URL` → `…-database-url`), eingebunden per `Secret=…,type=env,target=DATABASE_URL` |
+| Route der Pforte | Admin-API der Pforte | JSON für Caddy (unten) |
+
+Regeln:
+
+- Jeder Name trägt den Namen der Installation vorn; zwei Installationen derselben App teilen keinen
+  Namen und, mit den Ports der Zentrale, keinen Port.
+- Jeder Container ist im Netz der Installation unter seinem Namen aus dem Manifest erreichbar
+  (`Network=<installation>.network:alias=<name>`).
+- Der HTTP-Dienst wird nur auf `127.0.0.1` veröffentlicht
+  (`PublishPort=127.0.0.1:<Port der Zentrale>:<netz.http.port>`); Ports mit `fest: true` unter ihrer
+  eigenen Nummer, Ports mit `fest: false` unter dem Port, den die Zentrale vergeben hat.
+- `Image=` nur per Digest; ein laufender Container mit `noch_nicht_veroeffentlicht` lehnt die
+  Installation mit Grund ab, statt eine kaputte Unit zu liefern.
+- Nie `AutoUpdate`; nur Schlüssel, die Podman 4.9 kennt (`supportedContainerKeys`,
+  `supportedVolumeKeys`, `supportedNetworkKeys` in `pkg/systemd/quadlet/quadlet.go` am Tag `v4.9.0`,
+  übernommen in `packages/manifest/src/quadlet/schluessel.ts`). In der CI läuft jede Unit durch
+  `quadlet --user --dryrun` von Podman 4.9 (ubuntu-24.04) und 5.x (Debian 13).
+- Eine Einstellung mit `option` gilt nur bei eingeschalteter Option; fehlt ein Pflichtwert oder ein
+  erzeugter Wert, wird nicht gerendert. Vorlagen werden mit den Platzhaltern oben gefüllt.
+- Nicht geheime Werte stehen als `Environment=` in der Unit, ein Wert mit Steuerzeichen wird dort
+  abgelehnt; geheime Werte stehen nur in Podman-Secrets, nie in einer Unit. Ein leerer geheimer Wert
+  gilt als nicht gesetzt, weil Podman kein Secret mit 0 Byte anlegt.
+
+### `argv` und `Exec=`
+
+Das `argv` eines Containers wird `Exec=`. Quadlet hängt diese Wörter hinter dem Image an
+`podman run` an (`ConvertContainer` in `pkg/systemd/quadlet/quadlet.go`), und Podman behandelt sie
+wie bei `podman run IMAGE ARG…`: Sie **ersetzen das `CMD`** des Images und werden an seinen
+**`ENTRYPOINT` angehängt**, der bleibt (`makeCommand` in `pkg/specgen/generate/oci.go`). Ein Image
+mit `ENTRYPOINT ["livekit-server"]` bekommt also nur die Optionen (`[--config, /etc/livekit.yaml]`),
+ein Image, dessen Einstiegsskript `"$@"` ausführt (Redis), das ganze Programm
+(`[redis-server, --appendonly, "no"]`). Den `ENTRYPOINT` ändert ein Manifest nicht.
+
+Es gibt keine Shell: Jedes Element ist ein Wort. Die Zentrale schreibt jedes Wort in doppelte
+Anführungszeichen, maskiert `\` und `"` und verdoppelt `%` und `$`, weil systemd in `ExecStart=`
+Spezifizierer und Variablen ersetzt; im Container kommt das Element unverändert an. Ein leeres
+Element lehnt schon die Prüfung des Manifests ab: Quadlet schreibt ein leeres Wort als nichts
+(`escapeWords` in `pkg/systemd/parser/split.go`), und mit dem Generator von 4.9 endet `Exec=` an
+dieser Stelle sogar. Steuerzeichen sind ebenso abgelehnt. Ein Element, das nur `;` ist, lehnt das
+Rendern ab: Quadlet schreibt es ohne Anführungszeichen in `ExecStart=`, und systemd liest es dort als
+Ende des Befehls und verweigert den Dienst.
+
+### Route der Pforte
+
+Eine App hinter der Pforte (`proxy: geteilt`) bekommt eine Route für die Admin-API von Caddy, mit der
+Installation als `@id` (Entfernen mit `DELETE /id/<installation>`): der Hostname der Installation an
+`127.0.0.1:<Port>`, `request_body` mit `max_size` aus `max_body_mb`, `response_header_timeout` aus
+`timeout_s` und `X-Forwarded-For` mit der Adresse, die die Pforte sah (`Forwarded` und `X-Real-IP`
+entfernt); bei `sse: true` dazu `flush_interval: -1`, bei `websocket: true` `stream_close_delay`,
+damit eine Änderung an der Pforte offene WebSockets nicht trennt. Eine App mit eigenem Proxy bekommt
+keine Route.
 
 ## Signatur
 

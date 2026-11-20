@@ -1,0 +1,29 @@
+# kontext 0.1.37 for the installation kontext-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=kontext 0.1.37, livekit-sip (kontext-k1)
+Requires=kontext-k1-redis.service
+After=kontext-k1-redis.service
+Requires=kontext-k1-livekit.service
+After=kontext-k1-livekit.service
+
+[Container]
+ContainerName=kontext-k1-livekit-sip
+Image=docker.io/livekit/sip@sha256:92361877818f865ece21c171b9703a4c68b133136a3e721f86dda42984c9c400
+Network=kontext-k1.network:alias=livekit-sip
+Label="de.speicherstadt.steuerzentrale.installation=kontext-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=kontext"
+Label="de.speicherstadt.steuerzentrale.version=0.1.37"
+NoNewPrivileges=true
+PublishPort=5060:5060/tcp
+PublishPort=20000-20100:20000-20100/udp
+Secret=kontext-k1-sip-config-body,type=env,target=SIP_CONFIG_BODY
+
+[Service]
+Slice=kontext-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

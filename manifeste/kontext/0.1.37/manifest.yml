@@ -30,7 +30,9 @@ container:
     env: [STALWART_HOSTNAME, STALWART_PUBLIC_URL, STALWART_BLOB_KEY]
   - name: redis
     image: docker.io/library/redis@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
-    argv: [redis-server, --save, "", --appendonly, "no"]
+    # No empty "" after --save: Quadlet drops an empty word, and Redis reads "--save" followed by
+    # another option as --save "" (QUELLEN.md)
+    argv: [redis-server, --save, --appendonly, "no"]
   - name: livekit
     image: docker.io/livekit/livekit-server@sha256:25cd902de7cacbd5f1f779f6a6ac1eae20ba8f56b0935934ce6b0ab80d1e3d20
     braucht: [redis]

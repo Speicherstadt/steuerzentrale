@@ -1,3 +1,4 @@
+import { hatSteuerzeichen } from "./quadlet/systemd.ts";
 import type { Manifest } from "./schema.ts";
 
 /*
@@ -40,6 +41,25 @@ const shellBefunde = (argv: string[], pfad: (string | number)[]): Befund[] =>
       : [];
   });
 
+/**
+ * The argv of a container becomes Exec= of its Quadlet unit: Quadlet drops an empty word when it
+ * writes ExecStart= (podman v4.9.0, pkg/systemd/parser/split.go, escapeWords), and no unit line
+ * carries a control character
+ */
+const argvBefunde = (argv: string[], pfad: (string | number)[]): Befund[] =>
+  argv.flatMap((wert, i) => {
+    if (wert === "")
+      return [
+        {
+          pfad: [...pfad, i],
+          grund: "an argument of a container is never empty: Quadlet drops it from ExecStart",
+        },
+      ];
+    return hatSteuerzeichen(wert)
+      ? [{ pfad: [...pfad, i], grund: "an argument of a container has no control character" }]
+      : [];
+  });
+
 const doppelt = (werte: string[]): string[] => werte.filter((wert, i) => werte.indexOf(wert) !== i);
 
 const alleContainer = (m: Manifest) => [
@@ -59,6 +79,7 @@ const containerRegeln = (m: Manifest): Befund[] => {
   }));
   for (const { c, pfad } of container) {
     befunde.push(...shellBefunde(c.argv ?? [], [...pfad, "argv"]));
+    befunde.push(...argvBefunde(c.argv ?? [], [...pfad, "argv"]));
     for (const [i, ziel] of c.braucht.entries())
       if (!namen.has(ziel))
         befunde.push({ pfad: [...pfad, "braucht", i], grund: `no container named ${ziel}` });
