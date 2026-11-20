@@ -136,4 +136,13 @@ describe("install.sh trusts the key and the Zentrale it was served with", () => 
       "unknown argument: --bogus",
     );
   });
+
+  it("refuses a token with a second line, which grep -x would let pass line by line", () => {
+    const lauf = shell(
+      'argumente_lesen --token "$1"',
+      "abcdefghijklmnopqrstuvwxyz012345\n$(id); rm -rf /",
+    );
+    expect(lauf.code).toBe(1);
+    expect(lauf.fehler).toContain("--token is missing or is no one-time token");
+  });
 });

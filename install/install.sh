@@ -55,6 +55,10 @@ argumente_lesen() {
 		*) abbruch "unknown argument: $1" ;;
 		esac
 	done
+	# grep -x matches line by line: a value with a newline would pass on its first line alone
+	case "$TOKEN" in
+	*[!A-Za-z0-9_-]*) TOKEN='' ;;
+	esac
 	printf '%s' "$TOKEN" | grep -Eqx '[A-Za-z0-9_-]{20,200}' ||
 		abbruch "--token is missing or is no one-time token of the Zentrale"
 }
