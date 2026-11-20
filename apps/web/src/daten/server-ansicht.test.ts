@@ -113,6 +113,15 @@ describe("a server as the pages show it (Z-304)", () => {
     expect(zustand({ agent: { zustand: "getrennt", letzterHeartbeat: null } })).toBe("agent");
   });
 
+  it("never says ok for a disk or reboot state the agent could not read", () => {
+    const b = bestand();
+    const zustand = (a: Partial<ServerDerZentrale>) =>
+      ansichtZustand(b, serverAnsicht(sv(a), undefined));
+    const ruhig = { ...FAKTEN, platten: [], neustartNoetig: false, updatesAusstehend: 0 };
+    expect(zustand({ fakten: { ...ruhig, platten: null } })).toBe("pruefen");
+    expect(zustand({ fakten: { ...ruhig, neustartNoetig: null } })).toBe("pruefen");
+  });
+
   it("keeps the demo's look: the demo source's facts give the demo's values", () => {
     const b = bestand();
     for (const demo of b.server) {
