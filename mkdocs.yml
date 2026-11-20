@@ -59,6 +59,7 @@ markdown_extensions:
 nav:
   - Steuerzentrale: index.md
   - Betrieb:
+      - Apps installieren: installieren.md
       - Updates: updates.md
   - Für App-Entwickler:
       - Manifest: manifest.md
