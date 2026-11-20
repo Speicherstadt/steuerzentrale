@@ -70,10 +70,11 @@ const startAlle = (
 ): number | Wartegrund => {
   if (update.vorabversion) return "vorabversion";
   if (update.dringend) return jetzt;
+  // Checked first: the updated intern installations are no longer among `installationen`
+  if (stand.internFertigAm !== undefined) return stand.internFertigAm + WARTEZEIT_MS;
   if (!installationen.some((i) => i.intern))
     return stand.freigabeAlleAm === undefined ? "freigabe_noetig" : stand.freigabeAlleAm;
-  if (stand.internFertigAm === undefined) return "intern_laeuft";
-  return stand.internFertigAm + WARTEZEIT_MS;
+  return "intern_laeuft";
 };
 
 const termin = (

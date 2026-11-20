@@ -55,6 +55,16 @@ describe("the wave alle", () => {
     expect(berlin(2026, 11, 22, 2, 30) - fertig).toBe(WARTEZEIT_MS);
   });
 
+  it("starts 24 h after intern finished when the updated intern installations are no longer listed", () => {
+    // updatePlan gets only installations that still run an older version (its doc comment)
+    const fertig = berlin(2026, 11, 21, 2, 30);
+    const plan = updatePlan([inst("kunde")], normal, { internFertigAm: fertig }, [], fertig);
+    expect(ergebnis(plan, "kunde")).toMatchObject({
+      art: "termin",
+      ab: berlin(2026, 11, 22, 2, 30),
+    });
+  });
+
   it("waits for a release by hand when we have no installation of our own", () => {
     const ohne = updatePlan([inst("kunde")], normal, {}, [], berlin(2026, 11, 20));
     expect(ergebnis(ohne, "kunde")).toEqual({ art: "wartet", grund: "freigabe_noetig" });
