@@ -17,14 +17,15 @@ import {
   serverLesen,
   zertifikatRotieren,
 } from "../server/index.ts";
+import { faktenSpeichern, sshAnmeldungSchreiben } from "./meldungen.ts";
 import type { Sockel, Verbindungen } from "./verbindungen.ts";
 
 /*
  * One agent's connection, from the Zentrale's side (BAULISTE.md Z-303): the agent says `hallo`,
  * the Zentrale answers `willkommen` with the end of the agent's certificate, and from then on
  * heartbeats arrive every 30 seconds and land in `heartbeats` as measurements. A message the
- * Zentrale cannot read, or anything before `hallo`, ends the connection. Messages of later items
- * (facts, jobs) are read and left for those items.
+ * Zentrale cannot read, or anything before `hallo`, ends the connection. Facts and SSH logins
+ * (Z-304) are kept (meldungen.ts); messages of later items (jobs) are read and left for those.
  */
 export type SitzungDeps = BeitrittDeps & {
   verbindungen: Verbindungen;
@@ -44,6 +45,12 @@ export type Sitzung = {
  */
 const HEARTBEAT_ABSTAND_MS = HEARTBEAT_MS / 2;
 
+/**
+ * Facts closer than this are dropped, for the same reason (Z-304): the agent sends them once per
+ * connection and then every 15 minutes
+ */
+const FAKTEN_ABSTAND_MS = 60_000;
+
 /** The close reason is at most 123 bytes (RFC 6455, 5.5); ours are short and ASCII */
 const kurz = (grund: string) => grund.slice(0, 100);
 
@@ -59,6 +66,7 @@ export const sitzung = (
   let sockel: Sockel | undefined;
   let gegruesst = false;
   let letzterHeartbeat = Number.NEGATIVE_INFINITY;
+  let letzteFakten = Number.NEGATIVE_INFINITY;
 
   const hallo = (n: Extract<NachrichtVomAgenten, { typ: "hallo" }>, s: Sockel, jetzt: number) => {
     if (n.agentVersion !== server.agentVersion || n.architektur !== server.architektur)
@@ -130,6 +138,14 @@ export const sitzung = (
         });
       }
       if (n.typ === "zertifikat_anfrage") return rotieren(n.csr, s);
+      if (n.typ === "fakten") {
+        const abstand = jetzt - letzteFakten;
+        if (abstand >= 0 && abstand < FAKTEN_ABSTAND_MS) return;
+        letzteFakten = jetzt;
+        return faktenSpeichern(deps.schreibDb, server, n, jetzt);
+      }
+      if (n.typ === "ssh_anmeldung")
+        return sshAnmeldungSchreiben(deps.db, deps.schreibDb, server, n, jetzt);
     },
     zu: () => {
       if (sockel) deps.verbindungen.abmelden(betreiberId, serverId, sockel);

@@ -34,7 +34,7 @@ export {
   Zustand,
 } from "./nachrichten.ts";
 
-export { HEARTBEAT_MS, ROTIEREN_VOR_MS, VERBINDUNG_PFAD } from "./verbindung.ts";
+export { FAKTEN_MS, HEARTBEAT_MS, ROTIEREN_VOR_MS, VERBINDUNG_PFAD } from "./verbindung.ts";
 
 /** The version of the Steuerzentrale, the same for Zentrale and agent; kept equal to package.json (test) */
 export const VERSION = "0.0.0";

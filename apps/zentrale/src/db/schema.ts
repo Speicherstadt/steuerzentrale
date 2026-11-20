@@ -55,6 +55,25 @@ export const heartbeats = sqliteTable(
   ],
 );
 
+/**
+ * The facts a server's agent reported (Z-304), every 15 minutes: the history, kept 30 days
+ * (docs/plan.md, "Daten der Zentrale"). `daten` is the `fakten` message as JSON; the newest also
+ * stands at the server (`server.fakten`)
+ */
+export const fakten = sqliteTable(
+  "fakten",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    serverId: text("server_id").notNull(),
+    zeitpunkt: integer("zeitpunkt").notNull(),
+    daten: text("daten").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.betreiberId, t.serverId, t.zeitpunkt] }),
+    index("fakten_zeitpunkt").on(t.zeitpunkt),
+  ],
+);
+
 /** A log excerpt in a job (Z-405); holds customer data, kept 30 days */
 export const logAuszuege = sqliteTable(
   "log_auszuege",
@@ -235,6 +254,10 @@ export const server = sqliteTable(
     beigetretenAm: integer("beigetreten_am"),
     architektur: text("architektur"),
     agentVersion: text("agent_version"),
+    // The newest facts (Z-304), the `fakten` message as JSON, and when the Zentrale got them; a
+    // measurement like the rows in `fakten`, written only by modules/audit/messwerte.ts
+    fakten: text("fakten"),
+    faktenAm: integer("fakten_am"),
     angelegtVon: text("angelegt_von").notNull(),
     angelegtAm: integer("angelegt_am").notNull(),
   },

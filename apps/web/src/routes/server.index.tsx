@@ -1,10 +1,13 @@
 import { m } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
-import { For, Show } from "solid-js";
-import { installationenAuf, kundenAuf, sperrzeitenAuf } from "../daten/ableitungen.ts";
+import { createMemo, For, Loading, refresh, Show } from "solid-js";
+import { installationenAuf, kundenAuf, sperrzeitenAuf, suche } from "../daten/ableitungen.ts";
 import { bestand } from "../daten/quelle.ts";
-import type { Bestand, Server } from "../daten/typen.ts";
-import { PLATTE_WARNUNG, serverZustand } from "../daten/zustand.ts";
+import { serverQuelle } from "../daten/server.ts";
+import { ansichtZustand, type ServerAnsicht, serverAnsicht } from "../daten/server-ansicht.ts";
+import type { Bestand } from "../daten/typen.ts";
+import { PLATTE_WARNUNG } from "../daten/zustand.ts";
+import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { ServerHinzufuegen } from "../seiten/server-hinzufuegen.tsx";
 import { agentText } from "../seiten/server-texte.ts";
 import { Mini } from "../teile/balken.tsx";
@@ -13,37 +16,71 @@ import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuServer } from "../teile/verweise.tsx";
 import { AgentZeichen, ArtZeichen, ServerZeichen } from "../teile/zeichen.tsx";
 
-/** Shared servers, servers of their own and servers at the customer, each with its agent */
+/**
+ * Shared servers, servers of their own and servers at the customer, each with its agent and its
+ * facts (BAULISTE.md Z-304). The servers come from the Zentrale (src/daten/server.ts); their
+ * installations, load and freeze windows still from the demo data by id until their items.
+ */
 
-const Zeile = (props: { b: Bestand; sv: Server }) => {
-  const kunden = () => kundenAuf(props.b, props.sv.id);
-  const sperren = () => sperrzeitenAuf(props.b, props.sv.id);
+const Leer = () => <span class="text-xs text-muted-foreground">–</span>;
+
+const System = (props: { a: ServerAnsicht }) => (
+  <>
+    <Show
+      when={props.a.neustart}
+      fallback={
+        <span class="text-muted-foreground">
+          {props.a.updates === null
+            ? m.server_unbekannt()
+            : props.a.updates
+              ? m.server_updates_offen({ n: props.a.updates })
+              : m.server_aktuell()}
+        </span>
+      }
+    >
+      <span class="font-medium text-warn">{m.server_zustand_neustart()}</span>
+    </Show>
+    <Show when={props.a.kernel.laeuft}>
+      {(k) => <span class="block text-muted-foreground">{m.server_kernel({ version: k() })}</span>}
+    </Show>
+  </>
+);
+
+const Zeile = (props: { b: Bestand; a: ServerAnsicht }) => {
+  const kunden = () => kundenAuf(props.b, props.a.id);
+  const sperren = () => sperrzeitenAuf(props.b, props.a.id);
+  const unterzeile = () =>
+    [props.a.host, props.a.os, props.a.arch].filter(Boolean).join(" · ") || m.server_keine_fakten();
   return (
     <Reihe>
       <td>
-        <ZuServer id={props.sv.id}>
-          <span class="block font-medium whitespace-nowrap">{props.sv.name}</span>
+        <ZuServer id={props.a.id}>
+          <span class="block font-medium whitespace-nowrap">{props.a.name}</span>
           <span class="block font-mono text-xs whitespace-nowrap text-muted-foreground">
-            {props.sv.host} · {props.sv.os} · {props.sv.arch}
+            {unterzeile()}
           </span>
         </ZuServer>
       </td>
       <td>
-        <ArtZeichen art={props.sv.art} />
+        <ArtZeichen art={props.a.art} />
       </td>
       <td>
-        <AgentZeichen zustand={props.sv.agent.zustand} text={agentText(props.b, props.sv)} />
-        <span class="mt-1 block font-mono text-xs text-muted-foreground">
-          {m.server_agent_version({ version: props.sv.agent.version })}
-        </span>
+        <AgentZeichen zustand={props.a.agent.zustand} text={agentText(props.b, props.a)} />
+        <Show when={props.a.agent.version}>
+          {(v) => (
+            <span class="mt-1 block font-mono text-xs text-muted-foreground">
+              {m.server_agent_version({ version: v() })}
+            </span>
+          )}
+        </Show>
       </td>
       <td>
-        <ServerZeichen zustand={serverZustand(props.b, props.sv)} />
+        <ServerZeichen zustand={ansichtZustand(props.b, props.a)} />
       </td>
       <td class="text-xs">
         <span class="font-medium tabular-nums">
           {m.server_installationen_kunden({
-            n: installationenAuf(props.b, props.sv.id).length,
+            n: installationenAuf(props.b, props.a.id).length,
             kunden: kunden().length,
           })}
         </span>
@@ -54,39 +91,35 @@ const Zeile = (props: { b: Bestand; sv: Server }) => {
         </span>
       </td>
       <td>
-        <Mini
-          name={m.server_ram_von({ name: props.sv.name })}
-          wert={props.sv.ram}
-          grenze={PLATTE_WARNUNG}
-        />
-        <span class="text-xs text-muted-foreground">{m.einheit_gb({ wert: props.sv.ramGb })}</span>
+        <Show when={props.a.demo}>
+          {(d) => (
+            <Mini
+              name={m.server_ram_von({ name: props.a.name })}
+              wert={d().ram}
+              grenze={PLATTE_WARNUNG}
+            />
+          )}
+        </Show>
+        <Show when={props.a.ramGb} fallback={<Leer />}>
+          {(gb) => (
+            <span class="text-xs text-muted-foreground">{m.einheit_gb({ wert: gb() })}</span>
+          )}
+        </Show>
       </td>
       <td>
-        <Mini
-          name={m.server_platte_von({ name: props.sv.name })}
-          wert={props.sv.platte}
-          grenze={PLATTE_WARNUNG}
-        />
+        <Show when={props.a.platte !== null} fallback={<Leer />}>
+          <Mini
+            name={m.server_platte_von({ name: props.a.name })}
+            wert={props.a.platte ?? 0}
+            grenze={PLATTE_WARNUNG}
+          />
+        </Show>
       </td>
       <td class="text-xs whitespace-nowrap">
-        <Show
-          when={props.sv.neustart}
-          fallback={
-            <span class="text-muted-foreground">
-              {props.sv.sicherheitsupdates
-                ? m.server_updates_offen({ n: props.sv.sicherheitsupdates })
-                : m.server_aktuell()}
-            </span>
-          }
-        >
-          <span class="font-medium text-warn">{m.server_zustand_neustart()}</span>
-        </Show>
-        <span class="block text-muted-foreground">
-          {m.server_kernel({ version: props.sv.kernel.laeuft })}
-        </span>
+        <System a={props.a} />
       </td>
       <td class="text-xs whitespace-nowrap tabular-nums">
-        {props.sv.wartung.von}–{props.sv.wartung.bis}
+        {props.a.wartung.von}–{props.a.wartung.bis}
         <Show when={sperren().length > 0}>
           <span class="block text-muted-foreground">
             {m.server_sperrzeit({
@@ -103,28 +136,44 @@ const Zeile = (props: { b: Bestand; sv: Server }) => {
 
 const ServerListe = () => {
   const b = bestand();
+  const antwort = createMemo(() => serverQuelle().liste());
+  const liste = () => {
+    const a = antwort();
+    return a.ok ? a.daten.map((sv) => serverAnsicht(sv, suche(b.server, sv.serverId))) : [];
+  };
+  const fehler = () => {
+    const a = antwort();
+    return a.ok ? "" : fehlerText(a);
+  };
   return (
     <div class="grid gap-6">
-      <Seitenkopf titel={m.nav_server()} text={m.server_text()} aktion={<ServerHinzufuegen />} />
-      <Tabelle
-        name={m.server_tabelle()}
-        minBreite={1120}
-        leer={m.server_keine()}
-        anzahl={b.server.length}
-        spalten={[
-          { name: m.server_spalte_server() },
-          { name: m.server_spalte_art() },
-          { name: m.server_spalte_agent() },
-          { name: m.server_spalte_zustand() },
-          { name: m.nav_installationen() },
-          { name: m.server_spalte_ram() },
-          { name: m.server_spalte_platte() },
-          { name: m.server_spalte_system() },
-          { name: m.server_spalte_wartung() },
-        ]}
-      >
-        <For each={b.server}>{(sv) => <Zeile b={b} sv={sv} />}</For>
-      </Tabelle>
+      <Seitenkopf
+        titel={m.nav_server()}
+        text={m.server_text()}
+        aktion={<ServerHinzufuegen onAngelegt={() => refresh(antwort)} />}
+      />
+      <Loading fallback={<p class="text-muted-foreground">{m.server_laden()}</p>}>
+        <Fehler text={fehler()} />
+        <Tabelle
+          name={m.server_tabelle()}
+          minBreite={1120}
+          leer={m.server_keine()}
+          anzahl={liste().length}
+          spalten={[
+            { name: m.server_spalte_server() },
+            { name: m.server_spalte_art() },
+            { name: m.server_spalte_agent() },
+            { name: m.server_spalte_zustand() },
+            { name: m.nav_installationen() },
+            { name: m.server_spalte_ram() },
+            { name: m.server_spalte_platte() },
+            { name: m.server_spalte_system() },
+            { name: m.server_spalte_wartung() },
+          ]}
+        >
+          <For each={liste()}>{(a) => <Zeile b={b} a={a} />}</For>
+        </Tabelle>
+      </Loading>
     </div>
   );
 };

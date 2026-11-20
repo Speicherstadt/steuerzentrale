@@ -1,6 +1,8 @@
 import { tagesbeginn } from "@steuerzentrale/planung";
 import { describe, expect, it } from "vitest";
+import { VOM_AGENTEN_V1 } from "../../../../packages/protokoll/src/beispiele-v1.ts";
 import { auditLog, server as serverTabelle, tokens } from "../db/schema.ts";
+import { faktenAnfuegen } from "../modules/audit/index.ts";
 import { BEITRITT_GUELTIG_MS } from "../modules/server/index.ts";
 import { NEUER_SERVER, serverHinzufuegen, testAnfrage } from "../testhilfen/agent.ts";
 import { TEST_AGENT_URL, testServer } from "../testhilfen/server.ts";
@@ -131,6 +133,8 @@ describe("the servers of the operator", () => {
           zertifikatGueltigBis: null,
           gesperrtAm: null,
           agent: { zustand: "getrennt", letzterHeartbeat: null },
+          fakten: null,
+          faktenAm: null,
         },
       ],
     });
@@ -138,6 +142,25 @@ describe("the servers of the operator", () => {
       (daten as { server: unknown[] }).server[0],
     );
     expect((await inhaber.json("/api/v1/server/gibt-es-nicht")).status).toBe(404);
+  });
+
+  // Z-304: the newest facts the agent reported, with the instant they came
+  it("show the newest facts of each server", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const { serverId } = await serverHinzufuegen(inhaber);
+    const nachricht = VOM_AGENTEN_V1.find((n) => n.typ === "fakten") as Record<string, unknown>;
+    faktenAnfuegen(server.deps.schreibDb, {
+      betreiberId: inhaber.betreiberId,
+      serverId,
+      zeitpunkt: server.jetzt(),
+      daten: JSON.stringify(nachricht),
+    });
+    const { typ: _typ, protokoll: _protokoll, ...werte } = nachricht;
+    const { daten } = await inhaber.json(`/api/v1/server/${serverId}`);
+    expect(daten).toMatchObject({ fakten: werte, faktenAm: server.jetzt() });
+    const liste = (await inhaber.json("/api/v1/server")).daten as { server: unknown[] };
+    expect(liste.server[0]).toMatchObject({ fakten: werte });
   });
 
   it("are revoked once, with a reason, and a revoked server cannot join with its token", async () => {

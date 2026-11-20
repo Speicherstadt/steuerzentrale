@@ -198,11 +198,12 @@ const Befehl = (props: { angelegt: Angelegt; onFertig: () => void }) => {
   );
 };
 
-/** The button of the page "Server" and its dialog */
-export const ServerHinzufuegen = () => {
+/** The button of the page "Server" and its dialog; `onAngelegt` once a server was added */
+export const ServerHinzufuegen = (props: { onAngelegt?: () => void }) => {
   const [offen, setOffen] = createSignal(false);
   const [angelegt, setAngelegt] = createSignal<Angelegt>();
   const schliessen = () => {
+    if (angelegt()) props.onAngelegt?.();
     setOffen(false);
     setAngelegt(undefined);
   };

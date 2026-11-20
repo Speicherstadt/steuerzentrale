@@ -6,6 +6,7 @@ import {
   letzteHeartbeats,
   type Server,
   serverAnlegen,
+  serverFakten,
   serverLesen,
   serverListe,
   serverSperren,
@@ -41,10 +42,18 @@ const anlegenSchema = z
 
 const grundSchema = z.object({ grund: z.string().trim().min(1).max(500) }).strict();
 
+/** The newest facts (Z-304) without the message's own fields, or null before the first */
+const fakten = (sv: Server) => {
+  const f = serverFakten(sv);
+  if (!f) return null;
+  const { typ: _typ, protokoll: _protokoll, ...werte } = f;
+  return werte;
+};
+
 /**
- * A server as the API shows it: what the operator entered, what the agent reported at joining, and
- * the state of its agent from the open connection and the last heartbeat (Z-303). Never the
- * certificate or its fingerprint.
+ * A server as the API shows it: what the operator entered, what the agent reported at joining, the
+ * state of its agent from the open connection and the last heartbeat (Z-303), and its newest facts
+ * with the instant they came (Z-304). Never the certificate or its fingerprint.
  */
 export const serverAntwort = (
   sv: Server,
@@ -64,6 +73,8 @@ export const serverAntwort = (
   zertifikatGueltigBis: sv.zertifikatGueltigBis,
   gesperrtAm: sv.gesperrtAm,
   agent: verbindungsZustand({ verbundenSeit, letzterHeartbeat }, jetzt),
+  fakten: fakten(sv),
+  faktenAm: sv.faktenAm,
 });
 
 /** The command the interface shows once (docs/plan.md, "Ablauf: Server hinzufügen") */

@@ -2,6 +2,13 @@ export { type Auslieferung, auslieferung, DATEIEN, istDatei } from "./auslieferu
 export { type Beitritt, beitreten } from "./beitritt.ts";
 export { agentCa, CA_GEHEIMNIS } from "./ca.ts";
 export { type Drossel, drossel, drosselSchluessel } from "./drossel.ts";
+export {
+  mountFuer,
+  type PlatzServerErgebnis,
+  platzServer,
+  type ServerFakten,
+  serverFakten,
+} from "./fakten.ts";
 export { letzteHeartbeats, serverListe } from "./liste.ts";
 export {
   neuesZertifikatUebernehmen,

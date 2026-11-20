@@ -143,6 +143,41 @@ Grund (`POST /api/v1/server/<id>/sperren`). Die Zentrale trennt eine laufende Ve
 weist den Agenten ab da bei jedem Versuch ab. Eine Sperre lässt sich nicht aufheben: der Server
 kommt nur zurück, indem er neu hinzugefügt wird.
 
+## Fakten des Servers
+
+Nach jedem `willkommen` und danach alle **15 Minuten** schickt der Agent die Fakten seines Servers.
+Was er nicht lesen kann, meldet er als leer („unbekannt“), nie geschätzt. Er liest nur Dateien und
+startet nur Befehle mit festen Argumenten, keine Shell:
+
+| Fakt | Quelle |
+| --- | --- |
+| CPU-Kerne, Arbeitsspeicher | `/proc/cpuinfo`, `/proc/meminfo` |
+| Platte je Mount | `/proc/mounts` (beschreibbare Dateisysteme auf Platten und `/`), `statfs` |
+| Architektur | `uname` (`x86_64` → amd64, `aarch64` → arm64) |
+| Betriebssystem | `NAME` und `VERSION_ID` aus `/etc/os-release` |
+| Kernel | läuft: `/proc/sys/kernel/osrelease`; installiert: der neueste in `/boot`, sonst `/lib/modules` |
+| Neustart nötig | `/var/run/reboot-required` oder ein neuerer installierter Kernel als der laufende |
+| ausstehende Updates | `apt-get -s -q upgrade` (simuliert nur) |
+| Podman | `podman --version` |
+| IPv4, IPv6 | die Adressen der Netzwerkschnittstellen ohne Loopback, Link-Local und Podmans Netze |
+| PTR | Rückwärtsauflösung jeder öffentlichen Adresse |
+| belegte Ports | `/proc/net/tcp`, `tcp6`, `udp`, `udp6` |
+| ausgehender Port 25 | eine TCP-Verbindung zu `gmail-smtp-in.l.google.com:25`, höchstens 5 Sekunden, ohne SMTP |
+| Uhrzeit | Abweichung von der Uhr der Zentrale, gemessen an `willkommen` |
+
+Die Zentrale zeigt die neuesten Fakten am Server (Oberfläche und `GET /api/v1/server`) und bewahrt
+ihren Verlauf 30 Tage auf. Die Platzierung rechnet mit genau diesen Werten; als Platte zählt die,
+auf der die Home-Verzeichnisse der Installationen liegen. Zum Nachsehen auf dem Server zeigt
+`steuerzentrale-agent fakten` dieselben Fakten.
+
+### SSH-Anmeldungen
+
+Der Agent folgt dem Journal des SSH-Dienstes (`journalctl --unit=ssh.service --unit=sshd.service
+--output=json --follow`) und meldet jede angenommene Anmeldung mit Nutzer, Adresse und Verfahren.
+Die Zentrale legt daraus ein Ereignis am Server an („SSH-Anmeldung auf …“). Nach einem Neustart
+des Agenten liest er ab der letzten gemeldeten Anmeldung weiter, eine Anmeldung in der Zwischenzeit
+geht also nicht verloren.
+
 ## Schlüssel
 
 Agent-Binaries und Manifeste signiert derselbe Schlüssel; der private liegt offline beim Inhaber.

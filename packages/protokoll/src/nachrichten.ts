@@ -33,26 +33,31 @@ const platte = z.object({
   freiMb: z.number().nonnegative(),
 });
 
-/** What the agent reads from its server (Z-304); a fact it cannot read is null, not invented */
+/**
+ * What the agent reads from its server (Z-304), at connecting and then every 15 minutes
+ * (FAKTEN_MS). A fact the agent cannot read is null, never invented: a list that is null was not
+ * readable, an empty one was read and holds nothing. `ptr` names only the addresses that have one.
+ */
 export const Fakten = z.object({
   typ: z.literal("fakten"),
   protokoll,
   zeit: zeitpunkt,
-  cpuKerne: z.number().int().positive(),
-  ramMb: z.number().int().positive(),
-  platten: z.array(platte),
-  architektur,
-  os: z.object({ name: z.string(), version: z.string() }),
-  kernel: z.object({ laeuft: z.string(), installiert: z.string().nullable() }),
-  neustartNoetig: z.boolean(),
+  cpuKerne: z.number().int().positive().nullable(),
+  ramMb: z.number().int().positive().nullable(),
+  platten: z.array(platte).max(200).nullable(),
+  architektur: architektur.nullable(),
+  os: z.object({ name: z.string(), version: z.string() }).nullable(),
+  kernel: z.object({ laeuft: z.string().nullable(), installiert: z.string().nullable() }),
+  neustartNoetig: z.boolean().nullable(),
   updatesAusstehend: z.number().int().nonnegative().nullable(),
   podman: z.string().nullable(),
-  ipv4: z.array(z.string()),
-  ipv6: z.array(z.string()),
+  ipv4: z.array(z.string()).max(200).nullable(),
+  ipv6: z.array(z.string()).max(200).nullable(),
   ptr: z.record(z.string(), z.string()),
-  portsBelegt: z.array(
-    z.object({ port: z.number().int().min(1).max(65535), proto: z.enum(["tcp", "udp"]) }),
-  ),
+  portsBelegt: z
+    .array(z.object({ port: z.number().int().min(1).max(65535), proto: z.enum(["tcp", "udp"]) }))
+    .max(10_000)
+    .nullable(),
   port25Ausgehend: z.boolean().nullable(),
   uhrzeitAbweichungMs: z.number().int().nullable(),
 });
@@ -114,13 +119,14 @@ export const LogAuszug = z.object({
   zeilen: z.array(z.string()).max(500),
 });
 
+/** An accepted SSH login from the journal (Z-304, docs/plan.md "Notzugang"), at its own time */
 export const SshAnmeldung = z.object({
   typ: z.literal("ssh_anmeldung"),
   protokoll,
   zeit: zeitpunkt,
-  nutzer: z.string().min(1),
-  von: z.string().min(1),
-  methode: z.string().min(1),
+  nutzer: z.string().min(1).max(256),
+  von: z.string().min(1).max(100),
+  methode: z.string().min(1).max(100),
 });
 
 /**

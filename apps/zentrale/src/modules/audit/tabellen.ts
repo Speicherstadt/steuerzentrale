@@ -3,6 +3,7 @@ import {
   betreiber,
   einladungen,
   ereignisse,
+  fakten,
   geheimnisse,
   heartbeats,
   kunden,
@@ -34,6 +35,7 @@ export const tabellen = {
     schluessel: ["serverId", "zeitpunkt"],
     zeit: heartbeats.zeitpunkt,
   },
+  fakten: { tabelle: fakten, schluessel: ["serverId", "zeitpunkt"], zeit: fakten.zeitpunkt },
 } satisfies Record<
   string,
   { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined }

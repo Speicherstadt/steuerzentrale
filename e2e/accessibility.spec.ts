@@ -1,10 +1,12 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { kundeAnlegen } from "./hilfen/kunden.ts";
+import { serverAnlegen } from "./hilfen/server.ts";
 
 // Every page of the route tree, in light and dark, on the desktop and a phone, checked with axe; the
 // `pages` check (checks.json) reads the paths in this file. The data are the demo fixtures
-// (apps/web/src/demo/), the detail pages open one object of each kind. The session is the first
+// (apps/web/src/demo/), the detail pages open one object of each kind; customers and servers come
+// from the Zentrale, so their detail pages open one made over the API (ECHT). The session is the first
 // owner's (e2e/einrichtung.setup.ts).
 const pages = [
   "/",
@@ -33,6 +35,8 @@ const pages = [
 test.use({ locale: "de-DE" });
 
 const ECHT: Record<string, (page: Page) => Promise<string>> = {
+  "/server/shared-2": async (page) =>
+    `/server/${(await serverAnlegen(page.request, "Gemeinsamer Server 2")).serverId}`,
   "/kunden/praxis-weber": async (page) =>
     `/kunden/${(await kundeAnlegen(page.request, "Praxis Weber")).id}`,
 };

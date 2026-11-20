@@ -12,14 +12,19 @@ import {
   ShieldCheck,
 } from "@steuerzentrale/ui/icons";
 import { titel } from "../daten/ableitungen.ts";
-import type { Bestand, Server } from "../daten/typen.ts";
+import type { AgentZustand, Bestand } from "../daten/typen.ts";
 import type { Pruefung } from "../daten/zustand.ts";
 import { prozent, zahl } from "../format/zahl.ts";
 import { vor } from "../format/zeit.ts";
 
 /** The texts of a server's agent and checks */
 
-export const agentText = (b: Bestand, sv: Server): string => {
+/** The agent's state and its last sign of life; a server of the demo or one of the Zentrale */
+export const agentText = (
+  b: Pick<Bestand, "jetzt">,
+  sv: { agent: { zustand: AgentZustand; letzteMeldung: number | null } },
+): string => {
+  if (sv.agent.letzteMeldung === null) return m.agent_noch_nie();
   const seit = vor(sv.agent.letzteMeldung, b.jetzt);
   if (sv.agent.zustand === "verbunden") return m.agent_verbunden_seit({ seit });
   return sv.agent.zustand === "still"

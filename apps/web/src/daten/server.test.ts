@@ -18,6 +18,8 @@ const beispiel: ServerDerZentrale = {
   zertifikatGueltigBis: JETZT + 1000,
   gesperrtAm: null,
   agent: { zustand: "verbunden", letzterHeartbeat: JETZT - 10 },
+  fakten: null,
+  faktenAm: null,
 };
 
 describe("the API source of the servers", () => {

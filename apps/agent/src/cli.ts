@@ -2,7 +2,11 @@ import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
 import { beitreten } from "./beitritt/beitreten.ts";
 import { type Dateien, echteDateien } from "./dateien.ts";
 import { dienstPruefen } from "./dienst.ts";
+import { type FaktenNachricht, faktenLesen } from "./fakten/lesen.ts";
+import { echteQuellen } from "./fakten/quellen.ts";
 import { type Pfade, pfadeIn } from "./pfade.ts";
+import { anmeldungenFolgen } from "./ssh/anmeldungen.ts";
+import { echtFolgen } from "./ssh/journal.ts";
 import { echtOeffnen } from "./verbindung/sockel.ts";
 import { verbindungsSchleife } from "./verbindung/verbinden.ts";
 
@@ -17,6 +21,7 @@ export const USAGE = [
   "usage: steuerzentrale-agent --version",
   "       steuerzentrale-agent beitreten --zentrale <url> [--testmodus] < token",
   "       steuerzentrale-agent dienst",
+  "       steuerzentrale-agent fakten",
 ].join("\n");
 
 export type CliDeps = {
@@ -27,6 +32,8 @@ export type CliDeps = {
   architektur: string;
   /** Starts the connection to the Zentrale (src/verbindung); the process keeps running for it */
   dienstStarten: (zentrale: string, pfade: Pfade, architektur: "amd64" | "arm64") => void;
+  /** Reads the server's facts (src/fakten) */
+  fakten: () => Promise<FaktenNachricht>;
   /** Other directories than /etc/steuerzentrale and /var/lib/steuerzentrale, for tests */
   konfig?: string;
   zustand?: string;
@@ -46,6 +53,17 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur) =
       dateien: echteDateien,
       pfade,
       architektur,
+      meldungen: {
+        fakten: (uhrzeitAbweichungMs) =>
+          faktenLesen(echteQuellen(), { jetzt: Date.now(), uhrzeitAbweichungMs }),
+        anmeldungen: (melden) =>
+          anmeldungenFolgen({
+            folgen: echtFolgen,
+            dateien: echteDateien,
+            cursorPfad: pfade.sshCursor,
+            melden,
+          }),
+      },
     },
     zentrale,
   );
@@ -57,6 +75,7 @@ const echteDeps = (): CliDeps => ({
   eingabe: () => Bun.stdin.text(),
   architektur: process.arch,
   dienstStarten,
+  fakten: () => faktenLesen(echteQuellen(), { jetzt: Date.now(), uhrzeitAbweichungMs: null }),
 });
 
 /** `--name wert` pairs and bare `--flag`s; anything else makes the arguments invalid */
@@ -112,5 +131,8 @@ export const runCli = async (args: string[], deps: CliDeps = echteDeps()): Promi
   const [befehl, ...rest] = args;
   if (befehl === "beitreten") return beitretenBefehl(deps, rest);
   if (befehl === "dienst" && rest.length === 0) return dienstBefehl(deps);
+  // what the agent would report, for a look on the server; the clock needs the Zentrale
+  if (befehl === "fakten" && rest.length === 0)
+    return { code: 0, out: JSON.stringify(await deps.fakten(), null, 2) };
   return { code: 2, out: USAGE };
 };

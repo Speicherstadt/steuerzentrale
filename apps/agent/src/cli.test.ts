@@ -16,6 +16,7 @@ const deps = (eingabe = ""): CliDeps & { gesendet: unknown[]; gestartet: unknown
     },
     eingabe: async () => eingabe,
     architektur: "x64",
+    fakten: async () => ({ typ: "fakten", zeit: 1 }) as never,
     gesendet,
   };
 };
@@ -34,6 +35,13 @@ describe("agent command line", () => {
       2,
     );
     expect((await runCli(["dienst", "--jetzt"], deps())).code).toBe(2);
+    expect((await runCli(["fakten", "--shell"], deps())).code).toBe(2);
+  });
+
+  it("prints the facts it would report (Z-304)", async () => {
+    const ergebnis = await runCli(["fakten"], deps());
+    expect(ergebnis.code).toBe(0);
+    expect(JSON.parse(ergebnis.out)).toEqual({ typ: "fakten", zeit: 1 });
   });
 
   it("refuses to run as a service on a server that has not joined", async () => {

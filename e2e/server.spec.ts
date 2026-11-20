@@ -24,6 +24,9 @@ test.describe("adding a server", { tag: "@phone" }, () => {
     expect((await new AxeBuilder({ page }).include("dialog").analyze()).violations).toEqual([]);
     await befehl.getByRole("button", { name: "Fertig" }).click();
     await expect(befehl).toBeHidden();
+    // Z-304: the list comes from the Zentrale; the new server is there, without facts yet
+    const zeile = page.getByRole("row").filter({ hasText: "Gemeinsamer Server 3" }).first();
+    await expect(zeile).toContainText("noch keine Fakten");
   });
 
   test("asks for the customer of a server at the customer", async ({ page }) => {

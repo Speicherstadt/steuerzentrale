@@ -1,10 +1,15 @@
-import { HEARTBEAT_MS, PROTOKOLL_VERSION, ROTIEREN_VOR_MS } from "@steuerzentrale/protokoll";
+import {
+  FAKTEN_MS,
+  HEARTBEAT_MS,
+  PROTOKOLL_VERSION,
+  ROTIEREN_VOR_MS,
+} from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { speicher } from "../beitritt/testhilfen.ts";
 import { pfadeIn } from "../pfade.ts";
 import { wartezeit } from "./backoff.ts";
 import type { Ereignisse, Tls } from "./sockel.ts";
-import { verbindungsSchleife, verbindungsUrl } from "./verbinden.ts";
+import { type VerbindenDeps, verbindungsSchleife, verbindungsUrl } from "./verbinden.ts";
 
 /*
  * BAULISTE.md Z-303: the agent's side of the connection against a Zentrale in memory, with a clock
@@ -15,7 +20,7 @@ const TAG = 24 * 3600_000;
 const pfade = pfadeIn("/k", "/z");
 const PEM = (art: string, wer = "a") => `-----BEGIN ${art}-----\n${wer}\n-----END ${art}-----\n`;
 
-const aufgebaut = (zufall = 0) => {
+const aufgebaut = (zufall = 0, meldungen?: VerbindenDeps["meldungen"]) => {
   const uhr = { ms: JETZT };
   const plaene: { wann: number; lauf: () => void; aktiv: boolean }[] = [];
   const fs = speicher({ "/z/agent.key": PEM("PRIVATE KEY"), "/z/agent.pem": PEM("CERTIFICATE") });
@@ -60,6 +65,7 @@ const aufgebaut = (zufall = 0) => {
         schluessel: PEM("PRIVATE KEY", "neu"),
         csr: PEM("CERTIFICATE REQUEST"),
       }),
+      ...(meldungen ? { meldungen } : {}),
     },
     "https://agent.example.de",
   );
@@ -80,12 +86,12 @@ const aufgebaut = (zufall = 0) => {
     await new Promise((r) => setTimeout(r, 0));
   };
   const letzte = () => verbindungen.at(-1);
-  const willkommen = (zertifikatGueltigBis = JETZT + 365 * TAG) =>
+  const willkommen = (zertifikatGueltigBis = JETZT + 365 * TAG, zeit = uhr.ms) =>
     letzte()?.e.nachricht(
       JSON.stringify({
         typ: "willkommen",
         protokoll: PROTOKOLL_VERSION,
-        zeit: uhr.ms,
+        zeit,
         zertifikatGueltigBis,
       }),
     );
@@ -249,6 +255,97 @@ describe("rotating the certificate", () => {
     await a.vergehen(0);
     expect(a.letzte()?.gesendet.map((n) => n.typ)).toEqual(["hallo"]);
     expect(a.fs.inhalt.get("/z/agent.pem")?.text).toBe(PEM("CERTIFICATE"));
+  });
+});
+
+describe("facts and SSH logins (Z-304)", () => {
+  const FAKTEN = {
+    typ: "fakten" as const,
+    protokoll: PROTOKOLL_VERSION,
+    zeit: JETZT,
+    cpuKerne: 2,
+    ramMb: 2048,
+    platten: [],
+    architektur: "arm64" as const,
+    os: null,
+    kernel: { laeuft: null, installiert: null },
+    neustartNoetig: false,
+    updatesAusstehend: null,
+    podman: null,
+    ipv4: [],
+    ipv6: [],
+    ptr: {},
+    portsBelegt: null,
+    port25Ausgehend: null,
+  };
+  const mitMeldungen = () => {
+    const abweichungen: (number | null)[] = [];
+    const ssh: {
+      melden?: (a: { zeit: number; nutzer: string; von: string; methode: string }) => void;
+      gestoppt: number;
+    } = { gestoppt: 0 };
+    const a = aufgebaut(0, {
+      fakten: async (uhrzeitAbweichungMs) => {
+        abweichungen.push(uhrzeitAbweichungMs);
+        return { ...FAKTEN, uhrzeitAbweichungMs };
+      },
+      anmeldungen: (melden) => {
+        ssh.melden = melden;
+        return { stoppen: () => (ssh.gestoppt += 1) };
+      },
+    });
+    return { a, abweichungen, ssh };
+  };
+
+  it("sends the facts after willkommen and then every 15 minutes, with the clock offset", async () => {
+    const { a, abweichungen } = mitMeldungen();
+    await a.vergehen(0);
+    a.letzte()?.e.offen();
+    await a.vergehen(400);
+    // the Zentrale's clock says JETZT + 500 when the agent's says JETZT + 400: 300 ms behind
+    a.willkommen(undefined, JETZT + 500);
+    await a.vergehen(0);
+    expect(a.letzte()?.gesendet.map((n) => n.typ)).toEqual(["hallo", "fakten"]);
+    expect(abweichungen).toEqual([-300]);
+    await a.vergehen(FAKTEN_MS);
+    const typen = a.letzte()?.gesendet.map((n) => n.typ) ?? [];
+    expect(typen.filter((t) => t === "fakten")).toHaveLength(2);
+    expect(typen.filter((t) => t === "heartbeat")).toHaveLength(FAKTEN_MS / HEARTBEAT_MS);
+  });
+
+  it("sends an SSH login as ssh_anmeldung", async () => {
+    const { a, ssh } = mitMeldungen();
+    await a.vergehen(0);
+    a.letzte()?.e.offen();
+    a.willkommen();
+    await a.vergehen(0);
+    ssh.melden?.({ zeit: 7, nutzer: "tristan", von: "10.8.0.2", methode: "publickey" });
+    expect(a.letzte()?.gesendet.at(-1)).toEqual({
+      typ: "ssh_anmeldung",
+      protokoll: PROTOKOLL_VERSION,
+      zeit: 7,
+      nutzer: "tristan",
+      von: "10.8.0.2",
+      methode: "publickey",
+    });
+  });
+
+  it("stops both when the connection ends, and starts them again with the next", async () => {
+    const { a, ssh } = mitMeldungen();
+    await a.vergehen(0);
+    a.letzte()?.e.offen();
+    a.willkommen();
+    await a.vergehen(0);
+    const erste = a.letzte();
+    erste?.e.zu(1006, "");
+    expect(ssh.gestoppt).toBe(1);
+    ssh.melden?.({ zeit: 7, nutzer: "x", von: "y", methode: "z" });
+    await a.vergehen(FAKTEN_MS);
+    expect(erste?.gesendet.map((n) => n.typ)).toEqual(["hallo", "fakten"]);
+    a.letzte()?.e.offen();
+    a.willkommen();
+    await a.vergehen(0);
+    expect(a.letzte()?.gesendet.map((n) => n.typ)).toEqual(["hallo", "fakten"]);
   });
 });
 

@@ -188,7 +188,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-302
   Fertig, wenn: ein Test Verbindungsabbruch, Wiederverbindung, gesperrtes Zertifikat und Rate-Limit
   abdeckt und ein stiller Server nach 3 min ein Ereignis erzeugt.
-- [ ] **Z-304 Serverfakten** – CPU, RAM, Platte je Mount, Architektur, OS und Kernel (läuft,
+- [x] **Z-304 Serverfakten** – CPU, RAM, Platte je Mount, Architektur, OS und Kernel (läuft,
   installiert), „Neustart nötig“, ausstehende Updates, Podman-Version, IPv4/IPv6, PTR, belegte Ports,
   ausgehender Port 25, Uhrzeit; SSH-Anmeldungen aus journald als Ereignis.
   nach: Z-303, Z-204
