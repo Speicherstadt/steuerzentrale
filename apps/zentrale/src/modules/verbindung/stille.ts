@@ -8,7 +8,8 @@ import type { Planer } from "../aufbewahrung/index.ts";
 /*
  * A silent server (BAULISTE.md Z-303): three minutes without a heartbeat make an event, once per
  * silence. Whether one was made already the events themselves tell: an event of this server newer
- * than the start of its silence. When heartbeats come back, the next silence starts later and gets
+ * than the start of its silence (its last heartbeat, not the start of the check, so a restart of the
+ * Zentrale does not report the same silence again). When heartbeats come back, the next silence starts later and gets
  * its own. A Zentrale that was down itself does not blame the servers for it: the silence counts at
  * the earliest from the start of the check.
  */
@@ -64,8 +65,10 @@ export const stilleServerMelden = (
   let gemeldet = 0;
   for (const sv of kandidaten) {
     const letzter = letzte.get(`${sv.betreiberId}\u0000${sv.serverId}`) ?? 0;
-    const seit = Math.max(letzter, sv.beigetretenAm ?? 0, gestartetAm);
-    if (jetzt - seit < STILL_EREIGNIS_MS || schonGemeldet(db, sv.betreiberId, sv.serverId, seit))
+    // the silence began with the last sign of the server; a restart of the Zentrale does not end it
+    const beginn = Math.max(letzter, sv.beigetretenAm ?? 0);
+    const seit = Math.max(beginn, gestartetAm);
+    if (jetzt - seit < STILL_EREIGNIS_MS || schonGemeldet(db, sv.betreiberId, sv.serverId, beginn))
       continue;
     const minuten = Math.floor((jetzt - seit) / 60_000);
     const kontext = { betreiberId: sv.betreiberId, akteur: "system", jetzt, grund: "Server still" };

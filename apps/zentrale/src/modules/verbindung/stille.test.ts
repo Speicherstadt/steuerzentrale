@@ -99,6 +99,18 @@ describe("stilleServerMelden", () => {
     expect(stille()).toHaveLength(2);
   });
 
+  it("makes no second event for the same silence after the Zentrale restarted", () => {
+    const { db, schreibDb, heartbeat, stille } = mitServern();
+    heartbeat("b2", "s2", START + 120 * MINUTE);
+    expect(stilleServerMelden(db, schreibDb, START + 3 * MINUTE, START)).toBe(1);
+    // a restart (an update of the Zentrale) an hour later, s1 still silent since START
+    const neustart = START + 60 * MINUTE;
+    expect(stilleServerMelden(db, schreibDb, neustart + 3 * MINUTE, neustart)).toBe(0);
+    expect(stille().filter(([, z]) => z === "server:s1")).toEqual([
+      ["b1", "server:s1", START + 3 * MINUTE],
+    ]);
+  });
+
   it("writes the event through the audit log", () => {
     const { db, schreibDb } = mitServern();
     const vorher = db.select().from(auditLog).all().length;
