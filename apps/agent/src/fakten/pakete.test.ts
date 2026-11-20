@@ -24,6 +24,24 @@ describe("pending updates", () => {
     expect(APT_SIMULIEREN).toEqual(["apt-get", "-s", "-q", "upgrade"]);
   });
 
+  it("counts the updates apt keeps back too, such as a new kernel", async () => {
+    // `apt-get -s upgrade` installs no new packages, so a kernel with a new ABI is kept back
+    // (apt-get(8), upgrade); it is a pending update all the same
+    const zurueck = [
+      "Reading package lists...",
+      "Calculating upgrade...",
+      "The following packages have been kept back:",
+      "  linux-generic linux-image-generic",
+      "The following packages will be upgraded:",
+      "  openssl",
+      "1 upgraded, 0 newly installed, 0 to remove and 2 not upgraded.",
+      "Inst openssl [3.0.13-0ubuntu3.4] (3.0.13-0ubuntu3.5 Ubuntu:24.04/noble-updates [amd64])",
+      "Conf openssl (3.0.13-0ubuntu3.5 Ubuntu:24.04/noble-updates [amd64])",
+    ].join("\n");
+    const q = testQuellen({ befehle: { [APT_SIMULIEREN.join(" ")]: { code: 0, aus: zurueck } } });
+    expect(await updatesAusstehend(q)).toBe(3);
+  });
+
   it("is 0 when apt has nothing, null without apt or when it fails", async () => {
     const leer =
       "Reading package lists...\n0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.";
