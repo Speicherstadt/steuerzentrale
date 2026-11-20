@@ -66,8 +66,10 @@ describe.skipIf(podman === null)("rendered Quadlet units with Podman's generator
     const { code, aus, fehler, units } = pruefen(fall);
     expect(code, fehler).toBe(0);
     expect(fehler).not.toMatch(/converting|unsupported key/);
+    // The dry run heads each unit with "---<name>.service---"; Podman 4.9.3 on the runner prints
+    // the bare name, builds from source a path in front of it
     for (const datei of readdirSync(units).filter((d) => d.endsWith(".container")))
-      expect(aus).toContain(`/${datei.replace(/\.container$/, ".service")}---`);
+      expect(aus).toContain(`${datei.replace(/\.container$/, ".service")}---`);
     expect(aus).not.toContain("io.containers.autoupdate");
   });
 
