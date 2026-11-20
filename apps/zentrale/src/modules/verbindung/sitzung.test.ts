@@ -1,7 +1,7 @@
 import * as x509 from "@peculiar/x509";
-import { PROTOKOLL_VERSION, ROTIEREN_VOR_MS } from "@steuerzentrale/protokoll";
+import { HEARTBEAT_MS, PROTOKOLL_VERSION, ROTIEREN_VOR_MS } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
-import { auditLog, server as serverTabelle } from "../../db/schema.ts";
+import { auditLog, heartbeats, server as serverTabelle } from "../../db/schema.ts";
 import { serverHinzufuegen } from "../../testhilfen/agent.ts";
 import { testServer } from "../../testhilfen/server.ts";
 import { agentAnfrage, agentBeitreten, fingerabdruckVon } from "../../testhilfen/tls.ts";
@@ -132,5 +132,23 @@ describe("rotating the certificate", () => {
     expect(serverSperren(server.db, server.schreibDb, kontext, agent.serverId).ok).toBe(true);
     expect(serverZumFingerabdruck(server.db, neuerFingerabdruck)).toBeUndefined();
     expect(server.db.select().from(serverTabelle).get()?.fingerabdruckNeu).toBeNull();
+  });
+});
+
+describe("heartbeats", () => {
+  it("keeps one per interval: an agent that floods them cannot fill the table past the audit log", async () => {
+    const { server, oeffnen } = await aufgebaut();
+    const { s } = await oeffnen();
+    const beat = JSON.stringify({ typ: "heartbeat", protokoll: PROTOKOLL_VERSION, zeit: 1 });
+    const start = server.jetzt();
+    for (let i = 0; i < 100; i++) {
+      server.stelleUhr(start + i * 100);
+      await s.nachricht(beat);
+    }
+    // ten seconds of beats, a third of an interval: one row
+    expect(server.db.select().from(heartbeats).all()).toHaveLength(1);
+    server.stelleUhr(start + HEARTBEAT_MS);
+    await s.nachricht(beat);
+    expect(server.db.select().from(heartbeats).all()).toHaveLength(2);
   });
 });

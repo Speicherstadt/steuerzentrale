@@ -25,11 +25,16 @@ afterEach(() => {
 
 const aufgebaut = async () => {
   const zentrale = testServer();
-  // the Zentrale's clock is the real one: TLS checks the certificates against it
-  Object.defineProperty(zentrale.uhr, "ms", { get: () => Date.now() });
+  // the Zentrale's clock is the real one while the certificate is issued (TLS checks it against
+  // that), then it runs as fast as the agent's planned waits: its heartbeats come every 30 s for both
+  let beginn: number | undefined;
+  Object.defineProperty(zentrale.uhr, "ms", {
+    get: () => (beginn === undefined ? Date.now() : beginn + (Date.now() - beginn) * RAFFUNG),
+  });
   const inhaber = await zentrale.inhaber();
   const { token } = await serverHinzufuegen(inhaber);
   const agent = await agentBeitreten(zentrale, token);
+  beginn = Date.now();
   const starten = (port = 0) => zentraleStarten(zentrale.app, port);
   let bun = starten();
   const port = bun.port ?? 0;

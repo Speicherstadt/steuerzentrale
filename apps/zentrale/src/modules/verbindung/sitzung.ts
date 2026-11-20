@@ -1,5 +1,6 @@
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
 import {
+  HEARTBEAT_MS,
   type NachrichtVomAgenten,
   schreiben as nachrichtSchreiben,
   PROTOKOLL_VERSION,
@@ -37,6 +38,12 @@ export type Sitzung = {
   zu: () => void;
 };
 
+/**
+ * Heartbeats closer than this are dropped: they bypass the audit log because they come every 30 s,
+ * so an agent that sends more cannot fill the table
+ */
+const HEARTBEAT_ABSTAND_MS = HEARTBEAT_MS / 2;
+
 /** The close reason is at most 123 bytes (RFC 6455, 5.5); ours are short and ASCII */
 const kurz = (grund: string) => grund.slice(0, 100);
 
@@ -51,6 +58,7 @@ export const sitzung = (
   let server = angemeldet.server;
   let sockel: Sockel | undefined;
   let gegruesst = false;
+  let letzterHeartbeat = Number.NEGATIVE_INFINITY;
 
   const hallo = (n: Extract<NachrichtVomAgenten, { typ: "hallo" }>, s: Sockel, jetzt: number) => {
     if (n.agentVersion !== server.agentVersion || n.architektur !== server.architektur)
@@ -109,13 +117,18 @@ export const sitzung = (
         if (n.typ !== "hallo") return s.schliessen(TRENNUNG.ungueltig, "hallo first");
         return hallo(n, s, jetzt);
       }
-      if (n.typ === "heartbeat")
+      if (n.typ === "heartbeat") {
+        // a clock that jumped back does not silence the server
+        const abstand = jetzt - letzterHeartbeat;
+        if (abstand >= 0 && abstand < HEARTBEAT_ABSTAND_MS) return;
+        letzterHeartbeat = jetzt;
         return heartbeatAnfuegen(deps.schreibDb, {
           betreiberId,
           serverId,
           zeitpunkt: jetzt,
           daten: JSON.stringify({ zeit: n.zeit, protokoll: n.protokoll }),
         });
+      }
       if (n.typ === "zertifikat_anfrage") return rotieren(n.csr, s);
     },
     zu: () => {
