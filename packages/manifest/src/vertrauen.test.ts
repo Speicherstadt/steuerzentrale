@@ -30,4 +30,11 @@ describe("trusting a key", () => {
       schluesselVertrauen({ id: "0123456789ABCDEF", schluessel: new Uint8Array(32) }, "release"),
     ).toEqual({ ok: true });
   });
+
+  it("refuses the test key for a release under another key id", () => {
+    // The id is only a label in the .pub file; whoever has test.key signs under any id
+    // (scripts/minisign.ts), so the key bytes decide, not the id
+    const umbenannt = { ...testSchluessel(), id: "0123456789ABCDEF" };
+    expect(schluesselVertrauen(umbenannt, "release")).toMatchObject({ ok: false });
+  });
 });
