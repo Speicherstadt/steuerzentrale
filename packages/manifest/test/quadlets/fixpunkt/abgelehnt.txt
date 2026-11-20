@@ -1,0 +1,1 @@
+container.0.image: app has no published image (Kein Release 0.1.0: docker.io/tristanteu/fixpunkt hat nur den Tag edge, auf GHCR gibt es kein Image (scripts/digest.ts, 2026-11-20)); an app without an image cannot be installed

@@ -150,7 +150,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: jede Regel einen Fall „passt“, „Grenze“ und „passt nicht“ hat, fast-check zeigt,
   dass eine angenommene Platzierung nie zwei Installationen auf denselben festen Port legt und nie
   mehr RAM vergibt als der Server hat, und Kontext mit `documents` auf arm64 abgelehnt wird.
-- [ ] **Z-205 Quadlets rendern** – reine Funktion: Manifest, Installation, Einstellungen →
+- [x] **Z-205 Quadlets rendern** – reine Funktion: Manifest, Installation, Einstellungen →
   `.container`-, `.volume`- und ein `.network`-Unit je Installation, Podman-Secrets, Caddy-Schnipsel;
   Namen mit der Installation als Präfix; HTTP-Dienst nur per `PublishPort=127.0.0.1:<port>:…`;
   `MemoryMax` aus den Ressourcen (Platte nur geplant, plan.md, „Ressourcen“); nur Schlüssel, die

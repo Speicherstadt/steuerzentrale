@@ -1,0 +1,23 @@
+# kontext 0.1.37 for the installation kontext-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=kontext 0.1.37, redis (kontext-k1)
+
+[Container]
+ContainerName=kontext-k1-redis
+Image=docker.io/library/redis@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
+Network=kontext-k1.network:alias=redis
+Label="de.speicherstadt.steuerzentrale.installation=kontext-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=kontext"
+Label="de.speicherstadt.steuerzentrale.version=0.1.37"
+NoNewPrivileges=true
+Exec="redis-server" "--save" "--appendonly" "no"
+
+[Service]
+Slice=kontext-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

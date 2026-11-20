@@ -141,6 +141,20 @@ describe("invalid manifests", () => {
       "optionen.0.container.0.argv.0: bash would start a shell",
     ],
     [
+      "a container argument Quadlet would drop (Z-205: escapeWords writes an empty word as nothing)",
+      (m) => {
+        m.container[0].argv = ["redis-server", "--save", ""];
+      },
+      "container.0.argv.2: an argument of a container is never empty: Quadlet drops it from ExecStart",
+    ],
+    [
+      "a container argument with a line break",
+      (m) => {
+        m.container[0].argv = ["serve", "a\nb"];
+      },
+      "container.0.argv.1: an argument of a container has no control character",
+    ],
+    [
       "rootful on a shared server",
       (m) => {
         m.rootful = true;

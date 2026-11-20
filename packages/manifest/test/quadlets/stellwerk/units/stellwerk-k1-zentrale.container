@@ -1,0 +1,27 @@
+# stellwerk 0.1.12 for the installation stellwerk-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=stellwerk 0.1.12, zentrale (stellwerk-k1)
+
+[Container]
+ContainerName=stellwerk-k1-zentrale
+Image=docker.io/tristanteu/stellwerk@sha256:41f38458d09c1c5f3865e23a7719739cb5d71fdf0272cbe652b8c2db84810291
+Network=stellwerk-k1.network:alias=zentrale
+Label="de.speicherstadt.steuerzentrale.installation=stellwerk-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=stellwerk"
+Label="de.speicherstadt.steuerzentrale.version=0.1.12"
+NoNewPrivileges=true
+PublishPort=127.0.0.1:20001:8080
+PublishPort=20101:22001/tcp
+Volume=stellwerk-k1-daten.volume:/data
+Environment="STELLWERK_HUB_ADDRESS=tcp://stellwerk-k1.kunde.example:20101"
+Environment="STELLWERK_PUBLIC_URL=https://stellwerk-k1.kunde.example"
+
+[Service]
+Slice=stellwerk-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

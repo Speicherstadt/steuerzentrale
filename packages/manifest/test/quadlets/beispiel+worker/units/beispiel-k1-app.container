@@ -1,0 +1,27 @@
+# beispiel 1.0.0 for the installation beispiel-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=beispiel 1.0.0, app (beispiel-k1)
+
+[Container]
+ContainerName=beispiel-k1-app
+Image=localhost:5000/beispiel@sha256:0000000000000000000000000000000000000000000000000000000000000000
+Network=beispiel-k1.network:alias=app
+Label="de.speicherstadt.steuerzentrale.installation=beispiel-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=beispiel"
+Label="de.speicherstadt.steuerzentrale.version=1.0.0"
+NoNewPrivileges=true
+PublishPort=127.0.0.1:20001:8080
+PublishPort=20101:9000/tcp
+Volume=beispiel-k1-daten.volume:/daten
+Environment="BEISPIEL_TITEL=Beispiel"
+Environment="BEISPIEL_SCHLUESSEL=test-erzeugt-beispiel_schluessel"
+
+[Service]
+Slice=beispiel-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

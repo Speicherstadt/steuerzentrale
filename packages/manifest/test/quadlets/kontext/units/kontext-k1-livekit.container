@@ -1,0 +1,29 @@
+# kontext 0.1.37 for the installation kontext-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=kontext 0.1.37, livekit (kontext-k1)
+Requires=kontext-k1-redis.service
+After=kontext-k1-redis.service
+
+[Container]
+ContainerName=kontext-k1-livekit
+Image=docker.io/livekit/livekit-server@sha256:25cd902de7cacbd5f1f779f6a6ac1eae20ba8f56b0935934ce6b0ab80d1e3d20
+Network=kontext-k1.network:alias=livekit
+Label="de.speicherstadt.steuerzentrale.installation=kontext-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=kontext"
+Label="de.speicherstadt.steuerzentrale.version=0.1.37"
+NoNewPrivileges=true
+PublishPort=7881:7881/tcp
+PublishPort=7882:7882/udp
+Volume=%h/.config/steuerzentrale/dateien/livekit/etc/livekit.yaml:/etc/livekit.yaml:ro
+Secret=kontext-k1-livekit-keys,type=env,target=LIVEKIT_KEYS
+Exec="--config" "/etc/livekit.yaml" "--udp-port" "7882"
+
+[Service]
+Slice=kontext-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,35 @@
+# kontext 0.1.37 for the installation kontext-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=kontext 0.1.37, kontext (kontext-k1)
+Requires=kontext-k1-stalwart.service
+After=kontext-k1-stalwart.service
+
+[Container]
+ContainerName=kontext-k1-kontext
+Image=ghcr.io/speicherstadt/kontext@sha256:e36307756e0f6ed5ebcf525cc96ef8889049a62ca44eb5e791452b5b67b547c7
+Network=kontext-k1.network:alias=kontext
+Label="de.speicherstadt.steuerzentrale.installation=kontext-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=kontext"
+Label="de.speicherstadt.steuerzentrale.version=0.1.37"
+NoNewPrivileges=true
+Volume=kontext-k1-kontext-data.volume:/data
+Environment="STALWART_URL=http://stalwart:8080"
+Environment="LIVEKIT_URL=http://livekit:7880"
+Environment="LIVEKIT_API_KEY=kontext"
+Environment="BETTER_AUTH_URL=https://kontext-k1.kunde.example"
+Secret=kontext-k1-better-auth-secret,type=env,target=BETTER_AUTH_SECRET
+Secret=kontext-k1-stalwart-admin-key,type=env,target=STALWART_ADMIN_KEY
+Secret=kontext-k1-stalwart-admin,type=env,target=STALWART_ADMIN
+Secret=kontext-k1-livekit-api-secret,type=env,target=LIVEKIT_API_SECRET
+Environment="SCHREIBZEUG_URL=test-schreibzeug_url"
+Secret=kontext-k1-schreibzeug-client-secret,type=env,target=SCHREIBZEUG_CLIENT_SECRET
+
+[Service]
+Slice=kontext-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

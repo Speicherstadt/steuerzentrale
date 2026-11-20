@@ -53,7 +53,7 @@ Beide nennen die anderen Container beim Namen (`kontext:3000`, `stalwart:8080`, 
 | Volumes `caddy-data`, `caddy-config` | `/data`, `/config` | `caddy.container` |
 | Volume `schreibzeug-data` | `/data` | `schreibzeug.container` |
 | `feste_env` von `schreibzeug` | `OIDC_CLIENT_ID` = schreibzeug | `schreibzeug.container` (`Environment=OIDC_CLIENT_ID=schreibzeug`) |
-| `redis` `argv` | `redis-server --save "" --appendonly no` | `redis.container` (`Exec=`), `deploy/compose.yaml` (`command`) |
+| `redis` `argv` | `redis-server --save --appendonly no` | `redis.container` (`Exec=redis-server --save "" --appendonly no`), `deploy/compose.yaml` (`command`); ohne das leere `""`, weil Quadlet ein leeres Wort beim Schreiben von `ExecStart=` weglässt (Podman v4.9.0, `pkg/systemd/parser/split.go`, `escapeWords`; so läuft auch Kontexts eigenes Quadlet) und Redis `--save` vor einer weiteren Option als `--save ""` liest (redis/redis 8.0.0, `src/server.c`, „Special case: handle some things like `--save --config value`“) |
 | `livekit` `argv` | `--config /etc/livekit.yaml --udp-port 7882` | `livekit.container` (`Exec=`) |
 | `architektur` | amd64, arm64 | Plattformen der Images oben; docs/plan.md, Tabelle |
 | `ressourcen` `ram_mb` | 4096 | docs/plan.md, Tabelle |
