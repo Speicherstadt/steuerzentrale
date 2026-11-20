@@ -47,6 +47,7 @@ const anfrage = (aenderung: Aenderung = {}): PlatzAnfrage => ({
     architektur: "amd64",
     ramMb: 4096,
     platteFreiMb: 100 * 1024,
+    platteGesamtMb: 200 * 1024,
     ipv4: ["203.0.113.10"],
     ptr: { "203.0.113.10": "server.example.org" },
     port25Ausgehend: true,
@@ -154,6 +155,14 @@ describe("placement", () => {
     });
     it("passt nicht", () =>
       expect(codes(anfrage({ server: { platteFreiMb: 10 * 1024 - 1 } })).gruende).toEqual([
+        "platte",
+      ]));
+    it("Grenze: the planned sizes of all installations may fill the disk exactly, with a hint", () =>
+      expect(codes(anfrage({ installationen: [andere({ platteGb: 190 })] })).hinweise).toEqual([
+        "platte_knapp",
+      ]));
+    it("passt nicht when the planned sizes together exceed the disk, however empty it is now", () =>
+      expect(codes(anfrage({ installationen: [andere({ platteGb: 191 })] })).gruende).toEqual([
         "platte",
       ]));
   });
