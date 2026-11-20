@@ -32,7 +32,7 @@ Zustandsfarben: `--ok` (grün), `--warn` (orange), `--destructive` (rot), `--inf
 | --- | --- |
 | Seitenleiste | Gruppen Betrieb, Kunden, System; Zähler nur, wenn es etwas zu tun gibt; unten Sperrzeiten und das eigene Konto |
 | Kennzahl | vier oben in der Übersicht, mit Badge und zwei Zeilen Erklärung |
-| Tabelle | Kopf in `muted`, Zeile hover; Server-Gruppierung als graue Zwischenzeile |
+| Tabelle | Kopf in `muted`, Zeile hover; Server-Gruppierung als graue Zwischenzeile; auf dem Handy seitlich scrollbar in ihrem Rahmen, die Seite nie |
 | Zustands-Badge | umrandet, Symbol in Zustandsfarbe, Text grau |
 | Dialog | Titel, ein Satz, was passiert; Felder; Grund; Abbrechen und Hauptaktion |
 | Prüfzeile | Symbol, Name, Detail, OK oder Prüfen |

@@ -39,6 +39,9 @@ export default defineConfig({
           include: tests(interfaces),
           environment: "happy-dom",
           setupFiles: ["./vitest.solid-diagnostics.ts"],
+          // The router ships its Solid source as JSX; inlined, the Solid plugin compiles it instead of
+          // Vite's default JSX (React)
+          server: { deps: { inline: [/@tanstack\/solid-router/] } },
         },
       },
     ],

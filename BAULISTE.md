@@ -78,7 +78,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   der Start ohne Schlüssel mit klarer Meldung abbricht, nach dem Rotieren jeder Wert lesbar bleibt
   und mit dem neuen Schlüssel verschlüsselt ist (Test) und ein Token nach dem Speichern nicht mehr
   lesbar ist.
-- [ ] **Z-105 Oberfläche und Demodaten** – Shell nach DESIGN.md und `design/mockup/`: Übersicht,
+- [x] **Z-105 Oberfläche und Demodaten** – Shell nach DESIGN.md und `design/mockup/`: Übersicht,
   Server, Installationen, Updates, Backups, Aufträge, Kunden, Support-Zugänge, Leistungen, Apps,
   Ereignisse, Audit-Log, Einstellungen; keine Kundenansicht (die ist im Portal); was das Mockup aus Stufe 2 zeigt
   (Betreiber wechseln, Umzug, dringende Updates), kommt erst mit seinem Punkt; `bun run dev:demo`

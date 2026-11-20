@@ -23,6 +23,12 @@
   --warning: #b45309;
   --warning-surface: #fef3c7;
   --danger: #b91c1c;
+  /* The state colours of DESIGN.md ("Farben"); as text they keep 4.5:1 on background and muted */
+  --ok: #15803d;
+  --warn: #b45309;
+  --destructive: #b91c1c;
+  --info: #1d4ed8;
+  --sidebar: #fafafa;
   color-scheme: light;
 }
 
@@ -40,6 +46,11 @@
     --warning: #fbbf24;
     --warning-surface: #422006;
     --danger: #f87171;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --destructive: #f87171;
+    --info: #60a5fa;
+    --sidebar: #0f0f11;
     color-scheme: dark;
   }
 }
@@ -57,6 +68,11 @@
   --warning: #fbbf24;
   --warning-surface: #422006;
   --danger: #f87171;
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --destructive: #f87171;
+  --info: #60a5fa;
+  --sidebar: #0f0f11;
   color-scheme: dark;
 }
 
@@ -73,6 +89,11 @@
   --color-warning: var(--warning);
   --color-warning-surface: var(--warning-surface);
   --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-destructive: var(--destructive);
+  --color-info: var(--info);
+  --color-sidebar: var(--sidebar);
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 }

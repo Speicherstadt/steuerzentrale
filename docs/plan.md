@@ -230,6 +230,7 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Export bei Kündigung | ein zeitlich begrenzter, vorsignierter S3-Link auf das Archiv des Exports oder letzten Backups; die Oberfläche zeigt ihn dem Betreiber, der ihn weitergibt; ab Stufe 2 übernimmt das Portal | Kunden melden sich nicht an der Zentrale an |
 | DCO | Commits des Loops tragen das `Signed-off-by` des Maintainers (Git-Identität der Loop-Sessions), Claude steht als `Co-Authored-By` darunter | das DCO ist die Erklärung einer Person |
 | Beiträge | DCO (Signed-off-by), kein CLA | Open Source ohne Sonderrechte |
+| Oberfläche vor der API | die Seiten lesen über eine Datenschicht (`apps/web/src/daten/`), die bis Z-406 die Demodaten aus `apps/web/src/demo/` liefert: ein Betreiber, Stufe 1 (nur SLA Basis, Wellen „intern“ und „alle“, installiert sind Haben, Belegt, Schreibzeug, Fixpunkt), die Seite „Apps“ zeigt alle acht; schreibende Aktionen (Knöpfe, Dialoge mit Grund) kommen erst mit ihrem Punkt, Einstellungen sind bis dahin nur lesbar | ein Knopf ohne Wirkung täuscht; die Demodaten sind zugleich Vorlage für die API und Grundlage für E2E und Screenshots |
 
 ## Technologie
 

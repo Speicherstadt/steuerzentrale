@@ -19,6 +19,7 @@ bun run test:agent   # der Agent gegen Podman; ohne Podman übersprungen, mit CI
 bun run e2e          # Playwright gegen Zentrale (Port 28300) und Oberfläche (Port 5182)
 bun run dev:zentrale # Zentrale auf Port 18300 (STEUERZENTRALE_SECRET_KEY setzen)
 bun run dev:web      # Oberfläche auf Port 5181, /api geht an die Zentrale
+bun run dev:demo     # Oberfläche auf Port 5181 mit den Demodaten, ohne Zentrale
 bun run db:generate  # neue Migration aus apps/zentrale/src/db/schema.ts
 bun run manifest:schema # JSON Schema des Manifests neu schreiben
 ```
@@ -38,6 +39,15 @@ das in derselben Transaktion einen Eintrag ins Audit-Log anfügt; alle anderen M
 Verbindung, die nicht schreiben kann. Ein Test sucht im Code nach Schreibzugriffen an `schreiben`
 vorbei.
 
+Die Oberfläche liest ihre Daten über `apps/web/src/daten/` (Typen, `quelle.ts` und reine Ableitungen
+wie Prüfungen, Wellen und „Braucht Aufmerksamkeit“). Bis die Zentrale ihre API hat, liefert `quelle.ts`
+die Demodaten aus `apps/web/src/demo/`: ein Betreiber mit den acht Apps der Speicherstadt, Servern,
+Installationen, Kunden, Ereignissen und Aufträgen. Dieselben Daten zeigen `bun run dev:demo`, die
+E2E-Tests und die Screenshots; mit der API (Z-406) bleiben sie für den Modus `demo` von Vite erhalten.
+Namen und Freitexte in den Demodaten sind Daten, keine Texte der Oberfläche; deshalb nimmt `checks.json`
+den Ordner von der Prüfung `i18n` aus. Seiten sind dateibasierte Routen von TanStack Router in
+`apps/web/src/routes/`; der Routenbaum `routeTree.gen.ts` entsteht beim Bauen und wird mit eingecheckt.
+
 `bun run build` baut Zentrale und Agent als je ein Binary für `linux-x64` und `linux-arm64`
 (`apps/*/dist/`) und die Oberfläche als statische Seite.
 
@@ -49,7 +59,7 @@ vorbei.
 | `packages/ui` | Komponenten und Texte der Oberfläche, von Kennwort übernommen |
 | `apps/zentrale` | Hono-Server mit `/health` und Logs ohne Geheimnisse |
 | `apps/agent` | der Agent auf jedem verwalteten Server |
-| `apps/web` | die Oberfläche (Solid 2, Vite) |
+| `apps/web` | die Oberfläche (Solid 2, Vite, TanStack Router) mit Demodaten |
 | `manifeste/beispiel` | Beispiel-App für die Tests: Dienst, Containerfile, Manifest-Vorlage |
 
 Die Beispiel-App (`manifeste/beispiel/`) ist ein kleiner HTTP-Dienst mit SQLite-Volume, Health,
@@ -81,9 +91,9 @@ und dass kein Code Muster aus Solid 1.x nutzt. Die Oberfläche ist Solid 2.0; de
 | Prüfung | Was | Workflow |
 | --- | --- | --- |
 | PR-Regeln | Titel, `Signed-off-by` an jedem Commit, Punkt der Bauliste abgehakt; Hinweise bei Code ohne Doku und Fix ohne Test | `pr-regeln.yml` |
-| Unit | Typen, Biome, erlaubte Abhängigkeiten, keine Muster aus Solid 1.x (`scripts/solid-muster.ts`), Dateigröße, Funktionslänge, Zyklen und Texte (`checks.json`; die Seiten kommen mit Z-105 dazu), Vitest, Build, `bun audit` | `ci.yml` |
+| Unit | Typen, Biome, erlaubte Abhängigkeiten, keine Muster aus Solid 1.x (`scripts/solid-muster.ts`), Dateigröße, Funktionslänge, Zyklen, Texte und Seiten (`checks.json`: jede Route steht in `e2e/accessibility.spec.ts`), Vitest, Build, `bun audit` | `ci.yml` |
 | Agent | der Agent gegen Podman mit systemd (`bun run test:agent`) | `ci.yml` |
-| E2E | Playwright, Desktop und Handy, mit axe | `ci.yml` |
+| E2E | Playwright, Desktop und Handy; jede Seite hell und dunkel ohne Befund von axe und ohne seitliches Scrollen | `ci.yml` |
 | Doku | `zensical build --strict`, jede Seite mit `description` | `docs.yml` |
 
 ## Sicherheitslücken
