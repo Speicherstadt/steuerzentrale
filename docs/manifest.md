@@ -63,6 +63,8 @@ Unbekannte Felder sind ein Fehler, damit ein Tippfehler nicht still übergangen 
 - Namen von Containern, Optionen und Einstellungen sind eindeutig.
 - Eine Einstellung mit `option` nennt eine Option des Manifests.
 - Eine `vorlage` und ein DNS-Eintrag nutzen nur die Platzhalter unten.
+- Eine `vorlage`, die eine geheime Einstellung nennt, ist selbst `typ: geheim`; ein DNS-Eintrag ist
+  öffentlich und nennt keine geheime Einstellung.
 
 ## Vorlagen
 

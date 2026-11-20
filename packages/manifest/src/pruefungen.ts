@@ -200,12 +200,39 @@ const platzhalterBefunde = (m: Manifest, text: string, pfad: (string | number)[]
     return grund ? [{ pfad, grund }] : [];
   });
 
+/** The secret settings a text names as ${env:…} */
+const genannteGeheimnisse = (m: Manifest, text: string): string[] =>
+  [...text.matchAll(/\$\{env:([^{}]*)\}/g)].flatMap(([, name]) =>
+    m.env.some((e) => e.name === name && e.typ === "geheim") ? [name ?? ""] : [],
+  );
+
+/** A secret stays a secret: a template naming one is geheim itself, a DNS record (public) names none */
+const geheimnisBefunde = (m: Manifest): Befund[] => [
+  ...m.env.flatMap((e, i) =>
+    e.typ === "geheim"
+      ? []
+      : genannteGeheimnisse(m, e.vorlage ?? "").map((name) => ({
+          pfad: ["env", i, "vorlage"],
+          grund: `${name} is a secret, so this setting needs typ: geheim`,
+        })),
+  ),
+  ...m.dns.flatMap((d, i) =>
+    (["name", "wert"] as const).flatMap((feld) =>
+      genannteGeheimnisse(m, d[feld]).map((name) => ({
+        pfad: ["dns", i, feld],
+        grund: `${name} is a secret and a DNS record is public`,
+      })),
+    ),
+  ),
+];
+
 const vorlageRegeln = (m: Manifest): Befund[] => [
   ...m.env.flatMap((e, i) => platzhalterBefunde(m, e.vorlage ?? "", ["env", i, "vorlage"])),
   ...m.dns.flatMap((d, i) => [
     ...platzhalterBefunde(m, d.name, ["dns", i, "name"]),
     ...platzhalterBefunde(m, d.wert, ["dns", i, "wert"]),
   ]),
+  ...geheimnisBefunde(m),
 ];
 
 /** A setting that belongs to an option is set only while that option is on */
