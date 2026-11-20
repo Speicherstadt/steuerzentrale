@@ -112,12 +112,20 @@ type Ergebnis = { gruende: Befund[]; hinweise: Befund[] };
 type Regel = (a: PlatzAnfrage) => Ergebnis;
 const nur = (gruende: Befund[] = [], hinweise: Befund[] = []): Ergebnis => ({ gruende, hinweise });
 
+// An option without containers of its own still limits the architecture (a feature of the app's
+// image, say); with containers, theirs is checked and the option's is their default
 const architektur: Regel = (a) =>
-  nur(
-    containerMitArchitektur(a)
+  nur([
+    ...containerMitArchitektur(a)
       .filter(({ architektur }) => !architektur.includes(a.server.architektur))
       .map(({ c }) => befund("architektur", { container: c.name, server: a.server.architektur })),
-  );
+    ...gewaehlteOptionen(a)
+      .filter(
+        (o) =>
+          o.container.length === 0 && o.architektur && !o.architektur.includes(a.server.architektur),
+      )
+      .map((o) => befund("architektur", { option: o.id, server: a.server.architektur })),
+  ]);
 
 const anteil = (code: string, belegt: number, gesamt: number): Ergebnis => {
   if (belegt > gesamt) return nur([befund(code, { bedarf: belegt, verfuegbar: gesamt })]);
