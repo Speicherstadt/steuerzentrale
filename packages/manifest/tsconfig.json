@@ -1,7 +1,11 @@
 {
+  // The pure code: no Bun or Node types, so no file, network or process access compiles here
+  // (docs/plan.md, "Projektstruktur"); the tests have their own tsconfig.test.json
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "../../node_modules/.tsbuild/manifest"
+    "outDir": "../../node_modules/.tsbuild/manifest",
+    "types": []
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
 }

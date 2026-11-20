@@ -110,7 +110,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 2 – Manifest und Platzierung
 
-- [ ] **Z-201 Manifest-Schema** – Zod-Schema in `packages/manifest` nach plan.md („Manifest“):
+- [x] **Z-201 Manifest-Schema** – Zod-Schema in `packages/manifest` nach plan.md („Manifest“):
   Container mit Image per Digest und Architektur, Ressourcen als Grenzen, Netz (HTTP mit WebSocket,
   SSE, Upload-Grenze, Timeout; Ports fest oder vergeben; IPv4; Mail; Server für sich), Proxy,
   `rootful`, Optionen mit eigenen Containern, `braucht`/`bietet`, Anmeldung, Health

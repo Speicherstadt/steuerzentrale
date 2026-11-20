@@ -5,6 +5,7 @@
   "references": [
     { "path": "scripts" },
     { "path": "packages/manifest" },
+    { "path": "packages/manifest/tsconfig.test.json" },
     { "path": "packages/protokoll" },
     { "path": "packages/planung" },
     { "path": "packages/ui" },

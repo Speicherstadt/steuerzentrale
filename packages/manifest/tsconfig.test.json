@@ -1,0 +1,9 @@
+{
+  // The tests read fixtures from disk (minisign signatures, docs/plan.md)
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../node_modules/.tsbuild/manifest-test",
+    "types": ["bun"]
+  },
+  "include": ["src"]
+}

@@ -5,7 +5,7 @@
     "rootDir": "..",
     "types": ["bun"]
   },
-  "references": [{ "path": "../packages/protokoll" }],
+  "references": [{ "path": "../packages/protokoll" }, { "path": "../packages/manifest" }],
   "include": [
     "*.ts",
     "pr-regeln/*.ts",

@@ -136,13 +136,14 @@ version: 1.9.0
 lizenz: AGPL-3.0-only
 quelle: https://github.com/Speicherstadt/haben
 container:                       # daraus werden Quadlet-Units (Vorbild: deploy/quadlet/)
-  - { name: app, image: docker.io/tristanteu/haben@sha256:…, braucht: [db] }
-  - { name: db, image: docker.io/tristanteu/haben-db@sha256:… }
+  - { name: app, image: docker.io/tristanteu/haben@sha256:…, braucht: [db], env: [ELSTER_HERSTELLER_ID],
+      volumes: [{ name: belege, pfad: /app/belege }] }
+  - { name: db, image: docker.io/tristanteu/haben-db@sha256:…, volumes: [{ name: daten, pfad: /var/lib/postgresql/data }] }
 architektur: [amd64, arm64]      # je Container übersteuerbar, z. B. Schreibzeug nur amd64
 ressourcen: { ram_mb: 2048, platte_gb: 10 }   # RAM als Grenze (MemoryMax), Platte als Planwert
 netz:
   http: { dienst: app, port: 3000, websocket: false, sse: false, max_body_mb: 100, timeout_s: 60 }
-  ports: []                      # Kontext: [{ port: 25, proto: tcp, fest: true }], Stellwerk: [{ port: 22001, fest: false }]
+  ports: []                      # Kontext: [{ dienst: stalwart, port: 25, fest: true }], Stellwerk: [{ dienst: zentrale, port: 22001, fest: false }]
   oeffentliche_ipv4: false
   mail: false                    # true: PTR, Port 25 ausgehend, Blacklist-Prüfung
   server_fuer_sich: false
@@ -156,7 +157,7 @@ health: { art: keine, hinweis: Haben#946 }    # http | tcp | befehl | keine
 befehle: {}                      # benannte Befehle: { name: { container, argv: [...] } }
 schritte: { einrichten: [], nach_update: [] } # nur Namen aus befehle
 backup:
-  - { art: pg_dump, container: db }
+  - { art: pg_dump, container: db, datenbank: haben, nutzer: haben }
   - { art: volume, volume: belege }
 aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }
 sperrzeiten: [{ monatlich: "07-12", grund: Umsatzsteuer-Voranmeldung }]
@@ -194,6 +195,7 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | DNS | Cloudflare als DNS-Anbieter, nur DNS, kein Proxy; die Zentrale setzt A und AAAA für `<app>.<kunde>.<domain>` per API; Server bekommen nie einen DNS-Token; eigene Domains des Kunden per CNAME, aktiv erst nach Prüfung; Zertifikate per HTTP-01 an der Pforte | ein übernommener Server darf keine Kunden umleiten können; Let's Encrypt erlaubt 50 neue Zertifikate je Domain und Woche, genug für den Start |
 | Mail (Kontext) | die Zentrale zeigt MX, SPF, DKIM, DMARC und PTR aus dem Manifest und prüft sie; setzt sie selbst, wenn die Domain bei uns liegt | sonst landet Mail im Spam |
 | Single Sign-on | hat der Kunde Kontext, ist es sein Anmeldedienst: die Zentrale legt dort per Auftrag den OIDC-Client jeder weiteren App an; ohne Kontext nutzt jede App ihre eigene Anmeldung | ein Anbieter je Kunde, kein zusätzlicher Dienst |
+| Manifest-Schema | Feldnamen deutsch wie im Plan; unbekannte Felder sind ein Fehler; Verweise (Container, Befehle, Volumes, Einstellungen) prüft eine eigene Regelstufe nach dem Zod-Schema; ein Befehl darf keine Shell starten (`sh`, `bash`, `env`, …); `pg_dump` nennt `datenbank` und `nutzer`; die Signatur wird über die exakten Bytes vor dem YAML geprüft, beide minisign-Formate (`ED`, `Ed`) | ein Tippfehler darf nicht still übergangen werden; benannte Befehle wären sonst ein Umweg zur Shell |
 | Manifeste | Ablage `manifeste/<app>/<version>/manifest.yml` mit `manifest.yml.minisig`, signiert vom Inhaber; die Zentrale bekommt ein Manifest per Import (Upload oder Befehl) und zeigt eine neue Version in der Registry als „Manifest fehlt“, bis es da ist; Digests kommen aus der Registry über `scripts/digest.ts` (Quelle: Registry, Tag, abgefragt am); ein App-Repo kann später ein eigenes Manifest liefern | der Schlüssel liegt offline, also kann die Zentrale nicht selbst signieren; die App-Repos nennen nur Tags |
 | Apps ohne Betreiber-Vertrag | ohne Health keine automatischen Updates (nur von Hand, mit Grund); ohne Image nicht installierbar; nicht angebotene Aktionen fehlen in der Oberfläche | der Loop muss mit dem heutigen Stand der Apps bauen können |
 | Platzierung | reine Funktion: Manifest, Optionen, Serverfakten, Installationen, Kunde → passt, Hinweise, Gründe | testbar ohne Server; dieselbe für Oberfläche, API und Portal |
