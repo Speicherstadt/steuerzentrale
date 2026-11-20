@@ -30,6 +30,8 @@
     "@biomejs/biome": "2.6.8",
     "@inlang/paraglide-js": "3.2.2",
     "@inlang/plugin-message-format": "4.6.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
     "@playwright/test": "1.65.1",
     "@solidjs/vite-plugin": "3.0.1",
     "@steuerzentrale/manifest": "workspace:*",

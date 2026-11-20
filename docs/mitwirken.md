@@ -50,6 +50,14 @@ vorbei.
 | `apps/zentrale` | Hono-Server mit `/health` und Logs ohne Geheimnisse |
 | `apps/agent` | der Agent auf jedem verwalteten Server |
 | `apps/web` | die Oberfläche (Solid 2, Vite) |
+| `manifeste/beispiel` | Beispiel-App für die Tests: Dienst, Containerfile, Manifest-Vorlage |
+
+Die Beispiel-App (`manifeste/beispiel/`) ist ein kleiner HTTP-Dienst mit SQLite-Volume, Health,
+einer Option, einem Befehl nach dem Update, einem vergebenen Port und einem Backup aus zwei Teilen.
+`bun run test:agent` baut ihr Image in drei Varianten (1.0.0, 2.0.0 und 2.1.0 mit rotem Health),
+schiebt sie in eine lokale Registry und erzeugt die Manifeste mit den Digests, signiert mit dem
+öffentlichen Test-Schlüssel (`scripts/beispiel-images.ts`, Ausgabe in `test-results/beispiel/`).
+Ein Build für ein Release lehnt den Test-Schlüssel ab (`scripts/release-schluessel.ts`).
 
 `bun run lint` prüft auch, dass jede Laufzeit-Abhängigkeit in `allowed-dependencies.json` steht, mit Grund und
 der dort festgelegten Hauptversion (TanStack Router 2, Query 6, Solid 2), dass keines der verbotenen Pakete aus

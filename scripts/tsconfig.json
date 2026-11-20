@@ -11,6 +11,8 @@
     "pr-regeln/*.ts",
     "../vitest.config.ts",
     "../vitest.agent.config.ts",
-    "../vitest.solid-diagnostics.ts"
+    "../vitest.solid-diagnostics.ts",
+    "../apps/agent/test/*.ts",
+    "../manifeste/beispiel/app/*.ts"
   ]
 }

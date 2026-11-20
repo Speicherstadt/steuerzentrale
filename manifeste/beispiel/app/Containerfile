@@ -1,0 +1,14 @@
+# The example app's image (Z-202), built in CI in three variants: VERSION 1.0.0 and 2.0.0, and a
+# broken one (KAPUTT=1, health red). Bun from its official image; Renovate keeps the tag current.
+FROM docker.io/oven/bun:1.4.5-alpine
+ARG VERSION=0.0.0
+ARG KAPUTT=0
+ENV BEISPIEL_VERSION=${VERSION} BEISPIEL_KAPUTT=${KAPUTT}
+COPY server.ts /app/server.ts
+# The volume is mounted here; the app runs as the image's unprivileged user bun
+RUN mkdir /daten && chown bun:bun /daten
+USER bun
+VOLUME /daten
+EXPOSE 8080 9000
+ENTRYPOINT ["bun", "/app/server.ts"]
+CMD ["server"]

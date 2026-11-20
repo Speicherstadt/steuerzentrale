@@ -12,8 +12,9 @@
       "!**/*.gen.ts",
       "!design/mockup",
       "!packages/manifest/test",
-      "!manifeste",
-      "!test/schluessel"
+      "!test/schluessel",
+      "!manifeste/**/*.yml",
+      "!manifeste/**/*.minisig"
     ]
   },
   "formatter": {

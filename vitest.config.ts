@@ -13,6 +13,7 @@ const logic = [
   "packages/planung",
   "apps/zentrale",
   "apps/agent",
+  "manifeste/beispiel/app",
 ];
 const interfaces = ["packages/ui", "apps/web"];
 const tests = (dirs: string[]) => dirs.map((dir) => `${dir}/**/*.test.{ts,tsx}`);
