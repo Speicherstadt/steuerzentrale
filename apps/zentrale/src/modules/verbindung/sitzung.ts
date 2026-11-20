@@ -51,6 +51,13 @@ const HEARTBEAT_ABSTAND_MS = HEARTBEAT_MS / 2;
  */
 const FAKTEN_ABSTAND_MS = 60_000;
 
+/**
+ * SSH logins become events and audit entries, which stay; an agent may send a backlog of this many
+ * at once (logins while it was away), then one a minute more, the rest is dropped
+ */
+const SSH_VORRAT = 100;
+const SSH_NACHSCHUB_MS = 60_000;
+
 /** The close reason is at most 123 bytes (RFC 6455, 5.5); ours are short and ASCII */
 const kurz = (grund: string) => grund.slice(0, 100);
 
@@ -67,6 +74,19 @@ export const sitzung = (
   let gegruesst = false;
   let letzterHeartbeat = Number.NEGATIVE_INFINITY;
   let letzteFakten = Number.NEGATIVE_INFINITY;
+  let ssh = { vorrat: SSH_VORRAT, am: Number.NEGATIVE_INFINITY };
+
+  /** Whether one more SSH login may become an event, as a bucket refilled one a minute */
+  const sshErlaubt = (jetzt: number) => {
+    const nachschub = ssh.am === Number.NEGATIVE_INFINITY ? 0 : jetzt - ssh.am;
+    const vorrat = Math.min(SSH_VORRAT, ssh.vorrat + Math.max(0, nachschub) / SSH_NACHSCHUB_MS);
+    if (vorrat < 1) {
+      ssh = { vorrat, am: jetzt };
+      return false;
+    }
+    ssh = { vorrat: vorrat - 1, am: jetzt };
+    return true;
+  };
 
   const hallo = (n: Extract<NachrichtVomAgenten, { typ: "hallo" }>, s: Sockel, jetzt: number) => {
     if (n.agentVersion !== server.agentVersion || n.architektur !== server.architektur)
@@ -144,8 +164,13 @@ export const sitzung = (
         letzteFakten = jetzt;
         return faktenSpeichern(deps.schreibDb, server, n, jetzt);
       }
-      if (n.typ === "ssh_anmeldung")
+      if (n.typ === "ssh_anmeldung") {
+        if (!sshErlaubt(jetzt)) {
+          deps.log(JSON.stringify({ msg: "ssh login dropped", serverId }));
+          return;
+        }
         return sshAnmeldungSchreiben(deps.db, deps.schreibDb, server, n, jetzt);
+      }
     },
     zu: () => {
       if (sockel) deps.verbindungen.abmelden(betreiberId, serverId, sockel);
