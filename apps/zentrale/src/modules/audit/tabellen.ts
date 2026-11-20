@@ -5,9 +5,11 @@ import {
   ereignisse,
   geheimnisse,
   heartbeats,
+  kunden,
   logAuszuege,
   mitglieder,
   tokens,
+  vertraege,
 } from "../../db/schema.ts";
 
 /**
@@ -23,6 +25,8 @@ export const tabellen = {
   tokens: { tabelle: tokens, schluessel: ["tokenId"], zeit: undefined },
   mitglieder: { tabelle: mitglieder, schluessel: ["nutzerId"], zeit: undefined },
   einladungen: { tabelle: einladungen, schluessel: ["einladungId"], zeit: undefined },
+  kunden: { tabelle: kunden, schluessel: ["kundeId"], zeit: undefined },
+  vertraege: { tabelle: vertraege, schluessel: ["vertragId"], zeit: undefined },
   heartbeats: {
     tabelle: heartbeats,
     schluessel: ["serverId", "zeitpunkt"],

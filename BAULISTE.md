@@ -100,7 +100,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   ihre Rollen prüft (Test je Route und Rolle), der Einrichtungscode nach Gebrauch und nach 24 h
   abgelehnt wird und Anmeldung mit Passkey (virtueller Authenticator) und mit Passwort und TOTP in
   Playwright laufen.
-- [ ] **Z-801 Kunden und Verträge** – Kunde mit Kontakt, Vertrag mit SLA (in Stufe 1 nur Basis; Plus und
+- [x] **Z-801 Kunden und Verträge** – Kunde mit Kontakt, Vertrag mit SLA (in Stufe 1 nur Basis; Plus und
   Ruhe mit Z-505), Kündigungsdatum; Liste und Seite je Kunde, zuerst ohne Installationen (die zeigt
   Z-406).
   nach: Z-104

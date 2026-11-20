@@ -120,16 +120,22 @@ export type Installation = {
   snapshots: Snapshot[];
 };
 
-export type Sla = "basis";
+/** The service levels (docs/plan.md, "SLA"); stage 1 offers only Basis, Plus and Ruhe come with Z-505 */
+export type Sla = "basis" | "plus" | "ruhe";
 
+/**
+ * A customer as GET /api/v1/kunden answers (Z-801): one contact person and one contract; `ende` is
+ * the day the contract ends once the customer gave notice, the start of that day in Berlin
+ */
 export type Kunde = {
   id: string;
   name: string;
-  kontakt: string;
-  sla: Sla;
+  kontakt: { name: string; email: string; telefon: string | null };
+  notiz: string | null;
+  angelegtAm: number;
+  vertrag: { sla: Sla; beginn: number; ende: number | null };
+  /** Our own customer, whose installations go first in the wave "intern" (Z-502; demo only) */
   intern?: boolean;
-  seit: number;
-  gekuendigt?: { zum: number; loeschung: number };
 };
 
 /** What an event, a job or an audit entry is about */

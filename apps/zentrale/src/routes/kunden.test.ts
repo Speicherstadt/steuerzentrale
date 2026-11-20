@@ -1,0 +1,252 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { auditLog, kunden, vertraege } from "../db/schema.ts";
+import { type TestServer, testServer } from "../testhilfen/server.ts";
+
+/*
+ * BAULISTE.md Z-801: customers with contact and a contract with SLA and notice date; every write
+ * with a reason, through `schreiben`, so each change stands in the audit log.
+ */
+type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
+
+const TAG = 86_400_000;
+const BEGINN = 1_790_000_000_000;
+
+const neuerKunde = (name = "Atelier Nord") => ({
+  name,
+  kontakt: { name: "Anna Nord", email: "buero@atelier-nord.test", telefon: "+49 40 123456" },
+  notiz: "Zahlt per Rechnung",
+  vertrag: { sla: "basis", beginn: BEGINN },
+  grund: "Vertrag vom 20.11.",
+});
+
+type KundeAntwort = {
+  id: string;
+  name: string;
+  kontakt: { name: string; email: string; telefon: string | null };
+  notiz: string | null;
+  angelegtAm: number;
+  vertrag: { sla: string; beginn: number; ende: number | null };
+};
+
+let server: TestServer;
+let inhaber: Person;
+
+beforeAll(async () => {
+  server = testServer(afterAll);
+  inhaber = await server.inhaber();
+}, 60_000);
+
+const anlegen = async (person: Pick<Person, "json"> = inhaber, name?: string) => {
+  const { status, daten } = await person.json("/api/v1/kunden", { body: neuerKunde(name) });
+  if (status !== 201) throw new Error(`anlegen ${status} ${JSON.stringify(daten)}`);
+  return daten as KundeAntwort;
+};
+
+const letzterEintrag = () => server.db.select().from(auditLog).all().at(-1);
+
+describe("a customer", () => {
+  it("is created with contact, note and an SLA Basis contract, and listed", async () => {
+    const kunde = await anlegen(inhaber, "Liste GmbH");
+    expect(kunde).toEqual({
+      id: expect.any(String),
+      name: "Liste GmbH",
+      kontakt: { name: "Anna Nord", email: "buero@atelier-nord.test", telefon: "+49 40 123456" },
+      notiz: "Zahlt per Rechnung",
+      angelegtAm: server.jetzt(),
+      vertrag: { sla: "basis", beginn: BEGINN, ende: null },
+    });
+    const { daten } = await inhaber.json("/api/v1/kunden");
+    expect((daten as { kunden: KundeAntwort[] }).kunden).toContainEqual(kunde);
+    expect((await inhaber.json(`/api/v1/kunden/${kunde.id}`)).daten).toEqual(kunde);
+  });
+
+  it("is listed by name", async () => {
+    await anlegen(inhaber, "Zeta KG");
+    await anlegen(inhaber, "Alpha AG");
+    const { daten } = await inhaber.json("/api/v1/kunden");
+    const namen = (daten as { kunden: KundeAntwort[] }).kunden.map((k) => k.name);
+    expect(namen).toEqual([...namen].sort((a, b) => a.localeCompare(b, "de")));
+  });
+
+  it("stands in the audit log with actor, reason and its contract", async () => {
+    const vorher = server.db.select().from(auditLog).all().length;
+    const kunde = await anlegen();
+    const neu = server.db.select().from(auditLog).all().slice(vorher);
+    expect(neu.map((e) => [e.aktion, e.ziel.split(":")[0], e.akteur, e.grund])).toEqual([
+      ["kunde.anlegen", "kunden", inhaber.nutzerId, "Vertrag vom 20.11."],
+      ["kunde.anlegen", "vertraege", inhaber.nutzerId, "Vertrag vom 20.11."],
+    ]);
+    expect(neu[0]?.ziel).toBe(`kunden:${kunde.id}`);
+  });
+
+  it("takes only SLA Basis in stage 1", async () => {
+    for (const sla of ["plus", "ruhe", "gold"]) {
+      const body = { ...neuerKunde(), vertrag: { sla, beginn: BEGINN } };
+      expect((await inhaber.json("/api/v1/kunden", { body })).status, sla).toBe(400);
+    }
+  });
+
+  it("needs a reason and valid fields for every write", async () => {
+    const { grund: _, ...ohneGrund } = neuerKunde();
+    const falsch = [
+      ohneGrund,
+      { ...neuerKunde(), grund: "   " },
+      { ...neuerKunde(), name: "" },
+      { ...neuerKunde(), kontakt: { name: "A", email: "keine-adresse" } },
+      { ...neuerKunde(), unbekannt: 1 },
+      { ...neuerKunde(), vertrag: { sla: "basis", beginn: -1 } },
+    ];
+    const vorher = server.db.select().from(kunden).all().length;
+    for (const body of falsch)
+      expect((await inhaber.json("/api/v1/kunden", { body })).status, JSON.stringify(body)).toBe(
+        400,
+      );
+    expect(server.db.select().from(kunden).all()).toHaveLength(vorher);
+    const kunde = await anlegen();
+    const pfad = `/api/v1/kunden/${kunde.id}`;
+    expect((await inhaber.json(pfad, { method: "PUT", body: { name: "X" } })).status).toBe(400);
+    expect(
+      (await inhaber.json(`${pfad}/kuendigung`, { method: "PUT", body: { ende: BEGINN } })).status,
+    ).toBe(400);
+    expect((await inhaber.json(`${pfad}/kuendigung`, { method: "DELETE", body: {} })).status).toBe(
+      400,
+    );
+  });
+
+  it("is changed with a reason, and only what changed stands in the audit log", async () => {
+    const kunde = await anlegen();
+    const { status, daten } = await inhaber.json(`/api/v1/kunden/${kunde.id}`, {
+      method: "PUT",
+      body: {
+        name: "Atelier Nord GmbH",
+        kontakt: { name: "Anna Nord", email: "anna@atelier-nord.test" },
+        beginn: BEGINN + TAG,
+        grund: "Umfirmierung",
+      },
+    });
+    expect(status).toBe(200);
+    expect(daten).toEqual({
+      ...kunde,
+      name: "Atelier Nord GmbH",
+      kontakt: { name: "Anna Nord", email: "anna@atelier-nord.test", telefon: null },
+      notiz: null,
+      vertrag: { sla: "basis", beginn: BEGINN + TAG, ende: null },
+    });
+    const eintraege = server.db
+      .select()
+      .from(auditLog)
+      .all()
+      .filter((e) => e.aktion === "kunde.aendern" && e.grund === "Umfirmierung");
+    expect(eintraege.map((e) => JSON.parse(e.inhalt).werte)).toEqual([
+      {
+        name: "Atelier Nord GmbH",
+        kontaktEmail: "anna@atelier-nord.test",
+        kontaktTelefon: null,
+        notiz: null,
+      },
+      { beginn: BEGINN + TAG },
+    ]);
+  });
+
+  it("writes nothing when a change changes nothing", async () => {
+    const kunde = await anlegen();
+    const vorher = server.db.select().from(auditLog).all().length;
+    const { grund: _, vertrag, ...gleich } = neuerKunde();
+    const antwort = await inhaber.json(`/api/v1/kunden/${kunde.id}`, {
+      method: "PUT",
+      body: { ...gleich, beginn: vertrag.beginn, grund: "nichts" },
+    });
+    expect(antwort).toEqual({ status: 200, daten: kunde });
+    expect(server.db.select().from(auditLog).all()).toHaveLength(vorher);
+  });
+
+  it("gets a notice date and loses it again, each with a reason in the audit log", async () => {
+    const kunde = await anlegen();
+    const pfad = `/api/v1/kunden/${kunde.id}/kuendigung`;
+    const ende = BEGINN + 100 * TAG;
+    const gekuendigt = await inhaber.json(pfad, {
+      method: "PUT",
+      body: { ende, grund: "Kündigung per Mail vom 18.11." },
+    });
+    expect(gekuendigt).toEqual({
+      status: 200,
+      daten: { ...kunde, vertrag: { ...kunde.vertrag, ende } },
+    });
+    expect(letzterEintrag()).toMatchObject({
+      aktion: "vertrag.kuendigen",
+      grund: "Kündigung per Mail vom 18.11.",
+      akteur: inhaber.nutzerId,
+    });
+    expect(JSON.parse(letzterEintrag()?.inhalt ?? "{}").werte).toEqual({ ende });
+
+    const zurueck = await inhaber.json(pfad, {
+      method: "DELETE",
+      body: { grund: "Kunde bleibt doch" },
+    });
+    expect(zurueck).toEqual({ status: 200, daten: kunde });
+    expect(letzterEintrag()).toMatchObject({
+      aktion: "vertrag.zuruecknehmen",
+      grund: "Kunde bleibt doch",
+    });
+    expect(server.db.select().from(vertraege).all()).toContainEqual(
+      expect.objectContaining({ kundeId: kunde.id, ende: null }),
+    );
+  });
+
+  it("cannot end before its contract began", async () => {
+    const kunde = await anlegen();
+    const pfad = `/api/v1/kunden/${kunde.id}`;
+    const frueh = await inhaber.json(`${pfad}/kuendigung`, {
+      method: "PUT",
+      body: { ende: BEGINN - TAG, grund: "zu früh" },
+    });
+    expect(frueh).toEqual({ status: 409, daten: { fehler: "ende_vor_beginn" } });
+    await inhaber.json(`${pfad}/kuendigung`, {
+      method: "PUT",
+      body: { ende: BEGINN + TAG, grund: "gekündigt" },
+    });
+    const { grund: _, vertrag: __, ...daten } = neuerKunde();
+    const spaet = await inhaber.json(pfad, {
+      method: "PUT",
+      body: { ...daten, beginn: BEGINN + 2 * TAG, grund: "Beginn nach dem Ende" },
+    });
+    expect(spaet).toEqual({ status: 409, daten: { fehler: "ende_vor_beginn" } });
+  });
+
+  it("is unknown by an id that does not exist", async () => {
+    const pfad = "/api/v1/kunden/gibt-es-nicht";
+    const { grund: _, vertrag, ...daten } = neuerKunde();
+    expect((await inhaber.json(pfad)).status).toBe(404);
+    expect(
+      (
+        await inhaber.json(pfad, {
+          method: "PUT",
+          body: { ...daten, beginn: vertrag.beginn, grund: "x" },
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await inhaber.json(`${pfad}/kuendigung`, {
+          method: "PUT",
+          body: { ende: BEGINN, grund: "x" },
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (await inhaber.json(`${pfad}/kuendigung`, { method: "DELETE", body: { grund: "x" } })).status,
+    ).toBe(404);
+  });
+});
+
+describe("the roles", () => {
+  it("let technik write and support only read", async () => {
+    const technik = await server.eingeladen(inhaber, "technik");
+    const support = await server.eingeladen(inhaber, "support");
+    const kunde = await anlegen(technik, "Von Technik");
+    expect(letzterEintrag()).toMatchObject({ akteur: technik.nutzerId });
+    expect((await support.json(`/api/v1/kunden/${kunde.id}`)).daten).toEqual(kunde);
+    const versuch = await support.json("/api/v1/kunden", { body: neuerKunde() });
+    expect(versuch).toEqual({ status: 403, daten: { fehler: "keine_berechtigung" } });
+  });
+});

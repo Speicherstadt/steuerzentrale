@@ -7,8 +7,10 @@ Server, der sich selbst verbindet und nur ausführt, was das Manifest einer App 
 **Oberfläche:** nur für Betreiber (Kunden sehen das Portal). Übersicht mit allem, was Aufmerksamkeit
 braucht, Server, Installationen, Updates in Wellen, Backups, Aufträge, Kunden, Support-Zugänge,
 Leistungen, die Apps mit ihren Manifesten, Ereignisse, Audit-Log und Einstellungen; hell und dunkel, auf
-Deutsch und Englisch, auch auf dem Handy. Bis die Zentrale ihre API hat, zeigt sie Demodaten mit den acht
-Apps der Speicherstadt (`bun run dev:demo`).
+Deutsch und Englisch, auch auf dem Handy. Kunden mit Ansprechperson und Vertrag (SLA, Vertragsende)
+legt der Betreiber an, ändert und kündigt sie, jedes Mal mit Grund im Audit-Log
+([Kunden und Verträge](docs/kunden.md)). Was noch keine API hat, zeigt Demodaten mit den acht Apps der
+Speicherstadt (`bun run dev:demo`).
 
 **Anmeldung:** mit Passkey oder mit Passwort und Authenticator-App (TOTP); ohne zweiten Faktor erreicht
 ein Konto nur dessen Einrichtung. Den ersten Inhaber legt ein Einrichtungscode aus dem Log der Zentrale

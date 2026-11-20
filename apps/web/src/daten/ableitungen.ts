@@ -1,4 +1,4 @@
-import { berlinTag } from "../format/zeit.ts";
+import { berlinTag, tageSpaeter } from "../format/zeit.ts";
 import type { Bestand, Installation, Kunde, Manifest, Server, Sperrzeit, Ziel } from "./typen.ts";
 
 /*
@@ -47,8 +47,14 @@ export const istAktuell = (b: Bestand, i: Installation) => {
   return neu === null || i.version === neu;
 };
 
+/** Days from the end of a contract to the deletion of its data (docs/plan.md, "Kündigung und Löschung") */
+export const LOESCHFRIST_TAGE = 90;
+
+/** The day a customer's installations and backups are deleted, once its contract ends */
+export const loeschungAm = (ende: number) => tageSpaeter(ende, LOESCHFRIST_TAGE);
+
 export const istGekuendigt = (b: Bestand, i: Installation) =>
-  Boolean(kundeVon(b, i.kunde).gekuendigt);
+  kundeVon(b, i.kunde).vertrag.ende !== null;
 
 export const istIntern = (b: Bestand, i: Installation) => Boolean(kundeVon(b, i.kunde).intern);
 

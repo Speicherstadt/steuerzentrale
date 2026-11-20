@@ -1,7 +1,14 @@
 import { Icon, m, SearchInput } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { appVon, istAktuell, istGekuendigt, kundeVon, serverVon } from "../daten/ableitungen.ts";
+import {
+  appVon,
+  istAktuell,
+  istGekuendigt,
+  kundeVon,
+  loeschungAm,
+  serverVon,
+} from "../daten/ableitungen.ts";
 import { bestand } from "../daten/quelle.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { serverZustand } from "../daten/zustand.ts";
@@ -51,7 +58,7 @@ const ZustandZelle = (props: { b: Bestand; i: Installation }) => {
     <td>
       <HealthZeichen health={props.i.health} gekuendigt={istGekuendigt(props.b, props.i)} />
       <Show
-        when={kunde().gekuendigt}
+        when={kunde().vertrag.ende}
         fallback={
           <Show when={props.i.grund}>
             <span class="mt-1 block max-w-[220px] text-xs text-muted-foreground">
@@ -60,9 +67,9 @@ const ZustandZelle = (props: { b: Bestand; i: Installation }) => {
           </Show>
         }
       >
-        {(k) => (
+        {(ende) => (
           <span class="mt-1 block text-xs text-muted-foreground">
-            {m.inst_loeschung_am({ datum: datum(k().loeschung) })}
+            {m.inst_loeschung_am({ datum: datum(loeschungAm(ende())) })}
           </span>
         )}
       </Show>

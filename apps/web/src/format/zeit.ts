@@ -33,6 +33,42 @@ export const berlinTeile = (instant: number): Teile => {
   };
 };
 
+/** How far Berlin's wall clock is ahead of UTC at an instant, in milliseconds */
+const versatz = (instant: number) => {
+  const t = berlinTeile(instant);
+  const wand = Date.UTC(
+    Number(t.jahr),
+    Number(t.monat) - 1,
+    Number(t.tag),
+    Number(t.stunde),
+    Number(t.minute),
+  );
+  return wand - instant;
+};
+
+/** The instant of a Berlin wall-clock time on a day "JJJJ-MM-TT"; 00:00 is the start of the day */
+export const berlin = (tag: string, uhrzeit = "00:00"): number => {
+  const [jahr, monat, t] = tag.split("-").map(Number) as [number, number, number];
+  const [stunde, minute] = uhrzeit.split(":").map(Number) as [number, number];
+  const geraten = Date.UTC(jahr, monat - 1, t, stunde, minute);
+  // The offset at the guess can differ from the one at the result within hours of a DST change:
+  // take it again at the first result
+  return geraten - versatz(geraten - versatz(geraten));
+};
+
+/** The day of an instant in Berlin as "JJJJ-MM-TT", the value of a date field */
+export const isoTag = (instant: number) => {
+  const t = berlinTeile(instant);
+  return `${t.jahr}-${t.monat}-${t.tag}`;
+};
+
+/** The start of the Berlin day `tage` calendar days after the day of `instant` */
+export const tageSpaeter = (instant: number, tage: number) => {
+  const t = berlinTeile(instant);
+  const tag = new Date(Date.UTC(Number(t.jahr), Number(t.monat) - 1, Number(t.tag) + tage));
+  return berlin(tag.toISOString().slice(0, 10));
+};
+
 /** The day of the month in Berlin, for monthly freeze windows */
 export const berlinTag = (instant: number) => Number(berlinTeile(instant).tag);
 

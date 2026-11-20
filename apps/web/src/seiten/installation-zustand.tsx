@@ -16,6 +16,7 @@ import {
   istAktuell,
   kundeVon,
   linuxNutzer,
+  loeschungAm,
   monatVon,
   serverVon,
 } from "../daten/ableitungen.ts";
@@ -185,13 +186,13 @@ export const InstallationZustand = (props: { b: Bestand; i: Installation }) => {
         <UnitsUndHealth b={props.b} i={props.i} />
         <Fakten b={props.b} i={props.i} />
       </div>
-      <Show when={k().gekuendigt}>
-        {(g) => (
+      <Show when={k().vertrag.ende}>
+        {(ende) => (
           <Hinweisbox
             icon={<Icon icon={CalendarX} />}
-            titel={m.kunde_gekuendigt_zum({ datum: datum(g().zum) })}
+            titel={m.kunde_gekuendigt_zum({ datum: datum(ende()) })}
           >
-            {m.inst_gekuendigt_text({ datum: datum(g().loeschung) })}
+            {m.inst_gekuendigt_text({ datum: datum(loeschungAm(ende())) })}
           </Hinweisbox>
         )}
       </Show>

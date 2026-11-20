@@ -45,6 +45,12 @@ export const ROUTEN = {
   "GET /api/v1/einladungen": recht("mitglieder:einladen"),
   "POST /api/v1/einladungen": recht("mitglieder:einladen"),
   "DELETE /api/v1/einladungen/:einladungId": recht("mitglieder:einladen"),
+  "GET /api/v1/kunden": recht("kunden:lesen"),
+  "GET /api/v1/kunden/:kundeId": recht("kunden:lesen"),
+  "POST /api/v1/kunden": recht("kunden:schreiben"),
+  "PUT /api/v1/kunden/:kundeId": recht("kunden:schreiben"),
+  "PUT /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
+  "DELETE /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
 } as const satisfies Record<string, Zugang>;
 
 export type RoutenName = keyof typeof ROUTEN;

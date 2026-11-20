@@ -6,6 +6,7 @@ import { clientAdresse } from "./modules/anmeldung/adresse.ts";
 import { einladungRouten } from "./routes/einladungen.ts";
 import { ersterInhaberRouten } from "./routes/erster-inhaber.ts";
 import { kontoRouten } from "./routes/konto.ts";
+import { kundenRouten } from "./routes/kunden.ts";
 import { mitgliederRouten } from "./routes/mitglieder.ts";
 import { type Anfrage, AUTH_PFADE, routenRegistrar, wache } from "./routes/zugang.ts";
 
@@ -66,6 +67,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   kontoRouten(route, deps);
   mitgliederRouten(route, deps);
   einladungRouten(route, deps);
+  kundenRouten(route, deps);
 
   return app;
 };
