@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   type Allowlist,
+  forbiddenViolations,
   overrideViolations,
   violations,
   type Workspace,
@@ -24,8 +25,18 @@ const workspaces: Workspace[] = workspaceDirs(root).map((dir) => {
     dependencies: RUNTIME_FIELDS.flatMap((field) => Object.entries(manifest[field] ?? {})),
   };
 });
+const ALL_FIELDS = [...RUNTIME_FIELDS, "devDependencies"];
+const allNames = [".", ...workspaceDirs(root)].map((dir) => {
+  const manifest = readJson(`${dir}/package.json`) as Record<
+    string,
+    Record<string, string> | undefined
+  >;
+  return { dir, names: ALL_FIELDS.flatMap((field) => Object.keys(manifest[field] ?? {})) };
+});
+const allowlist = readJson("allowed-dependencies.json") as Allowlist;
 const problems = [
-  ...violations(readJson("allowed-dependencies.json") as Allowlist, workspaces),
+  ...violations(allowlist, workspaces),
+  ...forbiddenViolations(allowlist, allNames),
   ...overrideViolations(readJson("package.json") as Record<string, unknown>),
 ];
 for (const problem of problems) console.error(problem);
