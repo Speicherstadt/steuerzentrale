@@ -99,13 +99,6 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
     abbrechen = deps.planen(lauf, ms);
   };
 
-  const herzschlag = (s: Sockel) => {
-    planen(() => {
-      s.senden(heartbeat(deps));
-      herzschlag(s);
-    }, HEARTBEAT_MS);
-  };
-
   const rotieren = async (s: Sockel) => {
     rotation = "laeuft";
     const { schluessel, csr } = await (deps.anfrage ?? neueAnfrage)();
@@ -114,14 +107,29 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
     log("certificate requested");
   };
 
+  /** Asks for a new certificate once its last 30 days began: at willkommen or on a later beat */
+  const rotierenWennFaellig = async (s: Sockel, bis: number | undefined) => {
+    if (bis !== undefined && bis - deps.jetzt() <= ROTIEREN_VOR_MS && rotation === undefined)
+      await rotieren(s);
+  };
+
+  // a connection may stay open for weeks: the end of the certificate is checked with every beat
+  const herzschlag = (s: Sockel, bis: number | undefined) => {
+    planen(() => {
+      s.senden(heartbeat(deps));
+      herzschlag(s, bis);
+      rotierenWennFaellig(s, bis).catch((fehler) =>
+        log("certificate request failed", { fehler: String(fehler) }),
+      );
+    }, HEARTBEAT_MS);
+  };
+
   const behandeln = async (n: NachrichtVonDerZentrale, s: Sockel) => {
     if (n.typ === "willkommen") {
       versuch = 0;
       log("connected");
-      herzschlag(s);
-      const bis = n.zertifikatGueltigBis;
-      if (bis !== undefined && bis - deps.jetzt() <= ROTIEREN_VOR_MS && rotation === undefined)
-        await rotieren(s);
+      herzschlag(s, n.zertifikatGueltigBis);
+      await rotierenWennFaellig(s, n.zertifikatGueltigBis);
       return;
     }
     if (n.typ === "zertifikat" && typeof rotation === "object") {

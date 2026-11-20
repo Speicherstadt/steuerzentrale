@@ -219,6 +219,19 @@ describe("rotating the certificate", () => {
     expect(a.letzte()?.tls.cert).toBe(PEM("CERTIFICATE", "neu"));
   });
 
+  it("asks over a connection that stays open into the last 30 days, not only at willkommen", async () => {
+    const a = aufgebaut();
+    await a.vergehen(0);
+    a.letzte()?.e.offen();
+    // welcomed just before the last 30 days; the connection then simply stays open
+    a.willkommen(JETZT + ROTIEREN_VOR_MS + 2 * HEARTBEAT_MS);
+    await a.vergehen(0);
+    expect(a.letzte()?.gesendet.map((n) => n.typ)).toEqual(["hallo"]);
+    await a.vergehen(3 * HEARTBEAT_MS);
+    expect(a.verbindungen).toHaveLength(1);
+    expect(a.letzte()?.gesendet.map((n) => n.typ)).toContain("zertifikat_anfrage");
+  });
+
   it("does not ask earlier, and ignores a certificate it did not ask for", async () => {
     const a = aufgebaut();
     await a.vergehen(0);
