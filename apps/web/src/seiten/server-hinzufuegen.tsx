@@ -110,6 +110,7 @@ const Formular = (props: { onAngelegt: (a: Angelegt) => void; onAbbruch: () => v
         <div class="grid grid-cols-2 gap-3">
           <Input
             label={m.server_feld_wartung_von()}
+            // i18n-ignore: the form field name server-angaben.ts reads, no text
             name="von"
             type="time"
             value="03:30"
