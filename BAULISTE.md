@@ -43,7 +43,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 1 – Fundament
 
-- [ ] **Z-101 Repo-Gerüst** – Vorhanden sind schon (wie in Kennwort und Soll): `package.json` mit
+- [x] **Z-101 Repo-Gerüst** – Vorhanden sind schon (wie in Kennwort und Soll): `package.json` mit
   `check`, Biome, TypeScript (`tsconfig.base.json`, Solution `tsconfig.json`), Vitest, die Liste
   erlaubter Abhängigkeiten, CI (`ci.yml`, `docs.yml`, `pr-regeln.yml`), Renovate, Vorlagen für Pull
   Requests und Issues, Zensical-Doku. Dazu kommen die Workspaces `packages/manifest`, `packages/protokoll`,
@@ -55,7 +55,8 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   in `tsconfig.json` und `vitest.config.ts` eingetragen; Skripte `test:agent` und `e2e` mit je einem
   ersten Test (der Agent startet und meldet seine Version; die Startseite rendert), die mit `CI=true`
   fehlschlagen, wenn Podman fehlt oder kein Test lief (kein `--passWithNoTests`); der Job `check` in
-  `ci.yml` nimmt `skipped` bei `agent` und `e2e` ab jetzt nicht mehr an.
+  `ci.yml` nimmt `skipped` bei `agent` und `e2e` ab jetzt nicht mehr an (außer bei einem Pull
+  Request ohne Code, den der Job `changes` erkennt).
   Fertig, wenn: `bun run check` auf einem frischen Klon grün ist, die CI alle Workspaces prüft und
   `agent` und `e2e` dort echt laufen, beide Binaries für beide Architekturen gebaut werden, `/health`
   antwortet (Test) und ein Log weder Query-Werte noch `Authorization`- oder Cookie-Header enthält

@@ -1,0 +1,17 @@
+{
+  "name": "@steuerzentrale/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "vite --port 5181 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 5182 --strictPort"
+  },
+  "dependencies": {
+    "@solidjs/web": "2.0.3",
+    "@steuerzentrale/ui": "workspace:*",
+    "solid-js": "2.0.3"
+  }
+}
