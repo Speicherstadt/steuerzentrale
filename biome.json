@@ -6,7 +6,15 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/*.md", "!**/*.gen.ts", "!design/mockup"]
+    "includes": [
+      "**",
+      "!**/*.md",
+      "!**/*.gen.ts",
+      "!design/mockup",
+      "!packages/manifest/test",
+      "!manifeste",
+      "!test/schluessel"
+    ]
   },
   "formatter": {
     "indentStyle": "space",

@@ -20,6 +20,7 @@ bun run e2e          # Playwright gegen Zentrale (Port 28300) und Oberfläche (P
 bun run dev:zentrale # Zentrale auf Port 18300 (STEUERZENTRALE_SECRET_KEY setzen)
 bun run dev:web      # Oberfläche auf Port 5181, /api geht an die Zentrale
 bun run db:generate  # neue Migration aus apps/zentrale/src/db/schema.ts
+bun run manifest:schema # JSON Schema des Manifests neu schreiben
 ```
 
 Die Zentrale startet nur mit `STEUERZENTRALE_SECRET_KEY` (32 Zufallsbytes in Base64,

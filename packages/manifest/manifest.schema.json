@@ -1,0 +1,835 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "number",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$"
+    },
+    "lizenz": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quelle": {
+      "type": "string",
+      "format": "uri"
+    },
+    "container": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?:[a-z0-9][a-z0-9-]*(?:\\.[a-z0-9-]+)+(?::[0-9]+)?|[a-z0-9][a-z0-9-]*:[0-9]+|localhost)(\\/[a-z0-9._-]+)+@sha256:[0-9a-f]{64}$"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "noch_nicht_veroeffentlicht": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["noch_nicht_veroeffentlicht"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "architektur": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["amd64", "arm64"]
+            }
+          },
+          "braucht": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "volumes": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$"
+                },
+                "pfad": {
+                  "type": "string",
+                  "format": "starts_with",
+                  "pattern": "^\\/.*"
+                }
+              },
+              "required": ["name", "pfad"],
+              "additionalProperties": false
+            }
+          },
+          "argv": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "env": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            }
+          },
+          "feste_env": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "ram_mb": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["name", "image"],
+        "additionalProperties": false
+      }
+    },
+    "architektur": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["amd64", "arm64"]
+      }
+    },
+    "ressourcen": {
+      "type": "object",
+      "properties": {
+        "ram_mb": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "platte_gb": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["ram_mb", "platte_gb"],
+      "additionalProperties": false
+    },
+    "netz": {
+      "type": "object",
+      "properties": {
+        "http": {
+          "default": null,
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "dienst": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$"
+                },
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                },
+                "websocket": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "sse": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "max_body_mb": {
+                  "default": 10,
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "timeout_s": {
+                  "default": 60,
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["dienst", "port"],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ports": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dienst": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "bis": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "proto": {
+                "default": "tcp",
+                "type": "string",
+                "enum": ["tcp", "udp"]
+              },
+              "fest": {
+                "type": "boolean"
+              }
+            },
+            "required": ["dienst", "port", "fest"],
+            "additionalProperties": false
+          }
+        },
+        "oeffentliche_ipv4": {
+          "default": false,
+          "type": "boolean"
+        },
+        "mail": {
+          "default": false,
+          "type": "boolean"
+        },
+        "server_fuer_sich": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "proxy": {
+      "default": "geteilt",
+      "type": "string",
+      "enum": ["geteilt", "eigen"]
+    },
+    "rootful": {
+      "default": false,
+      "type": "boolean"
+    },
+    "optionen": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "container": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$"
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^(?:[a-z0-9][a-z0-9-]*(?:\\.[a-z0-9-]+)+(?::[0-9]+)?|[a-z0-9][a-z0-9-]*:[0-9]+|localhost)(\\/[a-z0-9._-]+)+@sha256:[0-9a-f]{64}$"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "noch_nicht_veroeffentlicht": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": ["noch_nicht_veroeffentlicht"],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "architektur": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["amd64", "arm64"]
+                  }
+                },
+                "braucht": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$"
+                  }
+                },
+                "volumes": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]*$"
+                      },
+                      "pfad": {
+                        "type": "string",
+                        "format": "starts_with",
+                        "pattern": "^\\/.*"
+                      }
+                    },
+                    "required": ["name", "pfad"],
+                    "additionalProperties": false
+                  }
+                },
+                "argv": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "env": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  }
+                },
+                "feste_env": {
+                  "default": {},
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "ram_mb": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["name", "image"],
+              "additionalProperties": false
+            }
+          },
+          "architektur": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["amd64", "arm64"]
+            }
+          },
+          "ram_mb": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "standard": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": ["id", "name"],
+        "additionalProperties": false
+      }
+    },
+    "braucht": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      }
+    },
+    "bietet": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      }
+    },
+    "anmeldung": {
+      "type": "string",
+      "enum": ["oidc", "eigen", "anbieter"]
+    },
+    "health": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "art": {
+              "type": "string",
+              "const": "http"
+            },
+            "dienst": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            },
+            "pfad": {
+              "type": "string",
+              "format": "starts_with",
+              "pattern": "^\\/.*"
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          },
+          "required": ["art", "dienst", "pfad"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "art": {
+              "type": "string",
+              "const": "tcp"
+            },
+            "dienst": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          },
+          "required": ["art", "dienst", "port"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "art": {
+              "type": "string",
+              "const": "befehl"
+            },
+            "befehl": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "required": ["art", "befehl"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "art": {
+              "type": "string",
+              "const": "keine"
+            },
+            "hinweis": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["art", "hinweis"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "befehle": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "container": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "argv": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["container", "argv"],
+        "additionalProperties": false
+      }
+    },
+    "schritte": {
+      "default": {
+        "einrichten": [],
+        "nach_update": []
+      },
+      "type": "object",
+      "properties": {
+        "einrichten": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nach_update": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "backup": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "art": {
+                "type": "string",
+                "const": "pg_dump"
+              },
+              "container": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "datenbank": {
+                "type": "string",
+                "minLength": 1
+              },
+              "nutzer": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": ["art", "container", "datenbank", "nutzer"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "art": {
+                "type": "string",
+                "const": "volume"
+              },
+              "volume": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              }
+            },
+            "required": ["art", "volume"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "art": {
+                "type": "string",
+                "const": "befehl"
+              },
+              "befehl": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              }
+            },
+            "required": ["art", "befehl"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "aktionen": {
+      "type": "object",
+      "properties": {
+        "nur_lesen": {
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "nicht_unterstuetzt"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "nicht_unterstuetzt": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["nicht_unterstuetzt"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "befehl": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$"
+                }
+              },
+              "required": ["befehl"],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "export": {
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "nicht_unterstuetzt"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "nicht_unterstuetzt": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["nicht_unterstuetzt"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "befehl": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$"
+                }
+              },
+              "required": ["befehl"],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "neustart": {
+          "default": "angeboten",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "angeboten"
+            },
+            {
+              "type": "string",
+              "const": "nicht_unterstuetzt"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "nicht_unterstuetzt": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["nicht_unterstuetzt"],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "log_auszug": {
+          "default": "angeboten",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "angeboten"
+            },
+            {
+              "type": "string",
+              "const": "nicht_unterstuetzt"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "nicht_unterstuetzt": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["nicht_unterstuetzt"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["nur_lesen", "export"],
+      "additionalProperties": false
+    },
+    "sperrzeiten": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "monatlich": {
+            "type": "string",
+            "pattern": "^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|[12][0-9]|3[01])$"
+          },
+          "grund": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["monatlich", "grund"],
+        "additionalProperties": false
+      }
+    },
+    "dns": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "typ": {
+            "type": "string",
+            "enum": ["A", "AAAA", "CNAME", "MX", "TXT", "SRV"]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "wert": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prioritaet": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["typ", "name", "wert"],
+        "additionalProperties": false
+      }
+    },
+    "env": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "ebene": {
+            "type": "string",
+            "enum": ["betreiber", "installation", "auto"]
+          },
+          "typ": {
+            "default": "text",
+            "type": "string",
+            "enum": ["text", "zahl", "ja_nein", "geheim"]
+          },
+          "pflicht": {
+            "default": false,
+            "type": "boolean"
+          },
+          "vorgabe": {
+            "type": ["string", "number", "boolean"]
+          },
+          "beschreibung": {
+            "type": "string"
+          },
+          "erzeugen": {
+            "type": "string",
+            "enum": ["zufall_32", "zufall_64"]
+          },
+          "aus": {
+            "type": "string",
+            "enum": ["oidc-anbieter", "adresse"]
+          },
+          "vorlage": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "ebene"],
+        "additionalProperties": false
+      }
+    },
+    "dringend": {
+      "default": false,
+      "type": "boolean"
+    },
+    "hinweis": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "id",
+    "version",
+    "lizenz",
+    "quelle",
+    "container",
+    "architektur",
+    "ressourcen",
+    "netz",
+    "anmeldung",
+    "health",
+    "aktionen"
+  ],
+  "additionalProperties": false,
+  "$id": "https://github.com/Speicherstadt/steuerzentrale/blob/main/packages/manifest/manifest.schema.json",
+  "title": "Manifest einer App der Steuerzentrale"
+}

@@ -1,0 +1,47 @@
+schema: 1
+id: haben
+version: 1.9.0
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/haben
+container: # daraus werden Quadlet-Units (Vorbild: deploy/quadlet/)
+  - {
+      name: app,
+      image: docker.io/tristanteu/haben@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,
+      braucht: [db],
+      env: [ELSTER_HERSTELLER_ID],
+      volumes: [{ name: belege, pfad: /app/belege }],
+    }
+  - {
+      name: db,
+      image: docker.io/tristanteu/haben-db@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,
+      volumes: [{ name: daten, pfad: /var/lib/postgresql/data }],
+    }
+architektur: [amd64, arm64] # je Container übersteuerbar, z. B. Schreibzeug nur amd64
+ressourcen: { ram_mb: 2048, platte_gb: 10 } # RAM als Grenze (MemoryMax), Platte als Planwert
+netz:
+  http: { dienst: app, port: 3000, websocket: false, sse: false, max_body_mb: 100, timeout_s: 60 }
+  ports: [] # Kontext: [{ dienst: stalwart, port: 25, fest: true }], Stellwerk: [{ dienst: zentrale, port: 22001, fest: false }]
+  oeffentliche_ipv4: false
+  mail: false # true: PTR, Port 25 ausgehend, Blacklist-Prüfung
+  server_fuer_sich: false
+proxy: geteilt # eigen: App bringt Caddy mit, nur mit server_fuer_sich
+rootful: false # true nur mit server_fuer_sich
+optionen: [] # schalten Container zu, mit eigener Architektur und RAM
+braucht: [] # Kennwort: [oidc-anbieter]
+bietet: [] # Kontext: [oidc-anbieter, smtp]
+anmeldung: oidc # oidc | eigen | anbieter
+health: { art: keine, hinweis: Haben#946 } # http | tcp | befehl | keine
+befehle: {} # benannte Befehle: { name: { container, argv: [...] } }
+schritte: { einrichten: [], nach_update: [] } # nur Namen aus befehle
+backup:
+  - { art: pg_dump, container: db, datenbank: haben, nutzer: haben }
+  - { art: volume, volume: belege }
+aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }
+sperrzeiten: [{ monatlich: "07-12", grund: Umsatzsteuer-Voranmeldung }]
+dns: [] # Kontext: MX, SPF, DKIM, DMARC, autoconfig
+env:
+  - { name: ELSTER_HERSTELLER_ID, ebene: betreiber, pflicht: true }
+  - { name: LAYOUTS_MAX_COUNT, ebene: installation, typ: zahl, vorgabe: 20 }
+  - { name: BETTER_AUTH_SECRET, ebene: auto, erzeugen: zufall_32 }
+  - { name: OIDC_CLIENT_SECRET, ebene: auto, aus: oidc-anbieter }
+hinweis: Haben ist Open Source (AGPL), https://haben.app
