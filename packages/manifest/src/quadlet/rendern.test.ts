@@ -95,6 +95,15 @@ describe("generated values", () => {
     expect(zeilen(s, "PublishPort")).toContain("20101:22001/tcp");
   });
 
+  it("leaves out an empty optional secret: Podman refuses a secret of 0 bytes", () => {
+    // containers/common pkg/secrets/secrets.go (Podman v4.9.0): "secret data must be larger than 0"
+    const a = testAnfrage(appManifest("haben"), []);
+    a.einstellungen.betreiber.ANTHROPIC_API_KEY = "";
+    const q = gerendert(a);
+    expect(Object.values(q.secrets)).not.toContain("");
+    expect(q.units["haben-k1-app.container"]).not.toContain("target=ANTHROPIC_API_KEY");
+  });
+
   it("uses a default and writes secrets only as Podman secrets", () => {
     const h = gerendert(testAnfrage(appManifest("haben"), []));
     expect(zeilen(h, "Environment")).toContain('"OIDC_ONLY=false"');

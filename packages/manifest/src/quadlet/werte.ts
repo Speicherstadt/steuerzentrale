@@ -21,11 +21,20 @@ export const aktiveEinstellungen = (m: Manifest, optionen: readonly string[]): E
   m.env.filter((e) => e.option === undefined || optionen.includes(e.option));
 
 /** A setting's own value, before templates; undefined when it has none */
-const eigenerWert = (e: Einstellung, a: QuadletAnfrage): Wert | undefined => {
+const gesetzterWert = (e: Einstellung, a: QuadletAnfrage): Wert | undefined => {
   if (e.ebene === "betreiber") return a.einstellungen.betreiber[e.name] ?? e.vorgabe;
   if (e.ebene === "installation") return a.einstellungen.installation[e.name] ?? e.vorgabe;
   if (e.aus === "adresse") return a.installation.adresse;
   return a.einstellungen.auto[e.name];
+};
+
+/**
+ * An empty secret counts as not set: Podman refuses a secret of 0 bytes ("secret data must be
+ * larger than 0", pkg/secrets/secrets.go of containers/common in Podman v4.9.0)
+ */
+const eigenerWert = (e: Einstellung, a: QuadletAnfrage): Wert | undefined => {
+  const wert = gesetzterWert(e, a);
+  return e.typ === "geheim" && wert === "" ? undefined : wert;
 };
 
 const fehltGrund = (e: Einstellung): string | null => {

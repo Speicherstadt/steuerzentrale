@@ -124,7 +124,8 @@ Regeln:
 - Eine Einstellung mit `option` gilt nur bei eingeschalteter Option; fehlt ein Pflichtwert oder ein
   erzeugter Wert, wird nicht gerendert. Vorlagen werden mit den Platzhaltern oben gefüllt.
 - Nicht geheime Werte stehen als `Environment=` in der Unit, ein Wert mit Steuerzeichen wird dort
-  abgelehnt; geheime Werte stehen nur in Podman-Secrets, nie in einer Unit.
+  abgelehnt; geheime Werte stehen nur in Podman-Secrets, nie in einer Unit. Ein leerer geheimer Wert
+  gilt als nicht gesetzt, weil Podman kein Secret mit 0 Byte anlegt.
 
 ### `argv` und `Exec=`
 
