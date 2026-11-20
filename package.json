@@ -21,7 +21,8 @@
     "e2e": "playwright test --trace off",
     "check": "bun run typecheck && bun run lint && bun run test && bun run build",
     "dev:zentrale": "STEUERZENTRALE_PORT=18300 bun run --cwd apps/zentrale dev",
-    "dev:web": "bun run --cwd apps/web dev"
+    "dev:web": "bun run --cwd apps/web dev",
+    "db:generate": "bun run --cwd apps/zentrale drizzle-kit generate && bun scripts/migrationen.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
