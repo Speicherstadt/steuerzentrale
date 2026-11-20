@@ -1,9 +1,10 @@
 {
-  "$comment": "Runtime packages a workspace may depend on, each with the reason (docs/plan.md, Technologie). The agent runs on every managed server, the Zentrale holds every customer: few packages, each one read. `bun run lint` fails on a dependency missing here or used by a workspace not listed for it. Workspace packages (@steuerzentrale/*) need no entry. A new entry comes in the pull request that needs it.",
+  "$comment": "Runtime packages a workspace may depend on, each with the reason (docs/plan.md, Technologie). The agent runs on every managed server, the Zentrale holds every customer: few packages, each one read. `bun run lint` fails on a dependency missing here or used by a workspace not listed for it. Workspace packages (@steuerzentrale/*) need no entry. A new entry comes in the pull request that needs it. \"major\" pins the major version where npm's latest is the wrong line (Solid 1 for TanStack); \"forbidden\" lists packages that may appear nowhere, dev dependencies included.",
   "packages": {
     "zod": {
       "reason": "Zod 4: every value that crosses a boundary (manifest, messages between Zentrale and agent, API) is parsed against a schema; no dependencies of its own",
-      "workspaces": ["packages/manifest", "packages/protokoll", "apps/zentrale", "apps/agent"]
+      "workspaces": ["packages/manifest", "packages/protokoll", "apps/zentrale", "apps/agent"],
+      "major": 4
     },
     "yaml": {
       "reason": "Manifests are YAML (docs/plan.md, Manifest); a parser without dependencies of its own",
@@ -31,11 +32,13 @@
     },
     "solid-js": {
       "reason": "Solid 2, the UI of the Zentrale, as in Kennwort and Soll",
-      "workspaces": ["packages/ui", "apps/web"]
+      "workspaces": ["packages/ui", "apps/web"],
+      "major": 2
     },
     "@solidjs/web": {
       "reason": "Solid 2's DOM renderer, split out of solid-js in 2.0",
-      "workspaces": ["packages/ui", "apps/web"]
+      "workspaces": ["packages/ui", "apps/web"],
+      "major": 2
     },
     "lucide": {
       "reason": "Icon data for the Icon component of packages/ui (lucide-solid carries only Solid 1), as in Soll",
@@ -43,11 +46,18 @@
     },
     "@tanstack/solid-router": {
       "reason": "Routing of the SPA with file-based, typed routes, as in Soll; 2.x is the line built for Solid 2 (1.x needs Solid 1; transitive Solid-1 packages listed in docs/solid-2.0/README.md)",
-      "workspaces": ["apps/web"]
+      "workspaces": ["apps/web"],
+      "major": 2
     },
     "@tanstack/solid-query": {
       "reason": "Server data in the SPA (cache, refetch, mutations); 6.x is the line built for Solid 2 (5.x needs Solid 1)",
-      "workspaces": ["apps/web"]
+      "workspaces": ["apps/web"],
+      "major": 6
     }
+  },
+  "forbidden": {
+    "lucide-solid": "carries only Solid 1; use lucide with the Icon component of packages/ui",
+    "vite-plugin-solid": "the Solid 1 Vite plugin; Solid 2 uses @solidjs/vite-plugin",
+    "@solidjs/router": "a second router beside @tanstack/solid-router, which docs/plan.md decides for the SPA"
   }
 }

@@ -17,7 +17,9 @@ bun install
 bun run check        # typecheck, lint, test, build
 ```
 
-`bun run lint` prüft auch, dass jede Laufzeit-Abhängigkeit in `allowed-dependencies.json` steht, mit Grund,
+`bun run lint` prüft auch, dass jede Laufzeit-Abhängigkeit in `allowed-dependencies.json` steht, mit Grund und
+der dort festgelegten Hauptversion (TanStack Router 2, Query 6, Solid 2), dass keines der verbotenen Pakete aus
+Solid 1 auftaucht,
 und dass kein Code Muster aus Solid 1.x nutzt. Die Oberfläche ist Solid 2.0; dessen Doku liegt als Kopie in
 `docs/solid-2.0/` (Einstieg: `MIGRATION.md`).
 

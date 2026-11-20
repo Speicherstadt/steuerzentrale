@@ -60,8 +60,10 @@ it settles a detail.
 - Change another Speicherstadt repository from this loop; the apps are sources to read.
 - Point tests at a real server or real customer data; skip, weaken or delete a test or a gate to get
   green; report a skipped test as passed.
-- Add a runtime dependency without an entry and reason in `allowed-dependencies.json`, or with a
-  version that is not exact.
+- Add a runtime dependency without an entry and reason in `allowed-dependencies.json`, with a
+  version that is not exact or outside the entry's `major`, or a package from its `forbidden` list.
+  `bun add` installs npm's `latest`, which for TanStack Router and Query is still the Solid 1 line:
+  name the version (`bun add @tanstack/solid-router@2.0.0-rc.11 --exact`).
 - Push to `main`, merge without the independent review, create or comment on issues and pull
   requests without being asked.
 - Stop the user's processes or containers, or work around `sudo`.
