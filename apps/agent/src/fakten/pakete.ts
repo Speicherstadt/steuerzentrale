@@ -9,11 +9,19 @@ import type { FaktenQuellen } from "./quellen.ts";
 export const APT_SIMULIEREN = ["apt-get", "-s", "-q", "upgrade"] as const;
 export const PODMAN_VERSION = ["podman", "--version"] as const;
 
-/** The packages `apt-get -s upgrade` would install: one `Inst` line each (apt-get(8), -s) */
+// the summary line apt-get prints in the C locale, the agent runs it with LC_ALL=C
+const ZUSAMMENFASSUNG =
+  /^(\d+) upgraded, \d+ newly installed, \d+ to remove and (\d+) not upgraded/m;
+
+/**
+ * The packages with a newer version: those `apt-get -s upgrade` would upgrade and those it keeps
+ * back, such as a kernel with a new ABI, which `upgrade` never installs (apt-get(8))
+ */
 export const updatesAusstehend = async (q: FaktenQuellen): Promise<number | null> => {
   const lauf = await q.ausfuehren(APT_SIMULIEREN, 60_000);
   if (lauf?.code !== 0) return null;
-  return lauf.aus.split("\n").filter((zeile) => zeile.startsWith("Inst ")).length;
+  const treffer = ZUSAMMENFASSUNG.exec(lauf.aus);
+  return treffer ? Number(treffer[1]) + Number(treffer[2]) : null;
 };
 
 export const podmanVersion = async (q: FaktenQuellen): Promise<string | null> => {

@@ -157,7 +157,7 @@ startet nur Befehle mit festen Argumenten, keine Shell:
 | Betriebssystem | `NAME` und `VERSION_ID` aus `/etc/os-release` |
 | Kernel | läuft: `/proc/sys/kernel/osrelease`; installiert: der neueste in `/boot`, sonst `/lib/modules` |
 | Neustart nötig | `/var/run/reboot-required` oder ein neuerer installierter Kernel als der laufende |
-| ausstehende Updates | `apt-get -s -q upgrade` (simuliert nur) |
+| ausstehende Updates | `apt-get -s -q upgrade` (simuliert nur): die Pakete, die es aktualisieren würde, und die zurückgehaltenen, etwa ein neuer Kernel |
 | Podman | `podman --version` |
 | IPv4, IPv6 | die Adressen der Netzwerkschnittstellen ohne Loopback, Link-Local und Podmans Netze |
 | PTR | Rückwärtsauflösung jeder öffentlichen Adresse |
