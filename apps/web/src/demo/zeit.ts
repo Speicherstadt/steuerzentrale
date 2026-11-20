@@ -31,7 +31,9 @@ export const berlin = (datum: string, uhrzeit = "00:00"): number => {
   const [jahr, monat, t] = tag(datum);
   const [stunde, minute] = uhrzeit.split(":").map(Number) as [number, number];
   const geraten = Date.UTC(jahr, monat - 1, t, stunde, minute);
-  return geraten - versatz(geraten);
+  // The offset at the guess can differ from the one at the result within hours of a DST change:
+  // take it again at the first result
+  return geraten - versatz(geraten - versatz(geraten));
 };
 
 export const JETZT = berlin("2026-11-20", "10:42");
