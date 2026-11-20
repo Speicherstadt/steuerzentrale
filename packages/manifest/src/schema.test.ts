@@ -344,3 +344,44 @@ describe("settings of an option", () => {
     expect(mitOption("ftp")).toContain("env.4.option: no option named ftp");
   });
 });
+
+describe("secrets in templates and DNS records (review of Z-203)", () => {
+  const mitGeheimnis = (aendern: (m: Roh) => void) =>
+    fehler(
+      mit((m) => {
+        m.env.push({
+          name: "DB_PASSWORT",
+          ebene: "auto",
+          typ: "geheim",
+          erzeugen: "zufall_hex_32",
+        });
+        aendern(m);
+      }),
+    );
+
+  it("a template that names a secret is a secret itself", () => {
+    expect(
+      mitGeheimnis((m) => {
+        m.env.push({
+          name: "URL",
+          ebene: "auto",
+          typ: "geheim",
+          vorlage: "pg://${env:DB_PASSWORT}@db",
+        });
+      }),
+    ).toEqual([]);
+    expect(
+      mitGeheimnis((m) => {
+        m.env.push({ name: "URL", ebene: "auto", vorlage: "pg://${env:DB_PASSWORT}@db" });
+      }),
+    ).toContain("env.5.vorlage: DB_PASSWORT is a secret, so this setting needs typ: geheim");
+  });
+
+  it("a DNS record never names a secret: it is public", () => {
+    expect(
+      mitGeheimnis((m) => {
+        m.dns = [{ typ: "TXT", name: "${host}", wert: "${env:DB_PASSWORT}" }];
+      }),
+    ).toContain("dns.0.wert: DB_PASSWORT is a secret and a DNS record is public");
+  });
+});
