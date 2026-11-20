@@ -1,5 +1,12 @@
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
-import { betreiber, ereignisse, heartbeats, logAuszuege } from "../../db/schema.ts";
+import {
+  betreiber,
+  ereignisse,
+  geheimnisse,
+  heartbeats,
+  logAuszuege,
+  tokens,
+} from "../../db/schema.ts";
 
 /**
  * The tables `schreiben` may write, with the columns that name one row besides `betreiber_id`, and
@@ -10,6 +17,8 @@ export const tabellen = {
   betreiber: { tabelle: betreiber, schluessel: [] as string[], zeit: undefined },
   logAuszuege: { tabelle: logAuszuege, schluessel: ["auszugId"], zeit: logAuszuege.zeitpunkt },
   ereignisse: { tabelle: ereignisse, schluessel: ["ereignisId"], zeit: ereignisse.zeitpunkt },
+  geheimnisse: { tabelle: geheimnisse, schluessel: ["geheimnisId"], zeit: undefined },
+  tokens: { tabelle: tokens, schluessel: ["tokenId"], zeit: undefined },
   heartbeats: {
     tabelle: heartbeats,
     schluessel: ["serverId", "zeitpunkt"],

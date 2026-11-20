@@ -77,3 +77,36 @@ export const ereignisse = sqliteTable(
     index("ereignisse_zeitpunkt").on(t.zeitpunkt),
   ],
 );
+
+/**
+ * A secret of an operator (S3 key, restic password, an `auto` value of an installation), encrypted
+ * with STEUERZENTRALE_SECRET_KEY (src/modules/geheim); `wert` never holds plain text
+ */
+export const geheimnisse = sqliteTable(
+  "geheimnisse",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    geheimnisId: text("geheimnis_id").notNull(),
+    zweck: text("zweck").notNull(),
+    wert: text("wert").notNull(),
+    geaendertAm: integer("geaendert_am").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.betreiberId, t.geheimnisId] })],
+);
+
+/**
+ * A token stored only as its SHA-256 (join tokens of servers, later API tokens): whoever reads the
+ * database cannot use it
+ */
+export const tokens = sqliteTable(
+  "tokens",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    tokenId: text("token_id").notNull(),
+    zweck: text("zweck").notNull(),
+    hash: text("hash").notNull().unique(),
+    gueltigBis: integer("gueltig_bis"),
+    angelegtAm: integer("angelegt_am").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.betreiberId, t.tokenId] })],
+);

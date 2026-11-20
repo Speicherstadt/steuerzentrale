@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrationen } from "./migrationen.gen.ts";
 import { migrieren } from "./migrieren.ts";
 import * as schema from "./schema.ts";
+import { pruefwertErneuern, type Schluesselbund, schluesselPruefen } from "./schluessel.ts";
 
 const oeffneSqlite = (pfad: string): Database => {
   const sqlite = new Database(pfad, { create: true, strict: true });
@@ -30,15 +31,32 @@ export type Datenbank = {
   db: Db;
   /** For `schreiben` alone */
   schreibDb: SchreibDb;
+  /** The keys this database was opened with (src/modules/geheim) */
+  schluessel: Schluesselbund;
+  /** After a rotation: the check value from now on with the current key */
+  rotationAbschliessen: () => void;
   /** The writable connection itself, for tests that tamper on purpose */
   sqlite: Database;
   schliessen: () => void;
 };
 
-/** Opens the database at `pfad`, applies the embedded migrations, returns both connections */
-export const oeffneDatenbank = (pfad: string, jetzt: number): Datenbank => {
+/**
+ * Opens the database at `pfad`, applies the embedded migrations, refuses a key that does not open
+ * it and returns both connections
+ */
+export const oeffneDatenbank = (
+  pfad: string,
+  jetzt: number,
+  schluessel: Schluesselbund,
+): Datenbank => {
   const sqlite = oeffneSqlite(pfad);
-  migrieren(sqlite, migrationen, jetzt);
+  try {
+    migrieren(sqlite, migrationen, jetzt);
+    schluesselPruefen(sqlite, schluessel);
+  } catch (fehler) {
+    sqlite.close();
+    throw fehler;
+  }
   const lesend = new Database(pfad, { readonly: true, strict: true });
   lesend.run("PRAGMA busy_timeout = 5000");
   // A read-only connection still writes TEMP tables; query_only refuses those too
@@ -47,6 +65,8 @@ export const oeffneDatenbank = (pfad: string, jetzt: number): Datenbank => {
   return {
     db: alsDrizzle(lesend),
     schreibDb: { verbindung: alsDrizzle(sqlite) } as SchreibDb,
+    schluessel,
+    rotationAbschliessen: () => pruefwertErneuern(sqlite, schluessel.aktuell),
     sqlite,
     schliessen: () => {
       lesend.close();
