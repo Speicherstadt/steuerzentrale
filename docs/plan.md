@@ -230,7 +230,7 @@ statt React, Hono-Server mit SPA statt TanStack Start).
 | Monorepo | Bun Workspaces, Biome, TypeScript strict, Vitest, Playwright | wie überall |
 | Zentrale | Bun, Hono, Drizzle mit SQLite (WAL), Zod, Better Auth, `bun build --compile` | ein Container ohne Datenbankserver |
 | Agent | TypeScript, `bun build --compile` für amd64 und arm64, systemd-Dienst | teilt `packages/protokoll` und `packages/manifest` mit der Zentrale |
-| Oberfläche | Solid 2 SPA, Paraglide, Tailwind 4, `packages/ui` von Kennwort, Geist, Zinc | ein Look in der Suite |
+| Oberfläche | Solid 2 SPA mit TanStack Router 2 (dateibasierte Routen) und TanStack Query 6 (Daten vom Server), Paraglide, Tailwind 4, `packages/ui` von Kennwort, Geist, Zinc | ein Look in der Suite; Router und Query in den Versionen für Solid 2 (Stand in `docs/solid-2.0/README.md`), die Solid-2.0-Doku liegt in `docs/solid-2.0/` |
 | Verbindung | WebSocket über HTTPS mit Client-Zertifikat, Nachrichten als Zod-Schemas mit Version | durch jede Firewall, die HTTPS durchlässt |
 | Signaturen | minisign für Manifeste und Agent-Binaries | klein, ohne Infrastruktur |
 | Auf dem Server | Podman ab 4.4 mit Quadlets, rootless, pasta; Caddy als Pforte; restic; unattended-upgrades | |

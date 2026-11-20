@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "typecheck": "tsc -b",
-    "lint": "biome check --error-on-warnings . && bun scripts/check-dependencies.ts",
+    "lint": "biome check --error-on-warnings . && bun scripts/check-dependencies.ts && bun scripts/solid-muster.ts",
     "format": "biome check --write .",
     "test": "vitest run",
     "build": "bun scripts/build-all.ts",

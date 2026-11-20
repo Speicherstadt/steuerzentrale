@@ -40,6 +40,14 @@
     "lucide": {
       "reason": "Icon data for the Icon component of packages/ui (lucide-solid carries only Solid 1), as in Soll",
       "workspaces": ["packages/ui"]
+    },
+    "@tanstack/solid-router": {
+      "reason": "Routing of the SPA with file-based, typed routes, as in Soll; 2.x is the line built for Solid 2 (1.x needs Solid 1; transitive Solid-1 packages listed in docs/solid-2.0/README.md)",
+      "workspaces": ["apps/web"]
+    },
+    "@tanstack/solid-query": {
+      "reason": "Server data in the SPA (cache, refetch, mutations); 6.x is the line built for Solid 2 (5.x needs Solid 1)",
+      "workspaces": ["apps/web"]
     }
   }
 }

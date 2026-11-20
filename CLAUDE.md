@@ -113,11 +113,61 @@ Database tests run against SQLite in a temporary file; nothing needs a running d
 - Language: code, comments and commits in English; `README.md` and the docs in German; the app
   through Paraglide with `messages/de.json` and `messages/en.json`.
 
+## Solid 2.0
+
+The UI uses Solid 2.0 (stable since 11/2026). Its API differs a lot from 1.x, and most training data
+is 1.x. Base every line of Solid code on the copy of the 2.0 docs in `docs/solid-2.0/`, not on memory.
+
+- Before any work on Solid code read `docs/solid-2.0/MIGRATION.md` and the section „What changed from
+  1.x“ at the end of `docs/solid-2.0/CHEATSHEET.md`; for a topic, its RFC (`03-control-flow.md`,
+  `05-async-data.md`, `06-actions-optimistic.md`, `07-dom.md`, …). When unsure, look it up there; do
+  not guess.
+- Forbidden 1.x patterns (`bun run lint` fails on them, `scripts/solid-muster.ts`):
+  - `createResource` → async `createMemo(() => fetchX(id()))` (or `createStore(fn)`) under `<Loading>`;
+    `refetch` → `refresh(x)`, `mutate` → `action` + `createOptimistic`/`createOptimisticStore`
+  - `createEffect` with one argument → `createEffect(compute, apply)`; cleanup is the apply's return
+  - `on(...)` → the compute phase of a split effect; `defer` is an option of `createEffect`
+  - `classList` → `class` with an object or array (`class={["card", { active: on() }]}`)
+  - `Suspense`, `SuspenseList`, `ErrorBoundary` → `Loading`, `Reveal`, `Errored`
+  - `Index`, `indexArray` → `<For keyed={false}>`, `mapArray`
+  - `createComputed` → `createMemo`, split `createEffect` or `createSignal(fn)`
+  - `batch` → nothing (writes batch by microtask); `flush()` only in tests or rare interop
+  - `startTransition`, `useTransition` → built-in transitions, `isPending`, `action`
+  - `onMount` → `onSettled`; `onError`/`catchError` → `<Errored>` or the effect `error` option
+  - `mergeProps`/`splitProps` → `merge`/`omit` (`undefined` overrides in `merge`)
+  - `produce` → draft setters are the default; path setters `setStore("a", "b", v)` → draft writes
+  - `createMutable`/`modifyMutable` → `createStore` with draft setters; `unwrap` → `snapshot`
+  - `createSelector` → `createProjection` or `createStore(fn)`; `observable` → `createEffect`
+  - `createDynamic` and `<Dynamic>` → the `dynamic(source)` factory
+  - `Context.Provider` → `<Context value={…}>`
+  - imports from `solid-js/web`, `solid-js/store`, `solid-js/h`, `solid-js/html`,
+    `solid-js/universal` → `@solidjs/web`, `solid-js`, `@solidjs/h`, `@solidjs/html`,
+    `@solidjs/universal`; `jsxImportSource` is `@solidjs/web`
+  - `use:` directives → `ref` directive factories; `attr:`, `bool:`, `on:`, `oncapture:` → plain
+    attributes, `onClick`; lowercase `onclick={…}` is an attribute in 2.0 → `onClick`
+  - `/*@once*/` → normal reactive JSX, `defaultValue`, or `untrack` in JavaScript
+- Behaviour that compiles but works differently from 1.x (no lint can see it; check it in review):
+  - a setter does not change what reads return until the microtask flush (`flush()` in tests);
+  - writing a signal or store inside a memo, effect compute or component body throws in dev; write
+    in event handlers, `action`s or `onSettled`;
+  - no top-level reactive reads in a component body and no destructured props (`props.x` in JSX);
+  - props are values: pass `count()`, not `count`;
+  - `createMemo`'s second argument is options, not an initial value; `prev` starts `undefined`;
+  - `isPending` is not 1.x `.loading`: it reports a change in flight, a bare `refresh()` is silent;
+  - `createRoot` inside an owner is disposed with it (`runWithOwner(null, …)` to detach);
+  - ref callbacks are unowned: no `onCleanup` inside them, use `onSettled` or a directive factory;
+  - event handler bindings are not reactive: decide inside a stable handler;
+  - `<For>` callback shape follows `keyed`; flow callbacks are owners, not tracking scopes;
+  - boolean attributes are presence/absence, built-in attributes lowercase (`tabindex`).
+- Router and data: `@tanstack/solid-router` 2.x and `@tanstack/solid-query` 6.x, the versions built
+  for Solid 2 (state in `docs/solid-2.0/README.md`); never `lucide-solid` or a 1.x package.
+
 ## Code style
 
 Technology choices follow `tech-stack.md` in firsttris/workflows and the stack of Kennwort and Soll,
 with the same two deviations: **Solid 2 instead of React** and **a Hono server with a static SPA
-instead of TanStack Start**. The agent is TypeScript too, compiled with `bun build --compile`, so
+instead of TanStack Start**. The SPA uses TanStack Router (file-based routes) and TanStack Query for
+server data, in their Solid 2 versions (section „Solid 2.0“). The agent is TypeScript too, compiled with `bun build --compile`, so
 Zentrale and agent share `packages/protokoll` and `packages/manifest` without type drift.
 
 Clean Code, written functionally: clear names, small functions that do one thing, dependencies
