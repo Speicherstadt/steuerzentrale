@@ -3,6 +3,7 @@ import { createApp } from "./app.ts";
 import { createAuth } from "./auth/auth.ts";
 import { testDatenbank } from "./db/test-db.ts";
 import { auslieferung } from "./modules/server/index.ts";
+import { verbindungen } from "./modules/verbindung/verbindungen.ts";
 
 const setup = () => {
   const lines: string[] = [];
@@ -20,6 +21,7 @@ const setup = () => {
     agentUrl: url,
     auslieferung: auslieferung(undefined, url),
     socketAdresse: () => undefined,
+    verbindungen: verbindungen(4409),
   });
   return { app, lines };
 };

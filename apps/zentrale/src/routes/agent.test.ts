@@ -127,6 +127,33 @@ describe("the token exchange", () => {
     expect((await tauschen(server, falsch, "198.51.100.8")).status).toBe(401);
   });
 
+  it("counts the addresses of one IPv6 network together", async () => {
+    const { server } = await vorbereitet();
+    const falsch = await testAnfrage("y".repeat(43));
+    for (let i = 0; i < BEITRITT_GRENZE; i++)
+      expect((await tauschen(server, falsch, `2001:db8:7:7::${i + 1}`)).status).toBe(401);
+    expect((await tauschen(server, falsch, "2001:db8:7:7:ffff::1")).status).toBe(429);
+    expect((await tauschen(server, falsch, "2001:db8:7:8::1")).status).toBe(401);
+  });
+
+  it("counts the client behind the Pforte, and a client's own forwarding header not at all", async () => {
+    const { server } = await vorbereitet();
+    const falsch = await testAnfrage("y".repeat(43));
+    const ueber = (adresse: string, weitergeleitet: string) =>
+      server
+        .browser(adresse)
+        .json(PFAD, { body: falsch, headers: { "x-forwarded-for": weitergeleitet } });
+    for (let i = 0; i < BEITRITT_GRENZE; i++)
+      expect((await ueber("198.51.100.9", `192.0.2.${i}`)).status).toBe(401);
+    // another header did not make another client: still 198.51.100.9
+    expect((await ueber("198.51.100.9", "192.0.2.200")).status).toBe(429);
+    // behind the Pforte each client has its own count, however many came before
+    for (let i = 0; i < BEITRITT_GRENZE; i++)
+      expect((await ueber("127.0.0.1", "203.0.113.1")).status).toBe(401);
+    expect((await ueber("127.0.0.1", "203.0.113.1")).status).toBe(429);
+    expect((await ueber("127.0.0.1", "203.0.113.2")).status).toBe(401);
+  });
+
   it("keeps the CA's key encrypted and records it in the audit log only as changed", async () => {
     const { server, token } = await vorbereitet();
     await tauschen(server, await testAnfrage(token));

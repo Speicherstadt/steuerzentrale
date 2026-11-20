@@ -4,18 +4,27 @@ import { darf, type Recht, ROLLEN, type Rolle } from "../auth/rollen.ts";
 import type { Db } from "../db/oeffnen.ts";
 import { faktorenVon, zweiterFaktorVorhanden } from "../modules/anmeldung/faktoren.ts";
 import { mitgliedschaftenVon, mitgliedVon } from "../modules/mitglieder/index.ts";
+import { serverZumFingerabdruck } from "../modules/server/index.ts";
+import { agentFingerabdruck, FINGERABDRUCK_HEADER } from "../modules/verbindung/herkunft.ts";
 
-/** Who calls, for which operator, in which role: set by the guard for every route with a right */
-export type Anfrage = { Variables: { nutzerId: string; betreiberId: string; rolle: string } };
+/**
+ * Who calls, for which operator, in which role: set by the guard for every route with a right; for
+ * an agent the server (`nutzerId` is `server:<id>`) and the fingerprint of its certificate
+ */
+export type Anfrage = {
+  Variables: { nutzerId: string; betreiberId: string; rolle: string; fingerabdruck: string };
+};
 
 /**
  * Who may reach a route: everyone (the setup code, an invitation's token and a server's join token
  * are the key there),
  * any signed-in account, also one without its second factor (only the setup of that factor),
- * Better Auth itself (its own checks, AUTH_PFADE), or a member whose role has the right.
+ * Better Auth itself (its own checks, AUTH_PFADE), a member whose role has the right, or an agent
+ * with the client certificate of a server that is not revoked (the fingerprint from the Pforte).
  */
 export type Zugang =
   | { art: "oeffentlich" }
+  | { art: "agent" }
   | { art: "einrichtung" }
   | { art: "better-auth" }
   | { art: "recht"; recht: Recht };
@@ -23,6 +32,7 @@ export type Zugang =
 const oeffentlich = { art: "oeffentlich" } as const;
 const einrichtung = { art: "einrichtung" } as const;
 const betterAuth = { art: "better-auth" } as const;
+const agent = { art: "agent" } as const;
 const recht = (name: Recht) => ({ art: "recht", recht: name }) as const;
 
 /**
@@ -52,11 +62,16 @@ export const ROUTEN = {
   "PUT /api/v1/kunden/:kundeId": recht("kunden:schreiben"),
   "PUT /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
   "DELETE /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
+  "GET /api/v1/server": recht("server:lesen"),
+  "GET /api/v1/server/:serverId": recht("server:lesen"),
   "POST /api/v1/server": recht("server:anlegen"),
+  "POST /api/v1/server/:serverId/sperren": recht("server:sperren"),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,
   "POST /api/v1/agent/beitreten": oeffentlich,
+  // the agent's connection (WebSocket), with its client certificate (Z-303)
+  "GET /api/v1/agent/verbindung": agent,
 } as const satisfies Record<string, Zugang>;
 
 export type RoutenName = keyof typeof ROUTEN;
@@ -81,9 +96,11 @@ export const AUTH_PFADE: Readonly<Record<string, "oeffentlich" | "sitzung">> = {
   "POST /two-factor/enable": "sitzung",
 };
 
-/** The roles that reach a route; for a public one or the setup: every role */
-export const rollenFuer = (zugang: Zugang): readonly Rolle[] =>
-  zugang.art === "recht" ? ROLLEN.filter((rolle) => darf(rolle, zugang.recht)) : ROLLEN;
+/** The roles that reach a route; for a public one or the setup: every role; an agent's: none */
+export const rollenFuer = (zugang: Zugang): readonly Rolle[] => {
+  if (zugang.art === "agent") return [];
+  return zugang.art === "recht" ? ROLLEN.filter((rolle) => darf(rolle, zugang.recht)) : ROLLEN;
+};
 
 /**
  * The operator of a request: the one active in the session, else the only one the account is a
@@ -98,12 +115,35 @@ const betreiberDerSitzung = (
   return alle.length === 1 ? alle[0] : undefined;
 };
 
+/** The socket's address of a request (Bun's requestIP; a fixed one in tests) */
+export type SocketAdresse = (request: Request, env: unknown) => string | undefined;
+
+/**
+ * An agent's request: the certificate's fingerprint from the Pforte names a server that is not
+ * revoked; a revoked one is refused at once, however valid its certificate still is
+ */
+const agentWache =
+  (db: Db, socketAdresse: SocketAdresse): MiddlewareHandler<Anfrage> =>
+  async (c, next) => {
+    const fingerabdruck = agentFingerabdruck(
+      socketAdresse(c.req.raw, c.env),
+      c.req.header(FINGERABDRUCK_HEADER),
+    );
+    const gefunden = fingerabdruck ? serverZumFingerabdruck(db, fingerabdruck) : undefined;
+    if (!fingerabdruck || !gefunden) return c.json({ fehler: "kein_zertifikat" }, 401);
+    c.set("nutzerId", `server:${gefunden.server.serverId}`);
+    c.set("betreiberId", gefunden.server.betreiberId);
+    c.set("fingerabdruck", fingerabdruck);
+    return next();
+  };
+
 /** The guard of one route; the role comes from `mitglieder`, so a removed member loses access at once */
 export const wache =
-  (auth: Auth, db: Db) =>
+  (auth: Auth, db: Db, socketAdresse: SocketAdresse) =>
   (zugang: Zugang): MiddlewareHandler<Anfrage> =>
   async (c, next) => {
     if (zugang.art === "oeffentlich" || zugang.art === "better-auth") return next();
+    if (zugang.art === "agent") return agentWache(db, socketAdresse)(c, next);
     const sitzung = await auth.sitzung(c.req.raw.headers);
     if (!sitzung) return c.json({ fehler: "nicht_angemeldet" }, 401);
     c.set("nutzerId", sitzung.nutzerId);

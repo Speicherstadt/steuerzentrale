@@ -1,6 +1,16 @@
+import { TRENNUNG } from "@steuerzentrale/protokoll";
 import { z } from "zod";
 import { kundeLesen } from "../modules/kunden/index.ts";
-import { ARTEN, serverAnlegen } from "../modules/server/index.ts";
+import {
+  ARTEN,
+  letzteHeartbeats,
+  type Server,
+  serverAnlegen,
+  serverLesen,
+  serverListe,
+  serverSperren,
+} from "../modules/server/index.ts";
+import { verbindungsZustand } from "../modules/verbindung/zustand.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
 import type { Registrar } from "./zugang.ts";
 
@@ -29,6 +39,33 @@ const anlegenSchema = z
     message: "kundeId with eigen and beim_kunden only",
   });
 
+const grundSchema = z.object({ grund: z.string().trim().min(1).max(500) }).strict();
+
+/**
+ * A server as the API shows it: what the operator entered, what the agent reported at joining, and
+ * the state of its agent from the open connection and the last heartbeat (Z-303). Never the
+ * certificate or its fingerprint.
+ */
+export const serverAntwort = (
+  sv: Server,
+  verbundenSeit: number | undefined,
+  letzterHeartbeat: number | undefined,
+  jetzt: number,
+) => ({
+  serverId: sv.serverId,
+  name: sv.name,
+  art: sv.art,
+  kundeId: sv.kundeId,
+  wartungsfenster: JSON.parse(sv.wartungsfenster) as unknown,
+  angelegtAm: sv.angelegtAm,
+  beigetretenAm: sv.beigetretenAm,
+  architektur: sv.architektur,
+  agentVersion: sv.agentVersion,
+  zertifikatGueltigBis: sv.zertifikatGueltigBis,
+  gesperrtAm: sv.gesperrtAm,
+  agent: verbindungsZustand({ verbundenSeit, letzterHeartbeat }, jetzt),
+});
+
 /** The command the interface shows once (docs/plan.md, "Ablauf: Server hinzufügen") */
 export const installBefehl = (agentUrl: string, token: string): string =>
   `curl -fsSL ${agentUrl}/install.sh | sudo sh -s -- --token ${token}`;
@@ -38,6 +75,52 @@ export const installBefehl = (agentUrl: string, token: string): string =>
  * answer carries this once; the Zentrale keeps only its hash
  */
 export const serverRouten = (route: Registrar, deps: RoutenDeps): void => {
+  const antwort = (sv: Server, letzter: number | undefined) =>
+    serverAntwort(
+      sv,
+      deps.verbindungen.verbundenSeit(sv.betreiberId, sv.serverId),
+      letzter,
+      deps.now(),
+    );
+
+  route("GET /api/v1/server", (c) => {
+    const betreiberId = c.get("betreiberId");
+    const letzte = letzteHeartbeats(deps.db, betreiberId);
+    const server = serverListe(deps.db, betreiberId).map((sv) =>
+      antwort(sv, letzte.get(sv.serverId)),
+    );
+    return c.json({ server });
+  });
+
+  route("GET /api/v1/server/:serverId", (c) => {
+    const betreiberId = c.get("betreiberId");
+    const serverId = c.req.param("serverId") ?? "";
+    const sv = serverLesen(deps.db, betreiberId, serverId);
+    if (!sv) return c.json({ fehler: "kein_server" }, 404);
+    return c.json(antwort(sv, letzteHeartbeats(deps.db, betreiberId, serverId).get(serverId)));
+  });
+
+  // Revoking (Z-303): the certificate is refused from now on, and a running connection ends now
+  route("POST /api/v1/server/:serverId/sperren", async (c) => {
+    const angaben = await eingabe(c, grundSchema);
+    if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
+    const betreiberId = c.get("betreiberId");
+    const serverId = c.req.param("serverId") ?? "";
+    const kontext = {
+      betreiberId,
+      akteur: c.get("nutzerId"),
+      jetzt: deps.now(),
+      grund: angaben.grund,
+    };
+    const gesperrt = serverSperren(deps.db, deps.schreibDb, kontext, serverId);
+    if (!gesperrt.ok)
+      return c.json({ fehler: gesperrt.grund }, gesperrt.grund === "kein_server" ? 404 : 409);
+    deps.verbindungen.trennen(betreiberId, serverId, TRENNUNG.gesperrt, "certificate revoked");
+    return c.json(
+      antwort(gesperrt.server, letzteHeartbeats(deps.db, betreiberId, serverId).get(serverId)),
+    );
+  });
+
   route("POST /api/v1/server", async (c) => {
     const angaben = await eingabe(c, anlegenSchema);
     if (!angaben) return c.json({ fehler: "ungueltig" }, 400);

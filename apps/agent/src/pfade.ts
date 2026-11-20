@@ -13,6 +13,9 @@ export type Pfade = {
   schluessel: string;
   zertifikat: string;
   ca: string;
+  /** A rotated key and certificate until both are in place (src/verbindung/rotieren.ts) */
+  schluesselNeu: string;
+  zertifikatNeu: string;
 };
 
 export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
@@ -21,4 +24,6 @@ export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
   schluessel: join(zustand, "agent.key"),
   zertifikat: join(zustand, "agent.pem"),
   ca: join(zustand, "ca.pem"),
+  schluesselNeu: join(zustand, "agent.key.rotiert"),
+  zertifikatNeu: join(zustand, "agent.pem.rotiert"),
 });

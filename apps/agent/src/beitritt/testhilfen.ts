@@ -14,6 +14,13 @@ export const speicher = (anfang: Record<string, string> = {}) => {
       reihenfolge.push(pfad);
       inhalt.set(pfad, { text, modus });
     },
+    umbenennen: async (von, nach) => {
+      const datei = inhalt.get(von);
+      if (!datei) throw new Error(`ENOENT: ${von}`);
+      reihenfolge.push(`${von} -> ${nach}`);
+      inhalt.set(nach, datei);
+      inhalt.delete(von);
+    },
   };
   return { dateien, inhalt, reihenfolge };
 };

@@ -61,10 +61,10 @@ Zentrale stellt das Zertifikat aus der **Agent-CA ihres Betreibers** aus (Inhabe
 Servers, Verwendung: nur Client-Authentifizierung, ein Jahr gültig) und speichert davon nur den
 SHA-256-Fingerabdruck; Zertifikat und CA legt der Agent neben seinen Schlüssel. Ein benutzter, ein
 abgelaufener oder ein unbekannter Token wird abgelehnt, ebenso eine Anfrage ohne gültige Signatur.
-Je Adresse sind zehn Versuche in zehn Minuten erlaubt.
 
-Mit dem Zertifikat verbindet sich der Agent über WSS mit mTLS an `agent.<domain>` (folgt mit
-Z-303).
+Mit dem Zertifikat verbindet sich der Agent über WSS mit mTLS an `agent.<domain>`
+([Verbindung und Heartbeat](#verbindung-und-heartbeat)). Je Adresse sind zehn Versuche in zehn
+Minuten erlaubt; eine IPv6-Adresse zählt mit ihrem ganzen /64.
 
 ## Was `agent.<domain>` ausliefert
 
@@ -74,11 +74,74 @@ Z-303).
 | `/agent/steuerzentrale-agent-linux-x64`, `…-linux-arm64` | der Agent |
 | `/agent/SHA256SUMS`, `/agent/SHA256SUMS.minisig` | Prüfsummen und ihre minisign-Signatur |
 | `/api/v1/agent/beitreten` | der Token-Tausch |
+| `/api/v1/agent/verbindung` | die Verbindung des Agenten (WebSocket, nur mit Client-Zertifikat) |
 
 Die Dateien liegen in einem Verzeichnis, das `STEUERZENTRALE_AGENT_DATEIEN` nennt: `install.sh`,
 `minisign.pub`, die beiden Binaries, `SHA256SUMS` und `SHA256SUMS.minisig`.
 `STEUERZENTRALE_AGENT_URL` ist die Adresse, unter der die Agenten die Zentrale erreichen
 (`https://agent.<domain>`); sie steht im Befehl und im Skript und ist Pflicht.
+
+## Verbindung und Heartbeat
+
+Der Dienst `steuerzentrale-agent` öffnet einen WebSocket an
+`wss://agent.<domain>/api/v1/agent/verbindung`, mit seinem Client-Zertifikat. Er meldet sich mit
+`hallo` (Version, Architektur), die Zentrale antwortet mit `willkommen`, und danach schickt der Agent
+alle **30 Sekunden** einen Heartbeat. Die Zentrale speichert die Heartbeats 30 Tage.
+
+In der Oberfläche und in der API (`GET /api/v1/server`) hat jeder Server einen dieser Zustände:
+
+| Zustand | Bedeutung |
+| --- | --- |
+| verbunden | die Verbindung ist offen, der letzte Heartbeat ist höchstens 75 Sekunden alt |
+| seit x min still | die Verbindung ist offen, aber seit x Minuten kam kein Heartbeat |
+| getrennt | keine Verbindung |
+
+Kommt **3 Minuten** lang kein Heartbeat, legt die Zentrale ein Ereignis an („Agent … still“), einmal
+je Stille. Bricht die Verbindung ab, verbindet sich der Agent von selbst wieder: zuerst nach etwa
+einer Sekunde, dann mit jeder vergeblichen Wiederholung doppelt so lange, höchstens nach fünf
+Minuten, mit etwas Zufall, damit nach einem Neustart der Zentrale nicht alle Agenten gleichzeitig
+kommen.
+
+### TLS an der Pforte
+
+TLS beendet Caddy, die Pforte auf dem Server der Zentrale. Auf `agent.<domain>` prüft sie ein
+Client-Zertifikat, wenn eines kommt (`install.sh` und der Token-Tausch kommen ohne), gegen die
+Agent-CAs der Betreiber und gibt seinen SHA-256-Fingerabdruck an die Zentrale auf `127.0.0.1`
+weiter. Auf allen anderen Hostnamen löscht sie den Header, damit niemand einen Fingerabdruck
+erfinden kann. Die Zentrale glaubt ihn nur vom Loopback:
+
+```text
+agent.example.de {
+	tls {
+		client_auth {
+			mode verify_if_given
+			trust_pool file /var/lib/steuerzentrale/agent-cas.pem
+		}
+	}
+	reverse_proxy 127.0.0.1:8300 {
+		header_up X-SZ-Client-Fingerabdruck {http.request.tls.client.fingerprint}
+	}
+}
+
+zentrale.example.de {
+	reverse_proxy 127.0.0.1:8300 {
+		header_up -X-SZ-Client-Fingerabdruck
+	}
+}
+```
+
+### Zertifikat rotieren
+
+Das Zertifikat gilt ein Jahr. In seinen letzten **30 Tagen** erzeugt der Agent einen neuen
+Schlüssel und holt über die bestehende Verbindung ein neues Zertifikat. Bis er sich damit verbunden
+hat, gelten altes und neues; danach nur das neue. Beides steht im Audit-Log.
+
+### Zertifikat sperren
+
+Ist ein Server verloren oder sein Zertifikat in fremden Händen, sperren Inhaber oder Technik es mit
+Grund (`POST /api/v1/server/<id>/sperren`). Die Zentrale trennt eine laufende Verbindung sofort und
+weist den Agenten ab da bei jedem Versuch ab. Eine Sperre lässt sich nicht aufheben: der Server
+kommt nur zurück, indem er neu hinzugefügt wird.
 
 ## Schlüssel
 

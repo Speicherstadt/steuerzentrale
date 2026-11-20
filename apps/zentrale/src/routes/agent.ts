@@ -1,13 +1,20 @@
 import { BeitrittAnfrage } from "@steuerzentrale/protokoll";
 import type { Context } from "hono";
 import { clientAdresse } from "../modules/anmeldung/adresse.ts";
-import { beitreten, type Drossel, drossel, istDatei } from "../modules/server/index.ts";
+import {
+  beitreten,
+  type Drossel,
+  drossel,
+  drosselSchluessel,
+  istDatei,
+} from "../modules/server/index.ts";
 import type { RoutenDeps } from "./deps.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
 // A join is a request of a few kilobytes; anything far larger is not one
 const MAX_BEITRITT_BYTES = 64 * 1024;
-// Per address: a server joins once; ten tries in ten minutes leave room for a typo and a retry
+// Per address (an IPv6 address by its /64): a server joins once; ten tries in ten minutes leave
+// room for a typo and a retry
 export const BEITRITT_GRENZE = 10;
 export const BEITRITT_FENSTER_MS = 10 * 60_000;
 
@@ -56,7 +63,8 @@ export const agentRouten = (
   route("POST /api/v1/agent/beitreten", async (c) => {
     const adresse =
       clientAdresse(deps.socketAdresse(c.req.raw, c.env), c.req.header("x-forwarded-for")) ?? "";
-    if (!begrenzt(adresse, deps.now())) return c.json({ fehler: "zu_viele_versuche" }, 429);
+    if (!begrenzt(drosselSchluessel(adresse), deps.now()))
+      return c.json({ fehler: "zu_viele_versuche" }, 429);
     const anfrage = BeitrittAnfrage.safeParse(await koerper(c));
     if (!anfrage.success) return c.json({ fehler: "ungueltig" }, 400);
     const ergebnis = await beitreten(deps, anfrage.data, deps.now());

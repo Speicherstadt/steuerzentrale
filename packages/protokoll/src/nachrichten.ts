@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pem } from "./pem.ts";
 
 /*
  * The messages between the Zentrale and the agent over the WebSocket (docs/plan.md, "Verbindung"),
@@ -122,9 +123,37 @@ export const SshAnmeldung = z.object({
   methode: z.string().min(1),
 });
 
+/**
+ * The agent asks for a new certificate before its own expires (BAULISTE.md Z-303), over the
+ * connection its current one opened; as at the join, it sends only a request for a key it made
+ */
+export const ZertifikatAnfrage = z.object({
+  typ: z.literal("zertifikat_anfrage"),
+  protokoll,
+  csr: pem("CERTIFICATE REQUEST"),
+});
+
 // Zentrale → Agent
 
-export const Willkommen = z.object({ typ: z.literal("willkommen"), protokoll, zeit: zeitpunkt });
+/**
+ * The answer to `hallo`; from now on the agent sends a heartbeat every 30 seconds. It names until
+ * when the agent's certificate is valid, so the agent knows when to ask for a new one.
+ */
+export const Willkommen = z.object({
+  typ: z.literal("willkommen"),
+  protokoll,
+  zeit: zeitpunkt,
+  zertifikatGueltigBis: zeitpunkt.optional(),
+});
+
+/** The new certificate for a `zertifikat_anfrage`, with the CA of its operator */
+export const Zertifikat = z.object({
+  typ: z.literal("zertifikat"),
+  protokoll,
+  zertifikat: pem("CERTIFICATE"),
+  ca: pem("CERTIFICATE"),
+  gueltigBis: zeitpunkt,
+});
 
 export const Auftrag = z.object({
   typ: z.literal("auftrag"),
@@ -149,8 +178,25 @@ export const VomAgenten = z.discriminatedUnion("typ", [
   Ergebnis,
   LogAuszug,
   SshAnmeldung,
+  ZertifikatAnfrage,
 ]);
-export const VonDerZentrale = z.discriminatedUnion("typ", [Willkommen, Auftrag]);
+export const VonDerZentrale = z.discriminatedUnion("typ", [Willkommen, Auftrag, Zertifikat]);
+
+/**
+ * Why the Zentrale closes an agent's connection, as WebSocket close codes (4000-4999 are the
+ * application's, RFC 6455 7.4.2): the agent reconnects after each, after `gesperrt` only to be
+ * refused again until the server is added anew
+ */
+export const TRENNUNG = {
+  /** The certificate was revoked */
+  gesperrt: 4403,
+  /** A newer connection of the same server took over */
+  ersetzt: 4409,
+  /** A message the Zentrale could not read, or `hallo` missing */
+  ungueltig: 4400,
+  /** No message for too long: the connection is assumed dead */
+  still: 4408,
+} as const;
 
 export type NachrichtVomAgenten = z.output<typeof VomAgenten>;
 export type NachrichtVonDerZentrale = z.output<typeof VonDerZentrale>;

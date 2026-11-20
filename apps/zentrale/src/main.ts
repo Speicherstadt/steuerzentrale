@@ -1,7 +1,8 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { VERSION } from "@steuerzentrale/protokoll";
+import { TRENNUNG, VERSION } from "@steuerzentrale/protokoll";
 import type { Server } from "bun";
+import { websocket } from "hono/bun";
 import { createApp } from "./app.ts";
 import { createAuth } from "./auth/auth.ts";
 import { oeffneDatenbank } from "./db/oeffnen.ts";
@@ -11,6 +12,8 @@ import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.t
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
+import { stilleSchleife } from "./modules/verbindung/stille.ts";
+import { verbindungen } from "./modules/verbindung/verbindungen.ts";
 
 const log = (line: string) => console.log(line);
 
@@ -68,7 +71,11 @@ if (process.argv[2] === "schluessel-rotieren") {
 }
 
 const { db, schreibDb } = datenbank;
-aufbewahrungsSchleife(db, schreibDb, Date.now, (lauf, ms) => setInterval(lauf, ms), log);
+const planen = (lauf: () => void, ms: number) => {
+  setInterval(lauf, ms);
+};
+aufbewahrungsSchleife(db, schreibDb, Date.now, planen, log);
+stilleSchleife(db, schreibDb, Date.now, planen, log);
 const auth = createAuth({ schreibDb, url: env.url, geheimnis: datenbank.anmeldeGeheimnis });
 const app = createApp({
   log,
@@ -82,8 +89,10 @@ const app = createApp({
   agentUrl: env.agentUrl,
   auslieferung: auslieferung(env.agentDateien, env.agentUrl),
   socketAdresse: (request, server) => (server as Server<unknown>).requestIP(request)?.address,
+  verbindungen: verbindungen(TRENNUNG.ersetzt),
 });
-const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch });
+// `websocket` carries the agents' connections (src/routes/verbindung.ts)
+const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch, websocket });
 log(JSON.stringify({ msg: "listening", url: server.url.href, version: VERSION }));
 if (!env.agentDateien)
   log(

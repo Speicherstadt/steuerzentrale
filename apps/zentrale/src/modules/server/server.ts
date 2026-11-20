@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import { server } from "../../db/schema.ts";
 import { type Kontext, schreiben } from "../audit/index.ts";
@@ -67,5 +67,34 @@ export const serverZumToken = (db: Db, token: string, jetzt: number): Server | u
     .from(server)
     .where(and(eq(server.betreiberId, gefunden.betreiberId), eq(server.serverId, gefunden.tokenId)))
     .get();
-  return zeile && zeile.fingerabdruck === null ? zeile : undefined;
+  return zeile && zeile.fingerabdruck === null && zeile.gesperrtAm === null ? zeile : undefined;
 };
+
+/**
+ * The server whose agent shows this certificate (Z-303): its current one, or the rotated one it
+ * has not connected with yet (`neu`); never a revoked server
+ */
+export const serverZumFingerabdruck = (
+  db: Db,
+  fingerabdruck: string,
+): { server: Server; neu: boolean } | undefined => {
+  const zeile = db
+    .select()
+    .from(server)
+    .where(
+      and(
+        or(eq(server.fingerabdruck, fingerabdruck), eq(server.fingerabdruckNeu, fingerabdruck)),
+        isNull(server.gesperrtAm),
+      ),
+    )
+    .get();
+  return zeile ? { server: zeile, neu: zeile.fingerabdruckNeu === fingerabdruck } : undefined;
+};
+
+/** One server of the operator, or undefined */
+export const serverLesen = (db: Db, betreiberId: string, serverId: string): Server | undefined =>
+  db
+    .select()
+    .from(server)
+    .where(and(eq(server.betreiberId, betreiberId), eq(server.serverId, serverId)))
+    .get();

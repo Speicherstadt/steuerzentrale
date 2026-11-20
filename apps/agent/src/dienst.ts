@@ -5,7 +5,7 @@ import type { Pfade } from "./pfade.ts";
 /**
  * The agent as systemd service (`steuerzentrale-agent dienst`): it starts only on a joined server,
  * with its settings, key, certificate and a trusted manifest key in place, and otherwise fails, so
- * systemd shows why. The connection to the Zentrale (WSS with the certificate) follows in Z-303.
+ * systemd shows why. Then it connects to the Zentrale (src/verbindung, WSS with the certificate).
  */
 export const dienstPruefen = async (
   dateien: Dateien,

@@ -50,6 +50,13 @@
       "when": 1795213905828,
       "tag": "0006_server",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1795215296529,
+      "tag": "0007_verbindung",
+      "breakpoints": true
     }
   ]
 }
