@@ -106,6 +106,24 @@ const keinVertrautesGeraet = createAuthMiddleware(async (ctx) => {
 });
 
 /**
+ * Confirming TOTP in a session completes the second factor of an account with a password: every
+ * other session of it was signed in with the password alone and would otherwise get on from now on
+ * without ever giving a code, so all of them end. Better Auth replaces the confirming session with a
+ * new one (`newSession`); at a sign-in with the code there is no session before, and nothing ends.
+ */
+const andereSitzungenBeenden = createAuthMiddleware(async (ctx) => {
+  if (ctx.path !== "/two-factor/verify-totp") return;
+  const vorher = ctx.context.session;
+  const neu = ctx.context.newSession;
+  if (!vorher || !neu) return;
+  const { internalAdapter } = ctx.context;
+  const andere = (await internalAdapter.listSessions(neu.user.id))
+    .map((sitzung) => sitzung.token)
+    .filter((token) => token !== neu.session.token);
+  if (andere.length > 0) await internalAdapter.deleteSessions(andere);
+});
+
+/**
  * Better Auth with one organization per operator, passkeys and TOTP (docs/plan.md, "Anmeldung an
  * der Zentrale"). It owns its tables and writes them on the writable connection; the Zentrale's own
  * rows (operator, membership) go through `schreiben`. Configured after Speicherstadt/soll,
@@ -145,7 +163,7 @@ const betterAuthFuer = ({ schreibDb, url, geheimnis }: AuthDeps) =>
     },
     advanced: { ipAddress: { ipAddressHeaders: [CLIENT_HEADER] } },
     telemetry: { enabled: false },
-    hooks: { before: keinVertrautesGeraet },
+    hooks: { before: keinVertrautesGeraet, after: andereSitzungenBeenden },
     plugins: [
       passkey({
         rpID: new URL(url).hostname,

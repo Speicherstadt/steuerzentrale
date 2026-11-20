@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PASSWORT, testServer } from "../testhilfen/server.ts";
+import { totpCode } from "../testhilfen/totp.ts";
 import { ROUTEN, type RoutenName } from "./zugang.ts";
 
 /** A request for every route that needs a role, with its parameters filled in */
@@ -84,6 +85,29 @@ describe("an account without a second factor", () => {
     expect(an.status).toBe(200);
     expect((await neu.json("/api/v1/ich")).daten).toEqual({ fehler: "zweiter_faktor_fehlt" });
     expect((await neu.anfrage("/api/v1/einrichtung")).status).toBe(200);
+  });
+
+  it("a session signed in with the password alone does not get on once TOTP is set up elsewhere", async () => {
+    const server = testServer();
+    const inhaber = await server.ersterInhaber();
+    const frueher = server.browser();
+    await frueher.anfrage("/api/auth/sign-in/email", {
+      body: { email: inhaber.email, password: PASSWORT },
+    });
+    expect((await frueher.json("/api/v1/ich")).status).toBe(403);
+    const schluessel = await server.totpEinrichten(inhaber);
+    expect((await inhaber.anfrage("/api/v1/ich")).status).toBe(200);
+    expect((await frueher.anfrage("/api/v1/ich")).status).not.toBe(200);
+    // a later sign-in with password and code ends no other session
+    const spaeter = server.browser();
+    await spaeter.anfrage("/api/auth/sign-in/email", {
+      body: { email: inhaber.email, password: PASSWORT },
+    });
+    await spaeter.anfrage("/api/auth/two-factor/verify-totp", {
+      body: { code: totpCode(schluessel) },
+    });
+    expect((await spaeter.anfrage("/api/v1/ich")).status).toBe(200);
+    expect((await inhaber.anfrage("/api/v1/ich")).status).toBe(200);
   });
 
   it("without a session, gets 401 everywhere but the public routes", async () => {
