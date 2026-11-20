@@ -124,7 +124,9 @@ const architektur: Regel = (a) =>
     ...gewaehlteOptionen(a)
       .filter(
         (o) =>
-          o.container.length === 0 && o.architektur && !o.architektur.includes(a.server.architektur),
+          o.container.length === 0 &&
+          o.architektur &&
+          !o.architektur.includes(a.server.architektur),
       )
       .map((o) => befund("architektur", { option: o.id, server: a.server.architektur })),
   ]);
