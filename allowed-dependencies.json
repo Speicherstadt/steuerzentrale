@@ -52,6 +52,14 @@
       "reason": "Icon data for the Icon component of packages/ui (lucide-solid carries only Solid 1), as in Soll",
       "workspaces": ["packages/ui"]
     },
+    "@fontsource-variable/geist": {
+      "reason": "Geist shipped with the UI instead of loaded from Google Fonts (DESIGN.md), as in packages/ui of Kennwort",
+      "workspaces": ["packages/ui"]
+    },
+    "@fontsource-variable/geist-mono": {
+      "reason": "Geist Mono for versions, digests and commands, shipped with the UI like Geist (DESIGN.md)",
+      "workspaces": ["packages/ui"]
+    },
     "@tanstack/solid-router": {
       "reason": "Routing of the SPA with file-based, typed routes, as in Soll; 2.x is the line built for Solid 2 (1.x needs Solid 1; transitive Solid-1 packages listed in docs/solid-2.0/README.md)",
       "workspaces": ["apps/web"],

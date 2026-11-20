@@ -1,0 +1,14 @@
+{
+  "name": "@steuerzentrale/agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "build": "bun ../../scripts/compile.ts src/main.ts dist/steuerzentrale-agent"
+  },
+  "dependencies": {
+    "@steuerzentrale/manifest": "workspace:*",
+    "@steuerzentrale/protokoll": "workspace:*"
+  }
+}

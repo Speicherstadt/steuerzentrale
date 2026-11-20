@@ -1,0 +1,99 @@
+/*
+ * The look of Kennwort (copied from Speicherstadt/kennwort, packages/ui, commit b1ee742; DESIGN.md): Tailwind 4, zinc tokens as CSS variables for light and dark,
+ * Geist and Geist Mono shipped with the app instead of loaded from Google Fonts.
+ */
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@source "./";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --background: #ffffff;
+  --muted: #fafafa;
+  --accent: #f4f4f5;
+  --border: #e4e4e7;
+  --foreground: #09090b;
+  --muted-foreground: #71717a;
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+  --success: #15803d;
+  --warning: #b45309;
+  --warning-surface: #fef3c7;
+  --danger: #b91c1c;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #09090b;
+    --muted: #18181b;
+    --accent: #27272a;
+    --border: #27272a;
+    --foreground: #fafafa;
+    --muted-foreground: #a1a1aa;
+    --primary: #fafafa;
+    --primary-foreground: #18181b;
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --warning-surface: #422006;
+    --danger: #f87171;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --background: #09090b;
+  --muted: #18181b;
+  --accent: #27272a;
+  --border: #27272a;
+  --foreground: #fafafa;
+  --muted-foreground: #a1a1aa;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --warning-surface: #422006;
+  --danger: #f87171;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-danger: var(--danger);
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+  :focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+  [popover] {
+    margin: 0;
+    inset: auto;
+    color: inherit;
+  }
+}

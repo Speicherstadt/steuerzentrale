@@ -1,0 +1,9 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "app_name": "Steuerzentrale",
+  "app_tagline": "Installs, updates, backs up and watches the Speicherstadt apps on servers.",
+  "ui_close": "Close",
+  "ui_no_matches": "No matches",
+  "ui_notifications": "Notifications",
+  "ui_search_shortcut": "Shortcut: {key}"
+}

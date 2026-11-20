@@ -43,7 +43,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 1 – Fundament
 
-- [ ] **Z-101 Repo-Gerüst** – Vorhanden sind schon (wie in Kennwort und Soll): `package.json` mit
+- [x] **Z-101 Repo-Gerüst** – Vorhanden sind schon (wie in Kennwort und Soll): `package.json` mit
   `check`, Biome, TypeScript (`tsconfig.base.json`, Solution `tsconfig.json`), Vitest, die Liste
   erlaubter Abhängigkeiten, CI (`ci.yml`, `docs.yml`, `pr-regeln.yml`), Renovate, Vorlagen für Pull
   Requests und Issues, Zensical-Doku. Dazu kommen die Workspaces `packages/manifest`, `packages/protokoll`,

@@ -1,0 +1,16 @@
+{
+  "name": "@steuerzentrale/zentrale",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "build": "bun ../../scripts/compile.ts src/main.ts dist/steuerzentrale"
+  },
+  "dependencies": {
+    "@steuerzentrale/protokoll": "workspace:*",
+    "hono": "4.13.19",
+    "zod": "4.6.7"
+  }
+}

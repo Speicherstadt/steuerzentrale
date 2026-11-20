@@ -9,13 +9,30 @@ description: >-
 
 ## Umgebung
 
-Bun (Version aus `package.json`, `packageManager`), für die Tests des Agenten Podman ab 4.4 mit systemd.
+Bun (Version aus `package.json`, `packageManager`), für die Tests des Agenten Podman ab 4.9 mit systemd.
 Danach:
 
 ```sh
-bun install
+bun install          # übersetzt auch die Texte aus messages/ (Paraglide)
 bun run check        # typecheck, lint, test, build
+bun run test:agent   # der Agent gegen Podman; ohne Podman übersprungen, mit CI=true ein Fehler
+bun run e2e          # Playwright gegen Zentrale (Port 28300) und Oberfläche (Port 5182)
+bun run dev:zentrale # Zentrale auf Port 18300
+bun run dev:web      # Oberfläche auf Port 5181, /api geht an die Zentrale
 ```
+
+`bun run build` baut Zentrale und Agent als je ein Binary für `linux-x64` und `linux-arm64`
+(`apps/*/dist/`) und die Oberfläche als statische Seite.
+
+| Workspace | Inhalt |
+| --- | --- |
+| `packages/manifest` | Manifest: Schema, Signatur, Platzierung, Quadlets; reine Funktionen |
+| `packages/protokoll` | Nachrichten zwischen Zentrale und Agent, Version |
+| `packages/planung` | Wellen, Sperrzeiten, Wartungsfenster; reine Funktionen |
+| `packages/ui` | Komponenten und Texte der Oberfläche, von Kennwort übernommen |
+| `apps/zentrale` | Hono-Server mit `/health` und Logs ohne Geheimnisse |
+| `apps/agent` | der Agent auf jedem verwalteten Server |
+| `apps/web` | die Oberfläche (Solid 2, Vite) |
 
 `bun run lint` prüft auch, dass jede Laufzeit-Abhängigkeit in `allowed-dependencies.json` steht, mit Grund und
 der dort festgelegten Hauptversion (TanStack Router 2, Query 6, Solid 2), dass keines der verbotenen Pakete aus
@@ -39,8 +56,8 @@ und dass kein Code Muster aus Solid 1.x nutzt. Die Oberfläche ist Solid 2.0; de
 | Prüfung | Was | Workflow |
 | --- | --- | --- |
 | PR-Regeln | Titel, `Signed-off-by` an jedem Commit, Punkt der Bauliste abgehakt; Hinweise bei Code ohne Doku und Fix ohne Test | `pr-regeln.yml` |
-| Unit | Typen, Biome, erlaubte Abhängigkeiten, keine Muster aus Solid 1.x (`scripts/solid-muster.ts`), Dateigröße, Funktionslänge und Zyklen (`checks.json`; Texte und Seiten kommen mit der Oberfläche dazu), Vitest, Build, `bun audit` | `ci.yml` |
-| Agent | der Agent gegen Podman mit systemd | `ci.yml` |
+| Unit | Typen, Biome, erlaubte Abhängigkeiten, keine Muster aus Solid 1.x (`scripts/solid-muster.ts`), Dateigröße, Funktionslänge, Zyklen und Texte (`checks.json`; die Seiten kommen mit Z-105 dazu), Vitest, Build, `bun audit` | `ci.yml` |
+| Agent | der Agent gegen Podman mit systemd (`bun run test:agent`) | `ci.yml` |
 | E2E | Playwright, Desktop und Handy, mit axe | `ci.yml` |
 | Doku | `zensical build --strict`, jede Seite mit `description` | `docs.yml` |
 

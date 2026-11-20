@@ -10,17 +10,36 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "tsc -b",
+    "postinstall": "bun run i18n",
+    "i18n": "paraglide-js compile --project ./project.inlang --outdir ./packages/ui/src/paraglide --strategy localStorage preferredLanguage baseLocale --silent",
+    "typecheck": "bun run i18n && tsc -b",
     "lint": "biome check --error-on-warnings . && bun scripts/check-dependencies.ts && bun scripts/solid-muster.ts",
     "format": "biome check --write .",
-    "test": "vitest run",
+    "test": "bun --bun vitest run",
+    "test:agent": "bun --bun vitest run --config vitest.agent.config.ts",
     "build": "bun scripts/build-all.ts",
-    "check": "bun run typecheck && bun run lint && bun run test && bun run build"
+    "e2e": "playwright test --trace off",
+    "check": "bun run typecheck && bun run lint && bun run test && bun run build",
+    "dev:zentrale": "STEUERZENTRALE_PORT=18300 bun run --cwd apps/zentrale dev",
+    "dev:web": "bun run --cwd apps/web dev"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@biomejs/biome": "2.6.8",
+    "@inlang/paraglide-js": "3.2.2",
+    "@inlang/plugin-message-format": "4.6.0",
+    "@playwright/test": "1.65.1",
+    "@solidjs/vite-plugin": "3.0.1",
+    "@steuerzentrale/protokoll": "workspace:*",
+    "@tailwindcss/vite": "4.3.5",
     "@types/bun": "1.4.4",
+    "happy-dom": "21.0.4",
+    "tailwindcss": "4.3.5",
     "typescript": "7.0.2",
+    "vite": "8.3.8",
     "vitest": "5.1.1"
+  },
+  "overrides": {
+    "esbuild": "0.28.2"
   }
 }
