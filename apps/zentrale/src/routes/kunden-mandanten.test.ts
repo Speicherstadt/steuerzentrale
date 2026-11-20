@@ -8,7 +8,9 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 
-const BEGINN = 1_790_000_000_000;
+// 01.12.2026 00:00 in Berlin, the start of a Berlin day
+const BEGINN = Date.UTC(2026, 10, 30, 23);
+const TAG = 86_400_000;
 const daten = (name: string) => ({
   name,
   kontakt: { name: "Kim Kunde", email: "kim@kunde.test" },
@@ -87,7 +89,7 @@ describe("no operator reaches another's customers", () => {
   it("PUT /api/v1/kunden/:kundeId/kuendigung does not end another's contract", async () => {
     const antwort = await partner.json(`/api/v1/kunden/${fremdId}/kuendigung`, {
       method: "PUT",
-      body: { ende: BEGINN + 1, grund: "fremd" },
+      body: { ende: BEGINN + TAG, grund: "fremd" },
     });
     expect(antwort.status).toBe(404);
     unveraendert();
@@ -95,11 +97,11 @@ describe("no operator reaches another's customers", () => {
 
   it("DELETE /api/v1/kunden/:kundeId/kuendigung does not touch another's contract", async () => {
     const pfad = `/api/v1/kunden/${fremdId}/kuendigung`;
-    await teufel.json(pfad, { method: "PUT", body: { ende: BEGINN + 1, grund: "gekündigt" } });
+    await teufel.json(pfad, { method: "PUT", body: { ende: BEGINN + TAG, grund: "gekündigt" } });
     const antwort = await partner.json(pfad, { method: "DELETE", body: { grund: "fremd" } });
     expect(antwort.status).toBe(404);
     expect(server.db.select().from(vertraege).all()).toContainEqual(
-      expect.objectContaining({ kundeId: fremdId, ende: BEGINN + 1 }),
+      expect.objectContaining({ kundeId: fremdId, ende: BEGINN + TAG }),
     );
     await teufel.json(pfad, { method: "DELETE", body: { grund: "zurück" } });
     unveraendert();

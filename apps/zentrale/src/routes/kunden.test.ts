@@ -9,7 +9,8 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 
 const TAG = 86_400_000;
-const BEGINN = 1_790_000_000_000;
+// 01.12.2026 00:00 in Berlin: a contract day is the start of a Berlin day
+const BEGINN = Date.UTC(2026, 10, 30, 23);
 
 const neuerKunde = (name = "Atelier Nord") => ({
   name,
@@ -211,6 +212,43 @@ describe("a customer", () => {
       body: { ...daten, beginn: BEGINN + 2 * TAG, grund: "Beginn nach dem Ende" },
     });
     expect(spaet).toEqual({ status: 409, daten: { fehler: "ende_vor_beginn" } });
+  });
+
+  it("takes a contract day only as the start of a Berlin day", async () => {
+    // 01.12.2026 12:00 in Berlin is a time, not a day: stored as is, the notice to the day the
+    // contract began (BEGINN) would be refused as before its start
+    const mittag = BEGINN + 12 * 3_600_000;
+    const vorher = server.db.select().from(kunden).all().length;
+    const versuch = await inhaber.json("/api/v1/kunden", {
+      body: { ...neuerKunde(), vertrag: { sla: "basis", beginn: mittag } },
+    });
+    expect(versuch).toEqual({ status: 400, daten: { fehler: "ungueltig" } });
+    expect(server.db.select().from(kunden).all()).toHaveLength(vorher);
+    const kunde = await anlegen();
+    const pfad = `/api/v1/kunden/${kunde.id}`;
+    const { grund: _, vertrag: __, ...daten } = neuerKunde();
+    expect(
+      (await inhaber.json(pfad, { method: "PUT", body: { ...daten, beginn: mittag, grund: "x" } }))
+        .status,
+    ).toBe(400);
+    expect(
+      (
+        await inhaber.json(`${pfad}/kuendigung`, {
+          method: "PUT",
+          body: { ende: mittag, grund: "x" },
+        })
+      ).status,
+    ).toBe(400);
+    // the start of a Berlin day in summer time is one too
+    const sommer = Date.UTC(2027, 6, 31, 22);
+    expect(
+      (
+        await inhaber.json(`${pfad}/kuendigung`, {
+          method: "PUT",
+          body: { ende: sommer, grund: "x" },
+        })
+      ).status,
+    ).toBe(200);
   });
 
   it("is unknown by an id that does not exist", async () => {
