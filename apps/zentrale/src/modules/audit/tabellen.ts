@@ -30,6 +30,14 @@ export const tabellen = {
 >;
 
 export type TabellenName = keyof typeof tabellen;
+
+/**
+ * Encrypted columns, which the append-only audit log records only as changed: a ciphertext kept
+ * there forever would still open with a key that was rotated away because it leaked
+ */
+export const verschluesselteSpalten: Partial<Record<TabellenName, readonly string[]>> = {
+  geheimnisse: ["wert"],
+};
 export type Tabelle<N extends TabellenName> = (typeof tabellen)[N]["tabelle"];
 
 /** The tables with a column the retention run deletes by */

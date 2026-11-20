@@ -66,7 +66,12 @@ export const oeffneDatenbank = (
     db: alsDrizzle(lesend),
     schreibDb: { verbindung: alsDrizzle(sqlite) } as SchreibDb,
     schluessel,
-    rotationAbschliessen: () => pruefwertErneuern(sqlite, schluessel.aktuell),
+    rotationAbschliessen: () => {
+      pruefwertErneuern(sqlite, schluessel.aktuell);
+      // The write-ahead log still holds the pages with the old ciphertexts; emptying it leaves
+      // nothing on the old key behind (sqlite.org/pragma.html#pragma_wal_checkpoint)
+      sqlite.run("PRAGMA wal_checkpoint(TRUNCATE)");
+    },
     sqlite,
     schliessen: () => {
       lesend.close();
