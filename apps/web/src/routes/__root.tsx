@@ -1,0 +1,35 @@
+import { m } from "@steuerzentrale/ui";
+import { createRootRoute, Outlet } from "@tanstack/solid-router";
+import { Kopf } from "../rahmen/kopf.tsx";
+import { Seitenleiste } from "../rahmen/seitenleiste.tsx";
+
+/**
+ * The shell (DESIGN.md; design/mockup/, after shadcn's "dashboard-01"): the sidebar beside the page
+ * from md on, the header with the path above the content. Only for operators; customers see the
+ * portal. Signing in comes with Z-104.
+ */
+const Rahmen = () => (
+  <div class="flex min-h-svh w-full bg-sidebar">
+    <aside
+      aria-label={m.nav_seitenleiste()}
+      class="sticky top-0 hidden h-svh w-64 shrink-0 flex-col md:flex"
+    >
+      <Seitenleiste />
+    </aside>
+    <div class="relative flex min-w-0 flex-1 flex-col bg-background md:m-2 md:ml-0 md:rounded-xl md:border">
+      <Kopf />
+      <main class="grid flex-1 grid-cols-[minmax(0,1fr)] content-start px-4 py-4 md:py-6 lg:px-6">
+        <Outlet />
+      </main>
+    </div>
+  </div>
+);
+
+const NichtGefunden = () => (
+  <div class="grid gap-1">
+    <h1 class="text-2xl font-semibold tracking-tight">{m.nicht_gefunden_titel()}</h1>
+    <p class="text-muted-foreground">{m.nicht_gefunden_text()}</p>
+  </div>
+);
+
+export const Route = createRootRoute({ component: Rahmen, notFoundComponent: NichtGefunden });

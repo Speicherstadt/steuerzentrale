@@ -62,8 +62,8 @@ jobs:
       # Biome, allowed-dependencies.json and no Solid 1.x patterns (scripts/solid-muster.ts)
       - run: bun run lint
       # The shared rule checks of firsttris/workflows (checks.json: files past 400 lines, functions past 80,
-      # rings of imports between packages, the Paraglide texts; Z-105 adds the pages with an axe test once
-      # the route tree exists). Installed without saving,
+      # rings of imports between packages, the Paraglide texts, every route of routeTree.gen.ts opened by
+      # e2e/accessibility.spec.ts). Installed without saving,
       # as in Kennwort: the agents' sandbox cannot fetch a GitHub tarball, so it stays out of bun.lock.
       - run: bun add --dev --no-save "github:firsttris/workflows#v1"
       - run: bunx checks

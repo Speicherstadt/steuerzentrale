@@ -42,7 +42,7 @@ export const Tabs = (props: TabsProps) => {
       <div
         role="tablist"
         aria-label={props.label}
-        class="inline-flex w-fit gap-1 rounded-lg border border-border bg-muted p-1"
+        class="inline-flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-muted p-1"
       >
         <For each={props.tabs}>
           {(tab, index) => (

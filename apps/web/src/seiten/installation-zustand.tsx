@@ -1,0 +1,204 @@
+import { Icon, m } from "@steuerzentrale/ui";
+import {
+  Archive,
+  Box,
+  CalendarX,
+  ChartNoAxesColumn,
+  Globe,
+  HeartPulse,
+  LifeBuoy,
+  Lock,
+  Radar,
+} from "@steuerzentrale/ui/icons";
+import { For, Show } from "solid-js";
+import {
+  appVon,
+  istAktuell,
+  kundeVon,
+  linuxNutzer,
+  monatVon,
+  serverVon,
+} from "../daten/ableitungen.ts";
+import type { Bestand, Installation } from "../daten/typen.ts";
+import { welleVon } from "../daten/wellen.ts";
+import { ZERTIFIKAT_TAGE } from "../daten/zustand.ts";
+import { gb, prozent } from "../format/zahl.ts";
+import { datum, vor, zeitpunkt } from "../format/zeit.ts";
+import { welleName } from "../rahmen/texte.ts";
+import { Angaben, Hinweisbox, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
+import { Pruefzeile } from "../teile/listen.tsx";
+import { ZuKunde, ZuServer } from "../teile/verweise.tsx";
+import { agentText } from "./server-texte.ts";
+
+/** The tab "Zustand" of an installation: units and health, facts, the check from outside */
+
+/** The containers of the manifest; an option's own containers are not in the demo manifests */
+const UnitsUndHealth = (props: { b: Bestand; i: Installation }) => {
+  const app = () => appVon(props.b, props.i.app);
+  const sv = () => serverVon(props.b, props.i.server);
+  const still = () => sv().agent.zustand !== "verbunden";
+  const unitDetail = (name: string) => {
+    if (props.i.health === "rot" && name === props.i.roteUnit) return m.inst_unit_beendet();
+    if (still()) return m.health_unbekannt();
+    return m.inst_unit_laeuft({ seit: vor(props.i.laeuftSeit, props.b.jetzt) });
+  };
+  const health = () => {
+    const h = app().health;
+    if ("keine" in h) return { detail: m.inst_health_keine({ grund: h.keine }), ok: null };
+    if (still())
+      return {
+        detail: m.inst_health_get({ pfad: h.pfad, antwort: m.health_unbekannt() }),
+        ok: null,
+      };
+    const rot = props.i.health === "rot";
+    return {
+      detail: m.inst_health_get({ pfad: h.pfad, antwort: rot ? "503" : "200" }),
+      ok: !rot,
+    };
+  };
+  return (
+    <Karte class="lg:col-span-2">
+      <KartenKopf
+        titel={m.inst_units()}
+        text={
+          still() ? m.inst_units_still() : m.inst_units_text({ agent: agentText(props.b, sv()) })
+        }
+      />
+      <KartenInhalt class="grid gap-3">
+        <For each={app().container}>
+          {(name) => (
+            <Pruefzeile
+              icon={Box}
+              name={`${name}.service`}
+              detail={unitDetail(name)}
+              ok={still() ? null : !(props.i.health === "rot" && name === props.i.roteUnit)}
+            />
+          )}
+        </For>
+        <Pruefzeile
+          icon={HeartPulse}
+          name={m.inst_health()}
+          detail={health().detail}
+          ok={health().ok}
+        />
+        <Pruefzeile
+          icon={Archive}
+          name={m.inst_spalte_backup()}
+          detail={`${app().backup} · ${zeitpunkt(props.i.backup.zeitpunkt, props.b.jetzt)}`}
+          ok={props.i.backup.ok}
+        />
+      </KartenInhalt>
+    </Karte>
+  );
+};
+
+const Fakten = (props: { b: Bestand; i: Installation }) => {
+  const app = () => appVon(props.b, props.i.app);
+  const k = () => kundeVon(props.b, props.i.kunde);
+  const sv = () => serverVon(props.b, props.i.server);
+  const optionen = () =>
+    app()
+      .optionen.filter((o) => props.i.optionen.includes(o.id))
+      .map((o) => o.name)
+      .join(", ");
+  return (
+    <Karte>
+      <KartenKopf titel={m.inst_installation()} />
+      <KartenInhalt>
+        <Angaben
+          zeilen={[
+            { name: m.inst_spalte_kunde(), wert: <ZuKunde id={k().id}>{k().name}</ZuKunde> },
+            { name: m.inst_welle(), wert: welleName(welleVon(props.b, props.i)) },
+            { name: m.server_spalte_server(), wert: <ZuServer id={sv().id}>{sv().name}</ZuServer> },
+            {
+              name: m.inst_linux_nutzer(),
+              wert: <span class="font-mono text-xs">{linuxNutzer(props.i)}</span>,
+            },
+            {
+              name: m.inst_betrieb(),
+              wert: app().serverFuerSich ? m.inst_rootful() : m.inst_rootless(),
+            },
+            {
+              name: m.inst_adresse(),
+              wert: <span class="font-mono text-xs">{props.i.adresse}</span>,
+            },
+            { name: m.inst_optionen(), wert: optionen() || m.server_keine() },
+            {
+              name: m.server_version(),
+              wert: istAktuell(props.b, props.i)
+                ? props.i.version
+                : `${props.i.version} → ${app().version ?? ""}`,
+            },
+            {
+              name: m.inst_manifest(),
+              wert: <span class="font-mono text-xs">{`manifeste/${app().id}/`}</span>,
+            },
+            { name: m.inst_spalte_daten(), wert: gb(props.i.datenGb) },
+          ]}
+        />
+      </KartenInhalt>
+    </Karte>
+  );
+};
+
+const VonAussen = (props: { b: Bestand; i: Installation }) => {
+  const sv = () => serverVon(props.b, props.i.server);
+  const verfuegbar = () => props.i.verfuegbarkeit[monatVon(props.b.jetzt)] ?? 100;
+  return (
+    <Karte>
+      <KartenKopf titel={m.inst_aussen()} text={m.inst_aussen_text()} />
+      <KartenInhalt class="grid gap-3 sm:grid-cols-2">
+        <Pruefzeile
+          icon={Globe}
+          name={m.inst_dns()}
+          detail={`${props.i.adresse} → ${[sv().ipv4, sv().ipv6].filter(Boolean).join(", ")}`}
+          ok
+        />
+        <Pruefzeile
+          icon={Lock}
+          name={m.inst_zertifikat()}
+          detail={m.inst_zertifikat_tage({ tage: sv().zertifikatTage })}
+          ok={sv().zertifikatTage > ZERTIFIKAT_TAGE}
+        />
+        <Pruefzeile
+          icon={Radar}
+          name={m.inst_von_aussen()}
+          detail={props.i.health === "rot" ? m.inst_aussen_rot() : m.inst_aussen_ok()}
+          ok={props.i.health !== "rot"}
+        />
+        <Pruefzeile
+          icon={ChartNoAxesColumn}
+          name={m.inst_verfuegbarkeit()}
+          detail={prozent(verfuegbar(), 2)}
+          ok={verfuegbar() >= 99.9}
+        />
+      </KartenInhalt>
+    </Karte>
+  );
+};
+
+export const InstallationZustand = (props: { b: Bestand; i: Installation }) => {
+  const k = () => kundeVon(props.b, props.i.kunde);
+  return (
+    <div class="grid gap-4">
+      <div class="grid gap-4 lg:grid-cols-3">
+        <UnitsUndHealth b={props.b} i={props.i} />
+        <Fakten b={props.b} i={props.i} />
+      </div>
+      <Show when={k().gekuendigt}>
+        {(g) => (
+          <Hinweisbox
+            icon={<Icon icon={CalendarX} />}
+            titel={m.kunde_gekuendigt_zum({ datum: datum(g().zum) })}
+          >
+            {m.inst_gekuendigt_text({ datum: datum(g().loeschung) })}
+          </Hinweisbox>
+        )}
+      </Show>
+      <VonAussen b={props.b} i={props.i} />
+      <Hinweisbox icon={<Icon icon={LifeBuoy} />} titel={m.nav_support()}>
+        {m.inst_support_text()}
+      </Hinweisbox>
+    </div>
+  );
+};

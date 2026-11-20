@@ -2,9 +2,27 @@
   "fileSize": {
     "include": ["apps/*/src/**/*.{ts,tsx}", "packages/*/src/**/*.{ts,tsx}", "scripts/**/*.ts"]
   },
-  "cycles": { "modules": ["packages/*", "apps/*"] },
+  "cycles": {
+    "modules": ["packages/*", "apps/*"]
+  },
   "i18n": {
     "project": "project.inlang",
-    "include": ["apps/web/src/**/*.{ts,tsx}", "packages/ui/src/**/*.{ts,tsx}"]
+    "include": ["apps/web/src/**/*.{ts,tsx}", "packages/ui/src/**/*.{ts,tsx}"],
+    "exclude": [
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/e2e/**",
+      "**/tests/**",
+      "**/test/**",
+      "**/*.gen.ts",
+      "**/*.d.ts",
+      "**/paraglide/**",
+      "**/node_modules/**",
+      "apps/web/src/demo/**"
+    ]
+  },
+  "pages": {
+    "routeTree": "apps/web/src/routeTree.gen.ts",
+    "specs": ["e2e/accessibility.spec.ts"]
   }
 }

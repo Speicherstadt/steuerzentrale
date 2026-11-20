@@ -39,7 +39,7 @@ export default defineConfig({
       },
     },
     {
-      command: "bun run --cwd apps/web build && bun run --cwd apps/web preview",
+      command: "bun run --cwd apps/web build --mode demo && bun run --cwd apps/web preview",
       port,
       reuseExistingServer: false,
       env: { STEUERZENTRALE_API_PORT: String(zentralePort) },
