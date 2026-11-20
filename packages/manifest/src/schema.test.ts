@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: manifest templates write ${…} placeholders as plain text
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -230,5 +231,186 @@ describe("invalid manifests", () => {
         }),
       )[0],
     ).toMatch(/^container\.0\.image: /);
+  });
+});
+
+describe("configuration files (Z-203: the Caddyfile of an app with a proxy of its own)", () => {
+  it("are mounted by absolute path with their content", () => {
+    const ergebnis = manifestPruefen(
+      mit((m) => {
+        m.container[0].dateien = [{ pfad: "/etc/caddy/Caddyfile", inhalt: "{$DOMAIN} {\n}\n" }];
+      }),
+    );
+    expect(ergebnis.ok && ergebnis.manifest.container[0]?.dateien).toEqual([
+      { pfad: "/etc/caddy/Caddyfile", inhalt: "{$DOMAIN} {\n}\n" },
+    ]);
+  });
+
+  it("refuses a relative path or an empty file", () => {
+    expect(
+      fehler(
+        mit((m) => {
+          m.container[0].dateien = [{ pfad: "Caddyfile", inhalt: "x" }];
+        }),
+      )[0],
+    ).toMatch(/^container\.0\.dateien\.0\.pfad: an absolute path/);
+    expect(
+      fehler(
+        mit((m) => {
+          m.container[0].dateien = [{ pfad: "/etc/x", inhalt: "" }];
+        }),
+      )[0],
+    ).toMatch(/^container\.0\.dateien\.0\.inhalt: /);
+  });
+});
+
+describe("generated values", () => {
+  it("know hex for values inside a URL (a database password in DATABASE_URL)", () => {
+    expect(
+      fehler(
+        mit((m) => {
+          m.env.push({
+            name: "DB_PASSWORT",
+            ebene: "auto",
+            typ: "geheim",
+            erzeugen: "zufall_hex_32",
+          });
+        }),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("templates", () => {
+  const mitVorlage = (vorlage: string) =>
+    fehler(
+      mit((m) => {
+        m.env.push({ name: "DB_PASSWORT", ebene: "auto", erzeugen: "zufall_hex_32" });
+        m.env.push({ name: "VERBINDUNG", ebene: "auto", vorlage });
+      }),
+    );
+
+  it("name address, host, an assigned port and another setting; other braces are text", () => {
+    expect(mitVorlage("postgres://haben:${env:DB_PASSWORT}@db:5432/haben")).toEqual([]);
+    expect(mitVorlage("${adresse} ${host}")).toEqual([]);
+    expect(mitVorlage("tcp://${host}:${port:app:3000}")).toEqual([]);
+    expect(
+      mitVorlage('{api_secret: "${env:DB_PASSWORT}", redis: {address: "redis:6379"}}'),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ["${wer}", "${wer} is no placeholder"],
+    ["${ipv6}", "${ipv6} is no placeholder"],
+    ["${container:db}", "${container:db} is no placeholder"],
+    ["${port:app:22001}", "no port 22001 of app under netz"],
+    ["${env:FEHLT}", "FEHLT is not declared under env"],
+    ["${env:VERBINDUNG}", "VERBINDUNG is a template itself"],
+  ])("refuse %s", (vorlage, grund) => {
+    const gefunden = mitVorlage(vorlage);
+    expect(
+      gefunden.some((f) => f.startsWith("env.") && f.includes(grund)),
+      gefunden.join("\n"),
+    ).toBe(true);
+  });
+});
+
+describe("DNS records", () => {
+  it("use the placeholders of templates, and only known ones", () => {
+    const mitEintrag = (wert: string) =>
+      fehler(
+        mit((m) => {
+          m.env.push({ name: "MAIL_DOMAIN", ebene: "installation", pflicht: true });
+          m.dns = [{ typ: "A", name: "mail.${env:MAIL_DOMAIN}", wert }];
+        }),
+      );
+    expect(mitEintrag("${ipv4}")).toEqual([]);
+    expect(mitEintrag("${ipv6}")).toEqual([
+      "dns.0.wert: ${ipv6} is no placeholder (adresse, host, ipv4, port:, env:)",
+    ]);
+  });
+});
+
+describe("settings of an option", () => {
+  it("name an option of the manifest", () => {
+    const mitOption = (option: string) =>
+      fehler(
+        mit((m) => {
+          m.optionen = [{ id: "ki", name: "KI", container: [] }];
+          m.env.push({ name: "KI_URL", ebene: "installation", option });
+        }),
+      );
+    expect(mitOption("ki")).toEqual([]);
+    expect(mitOption("ftp")).toContain("env.4.option: no option named ftp");
+  });
+});
+
+describe("secrets in templates and DNS records (review of Z-203)", () => {
+  const mitGeheimnis = (aendern: (m: Roh) => void) =>
+    fehler(
+      mit((m) => {
+        m.env.push({
+          name: "DB_PASSWORT",
+          ebene: "auto",
+          typ: "geheim",
+          erzeugen: "zufall_hex_32",
+        });
+        aendern(m);
+      }),
+    );
+
+  it("a template that names a secret is a secret itself", () => {
+    expect(
+      mitGeheimnis((m) => {
+        m.env.push({
+          name: "URL",
+          ebene: "auto",
+          typ: "geheim",
+          vorlage: "pg://${env:DB_PASSWORT}@db",
+        });
+      }),
+    ).toEqual([]);
+    expect(
+      mitGeheimnis((m) => {
+        m.env.push({ name: "URL", ebene: "auto", vorlage: "pg://${env:DB_PASSWORT}@db" });
+      }),
+    ).toContain("env.5.vorlage: DB_PASSWORT is a secret, so this setting needs typ: geheim");
+  });
+
+  it("a DNS record never names a secret: it is public", () => {
+    expect(
+      mitGeheimnis((m) => {
+        m.dns = [{ typ: "TXT", name: "${host}", wert: "${env:DB_PASSWORT}" }];
+      }),
+    ).toContain("dns.0.wert: DB_PASSWORT is a secret and a DNS record is public");
+  });
+});
+
+describe("templates naming a setting of an option (review of Z-203)", () => {
+  const mitOptionswert = (aendern: (m: Roh) => void) =>
+    fehler(
+      mit((m) => {
+        m.optionen = [{ id: "ki", name: "KI", container: [] }];
+        m.env.push({ name: "KI_HOST", ebene: "installation", option: "ki" });
+        aendern(m);
+      }),
+    );
+
+  it("are set only with the same option, since without it the value does not exist", () => {
+    expect(
+      mitOptionswert((m) => {
+        m.env.push({
+          name: "KI_URL",
+          ebene: "auto",
+          vorlage: "https://${env:KI_HOST}",
+          option: "ki",
+        });
+      }),
+    ).toEqual([]);
+    expect(
+      mitOptionswert((m) => {
+        m.env.push({ name: "KI_URL", ebene: "auto", vorlage: "https://${env:KI_HOST}" });
+      }),
+    ).toContain("env.5.vorlage: KI_HOST is set only with the option ki");
   });
 });

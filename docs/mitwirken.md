@@ -22,6 +22,8 @@ bun run dev:web      # Oberfläche auf Port 5181, /api geht an die Zentrale
 bun run dev:demo     # Oberfläche auf Port 5181 mit den Demodaten, ohne Zentrale
 bun run db:generate  # neue Migration aus apps/zentrale/src/db/schema.ts
 bun run manifest:schema # JSON Schema des Manifests neu schreiben
+bun run manifeste:signieren # Manifeste der Apps mit dem Test-Schlüssel signieren
+bun scripts/digest.ts ghcr.io/speicherstadt/haben:0.12.0 # Digest eines Tags aus der Registry
 ```
 
 Die Zentrale startet nur mit `STEUERZENTRALE_SECRET_KEY` (32 Zufallsbytes in Base64,
@@ -61,6 +63,7 @@ den Ordner von der Prüfung `i18n` aus. Seiten sind dateibasierte Routen von Tan
 | `apps/agent` | der Agent auf jedem verwalteten Server |
 | `apps/web` | die Oberfläche (Solid 2, Vite, TanStack Router) mit Demodaten |
 | `manifeste/beispiel` | Beispiel-App für die Tests: Dienst, Containerfile, Manifest-Vorlage |
+| `manifeste/<app>/<version>` | Manifeste der acht Apps mit `QUELLEN.md` und Signatur des Test-Schlüssels |
 
 Die Beispiel-App (`manifeste/beispiel/`) ist ein kleiner HTTP-Dienst mit SQLite-Volume, Health,
 einer Option, einem Befehl nach dem Update, einem vergebenen Port und einem Backup aus zwei Teilen.
@@ -68,6 +71,13 @@ einer Option, einem Befehl nach dem Update, einem vergebenen Port und einem Back
 schiebt sie in eine lokale Registry und erzeugt die Manifeste mit den Digests, signiert mit dem
 öffentlichen Test-Schlüssel (`scripts/beispiel-images.ts`, Ausgabe in `test-results/beispiel/`).
 Ein Build für ein Release lehnt den Test-Schlüssel ab (`scripts/release-schluessel.ts`).
+
+Ein Manifest der Apps (`manifeste/<app>/<version>/manifest.yml`) ändern: Werte nur aus dem
+App-Repository (Datei und Commit in `QUELLEN.md` daneben), Digests nur aus `scripts/digest.ts` (mit
+Registry, Tag und Datum in `QUELLEN.md`), danach `bun run manifeste:signieren`. `bun run test` prüft,
+dass jedes Manifest gültig und signiert ist, `QUELLEN.md` jede Angabe nennt und die Tabelle „Die Apps
+der Speicherstadt“ in `docs/plan.md` zu den Manifesten passt. Den Test von `scripts/digest.ts` gegen
+die lokale Registry führt `bun run test:agent` aus.
 
 `bun run lint` prüft auch, dass jede Laufzeit-Abhängigkeit in `allowed-dependencies.json` steht, mit Grund und
 der dort festgelegten Hauptversion (TanStack Router 2, Query 6, Solid 2), dass keines der verbotenen Pakete aus

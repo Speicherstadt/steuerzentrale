@@ -1,0 +1,54 @@
+# Schreibzeug 0.1.25 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
+schema: 1
+id: schreibzeug
+version: 0.1.25
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/schreibzeug
+container:
+  - name: app
+    image: ghcr.io/speicherstadt/schreibzeug@sha256:41baec9bfe28f7603fe59723d44e7a92d7ba1950cea4dd21f12b18ecd2fce09b
+    volumes:
+      - { name: daten, pfad: /data }
+    env:
+      - SCHREIBZEUG_URL
+      - SCHREIBZEUG_AUTH_SECRET
+      - SCHREIBZEUG_OPEN_SIGNUP
+      - OIDC_ISSUER
+      - OIDC_CLIENT_ID
+      - OIDC_CLIENT_SECRET
+architektur: [amd64]
+ressourcen: { ram_mb: 1024, platte_gb: 10 }
+netz:
+  http: { dienst: app, port: 3000, websocket: true, sse: false, max_body_mb: 512 }
+  ports: []
+  oeffentliche_ipv4: false
+  mail: false
+  server_fuer_sich: false
+proxy: geteilt
+rootful: false
+optionen: []
+braucht: []
+bietet: []
+anmeldung: oidc
+health: { art: http, dienst: app, pfad: /api/health }
+befehle: {}
+schritte: { einrichten: [], nach_update: [] }
+backup:
+  - { art: volume, volume: daten }
+aktionen:
+  nur_lesen: nicht_unterstuetzt
+  export: nicht_unterstuetzt
+sperrzeiten: []
+dns: []
+env:
+  - { name: SCHREIBZEUG_URL, ebene: auto, aus: adresse }
+  - { name: SCHREIBZEUG_AUTH_SECRET, ebene: auto, typ: geheim, erzeugen: zufall_32 }
+  - name: SCHREIBZEUG_OPEN_SIGNUP
+    ebene: installation
+    typ: ja_nein
+    vorgabe: false
+    beschreibung: "true: jeder darf sich selbst ein Konto anlegen"
+  - { name: OIDC_ISSUER, ebene: auto, aus: oidc-anbieter }
+  - { name: OIDC_CLIENT_ID, ebene: auto, aus: oidc-anbieter }
+  - { name: OIDC_CLIENT_SECRET, ebene: auto, typ: geheim, aus: oidc-anbieter }
+hinweis: Schreibzeug ist Open Source (AGPL), https://github.com/Speicherstadt/schreibzeug

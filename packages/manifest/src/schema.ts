@@ -30,12 +30,23 @@ const image = z.union([
 
 const volume = z.strictObject({ name, pfad: z.string().startsWith("/", "an absolute path") });
 
+/**
+ * A configuration file with fixed content, mounted read-only into the container, e.g. the Caddyfile
+ * of an app that brings its own proxy (Kontext, deploy/Caddyfile). Part of the signed manifest, so
+ * it is no way around the signature; it is data for the container, never run by the agent.
+ */
+const datei = z.strictObject({
+  pfad: z.string().startsWith("/", "an absolute path"),
+  inhalt: z.string().min(1),
+});
+
 const container = z.strictObject({
   name,
   image,
   architektur: z.array(architektur).min(1).optional(),
   braucht: z.array(name).default([]),
   volumes: z.array(volume).default([]),
+  dateien: z.array(datei).default([]),
   argv: z.array(z.string()).min(1).optional(),
   env: z.array(envName).default([]),
   feste_env: z.record(envName, z.string()).default({}),
@@ -135,9 +146,14 @@ const env = z.strictObject({
   pflicht: z.boolean().default(false),
   vorgabe: z.union([z.string(), z.number(), z.boolean()]).optional(),
   beschreibung: z.string().optional(),
-  erzeugen: z.enum(["zufall_32", "zufall_64"]).optional(),
+  // zufall_32/_64: random bytes in standard base64; zufall_hex_32: 32 random bytes as 64 hex digits,
+  // for values that end up inside a URL such as a database password in DATABASE_URL
+  erzeugen: z.enum(["zufall_32", "zufall_64", "zufall_hex_32"]).optional(),
   aus: z.enum(["oidc-anbieter", "adresse"]).optional(),
+  // A text with placeholders ${adresse}, ${host}, ${port:<dienst>:<port>}, ${env:<NAME>}
   vorlage: z.string().optional(),
+  // Set only while this option is on (e.g. Kontext's SCHREIBZEUG_URL with "documents")
+  option: name.optional(),
 });
 
 const semver = z

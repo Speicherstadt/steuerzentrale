@@ -130,7 +130,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   plan.md, „Signaturen in Tests“); eingecheckt ist nur die Vorlage.
   Fertig, wenn: die erzeugten Manifeste gültig und signiert sind, die drei Images in der CI
   entstehen und ein Build für ein Release den Test-Schlüssel ablehnt (Test).
-- [ ] **Z-203 Manifeste der Speicherstadt** – `manifeste/<app>/<version>/` für alle acht Apps:
+- [x] **Z-203 Manifeste der Speicherstadt** – `manifeste/<app>/<version>/` für alle acht Apps:
   `manifest.yml` (Container aus `deploy/quadlet/` oder, wo es keine gibt, aus der Compose-Datei bzw.
   Doku des App-Repos; eigener Caddy entfällt; Images von GHCR, wo die App dort veröffentlicht) und
   `QUELLEN.md` mit Datei und Commit jeder Angabe; Digests liefert `scripts/digest.ts` aus der Registry
@@ -462,7 +462,9 @@ Nicht auf dem Weg des Loops.
   setzen, mit dem echten Schlüssel signieren, veröffentlichen.
 - Je App eine eigene interne Installation für die Welle „intern“.
 - Betreiber-Vertrag in den App-Repos: Health ohne Anmeldung, nur lesen, Export, Einrichtungsbefehl
-  (Haben#945–#948, #1307; für die anderen Apps noch anzulegen); Images für Kennwort und Soll.
+  (Haben#945–#948, #1307; für die anderen Apps noch anzulegen); Images für Kennwort und Soll, für
+  Belegt (app, worker, ftp; noch kein veröffentlichtes Image, Stand Z-203) und ein Release-Image
+  von Fixpunkt (bisher nur `edge`): ohne sie sind diese Apps nicht installierbar (Z-1003, Stufe 1).
 - OIDC in Stellwerk (stellwerk#36) und Fixpunkt (fixpunkt#5).
 - Auftragsverarbeitungsvertrag mit TOMs aus `docs/sicherheit.md`, SLA-Texte, Preise, Ticket-System.
 - Erster eigener Server mit unseren Installationen, dann Pilotkunden.

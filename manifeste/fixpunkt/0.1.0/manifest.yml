@@ -1,0 +1,65 @@
+# Fixpunkt 0.1.0 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
+schema: 1
+id: fixpunkt
+version: 0.1.0
+lizenz: UNLICENSED
+quelle: https://github.com/Speicherstadt/fixpunkt
+container:
+  - name: app
+    image:
+      noch_nicht_veroeffentlicht: >-
+        Kein Release 0.1.0: docker.io/tristanteu/fixpunkt hat nur den Tag edge, auf GHCR gibt es
+        kein Image (scripts/digest.ts, 2026-11-20)
+    volumes:
+      - { name: daten, pfad: /data }
+    env:
+      - FIXPUNKT_PUBLIC_URL
+      - FIXPUNKT_USER
+      - FIXPUNKT_PASSWORD
+      - FIXPUNKT_MAX_JOBS
+      - FIXPUNKT_NODEODM_URL
+    feste_env: { FIXPUNKT_SECURE_COOKIES: "true" }
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 8192, platte_gb: 200 }
+netz:
+  http: { dienst: app, port: 8080, websocket: false, sse: true, max_body_mb: 20480 }
+  ports: []
+  oeffentliche_ipv4: false
+  mail: false
+  server_fuer_sich: false
+proxy: geteilt
+rootful: false
+optionen:
+  - id: nodeodm
+    name: Drohnenfotos auswerten (NodeODM)
+    container:
+      - name: nodeodm
+        image: docker.io/opendronemap/nodeodm@sha256:fcd99eb23d8db194a7d1dc95f029f518283b3d6be32dd64422395f4e7af56720
+braucht: []
+bietet: []
+anmeldung: eigen
+health: { art: http, dienst: app, pfad: /api/health }
+befehle: {}
+schritte: { einrichten: [], nach_update: [] }
+backup:
+  - { art: volume, volume: daten }
+aktionen:
+  nur_lesen: nicht_unterstuetzt
+  export: nicht_unterstuetzt
+sperrzeiten: []
+dns: []
+env:
+  - { name: FIXPUNKT_PUBLIC_URL, ebene: auto, aus: adresse }
+  - { name: FIXPUNKT_USER, ebene: installation, pflicht: true, beschreibung: Name des ersten Admins }
+  - name: FIXPUNKT_PASSWORD
+    ebene: installation
+    typ: geheim
+    pflicht: true
+    beschreibung: Passwort des ersten Admins (mindestens 8 Zeichen)
+  - name: FIXPUNKT_MAX_JOBS
+    ebene: installation
+    typ: zahl
+    vorgabe: 1
+    beschreibung: Berechnungen gleichzeitig; jede braucht für große Flüge einige GB RAM
+  - { name: FIXPUNKT_NODEODM_URL, ebene: auto, vorlage: "http://nodeodm:3000", option: nodeodm }
+hinweis: Fixpunkt, https://github.com/Speicherstadt/fixpunkt

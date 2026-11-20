@@ -1,0 +1,97 @@
+# Belegt 0.0.0 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
+schema: 1
+id: belegt
+version: 0.0.0
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/belegt
+container:
+  - name: app
+    image:
+      noch_nicht_veroeffentlicht: >-
+        Kein Release: weder ghcr.io/speicherstadt/belegt noch docker.io/tristanteu/belegt ist
+        abrufbar (scripts/digest.ts, 2026-11-20)
+    braucht: [db]
+    volumes:
+      - { name: daten, pfad: /var/lib/belegt }
+    env: [DATABASE_URL, BETTER_AUTH_URL, BETTER_AUTH_SECRET, BELEGT_SCHLUESSEL, OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET]
+  - name: worker
+    image:
+      noch_nicht_veroeffentlicht: >-
+        Kein Release: weder ghcr.io/speicherstadt/belegt noch docker.io/tristanteu/belegt ist
+        abrufbar (scripts/digest.ts, 2026-11-20)
+    braucht: [app]
+    argv: [bun, server/worker.ts]
+    volumes:
+      - { name: daten, pfad: /var/lib/belegt }
+      - { name: eingang, pfad: /var/lib/belegt/eingang }
+    env: [DATABASE_URL, BETTER_AUTH_URL, BETTER_AUTH_SECRET, BELEGT_SCHLUESSEL, EINGANG_ORDNER]
+  - name: db
+    image: docker.io/library/postgres@sha256:eb63372c1e05c755f55fa30cbd07aecc443676fc6c0fa90b9002d01537841e1a
+    volumes:
+      - { name: db, pfad: /var/lib/postgresql }
+    env: [POSTGRES_PASSWORD]
+    feste_env: { POSTGRES_USER: belegt, POSTGRES_DB: belegt }
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 2048, platte_gb: 20 }
+netz:
+  http: { dienst: app, port: 3000, websocket: false, sse: false, max_body_mb: 20480, timeout_s: 3600 }
+  ports:
+    - { dienst: ftp, port: 21, proto: tcp, fest: true }
+    - { dienst: ftp, port: 30000, bis: 30009, proto: tcp, fest: true }
+  oeffentliche_ipv4: false
+  mail: false
+  server_fuer_sich: false
+proxy: geteilt
+rootful: false
+optionen:
+  - id: ftp
+    name: FTP für Netzwerkscanner
+    container:
+      - name: ftp
+        image:
+          noch_nicht_veroeffentlicht: >-
+            Kein Release: weder ghcr.io/speicherstadt/belegt-ftp noch docker.io/tristanteu/belegt-ftp
+            ist abrufbar (scripts/digest.ts, 2026-11-20)
+        volumes:
+          - { name: eingang, pfad: /eingang }
+        env: [FTP_BENUTZER, FTP_PASSWORT, FTP_PASV_ADRESSE, FTP_TLS]
+braucht: []
+bietet: []
+anmeldung: oidc
+health: { art: http, dienst: app, pfad: /healthz }
+befehle: {}
+schritte: { einrichten: [], nach_update: [] }
+backup:
+  - { art: pg_dump, container: db, datenbank: belegt, nutzer: belegt }
+  - { art: volume, volume: daten }
+aktionen:
+  nur_lesen: nicht_unterstuetzt
+  export: nicht_unterstuetzt
+sperrzeiten: []
+dns: []
+env:
+  - { name: POSTGRES_PASSWORD, ebene: auto, typ: geheim, erzeugen: zufall_hex_32 }
+  - name: DATABASE_URL
+    ebene: auto
+    typ: geheim
+    vorlage: "postgres://belegt:${env:POSTGRES_PASSWORD}@db:5432/belegt"
+  - { name: BETTER_AUTH_URL, ebene: auto, aus: adresse }
+  - { name: BETTER_AUTH_SECRET, ebene: auto, typ: geheim, erzeugen: zufall_32 }
+  - { name: BELEGT_SCHLUESSEL, ebene: auto, typ: geheim, erzeugen: zufall_32 }
+  - { name: OIDC_ISSUER, ebene: auto, aus: oidc-anbieter }
+  - { name: OIDC_CLIENT_ID, ebene: auto, aus: oidc-anbieter }
+  - { name: OIDC_CLIENT_SECRET, ebene: auto, typ: geheim, aus: oidc-anbieter }
+  - { name: EINGANG_ORDNER, ebene: auto, vorlage: /var/lib/belegt/eingang, option: ftp }
+  - { name: FTP_BENUTZER, ebene: installation, pflicht: true, vorgabe: scanner, option: ftp }
+  - name: FTP_PASSWORT
+    ebene: installation
+    typ: geheim
+    pflicht: true
+    beschreibung: mindestens 8 Zeichen; der Scanner meldet sich damit an
+    option: ftp
+  - name: FTP_PASV_ADRESSE
+    ebene: auto
+    vorlage: "${ipv4}"
+    option: ftp
+  - { name: FTP_TLS, ebene: installation, vorgabe: aus, beschreibung: "aus, an oder pflicht", option: ftp }
+hinweis: Belegt ist Open Source (AGPL), https://github.com/Speicherstadt/belegt

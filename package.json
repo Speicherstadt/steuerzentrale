@@ -24,7 +24,8 @@
     "dev:web": "bun run --cwd apps/web dev",
     "dev:demo": "bun run --cwd apps/web dev --mode demo",
     "db:generate": "bun run --cwd apps/zentrale drizzle-kit generate && bun scripts/migrationen.ts",
-    "manifest:schema": "bun scripts/manifest-schema.ts"
+    "manifest:schema": "bun scripts/manifest-schema.ts",
+    "manifeste:signieren": "bun scripts/manifeste-signieren.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
