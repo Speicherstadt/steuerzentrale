@@ -127,4 +127,26 @@ export const schreiben = <T>(
   kontext: Kontext,
   aktion: string,
   aenderung: (schreiber: Schreiber) => T,
-): T => schreibDb.verbindung.transaction((tx) => aenderung(schreiberFuer(tx, kontext, aktion)));
+): T =>
+  schreibDb.verbindung.transaction((tx) => {
+    let beendet = false;
+    const schreiber = schreiberFuer(tx, kontext, aktion);
+    // bun:sqlite commits when the callback returns: a write after an `await` would land outside
+    // the transaction, and an error after it would take nothing back
+    const bewacht = Object.fromEntries(
+      Object.entries(schreiber).map(([name, f]) => [
+        name,
+        (...args: unknown[]) => {
+          if (beendet) throw new Error(`${aktion}: write after the transaction ended`);
+          return (f as (...a: unknown[]) => unknown)(...args);
+        },
+      ]),
+    ) as Schreiber;
+    const ergebnis = aenderung(bewacht);
+    beendet = true;
+    if (ergebnis instanceof Promise) {
+      ergebnis.catch(() => {});
+      throw new Error(`${aktion}: schreiben takes a synchronous change`);
+    }
+    return ergebnis;
+  });
