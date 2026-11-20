@@ -27,6 +27,8 @@ export type Schreiber = {
     werte: Partial<Neu<N>>,
   ) => Zeile<N>;
   loeschen: <N extends TabellenName>(name: N, schluessel: Schluessel<N>) => Zeile<N>;
+  /** Whether the operator's row exists, as this transaction sees it (the read-only `db` does not) */
+  vorhanden: <N extends TabellenName>(name: N, schluessel: Schluessel<N>) => boolean;
   /** Deletes the operator's rows older than `grenze` (retention); returns how many */
   loeschenVor: (name: AufbewahrteTabelle, grenze: number) => number;
 };
@@ -118,6 +120,12 @@ const schreiberFuer = (tx: Tx, kontext: Kontext, aktion: string): Schreiber => {
       anhaengen(zielVon(name, zeile), { art: "loeschen", zeile: fuerAudit(name, zeile) });
       return zeile as never;
     },
+    vorhanden: (name, schluessel) =>
+      tx
+        .select()
+        .from(tabellen[name].tabelle as never)
+        .where(wo(name, kontext.betreiberId, schluessel))
+        .all().length > 0,
     loeschenVor: (name, grenze) => {
       const { tabelle, zeit } = tabellen[name];
       // bun:sqlite's run() reports no row count through Drizzle; the deleted instants do

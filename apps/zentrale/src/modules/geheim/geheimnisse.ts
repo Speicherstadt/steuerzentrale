@@ -21,7 +21,6 @@ export type NeuesGeheimnis = {
 export const geheimnisSetzen = (
   schreiber: Schreiber,
   bund: Schluesselbund,
-  db: Db,
   neu: NeuesGeheimnis,
 ): void => {
   const wert = verschluesseln(
@@ -29,17 +28,7 @@ export const geheimnisSetzen = (
     geheimnisZweck(neu.betreiberId, neu.geheimnisId),
     neu.klartext,
   );
-  const vorhanden = db
-    .select({ id: geheimnisse.geheimnisId })
-    .from(geheimnisse)
-    .where(
-      and(
-        eq(geheimnisse.betreiberId, neu.betreiberId),
-        eq(geheimnisse.geheimnisId, neu.geheimnisId),
-      ),
-    )
-    .get();
-  if (vorhanden)
+  if (schreiber.vorhanden("geheimnisse", { geheimnisId: neu.geheimnisId }))
     schreiber.aendern(
       "geheimnisse",
       { geheimnisId: neu.geheimnisId },

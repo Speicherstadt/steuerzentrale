@@ -31,7 +31,7 @@ const dateiInhalt = (pfad: string): string => {
 const mitGeheimnis = (offen = testDatenbank(), betreiberId = "b1", klartext = KLARTEXT) => {
   schreiben(offen.schreibDb, kontext(betreiberId), "anlegen", (s) => {
     s.einfuegen("betreiber", { betreiberId, name: betreiberId, angelegtAm: 1 });
-    geheimnisSetzen(s, offen.schluessel, offen.db, {
+    geheimnisSetzen(s, offen.schluessel, {
       betreiberId,
       geheimnisId: "s3",
       zweck: "s3",
@@ -57,7 +57,7 @@ describe("secrets in the database", () => {
   it("are replaced in place and stay bound to their row", () => {
     const offen = mitGeheimnis();
     schreiben(offen.schreibDb, kontext("b1"), "aendern", (s) =>
-      geheimnisSetzen(s, offen.schluessel, offen.db, {
+      geheimnisSetzen(s, offen.schluessel, {
         betreiberId: "b1",
         geheimnisId: "s3",
         zweck: "s3",
@@ -75,6 +75,32 @@ describe("secrets in the database", () => {
     expect(geheimnisLesen(offen.db, offen.schluessel, "b1", "fehlt")).toEqual({
       ok: false,
       grund: "fehlt",
+    });
+  });
+});
+
+describe("setting a secret twice in one change", () => {
+  it("replaces the value written earlier in the same transaction", () => {
+    const offen = mitGeheimnis();
+    const setzen = (
+      s: Parameters<typeof geheimnisSetzen>[0],
+      geheimnisId: string,
+      klartext: string,
+    ) =>
+      geheimnisSetzen(s, offen.schluessel, {
+        betreiberId: "b1",
+        geheimnisId,
+        zweck: "s3",
+        klartext,
+        jetzt: 2,
+      });
+    schreiben(offen.schreibDb, kontext("b1"), "zweimal", (s) => {
+      setzen(s, "restic", "erst");
+      setzen(s, "restic", "dann");
+    });
+    expect(geheimnisLesen(offen.db, offen.schluessel, "b1", "restic")).toEqual({
+      ok: true,
+      wert: "dann",
     });
   });
 });
