@@ -71,7 +71,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   angewendete Migration den Start verhindert, das Binary in einem leeren Datenverzeichnis die
   Datenbank anlegt (CI) und der Aufbewahrungslauf alte Heartbeats und Log-Auszüge löscht, das
   Audit-Log aber nicht (Test).
-- [ ] **Z-103 Geheimnisse** – verschlüsselte Spalten (AES-256-GCM) mit Schlüssel-ID und dem Schlüssel
+- [x] **Z-103 Geheimnisse** – verschlüsselte Spalten (AES-256-GCM) mit Schlüssel-ID und dem Schlüssel
   aus `STEUERZENTRALE_SECRET_KEY` (32 Bytes, Base64); Start ohne oder mit falschem Schlüssel
   verweigert; Befehl zum Rotieren; Tokens nur als Hash.
   Fertig, wenn: kein Geheimnis im Klartext in der Datenbankdatei steht (Test sucht nach dem Wert),
