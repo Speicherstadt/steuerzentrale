@@ -13,7 +13,8 @@ import { hostPort } from "./werte.ts";
 // The Linux user is sz-<name>, and useradd takes at most 32 characters
 export const INSTALLATIONS_NAME = /^[a-z][a-z0-9-]{0,28}$/;
 const KUNDE = /^[A-Za-z0-9._-]+$/;
-const HOST = /^(?=.{1,253}$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+export const HOST =
+  /^(?=.{1,253}$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
 // A path inside a container: no ":" or "," (Volume= separators), no % or $ (systemd), no "." or ".."
 const PFAD = /^(\/(?!\.\.?(\/|$))[A-Za-z0-9._-]+)+$/;

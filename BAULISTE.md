@@ -210,7 +210,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 4 – Installationen
 
-- [ ] **Z-401 Pforte** – Caddy rootless unter `sz-pforte` mit `Network=host`, Admin-API nur auf
+- [x] **Z-401 Pforte** – Caddy rootless unter `sz-pforte` mit `Network=host`, Admin-API nur auf
   localhost; Adressen hinzufügen und entfernen ohne Neustart; WebSocket, SSE, Upload-Grenze und
   Timeout aus dem Manifest.
   nach: Z-305, Z-202, Z-205
@@ -218,9 +218,16 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   (lokale CA statt Let's Encrypt), die echte Client-IP im Header `X-Forwarded-For` bei der App
   ankommt (Test), Installation A den
   Port von B nicht direkt erreicht (Test) und das Entfernen einer die andere nicht unterbricht.
+  Dazu: die Admin-API ist nur über einen Unix-Socket erreichbar, ein vom Client gesendeter
+  `X-Forwarded-For` kommt nicht an (Test), die Upload-Grenze des Manifests gilt (413, Test), die
+  Unit der Pforte besteht den Quadlet-Generator von Podman 4.9 (Test), das Entfernen unterbricht
+  weder eine laufende Verbindung noch neue Anfragen an die andere und Caddy startet dabei nicht neu
+  (Test), und Pforte-Aufträge mit falschem Host, Port oder Manifest lehnen Zentrale und Agent ab
+  (Test); `install.sh` legt `sz-pforte` mit Linger an (CI, Job `server`).
 - [ ] **Z-402 Installieren** – Dialog mit Kunde, App, Server, Optionen und Einstellungen nach Ebenen,
   Platzierung live; der Agent legt `sz-<installation>` mit Linger an, schreibt Units und Secrets,
-  zieht Images, führt `schritte.einrichten` aus, startet. Entfernt wird hier nur eine Installation,
+  zieht Images, führt `schritte.einrichten` aus, startet; ebenso schreibt und startet er die Unit der
+  Pforte unter `sz-pforte` (`pforteUnit`, Z-401) und setzt ihre Route mit `pforte_route_setzen`. Entfernt wird hier nur eine Installation,
   deren Einrichtung gescheitert ist; Entfernen mit Daten kommt mit Z-604 (erst Backup).
   nach: Z-401, Z-204, Z-801
   Fertig, wenn: die Beispiel-App in der CI per Auftrag installiert wird, ein Fehler im

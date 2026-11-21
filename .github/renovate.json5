@@ -15,6 +15,14 @@
       depNameTemplate: "bun",
       datasourceTemplate: "npm",
     },
+    {
+      // The images of the Steuerzentrale itself (packages/manifest/src/system.ts): tag and digest
+      customType: "regex",
+      managerFilePatterns: ["/^packages/manifest/src/system\\.ts$/"],
+      matchStrings: [
+        '// renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s*tag: "(?<currentValue>[^"]+)",\\n\\s*digest: "(?<currentDigest>sha256:[0-9a-f]{64})"',
+      ],
+    },
   ],
   packageRules: [
     {

@@ -1,7 +1,7 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: argv placeholders are ${arg:…} as plain text
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { schluesselLesen } from "@steuerzentrale/manifest";
+import { pforteGrundkonfiguration, schluesselLesen } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { geheimenSchluesselLesen, signieren } from "../../../scripts/minisign.ts";
@@ -9,6 +9,7 @@ import { auftraegeAnnehmen } from "../src/auftraege/auftraege.ts";
 import { echtSpawn } from "../src/auftraege/ausfuehren.ts";
 import type { AuftragNachricht } from "../src/auftraege/pruefen.ts";
 import { speicher, TEST_PUB } from "../src/beitritt/testhilfen.ts";
+import { testCaddy } from "../src/pforte/testcaddy.ts";
 import { requirePodman } from "./podman.ts";
 
 /*
@@ -94,6 +95,7 @@ const agent = () => {
     pfad: "/z/auftraege.json",
     vertrauen: { schluessel, zweck: "test" },
     spawn: echtSpawn,
+    pforte: { admin: testCaddy().admin, grund: pforteGrundkonfiguration() },
     planen: (lauf, ms) => {
       const t = setTimeout(lauf, ms);
       return () => clearTimeout(t);

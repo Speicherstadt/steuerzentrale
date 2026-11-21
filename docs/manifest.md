@@ -188,8 +188,10 @@ Installation als `@id` (Entfernen mit `DELETE /id/<installation>`): der Hostname
 `127.0.0.1:<Port>`, `request_body` mit `max_size` aus `max_body_mb`, `response_header_timeout` aus
 `timeout_s` und `X-Forwarded-For` mit der Adresse, die die Pforte sah (`Forwarded` und `X-Real-IP`
 entfernt); bei `sse: true` dazu `flush_interval: -1`, bei `websocket: true` `stream_close_delay`,
-damit eine Änderung an der Pforte offene WebSockets nicht trennt. Eine App mit eigenem Proxy bekommt
-keine Route.
+damit eine Änderung an der Pforte offene WebSockets nicht trennt. Ohne Angabe gelten die Standards
+des Schemas: 10 MB, 60 Sekunden, kein SSE, kein WebSocket (weitergereicht werden WebSockets trotzdem).
+Eine App mit eigenem Proxy bekommt keine Route. Gesetzt und entfernt wird die Route mit den Aufträgen
+der [Pforte](pforte.md).
 
 ## Signatur
 

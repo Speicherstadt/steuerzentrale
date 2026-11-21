@@ -4,8 +4,11 @@ import {
   befehlFuellen,
   befehlZurAktion,
   INSTALLATIONS_NAME,
+  istPforteAktion,
   type Manifest,
   manifestPruefen,
+  PFORTE_ZEITLIMIT_S,
+  pforteAuftragPruefen,
   STANDARD_ZEITLIMIT_S,
 } from "@steuerzentrale/manifest";
 import { type Kontext, schreiben } from "../audit/index.ts";
@@ -19,14 +22,16 @@ import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
  * the interface come with their items): the action must be a command of the manifest and the
  * arguments must fit it, checked here already so a wrong job never waits; the agent checks all of
  * it again, and the signature, before it runs anything. A job may wait for jobs of its operator on
- * any server; it is ready once they all succeeded and then goes to its agent at once.
+ * any server; it is ready once they all succeeded and then goes to its agent at once. A job of the
+ * Pforte (Z-401) is no command of the manifest but one of the Steuerzentrale's own, with a fixed
+ * shape (packages/manifest, pforte/auftraege.ts).
  */
 
 export type NeuerAuftrag = {
   serverId: string;
   /** The installation (its name, as in its units) whose container runs the command */
   installationId: string | null;
-  /** The name of a command under `befehle` in the manifest */
+  /** The name of a command under `befehle` in the manifest, or a job of the Pforte */
   aktion: string;
   argumente: Record<string, ArgumentWert>;
   /** The manifest's exact text and its minisign signature (`manifest.yml.minisig`) */
@@ -62,6 +67,12 @@ const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
   const geprueft = manifestPruefen(neu.manifest);
   if (!geprueft.ok)
     return { ok: false, grund: "manifest_ungueltig", detail: geprueft.fehler.join("; ") };
+  if (istPforteAktion(neu.aktion)) {
+    const pforte = pforteAuftragPruefen(geprueft.manifest, neu);
+    return pforte.ok
+      ? { ok: true, manifest: geprueft.manifest, zeitlimitS: PFORTE_ZEITLIMIT_S }
+      : { ok: false, grund: "argumente_ungueltig", detail: pforte.grund };
+  }
   const befehl = befehlZurAktion(geprueft.manifest, neu.aktion);
   if (!befehl) return { ok: false, grund: "aktion_unbekannt", detail: neu.aktion };
   const gefuellt = befehlFuellen(befehl, neu.argumente);

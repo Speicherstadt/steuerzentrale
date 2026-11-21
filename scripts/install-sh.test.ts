@@ -146,3 +146,51 @@ describe("install.sh trusts the key and the Zentrale it was served with", () => 
     expect(lauf.fehler).toContain("--token is missing or is no one-time token");
   });
 });
+
+describe("install.sh makes the Pforte's user (Z-401)", () => {
+  // id, useradd and loginctl as shell functions that log what they were asked
+  const pforte = (gibtEs: boolean, subuid: string) => {
+    const ordner = mkdtempSync(join(tmpdir(), "sz-test-install-"));
+    onTestFinished(() => rmSync(ordner, { recursive: true, force: true }));
+    writeFileSync(join(ordner, "subuid"), subuid);
+    const log = join(ordner, "log");
+    const lauf = shell(
+      `LOG="$1"; SUBUID="$2"
+       id() { ${gibtEs ? "return 0" : "return 1"}; }
+       useradd() { echo "useradd $*" >>"$LOG"; }
+       loginctl() { echo "loginctl $*" >>"$LOG"; }
+       pforte_einrichten`,
+      log,
+      join(ordner, "subuid"),
+    );
+    let befehle: string[] = [];
+    try {
+      befehle = readFileSync(log, "utf8").trim().split("\n");
+    } catch {
+      // nothing was called
+    }
+    return { ...lauf, befehle };
+  };
+
+  it("adds sz-pforte without a login shell and lets its units linger", () => {
+    const lauf = pforte(false, "runner:100000:65536\nsz-pforte:165536:65536\n");
+    expect(lauf.code, lauf.fehler).toBe(0);
+    expect(lauf.befehle).toEqual([
+      expect.stringMatching(/^useradd .*--shell \/usr\/sbin\/nologin .* sz-pforte$/),
+      "loginctl enable-linger sz-pforte",
+    ]);
+    expect(lauf.befehle[0]).toContain("--home-dir /home/sz-pforte");
+  });
+
+  it("keeps an existing sz-pforte when it runs again", () => {
+    const lauf = pforte(true, "sz-pforte:165536:65536\n");
+    expect(lauf.code).toBe(0);
+    expect(lauf.befehle).toEqual(["loginctl enable-linger sz-pforte"]);
+  });
+
+  it("stops when sz-pforte has no subordinate ids for rootless Podman", () => {
+    const lauf = pforte(true, "runner:100000:65536\n");
+    expect(lauf.code).toBe(1);
+    expect(lauf.fehler).toContain("sz-pforte has no subordinate ids");
+  });
+});

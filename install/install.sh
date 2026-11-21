@@ -9,6 +9,7 @@
 # Podman (4.9 or later), minisign and unattended-upgrades, loads the agent and checks its checksum
 # against the minisign signature, lets rootless services bind ports from 80, keeps the manifest key
 # and sets the agent up as a systemd service, which exchanges the token for its client certificate.
+# It makes the Linux user of the Pforte (sz-pforte, lingering); its unit comes from the agent.
 # Running it again on a joined server changes nothing but the binary, the packages and the unit.
 #
 # With SZ_INSTALL_NUR_LADEN=1 sourcing it only defines the functions (scripts/install-sh.test.ts).
@@ -26,6 +27,10 @@ BINARY=/usr/local/bin/steuerzentrale-agent
 KONFIG=/etc/steuerzentrale
 ZUSTAND=/var/lib/steuerzentrale
 UNIT=/etc/systemd/system/steuerzentrale-agent.service
+# The Pforte's Linux user; the agent reaches Caddy's admin socket under its home (docs/plan.md, Pforte)
+PFORTE_NUTZER=sz-pforte
+PFORTE_HOME=/home/sz-pforte
+SUBUID=/etc/subuid
 
 meldung() { printf 'steuerzentrale: %s\n' "$*" >&2; }
 abbruch() {
@@ -170,6 +175,18 @@ server_einrichten() {
 	install -d -m 0700 "$ZUSTAND"
 }
 
+# The Pforte (Caddy) runs rootless under its own user: a normal user, so useradd gives it subordinate
+# ids for Podman, without a login shell; lingering starts its units at boot without a login
+pforte_einrichten() {
+	if ! id "$PFORTE_NUTZER" >/dev/null 2>&1; then
+		useradd --create-home --home-dir "$PFORTE_HOME" --shell /usr/sbin/nologin \
+			--comment "Pforte der Steuerzentrale" "$PFORTE_NUTZER"
+	fi
+	grep -q "^$PFORTE_NUTZER:" "$SUBUID" ||
+		abbruch "$PFORTE_NUTZER has no subordinate ids in $SUBUID; rootless Podman needs them"
+	loginctl enable-linger "$PFORTE_NUTZER"
+}
+
 # A server keeps the key it trusts: a Zentrale cannot swap it by having the script run again
 manifest_schluessel_ablegen() {
 	if [ -f "$1" ]; then
@@ -230,6 +247,7 @@ main() {
 	agent_pruefen "$ordner" "$ARCH"
 	install -m 0755 "$ordner/steuerzentrale-agent-linux-$ARCH" "$BINARY"
 	server_einrichten
+	pforte_einrichten
 	beitreten
 	dienst_einrichten
 	meldung "done: the agent runs and has its certificate"

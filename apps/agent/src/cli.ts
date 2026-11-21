@@ -1,3 +1,4 @@
+import { pforteGrundkonfiguration } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
 import { auftraegeAnnehmen } from "./auftraege/auftraege.ts";
 import { echtSpawn } from "./auftraege/ausfuehren.ts";
@@ -8,6 +9,7 @@ import { dienstPruefen } from "./dienst.ts";
 import { type FaktenNachricht, faktenLesen } from "./fakten/lesen.ts";
 import { echteQuellen } from "./fakten/quellen.ts";
 import { type Pfade, pfadeIn } from "./pfade.ts";
+import { adminUeberSocket, PFORTE_ADMIN_SOCKET } from "./pforte/admin.ts";
 import { anmeldungenFolgen } from "./ssh/anmeldungen.ts";
 import { echtFolgen } from "./ssh/journal.ts";
 import { echtOeffnen } from "./verbindung/sockel.ts";
@@ -79,6 +81,11 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
         pfad: pfade.auftraege,
         vertrauen,
         spawn: echtSpawn,
+        // 80 and 443, certificates by ACME (docs/plan.md, "Pforte")
+        pforte: {
+          admin: adminUeberSocket((url, init) => fetch(url, init), PFORTE_ADMIN_SOCKET),
+          grund: pforteGrundkonfiguration(),
+        },
         planen,
         jetzt: Date.now,
         log: (msg, mehr = {}) => console.log(JSON.stringify({ msg, ...mehr })),
