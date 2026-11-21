@@ -152,6 +152,31 @@ describe("invalid messages", () => {
     });
   });
 
+  it("a step and an error text of a job are bounded", () => {
+    const schritt = {
+      typ: "fortschritt",
+      protokoll: 1,
+      auftragId: "a",
+      schritt: "x".repeat(201),
+      zeit: 1,
+    };
+    expect(vomAgentenLesen(JSON.stringify(schritt))).toMatchObject({
+      ok: false,
+      grund: expect.stringMatching(/^schritt: /),
+    });
+    const ergebnis = {
+      typ: "ergebnis",
+      protokoll: 1,
+      auftragId: "a",
+      zeit: 1,
+      ergebnis: { ok: false, fehler: "x".repeat(2001) },
+    };
+    expect(vomAgentenLesen(JSON.stringify(ergebnis))).toMatchObject({
+      ok: false,
+      grund: expect.stringMatching(/^ergebnis\.fehler: /),
+    });
+  });
+
   it("a job carries an action name, never a command line", () => {
     const auftrag = { ...VON_DER_ZENTRALE_V1[1], aktion: "sh -c 'rm -rf /'" };
     expect(vonDerZentraleLesen(JSON.stringify(auftrag))).toMatchObject({

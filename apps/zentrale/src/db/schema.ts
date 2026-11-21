@@ -1,3 +1,4 @@
+import { AUFTRAG_ZUSTAENDE } from "@steuerzentrale/protokoll";
 import {
   foreignKey,
   index,
@@ -262,4 +263,48 @@ export const server = sqliteTable(
     angelegtAm: integer("angelegt_am").notNull(),
   },
   (t) => [primaryKey({ columns: [t.betreiberId, t.serverId] })],
+);
+
+/**
+ * A job for a server's agent (BAULISTE.md Z-305): the name of a command in a signed manifest with
+ * its arguments, never a command line. Until manifests are imported (Z-501) the job carries the
+ * manifest's exact text and signature, with app, version and SHA-256 of the text; the agent checks
+ * the signature itself. `wartet_auf` is a JSON list of job ids of the same operator, on any server;
+ * `argumente` and `ergebnis` are JSON. `fortschritt` is the agent's last step, a measurement
+ * written past the audit log (modules/audit/messwerte.ts); every change of `zustand` goes through
+ * `schreiben`. Log excerpts of a job stand in `log_auszuege` (30 days).
+ */
+export const auftraege = sqliteTable(
+  "auftraege",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    auftragId: text("auftrag_id").notNull(),
+    serverId: text("server_id").notNull(),
+    installationId: text("installation_id"),
+    aktion: text("aktion").notNull(),
+    app: text("app").notNull(),
+    version: text("version").notNull(),
+    manifestHash: text("manifest_hash").notNull(),
+    manifest: text("manifest").notNull(),
+    signatur: text("signatur").notNull(),
+    argumente: text("argumente").notNull(),
+    zeitlimitS: integer("zeitlimit_s").notNull(),
+    zustand: text("zustand", { enum: AUFTRAG_ZUSTAENDE }).notNull(),
+    wartetAuf: text("wartet_auf").notNull(),
+    fortschritt: text("fortschritt"),
+    fortschrittAm: integer("fortschritt_am"),
+    ergebnis: text("ergebnis"),
+    angelegtVon: text("angelegt_von").notNull(),
+    angelegtAm: integer("angelegt_am").notNull(),
+    geaendertAm: integer("geaendert_am").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.betreiberId, t.auftragId] }),
+    index("auftraege_server").on(t.betreiberId, t.serverId, t.zustand),
+    index("auftraege_zustand").on(t.betreiberId, t.zustand),
+    foreignKey({
+      columns: [t.betreiberId, t.serverId],
+      foreignColumns: [server.betreiberId, server.serverId],
+    }),
+  ],
 );

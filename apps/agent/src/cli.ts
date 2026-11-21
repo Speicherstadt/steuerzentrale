@@ -1,4 +1,7 @@
 import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
+import { auftraegeAnnehmen } from "./auftraege/auftraege.ts";
+import { echtSpawn } from "./auftraege/ausfuehren.ts";
+import type { Vertrauen } from "./auftraege/pruefen.ts";
 import { beitreten } from "./beitritt/beitreten.ts";
 import { type Dateien, echteDateien } from "./dateien.ts";
 import { dienstPruefen } from "./dienst.ts";
@@ -8,7 +11,7 @@ import { type Pfade, pfadeIn } from "./pfade.ts";
 import { anmeldungenFolgen } from "./ssh/anmeldungen.ts";
 import { echtFolgen } from "./ssh/journal.ts";
 import { echtOeffnen } from "./verbindung/sockel.ts";
-import { verbindungsSchleife } from "./verbindung/verbinden.ts";
+import { type Planer, verbindungsSchleife } from "./verbindung/verbinden.ts";
 
 /** What `steuerzentrale-agent --version` prints: its version and the protocol it speaks */
 export const versionLine = (): string =>
@@ -31,7 +34,12 @@ export type CliDeps = {
   eingabe: () => Promise<string>;
   architektur: string;
   /** Starts the connection to the Zentrale (src/verbindung); the process keeps running for it */
-  dienstStarten: (zentrale: string, pfade: Pfade, architektur: "amd64" | "arm64") => void;
+  dienstStarten: (
+    zentrale: string,
+    pfade: Pfade,
+    architektur: "amd64" | "arm64",
+    vertrauen: Vertrauen,
+  ) => void;
   /** Reads the server's facts (src/fakten) */
   fakten: () => Promise<FaktenNachricht>;
   /** Other directories than /etc/steuerzentrale and /var/lib/steuerzentrale, for tests */
@@ -39,14 +47,16 @@ export type CliDeps = {
   zustand?: string;
 };
 
-const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur) => {
+const planen: Planer = (lauf, ms) => {
+  const t = setTimeout(lauf, ms);
+  return () => clearTimeout(t);
+};
+
+const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, vertrauen) => {
   verbindungsSchleife(
     {
       oeffnen: echtOeffnen,
-      planen: (lauf, ms) => {
-        const t = setTimeout(lauf, ms);
-        return () => clearTimeout(t);
-      },
+      planen,
       jetzt: Date.now,
       zufall: Math.random,
       log: (zeile) => console.log(zeile),
@@ -64,6 +74,15 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur) =
             melden,
           }),
       },
+      auftraege: auftraegeAnnehmen({
+        dateien: echteDateien,
+        pfad: pfade.auftraege,
+        vertrauen,
+        spawn: echtSpawn,
+        planen,
+        jetzt: Date.now,
+        log: (msg, mehr = {}) => console.log(JSON.stringify({ msg, ...mehr })),
+      }),
     },
     zentrale,
   );
@@ -117,11 +136,12 @@ const dienstBefehl = async (deps: CliDeps): Promise<CliResult> => {
   const geprueft = await dienstPruefen(deps.dateien, pfade);
   if (!geprueft.ok)
     return { code: 1, out: JSON.stringify({ msg: "refusing to start", grund: geprueft.grund }) };
-  deps.dienstStarten(geprueft.wert.zentrale, pfade, architektur);
+  const { zentrale, serverId, vertrauen } = geprueft.wert;
+  deps.dienstStarten(zentrale, pfade, architektur, vertrauen);
   return {
     code: 0,
     bleiben: true,
-    out: JSON.stringify({ msg: "ready", version: VERSION, ...geprueft.wert }),
+    out: JSON.stringify({ msg: "ready", version: VERSION, zentrale, serverId }),
   };
 };
 

@@ -16,6 +16,10 @@ export type Verbindungen = {
   anmelden: (betreiberId: string, serverId: string, sockel: Sockel, jetzt: number) => void;
   /** Forgets the connection, if it is still the server's one */
   abmelden: (betreiberId: string, serverId: string, sockel: Sockel) => void;
+  /** Marks the connection as greeted (`willkommen` sent): from now on it takes jobs */
+  gruessen: (betreiberId: string, serverId: string, sockel: Sockel) => void;
+  /** Sends to the server's greeted connection; false when there is none */
+  senden: (betreiberId: string, serverId: string, text: string) => boolean;
   /** Whether the connection is still the server's one: a replaced or closed one has no say */
   aktuell: (betreiberId: string, serverId: string, sockel: Sockel) => boolean;
   /** Since when the server's connection is open, or undefined */
@@ -27,7 +31,7 @@ export type Verbindungen = {
 const schluessel = (betreiberId: string, serverId: string) => `${betreiberId}\u0000${serverId}`;
 
 export const verbindungen = (ersetztCode: number): Verbindungen => {
-  const offen = new Map<string, { sockel: Sockel; seit: number }>();
+  const offen = new Map<string, { sockel: Sockel; seit: number; gegruesst: boolean }>();
   const trennen: Verbindungen["trennen"] = (betreiberId, serverId, code, grund) => {
     const k = schluessel(betreiberId, serverId);
     const eintrag = offen.get(k);
@@ -39,7 +43,17 @@ export const verbindungen = (ersetztCode: number): Verbindungen => {
   return {
     anmelden: (betreiberId, serverId, sockel, jetzt) => {
       trennen(betreiberId, serverId, ersetztCode, "replaced by a newer connection");
-      offen.set(schluessel(betreiberId, serverId), { sockel, seit: jetzt });
+      offen.set(schluessel(betreiberId, serverId), { sockel, seit: jetzt, gegruesst: false });
+    },
+    gruessen: (betreiberId, serverId, sockel) => {
+      const eintrag = offen.get(schluessel(betreiberId, serverId));
+      if (eintrag?.sockel === sockel) eintrag.gegruesst = true;
+    },
+    senden: (betreiberId, serverId, text) => {
+      const eintrag = offen.get(schluessel(betreiberId, serverId));
+      if (!eintrag?.gegruesst) return false;
+      eintrag.sockel.senden(text);
+      return true;
     },
     abmelden: (betreiberId, serverId, sockel) => {
       const k = schluessel(betreiberId, serverId);

@@ -11,7 +11,7 @@ import { hostPort } from "./werte.ts";
  */
 
 // The Linux user is sz-<name>, and useradd takes at most 32 characters
-const NAME = /^[a-z][a-z0-9-]{0,28}$/;
+export const INSTALLATIONS_NAME = /^[a-z][a-z0-9-]{0,28}$/;
 const KUNDE = /^[A-Za-z0-9._-]+$/;
 const HOST = /^(?=.{1,253}$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
@@ -35,7 +35,11 @@ const installationBefunde = (m: Manifest, i: QuadletInstallation): Befund[] => {
   const pruefe = (ok: boolean, feld: string, grund: string) => {
     if (!ok) befunde.push({ pfad: ["installation", feld], grund });
   };
-  pruefe(NAME.test(i.name), "name", "a name of lowercase letters, digits and dashes, at most 29");
+  pruefe(
+    INSTALLATIONS_NAME.test(i.name),
+    "name",
+    "a name of lowercase letters, digits and dashes, at most 29",
+  );
   pruefe(KUNDE.test(i.kundeId), "kundeId", "letters, digits, dot, dash and underscore");
   pruefe(HOST.test(i.host), "host", "a lowercase host name");
   pruefe(i.adresse === `https://${i.host}`, "adresse", "https:// and the host");

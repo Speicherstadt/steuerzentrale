@@ -1,3 +1,4 @@
+import { argumentBefunde } from "./befehl.ts";
 import { hatSteuerzeichen } from "./quadlet/systemd.ts";
 import type { Manifest } from "./schema.ts";
 
@@ -128,7 +129,7 @@ const befehlRegeln = (m: Manifest): Befund[] => {
       });
   };
   for (const [name, b] of Object.entries(m.befehle))
-    befunde.push(...shellBefunde(b.argv, ["befehle", name, "argv"]));
+    befunde.push(...shellBefunde(b.argv, ["befehle", name, "argv"]), ...argumentBefunde(name, b));
   for (const art of ["einrichten", "nach_update"] as const)
     for (const [i, name] of m.schritte[art].entries()) pruefe(name, ["schritte", art, i]);
   if (m.health.art === "befehl") pruefe(m.health.befehl, ["health", "befehl"]);

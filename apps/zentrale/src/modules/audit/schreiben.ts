@@ -5,6 +5,7 @@ import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import { auditLog } from "../../db/schema.ts";
 import {
   type AufbewahrteTabelle,
+  ausgelasseneSpalten,
   type Tabelle,
   type TabellenName,
   tabellen,
@@ -51,12 +52,13 @@ const wo = (name: TabellenName, betreiberId: string, schluessel: Record<string, 
 const zielVon = (name: TabellenName, zeile: Record<string, unknown>): string =>
   [name, ...tabellen[name].schluessel.map((feld) => String(zeile[feld]))].join(":");
 
-/** A row or change as the audit log keeps it: encrypted values only marked, never copied */
+/** A row or change as the audit log keeps it: encrypted and left-out values only marked, never copied */
 const fuerAudit = (name: TabellenName, werte: Record<string, unknown>): Record<string, unknown> =>
   Object.fromEntries(
-    Object.entries(werte).map(([feld, wert]) =>
-      verschluesselteSpalten[name]?.includes(feld) ? [feld, "[verschlüsselt]"] : [feld, wert],
-    ),
+    Object.entries(werte).map(([feld, wert]) => {
+      if (verschluesselteSpalten[name]?.includes(feld)) return [feld, "[verschlüsselt]"];
+      return ausgelasseneSpalten[name]?.includes(feld) ? [feld, "[ausgelassen]"] : [feld, wert];
+    }),
   );
 
 const eineZeile = <T>(zeilen: T[], name: string): T => {

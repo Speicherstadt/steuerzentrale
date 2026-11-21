@@ -10,6 +10,7 @@ import {
 } from "@steuerzentrale/protokoll";
 import type { LogSink } from "../../log.ts";
 import { heartbeatAnfuegen, schreiben } from "../audit/index.ts";
+import { offeneZustellen } from "../auftraege/index.ts";
 import type { BeitrittDeps } from "../server/beitritt.ts";
 import {
   neuesZertifikatUebernehmen,
@@ -17,6 +18,8 @@ import {
   serverLesen,
   zertifikatRotieren,
 } from "../server/index.ts";
+import { auftragsEingang } from "./auftraege.ts";
+import { eimer } from "./eimer.ts";
 import { faktenSpeichern, sshAnmeldungSchreiben } from "./meldungen.ts";
 import type { Sockel, Verbindungen } from "./verbindungen.ts";
 
@@ -25,7 +28,8 @@ import type { Sockel, Verbindungen } from "./verbindungen.ts";
  * the Zentrale answers `willkommen` with the end of the agent's certificate, and from then on
  * heartbeats arrive every 30 seconds and land in `heartbeats` as measurements. A message the
  * Zentrale cannot read, or anything before `hallo`, ends the connection. Facts and SSH logins
- * (Z-304) are kept (meldungen.ts); messages of later items (jobs) are read and left for those.
+ * (Z-304) are kept (meldungen.ts). After `willkommen` the agent gets its open jobs, and its reports
+ * about them move them on (Z-305, src/modules/auftraege); log excerpts are left for Z-405.
  */
 export type SitzungDeps = BeitrittDeps & {
   verbindungen: Verbindungen;
@@ -74,19 +78,8 @@ export const sitzung = (
   let gegruesst = false;
   let letzterHeartbeat = Number.NEGATIVE_INFINITY;
   let letzteFakten = Number.NEGATIVE_INFINITY;
-  let ssh = { vorrat: SSH_VORRAT, am: Number.NEGATIVE_INFINITY };
-
-  /** Whether one more SSH login may become an event, as a bucket refilled one a minute */
-  const sshErlaubt = (jetzt: number) => {
-    const nachschub = ssh.am === Number.NEGATIVE_INFINITY ? 0 : jetzt - ssh.am;
-    const vorrat = Math.min(SSH_VORRAT, ssh.vorrat + Math.max(0, nachschub) / SSH_NACHSCHUB_MS);
-    if (vorrat < 1) {
-      ssh = { vorrat, am: jetzt };
-      return false;
-    }
-    ssh = { vorrat: vorrat - 1, am: jetzt };
-    return true;
-  };
+  // whether one more SSH login may become an event, as a bucket refilled one a minute
+  const sshErlaubt = eimer(SSH_VORRAT, SSH_NACHSCHUB_MS);
 
   const hallo = (n: Extract<NachrichtVomAgenten, { typ: "hallo" }>, s: Sockel, jetzt: number) => {
     if (n.agentVersion !== server.agentVersion || n.architektur !== server.architektur)
@@ -110,7 +103,11 @@ export const sitzung = (
         ? {}
         : { zertifikatGueltigBis: server.zertifikatGueltigBis }),
     });
+    deps.verbindungen.gruessen(betreiberId, serverId, s);
+    offeneZustellen(deps, betreiberId, serverId);
   };
+
+  const auftrag = auftragsEingang(deps, () => server);
 
   const rotieren = async (csr: string, s: Sockel) => {
     const aktuell = serverLesen(deps.db, betreiberId, serverId);
@@ -158,6 +155,8 @@ export const sitzung = (
         });
       }
       if (n.typ === "zertifikat_anfrage") return rotieren(n.csr, s);
+      if (n.typ === "bestaetigt" || n.typ === "fortschritt" || n.typ === "ergebnis")
+        return auftrag(n, jetzt);
       if (n.typ === "fakten") {
         const abstand = jetzt - letzteFakten;
         if (abstand >= 0 && abstand < FAKTEN_ABSTAND_MS) return;

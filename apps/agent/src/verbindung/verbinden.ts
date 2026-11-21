@@ -11,6 +11,7 @@ import {
   vonDerZentraleLesen,
   ZertifikatAnfrage,
 } from "@steuerzentrale/protokoll";
+import type { Auftraege } from "../auftraege/auftraege.ts";
 import { anfrageErzeugen, privatPem, schluesselErzeugen } from "../beitritt/csr.ts";
 import type { Dateien } from "../dateien.ts";
 import { uhrAbweichung } from "../fakten/lesen.ts";
@@ -26,7 +27,8 @@ import type { Oeffnen, Sockel, Tls } from "./sockel.ts";
  * connection ends, for whatever reason, the agent tries again after an exponential backoff with
  * jitter; a connection that got as far as `willkommen` starts the count anew. In the last 30 days of
  * its certificate the agent asks for a new one over the open connection, keeps it, and reconnects
- * with it. While connected it reports its facts and SSH logins (meldungen.ts, Z-304).
+ * with it. While connected it reports its facts and SSH logins (meldungen.ts, Z-304) and takes
+ * jobs (src/auftraege, Z-305), whose reports go over whatever connection is open when they come.
  */
 
 /** Plans `lauf` in `ms`; returns how to cancel it */
@@ -47,6 +49,8 @@ export type VerbindenDeps = {
   anfrage?: () => Promise<{ schluessel: string; csr: string }>;
   /** Facts and SSH logins to report while connected (Z-304); none without */
   meldungen?: Pick<MeldungenDeps, "fakten" | "anmeldungen">;
+  /** Takes the jobs the Zentrale sends (Z-305, src/auftraege); without, jobs are left alone */
+  auftraege?: Auftraege;
 };
 
 /** The WebSocket address for the Zentrale's origin: wss for https, ws for http (test mode only) */
@@ -170,7 +174,7 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
       versuch = 0;
       s.schliessen(1000, "certificate rotated");
     }
-    // jobs come with Z-305
+    if (n.typ === "auftrag") await deps.auftraege?.empfangen(n, (text) => sockel?.senden(text));
   };
 
   const wiederholen = (code: number, grund: string) => {
