@@ -130,6 +130,21 @@ describe("a new job", () => {
       auftragAnlegen(u.deps, u.kontext("b1"), neuerAuftrag("s1", { auftragId: "a1" })),
     ).toMatchObject({ grund: "auftrag_vorhanden" });
   });
+
+  it("is refused when it could never go out to its agent, instead of staying ready for ever", () => {
+    const u = auftragsUmgebung();
+    u.betreiber("b1", "s1");
+    const agent = u.verbinden("b1", "s1");
+    // the protocol takes ids of at most 200 characters (packages/protokoll, `auftrag`)
+    const angelegt = auftragAnlegen(
+      u.deps,
+      u.kontext("b1"),
+      neuerAuftrag("s1", { auftragId: "a".repeat(201) }),
+    );
+    expect(angelegt).toMatchObject({ ok: false, grund: "nachricht_ungueltig" });
+    expect(u.db.select().from(auftraege).all()).toEqual([]);
+    expect(agent).toEqual([]);
+  });
 });
 
 describe("a waiting job", () => {

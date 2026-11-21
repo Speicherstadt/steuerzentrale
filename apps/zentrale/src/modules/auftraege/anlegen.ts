@@ -12,7 +12,7 @@ import { type Kontext, schreiben } from "../audit/index.ts";
 import { serverLesen } from "../server/index.ts";
 import { startzustand, zyklusIn } from "./abhaengigkeiten.ts";
 import { type Auftrag, auftragLesen, vorgaengerVon, zustaendeLesen } from "./lesen.ts";
-import { type AuftragDeps, zustellen } from "./zustellen.ts";
+import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
 
 /*
  * Making a job (BAULISTE.md Z-305), for now only from within the Zentrale (installing, updating and
@@ -46,7 +46,8 @@ export type AnlageFehler =
   | "installation_fehlt"
   | "vorgaenger_unbekannt"
   | "zyklus"
-  | "auftrag_vorhanden";
+  | "auftrag_vorhanden"
+  | "nachricht_ungueltig";
 
 export type Angelegt =
   | { ok: true; auftrag: Auftrag }
@@ -99,26 +100,33 @@ export const auftragAnlegen = (
   const unbekannt = wartetAuf.filter((id) => !zustaende.has(id));
   if (unbekannt.length > 0)
     return { ok: false, grund: "vorgaenger_unbekannt", detail: unbekannt.join(", ") };
+  const zeile = {
+    betreiberId,
+    auftragId,
+    serverId: neu.serverId,
+    installationId: neu.installationId,
+    aktion: neu.aktion,
+    app: geprueft.manifest.id,
+    version: geprueft.manifest.version,
+    manifestHash: createHash("sha256").update(neu.manifest, "utf8").digest("hex"),
+    manifest: neu.manifest,
+    signatur: neu.signatur,
+    argumente: JSON.stringify(neu.argumente),
+    zeitlimitS: geprueft.zeitlimitS,
+    zustand: startzustand(wartetAuf.map((id) => zustaende.get(id) ?? "wartend")),
+    wartetAuf: JSON.stringify(wartetAuf),
+    angelegtVon: kontext.akteur,
+    angelegtAm: jetzt,
+    geaendertAm: jetzt,
+  };
+  // a job the protocol cannot carry (an id or a manifest too long) would stay ready for ever
+  try {
+    auftragNachricht({ ...zeile, fortschritt: null, fortschrittAm: null, ergebnis: null });
+  } catch (fehler) {
+    return { ok: false, grund: "nachricht_ungueltig", detail: String(fehler).slice(0, 500) };
+  }
   const auftrag = schreiben(deps.schreibDb, kontext, "auftrag.anlegen", (w) =>
-    w.einfuegen("auftraege", {
-      betreiberId,
-      auftragId,
-      serverId: neu.serverId,
-      installationId: neu.installationId,
-      aktion: neu.aktion,
-      app: geprueft.manifest.id,
-      version: geprueft.manifest.version,
-      manifestHash: createHash("sha256").update(neu.manifest, "utf8").digest("hex"),
-      manifest: neu.manifest,
-      signatur: neu.signatur,
-      argumente: JSON.stringify(neu.argumente),
-      zeitlimitS: geprueft.zeitlimitS,
-      zustand: startzustand(wartetAuf.map((id) => zustaende.get(id) ?? "wartend")),
-      wartetAuf: JSON.stringify(wartetAuf),
-      angelegtVon: kontext.akteur,
-      angelegtAm: jetzt,
-      geaendertAm: jetzt,
-    }),
+    w.einfuegen("auftraege", zeile),
   );
   zustellen(deps, [auftrag]);
   return { ok: true, auftrag: auftragLesen(deps.db, betreiberId, auftragId) ?? auftrag };
