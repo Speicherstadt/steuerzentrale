@@ -61,6 +61,18 @@ describe("befehlFuellen", () => {
     expect(befehlFuellen(b, { x: "abc123" }).ok).toBe(false);
   });
 
+  it("does not let a pattern close the anchoring group and match anything", () => {
+    // "x)|(.*" compiles only inside the wrapper, where it reads ^(?:x)|(.*)$: any value would do
+    const b = befehl({
+      argv: ["tool", "${arg:x}"],
+      argumente: { x: { typ: "text", muster: "[0-9a-f]{8})|(.*", max_laenge: 200 } },
+    });
+    expect(befehlFuellen(b, { x: "--privileged" }).ok).toBe(false);
+    expect(argumentBefunde("b", b).map((f) => f.pfad.join("."))).toEqual([
+      "befehle.b.argumente.x.muster",
+    ]);
+  });
+
   it("refuses a text past its length and one with a control character", () => {
     const b = befehl({
       argv: ["tool", "${arg:x}"],

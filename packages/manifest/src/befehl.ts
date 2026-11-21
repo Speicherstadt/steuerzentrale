@@ -20,6 +20,8 @@ export type Gefuellt = { ok: true; argv: string[] } | { ok: false; grund: string
 
 const musterVon = (muster: string): RegExp | undefined => {
   try {
+    // the pattern must compile alone: "a)|(.*" compiles only inside the group and then matches all
+    new RegExp(muster, "u");
     return new RegExp(`^(?:${muster})$`, "u");
   } catch {
     return undefined;
