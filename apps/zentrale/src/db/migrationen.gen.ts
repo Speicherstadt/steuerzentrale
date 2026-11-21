@@ -31,5 +31,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0007_verbindung",
     "sql": "ALTER TABLE `server` ADD `fingerabdruck_neu` text;--> statement-breakpoint\nALTER TABLE `server` ADD `zertifikat_neu_gueltig_bis` integer;--> statement-breakpoint\nALTER TABLE `server` ADD `gesperrt_am` integer;--> statement-breakpoint\nCREATE UNIQUE INDEX `server_fingerabdruck_neu_unique` ON `server` (`fingerabdruck_neu`);"
+  },
+  {
+    "tag": "0008_fakten",
+    "sql": "CREATE TABLE `fakten` (\n\t`betreiber_id` text NOT NULL,\n\t`server_id` text NOT NULL,\n\t`zeitpunkt` integer NOT NULL,\n\t`daten` text NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `server_id`, `zeitpunkt`)\n);\n--> statement-breakpoint\nCREATE INDEX `fakten_zeitpunkt` ON `fakten` (`zeitpunkt`);--> statement-breakpoint\nALTER TABLE `server` ADD `fakten` text;--> statement-breakpoint\nALTER TABLE `server` ADD `fakten_am` integer;"
   }
 ];

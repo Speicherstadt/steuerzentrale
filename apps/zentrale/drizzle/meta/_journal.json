@@ -57,6 +57,13 @@
       "when": 1795215296529,
       "tag": "0007_verbindung",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795217262639,
+      "tag": "0008_fakten",
+      "breakpoints": true
     }
   ]
 }

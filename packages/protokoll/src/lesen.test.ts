@@ -189,6 +189,41 @@ describe("size", () => {
   });
 });
 
+describe("facts", () => {
+  // Z-304: a fact the agent cannot read is null, never invented
+  it("reads a message in which no fact was readable", () => {
+    const nichts = {
+      typ: "fakten",
+      protokoll: 1,
+      zeit: 1,
+      cpuKerne: null,
+      ramMb: null,
+      platten: null,
+      architektur: null,
+      os: null,
+      kernel: { laeuft: null, installiert: null },
+      neustartNoetig: null,
+      updatesAusstehend: null,
+      podman: null,
+      ipv4: null,
+      ipv6: null,
+      ptr: {},
+      portsBelegt: null,
+      port25Ausgehend: null,
+      uhrzeitAbweichungMs: null,
+    };
+    expect(vomAgentenLesen(JSON.stringify(nichts))).toEqual({ ok: true, nachricht: nichts });
+  });
+
+  it("refuses a fact left out instead of null", () => {
+    const { podman: _weg, ...ohne } = VOM_AGENTEN_V1.find((n) => n.typ === "fakten") ?? {};
+    expect(vomAgentenLesen(JSON.stringify(ohne))).toMatchObject({
+      ok: false,
+      grund: expect.stringMatching(/^podman: /),
+    });
+  });
+});
+
 describe("state of the installations", () => {
   // `systemctl --state=help` (systemd 255, Ubuntu 24.04) lists these active states; systemd 257
   // (Debian 13) adds "refreshing". One unit in any of them must not make the whole message invalid.

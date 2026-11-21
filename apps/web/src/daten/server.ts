@@ -4,11 +4,32 @@ import { demoServerQuelle } from "../demo/server-quelle.ts";
 import type { AgentZustand } from "./typen.ts";
 
 /*
- * Where the server pages will read the servers of the Zentrale (BAULISTE.md Z-303): the API once
- * someone is signed in (main.tsx puts it in), else the demo fixtures in memory. The pages still
- * show the demo's servers with facts and load, which come with Z-304; this source carries what the
- * API has today: the servers, what the agent reported at joining, and the state of its connection.
+ * Where the server pages read the servers of the Zentrale (BAULISTE.md Z-303, Z-304): the API once
+ * someone is signed in (main.tsx puts it in), else the demo fixtures in memory. It carries what the
+ * API has: the servers, what the agent reported at joining, the state of its connection and its
+ * newest facts. Load, installations, checks and events still come from the demo data by the
+ * server's id (server-ansicht.ts), so a server of the Zentrale has none of them yet.
  */
+
+/** The facts of a server as its agent read them (packages/protokoll, `fakten`); null: unreadable */
+export type ServerFakten = {
+  zeit: number;
+  cpuKerne: number | null;
+  ramMb: number | null;
+  platten: { mount: string; gesamtMb: number; freiMb: number }[] | null;
+  architektur: "amd64" | "arm64" | null;
+  os: { name: string; version: string } | null;
+  kernel: { laeuft: string | null; installiert: string | null };
+  neustartNoetig: boolean | null;
+  updatesAusstehend: number | null;
+  podman: string | null;
+  ipv4: string[] | null;
+  ipv6: string[] | null;
+  ptr: Record<string, string>;
+  portsBelegt: { port: number; proto: "tcp" | "udp" }[] | null;
+  port25Ausgehend: boolean | null;
+  uhrzeitAbweichungMs: number | null;
+};
 
 /** The state of a server's agent (apps/zentrale, modules/verbindung/zustand.ts) */
 export type AgentVerbindung =
@@ -30,6 +51,9 @@ export type ServerDerZentrale = {
   zertifikatGueltigBis: number | null;
   gesperrtAm: number | null;
   agent: AgentVerbindung;
+  /** The newest facts and when the Zentrale got them; null before the agent's first report */
+  fakten: ServerFakten | null;
+  faktenAm: number | null;
 };
 
 export type ServerQuelle = {

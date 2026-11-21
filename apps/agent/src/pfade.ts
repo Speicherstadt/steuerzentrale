@@ -16,6 +16,8 @@ export type Pfade = {
   /** A rotated key and certificate until both are in place (src/verbindung/rotieren.ts) */
   schluesselNeu: string;
   zertifikatNeu: string;
+  /** journald's cursor after the last SSH login reported (src/ssh/anmeldungen.ts) */
+  sshCursor: string;
 };
 
 export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
@@ -26,4 +28,5 @@ export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
   ca: join(zustand, "ca.pem"),
   schluesselNeu: join(zustand, "agent.key.rotiert"),
   zertifikatNeu: join(zustand, "agent.pem.rotiert"),
+  sshCursor: join(zustand, "ssh-cursor"),
 });

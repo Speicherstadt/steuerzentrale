@@ -23,7 +23,9 @@ als systemd-Dienst ein, und der Agent tauscht das Token gegen sein Client-Zertif
 ([Server hinzufügen](docs/server-hinzufuegen.md)). Danach hält der Agent eine WSS-Verbindung mit
 Heartbeat alle 30 Sekunden; jeder Server zeigt „verbunden“, „seit x min still“ oder „getrennt“, nach
 3 Minuten Stille entsteht ein Ereignis, und ein Zertifikat rotiert vor Ablauf von selbst und lässt
-sich sofort sperren.
+sich sofort sperren. Der Agent meldet die Fakten seines Servers (CPU, RAM, Platten, OS, Kernel,
+„Neustart nötig“, ausstehende Updates, Podman, Adressen, PTR, Ports, Port 25, Uhrzeit) alle 15
+Minuten, die Server-Seiten zeigen sie, und jede SSH-Anmeldung wird ein Ereignis.
 
 **Stand:** in Planung. Plan und Bauliste: [`docs/plan.md`](docs/plan.md), [`BAULISTE.md`](BAULISTE.md).
 

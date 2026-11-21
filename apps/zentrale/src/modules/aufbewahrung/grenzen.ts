@@ -23,11 +23,13 @@ export const monateZurueck = (jetzt: number, monate: number): number => {
 };
 
 /**
- * What is older than these instants goes (docs/plan.md, "Daten der Zentrale"): heartbeats and log
- * excerpts after 30 days, events after 13 months; the audit log stays for good and is not here
+ * What is older than these instants goes (docs/plan.md, "Daten der Zentrale"): heartbeats, the
+ * history of facts and log excerpts after 30 days, events after 13 months; the audit log stays for
+ * good and is not here, nor the newest facts at each server
  */
 export const aufbewahrungsGrenzen = (jetzt: number): Record<AufbewahrteTabelle, number> => ({
   heartbeats: jetzt - 30 * TAG_MS,
+  fakten: jetzt - 30 * TAG_MS,
   logAuszuege: jetzt - 30 * TAG_MS,
   ereignisse: monateZurueck(jetzt, 13),
 });

@@ -54,6 +54,7 @@
       "dependencies": {
         "@better-auth/passkey": "1.7.26",
         "@peculiar/x509": "1.14.3",
+        "@steuerzentrale/manifest": "workspace:*",
         "@steuerzentrale/planung": "workspace:*",
         "@steuerzentrale/protokoll": "workspace:*",
         "better-auth": "1.7.26",

@@ -3,6 +3,7 @@ import { setLocale } from "@steuerzentrale/ui";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/solid-router";
 import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type ServerDerZentrale, serverQuelle, serverQuelleEinsetzen } from "./daten/server.ts";
 import { routeTree } from "./routeTree.gen.ts";
 
 // The pages in the router, rendered from the demo fixtures: heading, path and content
@@ -149,5 +150,114 @@ describe("pages", () => {
   it("say so for an unknown object", async () => {
     const root = await oeffne("/kunden/gibt-es-nicht");
     expect(ueberschrift(root)).toBe("Nicht gefunden");
+  });
+});
+
+// BAULISTE.md Z-304: the server pages show what the Zentrale's API has, facts included, and
+// nothing invented for a server whose agent has not reported yet
+describe("servers of the Zentrale", () => {
+  const JETZT = Date.now();
+  const mitFakten: ServerDerZentrale = {
+    serverId: "s-fakten",
+    name: "Neuer Server",
+    art: "gemeinsam",
+    kundeId: null,
+    wartungsfenster: { tage: [0, 1, 2, 3, 4, 5, 6], von: "03:30", bis: "04:30" },
+    angelegtAm: JETZT - 3600_000,
+    beigetretenAm: JETZT - 3000_000,
+    architektur: "arm64",
+    agentVersion: "0.1.0",
+    zertifikatGueltigBis: JETZT + 300 * 86_400_000,
+    gesperrtAm: null,
+    agent: { zustand: "verbunden", letzterHeartbeat: JETZT - 5000 },
+    fakten: {
+      zeit: JETZT,
+      cpuKerne: 4,
+      ramMb: 8192,
+      platten: [{ mount: "/", gesamtMb: 81_920, freiMb: 40_960 }],
+      architektur: "arm64",
+      os: { name: "Debian GNU/Linux", version: "13" },
+      kernel: { laeuft: "6.12.41+deb13-arm64", installiert: "6.12.48+deb13-arm64" },
+      neustartNoetig: true,
+      updatesAusstehend: 3,
+      podman: "5.4.2",
+      ipv4: ["203.0.113.10"],
+      ipv6: [],
+      ptr: { "203.0.113.10": "neu.example.org" },
+      portsBelegt: [{ port: 22, proto: "tcp" }],
+      port25Ausgehend: false,
+      uhrzeitAbweichungMs: 12,
+    },
+    faktenAm: JETZT - 60_000,
+  };
+  const ohneFakten: ServerDerZentrale = {
+    ...mitFakten,
+    serverId: "s-leer",
+    name: "Leerer Server",
+    architektur: null,
+    agentVersion: null,
+    beigetretenAm: null,
+    agent: { zustand: "getrennt", letzterHeartbeat: null },
+    fakten: null,
+    faktenAm: null,
+  };
+  const vorher = serverQuelle();
+  beforeEach(() => {
+    const liste = [ohneFakten, mitFakten];
+    serverQuelleEinsetzen({
+      liste: async () => ({ ok: true, status: 200, daten: liste }),
+      server: async (id) => {
+        const sv = liste.find((s) => s.serverId === id);
+        return sv ? { ok: true, status: 200, daten: sv } : { ok: false, status: 404, fehler: "x" };
+      },
+      sperren: async () => ({ ok: false, status: 409, fehler: "x" }),
+    });
+  });
+  afterEach(() => serverQuelleEinsetzen(vorher));
+
+  const zeileVon = (root: HTMLElement, name: string) =>
+    [...root.querySelectorAll("tbody tr")].find((z) => z.textContent?.includes(name))?.textContent;
+
+  it("list each with its facts, or says it has none", async () => {
+    const root = await oeffne("/server");
+    flush();
+    await new Promise((fertig) => setTimeout(fertig, 0));
+    const neu = zeileVon(root, "Neuer Server");
+    expect(neu).toContain("neu.example.org · Debian GNU/Linux 13 · arm64");
+    expect(neu).toContain("Neustart");
+    expect(neu).toContain("50 %");
+    const leer = zeileVon(root, "Leerer Server");
+    expect(leer).toContain("noch keine Fakten");
+    expect(leer).toContain("noch keine Meldung");
+  });
+
+  it("show the facts on the server page", async () => {
+    const root = await oeffne("/server/s-fakten");
+    flush();
+    await new Promise((fertig) => setTimeout(fertig, 0));
+    expect(ueberschrift(root)).toBe("Neuer Server");
+    const text = root.textContent ?? "";
+    for (const teil of [
+      "läuft 6.12.41+deb13-arm64, installiert 6.12.48+deb13-arm64",
+      "5.4.2, rootless",
+      "203.0.113.10 → neu.example.org",
+      "22/tcp",
+      "Port 25 ausgehendgesperrt",
+    ])
+      expect(text).toContain(teil);
+    expect(text).not.toContain("Prüfungen");
+  });
+
+  it("say unknown where the agent reported nothing, and 404 for a server that is not there", async () => {
+    const root = await oeffne("/server/s-leer");
+    flush();
+    await new Promise((fertig) => setTimeout(fertig, 0));
+    expect(root.textContent).toContain("Der Agent hat noch keine Fakten gemeldet.");
+    expect(root.textContent).toContain("unbekannt");
+    dispose();
+    const fehlt = await oeffne("/server/gibt-es-nicht");
+    flush();
+    await new Promise((fertig) => setTimeout(fertig, 0));
+    expect(ueberschrift(fehlt)).toBe("Nicht gefunden");
   });
 });

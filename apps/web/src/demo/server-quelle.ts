@@ -1,4 +1,4 @@
-import type { ServerDerZentrale, ServerQuelle } from "../daten/server.ts";
+import type { ServerDerZentrale, ServerFakten, ServerQuelle } from "../daten/server.ts";
 import type { Server } from "../daten/typen.ts";
 
 /**
@@ -8,9 +8,47 @@ import type { Server } from "../daten/typen.ts";
 const ARTEN = { gemeinsam: "gemeinsam", eigen: "eigen", kunde: "beim_kunden" } as const;
 
 const STILL_AB_MS = 75_000;
+const MIB_200_GB = 200 * 1024;
+
+/**
+ * The demo server's values as its agent would report them (Z-304); the disk is a 200 GB root with
+ * the demo's share in use, the host name its PTR
+ */
+export const demoFakten = (sv: Server, jetzt: number): ServerFakten => {
+  const [name = sv.os, version = ""] = sv.os.split(" ");
+  return {
+    zeit: jetzt,
+    cpuKerne: null,
+    ramMb: sv.ramGb * 1024,
+    platten: [
+      {
+        mount: "/",
+        gesamtMb: MIB_200_GB,
+        freiMb: Math.round((MIB_200_GB * (100 - sv.platte)) / 100),
+      },
+    ],
+    architektur: sv.arch === "arm64" ? "arm64" : "amd64",
+    os: { name, version },
+    kernel: sv.kernel,
+    neustartNoetig: sv.neustart !== undefined || sv.kernel.laeuft !== sv.kernel.installiert,
+    updatesAusstehend: sv.sicherheitsupdates,
+    podman: sv.podman,
+    ipv4: sv.ipv4 ? [sv.ipv4] : [],
+    ipv6: sv.ipv6 ? [sv.ipv6] : [],
+    ptr: sv.ipv4 ? { [sv.ipv4]: sv.host } : {},
+    portsBelegt: [
+      { port: 22, proto: "tcp" },
+      { port: 80, proto: "tcp" },
+      { port: 443, proto: "tcp" },
+    ],
+    port25Ausgehend: null,
+    uhrzeitAbweichungMs: sv.uhrAbweichungMs,
+  };
+};
 
 export const alsServerDerZentrale = (sv: Server, jetzt: number): ServerDerZentrale => {
   const letzterHeartbeat = sv.agent.letzteMeldung;
+  const faktenAm = sv.agent.zustand === "verbunden" ? jetzt : letzterHeartbeat;
   const agent: ServerDerZentrale["agent"] =
     sv.agent.zustand === "still"
       ? {
@@ -32,6 +70,9 @@ export const alsServerDerZentrale = (sv: Server, jetzt: number): ServerDerZentra
     zertifikatGueltigBis: jetzt + sv.zertifikatTage * 24 * 3600_000,
     gesperrtAm: null,
     agent,
+    // a silent agent's facts are those of its last report
+    fakten: demoFakten(sv, faktenAm),
+    faktenAm,
   };
 };
 

@@ -13,8 +13,10 @@ import {
 } from "@steuerzentrale/protokoll";
 import { anfrageErzeugen, privatPem, schluesselErzeugen } from "../beitritt/csr.ts";
 import type { Dateien } from "../dateien.ts";
+import { uhrAbweichung } from "../fakten/lesen.ts";
 import type { Pfade } from "../pfade.ts";
 import { wartezeit } from "./backoff.ts";
+import { type MeldungenDeps, meldungenPlatz } from "./meldungen.ts";
 import { rotationAbschliessen, rotationSpeichern } from "./rotieren.ts";
 import type { Oeffnen, Sockel, Tls } from "./sockel.ts";
 
@@ -24,7 +26,7 @@ import type { Oeffnen, Sockel, Tls } from "./sockel.ts";
  * connection ends, for whatever reason, the agent tries again after an exponential backoff with
  * jitter; a connection that got as far as `willkommen` starts the count anew. In the last 30 days of
  * its certificate the agent asks for a new one over the open connection, keeps it, and reconnects
- * with it.
+ * with it. While connected it reports its facts and SSH logins (meldungen.ts, Z-304).
  */
 
 /** Plans `lauf` in `ms`; returns how to cancel it */
@@ -43,6 +45,8 @@ export type VerbindenDeps = {
   serverCa?: string;
   /** A new key and its request, PEM (csr.ts by default) */
   anfrage?: () => Promise<{ schluessel: string; csr: string }>;
+  /** Facts and SSH logins to report while connected (Z-304); none without */
+  meldungen?: Pick<MeldungenDeps, "fakten" | "anmeldungen">;
 };
 
 /** The WebSocket address for the Zentrale's origin: wss for https, ws for http (test mode only) */
@@ -85,42 +89,67 @@ const zertifikatAnfrage = (csr: string) =>
 
 export type Schleife = { stoppen: () => void };
 
+/**
+ * The certificate's care over one connection: in its last 30 days, at willkommen or on a later
+ * beat, the agent asks for a new one and keeps the key until it comes; a connection that ends
+ * drops the request, and the next one asks again
+ */
+const zertifikatPflege = (
+  deps: VerbindenDeps,
+  log: (msg: string, mehr?: Record<string, unknown>) => void,
+) => {
+  let rotation: { schluessel: string } | "laeuft" | undefined;
+  return {
+    faellig: async (s: Sockel, bis: number | undefined) => {
+      if (bis === undefined || bis - deps.jetzt() > ROTIEREN_VOR_MS || rotation !== undefined)
+        return;
+      rotation = "laeuft";
+      const { schluessel, csr } = await (deps.anfrage ?? neueAnfrage)();
+      rotation = { schluessel };
+      s.senden(zertifikatAnfrage(csr));
+      log("certificate requested");
+    },
+    /** Keeps a certificate it asked for; false for one it did not */
+    gekommen: async (n: Extract<NachrichtVonDerZentrale, { typ: "zertifikat" }>) => {
+      if (typeof rotation !== "object") return false;
+      await rotationSpeichern(deps.dateien, deps.pfade, { ...n, schluessel: rotation.schluessel });
+      rotation = undefined;
+      log("certificate rotated", { gueltigBis: n.gueltigBis });
+      return true;
+    },
+    verwerfen: () => {
+      rotation = undefined;
+    },
+  };
+};
+
 export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schleife => {
   let versuch = 0;
   let gestoppt = false;
   let sockel: Sockel | undefined;
   let abbrechen: (() => void) | undefined;
-  let rotation: { schluessel: string } | "laeuft" | undefined;
+  let halloAm = 0;
   const log = (msg: string, mehr: Record<string, unknown> = {}) =>
     deps.log(JSON.stringify({ msg, ...mehr }));
+  const meldungen = meldungenPlatz(
+    deps.meldungen && { ...deps.meldungen, planen: deps.planen, log },
+  );
 
   const planen = (lauf: () => void, ms: number) => {
     abbrechen?.();
     abbrechen = deps.planen(lauf, ms);
   };
 
-  const rotieren = async (s: Sockel) => {
-    rotation = "laeuft";
-    const { schluessel, csr } = await (deps.anfrage ?? neueAnfrage)();
-    rotation = { schluessel };
-    s.senden(zertifikatAnfrage(csr));
-    log("certificate requested");
-  };
-
-  /** Asks for a new certificate once its last 30 days began: at willkommen or on a later beat */
-  const rotierenWennFaellig = async (s: Sockel, bis: number | undefined) => {
-    if (bis !== undefined && bis - deps.jetzt() <= ROTIEREN_VOR_MS && rotation === undefined)
-      await rotieren(s);
-  };
+  const pflege = zertifikatPflege(deps, log);
 
   // a connection may stay open for weeks: the end of the certificate is checked with every beat
   const herzschlag = (s: Sockel, bis: number | undefined) => {
     planen(() => {
       s.senden(heartbeat(deps));
       herzschlag(s, bis);
-      rotierenWennFaellig(s, bis).catch((fehler) =>
-        log("certificate request failed", { fehler: String(fehler) }),
-      );
+      pflege
+        .faellig(s, bis)
+        .catch((fehler) => log("certificate request failed", { fehler: String(fehler) }));
     }, HEARTBEAT_MS);
   };
 
@@ -129,13 +158,14 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
       versuch = 0;
       log("connected");
       herzschlag(s, n.zertifikatGueltigBis);
-      await rotierenWennFaellig(s, n.zertifikatGueltigBis);
+      meldungen.starten(
+        (text) => s.senden(text),
+        uhrAbweichung({ gesendet: halloAm, empfangen: deps.jetzt(), zentrale: n.zeit }),
+      );
+      await pflege.faellig(s, n.zertifikatGueltigBis);
       return;
     }
-    if (n.typ === "zertifikat" && typeof rotation === "object") {
-      await rotationSpeichern(deps.dateien, deps.pfade, { ...n, schluessel: rotation.schluessel });
-      rotation = undefined;
-      log("certificate rotated", { gueltigBis: n.gueltigBis });
+    if (n.typ === "zertifikat" && (await pflege.gekommen(n))) {
       // the next connection opens with the new certificate, which replaces the old one
       versuch = 0;
       s.schliessen(1000, "certificate rotated");
@@ -147,7 +177,8 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
     sockel = undefined;
     abbrechen?.();
     abbrechen = undefined;
-    if (rotation === "laeuft" || typeof rotation === "object") rotation = undefined;
+    meldungen.stoppen();
+    pflege.verwerfen();
     if (gestoppt) return;
     const ms =
       code === 1000 && grund === "certificate rotated" ? 0 : wartezeit(versuch, deps.zufall());
@@ -166,7 +197,10 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
     }
     let s: Sockel | undefined;
     const ereignisse = {
-      offen: () => s?.senden(hallo(deps)),
+      offen: () => {
+        halloAm = deps.jetzt();
+        s?.senden(hallo(deps));
+      },
       nachricht: (text: string) => {
         const gelesen = vonDerZentraleLesen(text);
         if (!s) return;
@@ -192,6 +226,7 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
     stoppen: () => {
       gestoppt = true;
       abbrechen?.();
+      meldungen.stoppen();
       sockel?.schliessen(1000, "agent stops");
     },
   };

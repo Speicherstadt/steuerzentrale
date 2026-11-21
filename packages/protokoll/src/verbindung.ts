@@ -12,3 +12,10 @@ export const HEARTBEAT_MS = 30_000;
 
 /** How long before its certificate ends the agent asks for a new one, and the Zentrale issues it */
 export const ROTIEREN_VOR_MS = 30 * 24 * 3600_000;
+
+/**
+ * How often the agent sends its facts (Z-304), besides once after every `willkommen`: they change
+ * slowly (packages, reboots, disks), the disk checks of Z-702 need no finer grain, and 96 rows a day
+ * per server keep the 30 days of history small
+ */
+export const FAKTEN_MS = 15 * 60_000;
