@@ -106,7 +106,9 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
     geladen ??= standLaden(deps.dateien, deps.pfad);
     const record = await geladen;
     if (!record.ok) {
-      // without its record the agent cannot tell a job sent twice: it runs none
+      // without its record the agent cannot tell a job sent twice: it runs none, and reads the
+      // record again with the next job, so a repaired one counts without a restart
+      geladen = undefined;
       deps.log("job refused", { auftragId: n.auftragId, grund: record.grund });
       return;
     }

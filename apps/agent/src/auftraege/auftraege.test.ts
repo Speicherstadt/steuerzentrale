@@ -231,6 +231,17 @@ describe("a job the agent refuses, without starting anything", () => {
     expect(a.gesendet).toEqual([]);
     expect(a.log).toContainEqual(expect.objectContaining({ msg: "job refused", auftragId: "a1" }));
   });
+
+  it('only until its record is repaired (docs/plan.md, "Gedächtnis des Agenten")', async () => {
+    const fs = speicher({ [PFAD]: "kaputt" });
+    const a = aufgebaut({}, fs);
+    await a.empfangen();
+    expect(a.laeufe).toEqual([]);
+    fs.inhalt.set(PFAD, { text: JSON.stringify({ auftraege: {} }), modus: 0o600 });
+    void a.empfangen();
+    await weiter();
+    expect(a.laeufe.map((l) => l.argv.at(-1))).toEqual(["migrieren"]);
+  });
 });
 
 describe("the time limit", () => {
