@@ -99,8 +99,41 @@ const health = z.discriminatedUnion("art", [
   z.strictObject({ art: z.literal("keine"), hinweis: z.string().min(1) }),
 ]);
 
-/** A named command: a container and an argv, never a string a shell would parse */
-const befehl = z.strictObject({ container: name, argv: z.array(z.string()).min(1) });
+/**
+ * An argument a job may give a named command (Z-305): every declared one is required, and its value
+ * replaces the argv element `${arg:<name>}` as one whole word, never as text a shell would read.
+ * A text needs a pattern it must match in full; a number is an integer.
+ */
+const argument = z.discriminatedUnion("typ", [
+  z.strictObject({
+    typ: z.literal("text"),
+    muster: z.string().min(1),
+    max_laenge: z.number().int().min(1).max(1000).default(200),
+  }),
+  z.strictObject({
+    typ: z.literal("zahl"),
+    min: z.number().int().optional(),
+    max: z.number().int().optional(),
+  }),
+  z.strictObject({ typ: z.literal("ja_nein") }),
+  z.strictObject({ typ: z.literal("auswahl"), werte: z.array(z.string().min(1)).min(1) }),
+]);
+
+/** The longest time limit of a command: a day */
+export const MAX_ZEITLIMIT_S = 86_400;
+
+/**
+ * A named command: a container and an argv, never a string a shell would parse. A job runs it with
+ * its arguments and within `zeitlimit_s` (else STANDARD_ZEITLIMIT_S); `idempotent: true` lets the
+ * agent run it again after a restart instead of reporting it failed (docs/plan.md, "Aufträge")
+ */
+const befehl = z.strictObject({
+  container: name,
+  argv: z.array(z.string()).min(1),
+  argumente: z.record(z.string().regex(/^[a-z][a-z0-9_]*$/), argument).default({}),
+  zeitlimit_s: z.number().int().min(1).max(MAX_ZEITLIMIT_S).optional(),
+  idempotent: z.boolean().default(false),
+});
 
 const backupTeil = z.discriminatedUnion("art", [
   z.strictObject({
@@ -204,3 +237,5 @@ export const ManifestStruktur = z.strictObject({
 
 export type Manifest = z.output<typeof ManifestStruktur>;
 export type Container = z.output<typeof container>;
+export type Befehl = z.output<typeof befehl>;
+export type Argument = z.output<typeof argument>;

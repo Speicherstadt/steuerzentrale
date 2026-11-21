@@ -35,5 +35,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0008_fakten",
     "sql": "CREATE TABLE `fakten` (\n\t`betreiber_id` text NOT NULL,\n\t`server_id` text NOT NULL,\n\t`zeitpunkt` integer NOT NULL,\n\t`daten` text NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `server_id`, `zeitpunkt`)\n);\n--> statement-breakpoint\nCREATE INDEX `fakten_zeitpunkt` ON `fakten` (`zeitpunkt`);--> statement-breakpoint\nALTER TABLE `server` ADD `fakten` text;--> statement-breakpoint\nALTER TABLE `server` ADD `fakten_am` integer;"
+  },
+  {
+    "tag": "0009_auftraege",
+    "sql": "CREATE TABLE `auftraege` (\n\t`betreiber_id` text NOT NULL,\n\t`auftrag_id` text NOT NULL,\n\t`server_id` text NOT NULL,\n\t`installation_id` text,\n\t`aktion` text NOT NULL,\n\t`app` text NOT NULL,\n\t`version` text NOT NULL,\n\t`manifest_hash` text NOT NULL,\n\t`manifest` text NOT NULL,\n\t`signatur` text NOT NULL,\n\t`argumente` text NOT NULL,\n\t`zeitlimit_s` integer NOT NULL,\n\t`zustand` text NOT NULL,\n\t`wartet_auf` text NOT NULL,\n\t`fortschritt` text,\n\t`fortschritt_am` integer,\n\t`ergebnis` text,\n\t`angelegt_von` text NOT NULL,\n\t`angelegt_am` integer NOT NULL,\n\t`geaendert_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `auftrag_id`),\n\tFOREIGN KEY (`betreiber_id`,`server_id`) REFERENCES `server`(`betreiber_id`,`server_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `auftraege_server` ON `auftraege` (`betreiber_id`,`server_id`,`zustand`);--> statement-breakpoint\nCREATE INDEX `auftraege_zustand` ON `auftraege` (`betreiber_id`,`zustand`);"
   }
 ];

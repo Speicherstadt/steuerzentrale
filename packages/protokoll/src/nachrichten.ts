@@ -96,7 +96,7 @@ export const Fortschritt = z.object({
   typ: z.literal("fortschritt"),
   protokoll,
   auftragId: id,
-  schritt: z.string().min(1),
+  schritt: z.string().min(1).max(200),
   zeit: zeitpunkt,
 });
 
@@ -107,7 +107,7 @@ export const Ergebnis = z.object({
   zeit: zeitpunkt,
   ergebnis: z.discriminatedUnion("ok", [
     z.object({ ok: z.literal(true), daten: z.record(z.string(), z.unknown()).default({}) }),
-    z.object({ ok: z.literal(false), fehler: z.string().min(1) }),
+    z.object({ ok: z.literal(false), fehler: z.string().min(1).max(2000) }),
   ]),
 });
 

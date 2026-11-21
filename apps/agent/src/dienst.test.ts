@@ -1,3 +1,4 @@
+import { TEST_SCHLUESSEL_ID } from "@steuerzentrale/manifest";
 import { describe, expect, it } from "vitest";
 import { speicher, TEST_PUB } from "./beitritt/testhilfen.ts";
 import { dienstPruefen } from "./dienst.ts";
@@ -21,7 +22,14 @@ describe("the agent's service", () => {
   it("starts on a joined server", async () => {
     expect(await dienstPruefen(speicher(beigetreten()).dateien, pfade)).toEqual({
       ok: true,
-      wert: { zentrale: "http://10.0.0.1:28300", serverId: "srv-1" },
+      wert: {
+        zentrale: "http://10.0.0.1:28300",
+        serverId: "srv-1",
+        vertrauen: {
+          schluessel: expect.objectContaining({ id: TEST_SCHLUESSEL_ID }),
+          zweck: "test",
+        },
+      },
     });
   });
 

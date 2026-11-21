@@ -1,6 +1,8 @@
 export {
   type FaktenZeile,
+  type FortschrittZeile,
   faktenAnfuegen,
+  fortschrittSetzen,
   type Heartbeat,
   heartbeatAnfuegen,
 } from "./messwerte.ts";

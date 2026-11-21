@@ -1,5 +1,6 @@
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import {
+  auftraege,
   betreiber,
   einladungen,
   ereignisse,
@@ -36,6 +37,7 @@ export const tabellen = {
     zeit: heartbeats.zeitpunkt,
   },
   fakten: { tabelle: fakten, schluessel: ["serverId", "zeitpunkt"], zeit: fakten.zeitpunkt },
+  auftraege: { tabelle: auftraege, schluessel: ["auftragId"], zeit: undefined },
 } satisfies Record<
   string,
   { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined }
@@ -49,6 +51,13 @@ export type TabellenName = keyof typeof tabellen;
  */
 export const verschluesselteSpalten: Partial<Record<TabellenName, readonly string[]>> = {
   geheimnisse: ["wert"],
+};
+/**
+ * Columns the audit log records only as set: a job's manifest text and signature (Z-305) would put
+ * the same kilobytes into the append-only log with every job; its hash stands in the row
+ */
+export const ausgelasseneSpalten: Partial<Record<TabellenName, readonly string[]>> = {
+  auftraege: ["manifest", "signatur"],
 };
 export type Tabelle<N extends TabellenName> = (typeof tabellen)[N]["tabelle"];
 

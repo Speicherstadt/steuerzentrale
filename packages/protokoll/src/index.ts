@@ -1,6 +1,15 @@
 // Messages between the Zentrale and the agent, shared by both so they cannot drift apart
 // (docs/plan.md, "Technologie").
 
+export {
+  AUFTRAG_ZUSTAENDE,
+  type AuftragEreignis,
+  type AuftragZustand,
+  BEIM_AGENTEN,
+  ENDZUSTAENDE,
+  type Uebergang,
+  uebergang,
+} from "./auftraege.ts";
 export { BEITRITT_PFAD, BeitrittAnfrage, BeitrittAntwort } from "./beitritt.ts";
 export {
   AELTESTE_VERSION,

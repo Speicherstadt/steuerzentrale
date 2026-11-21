@@ -1,9 +1,24 @@
 // The manifest of an app: schema, signature, placement and rendering of Quadlet units; pure
 // functions only (docs/plan.md, "Projektstruktur"; docs/manifest.md).
 
+export {
+  befehlFuellen,
+  befehlZurAktion,
+  type Gefuellt,
+  STANDARD_ZEITLIMIT_S,
+  type Wert as ArgumentWert,
+} from "./befehl.ts";
 export { type Geprueft, manifestPruefen, signiertesManifestLaden } from "./laden.ts";
 export { type Befund, regelnPruefen } from "./pruefungen.ts";
-export { type Container, IMAGE, type Manifest, ManifestStruktur } from "./schema.ts";
+export {
+  type Argument,
+  type Befehl,
+  type Container,
+  IMAGE,
+  MAX_ZEITLIMIT_S,
+  type Manifest,
+  ManifestStruktur,
+} from "./schema.ts";
 export {
   type OeffentlicherSchluessel,
   type Signiert,
@@ -26,6 +41,7 @@ export {
   ramBedarf,
   WARNSCHWELLE,
 } from "./platzierung.ts";
+export { INSTALLATIONS_NAME } from "./quadlet/eingabe.ts";
 export { type PforteRoute, STREAM_SCHLIESSEN_NACH } from "./quadlet/pforte.ts";
 export { quadletsRendern } from "./quadlet/rendern.ts";
 export { PODMAN_4_9_SCHLUESSEL } from "./quadlet/schluessel.ts";

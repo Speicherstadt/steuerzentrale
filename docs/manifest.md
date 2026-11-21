@@ -35,7 +35,7 @@ Jede Meldung nennt das Feld und den Grund, z. B.
 | `braucht`, `bietet` | Dienste zwischen den Apps eines Kunden, z. B. `oidc-anbieter`, `smtp` |
 | `anmeldung` | `oidc`, `eigen` oder `anbieter` |
 | `health` | `http` (`dienst`, `pfad`, `port`), `tcp` (`dienst`, `port`), `befehl` (Name aus `befehle`) oder `keine` (mit `hinweis`, z. B. dem Issue) |
-| `befehle` | benannte Befehle: `{ name: { container, argv: [...] } }` |
+| `befehle` | benannte Befehle: `{ name: { container, argv: [...], argumente, zeitlimit_s, idempotent } }`; `argumente`, `zeitlimit_s` (Vorgabe 900 s, höchstens ein Tag) und `idempotent` (Vorgabe `false`) sind freiwillig, unten „Befehle in Aufträgen“ |
 | `schritte` | `einrichten`, `nach_update`: nur Namen aus `befehle` |
 | `backup` | Teile: `pg_dump` (`container`, `datenbank`, `nutzer`), `volume` (`volume`), `befehl` (`befehl`) |
 | `aktionen` | `nur_lesen`, `export`: `nicht_unterstuetzt`, `{ nicht_unterstuetzt: <Issue> }` oder `{ befehl: <Name> }`; `neustart`, `log_auszug`: `angeboten` (Vorgabe) oder nicht unterstützt |
@@ -58,6 +58,9 @@ Unbekannte Felder sind ein Fehler, damit ein Tippfehler nicht still übergangen 
   eines Containers, auch in Optionen. Ein Element im `argv` eines Containers ist nie leer und
   enthält kein Steuerzeichen (Zeilenumbruch, Tabulator, …): Quadlet verliert ein leeres Wort, wenn es
   `ExecStart=` schreibt (unten, „Quadlets“).
+- Ein Platzhalter `${arg:<name>}` in `argv` eines Befehls steht allein in seinem Element, nicht an
+  erster Stelle, und nennt ein Argument unter `argumente`; jedes Argument wird benutzt, und ein
+  `muster` ist ein gültiger regulärer Ausdruck.
 - Images nur per Digest und mit Registry (`docker.io/…`, `ghcr.io/…`, `localhost:5000/…`); ein Tag
   kann unter demselben Namen ein anderes Image meinen.
 - `rootful` und ein eigener Proxy nur mit `netz.server_fuer_sich: true`; der geteilte Proxy braucht
@@ -68,6 +71,38 @@ Unbekannte Felder sind ein Fehler, damit ein Tippfehler nicht still übergangen 
 - Eine `vorlage` und ein DNS-Eintrag nutzen nur die Platzhalter unten.
 - Eine `vorlage`, die eine geheime Einstellung nennt, ist selbst `typ: geheim`; ein DNS-Eintrag ist
   öffentlich und nennt keine geheime Einstellung.
+
+## Befehle in Aufträgen
+
+Die Zentrale lässt einen Befehl per [Auftrag](auftraege.md) auf einem Server laufen, im Container
+`<installation>-<container>` der Installation. Der Agent nimmt `argv` aus dem signierten Manifest;
+ein Auftrag nennt nur den Namen des Befehls und seine Argumente.
+
+```yaml
+befehle:
+  wiederherstellen:
+    container: app
+    argv: [bun, /app/server.ts, wiederherstellen, "${arg:snapshot}"]
+    argumente:
+      snapshot: { typ: text, muster: "[0-9a-f]{8}" }
+    zeitlimit_s: 600
+    idempotent: false
+```
+
+- `argumente` erklärt jedes Argument, das ein Auftrag geben darf; jedes erklärte ist Pflicht, ein
+  anderes lehnt der Agent ab. Arten: `text` mit `muster` (ein regulärer Ausdruck, der den ganzen
+  Wert treffen muss) und `max_laenge` (Vorgabe 200), `zahl` (ganze Zahl, `min`, `max`), `ja_nein`
+  (wird `true` oder `false`), `auswahl` mit `werte`.
+- Ein Wert ersetzt das Element `${arg:<name>}` in `argv` als ganzes Wort, ohne Shell: Leerzeichen
+  oder `;` im Wert bleiben Teil dieses einen Arguments. Der Platzhalter steht allein in seinem
+  Element (`--name=${arg:x}` ist ein Fehler), nie als Programm (`argv[0]`), und jedes erklärte
+  Argument kommt in `argv` vor.
+- `zeitlimit_s`: so lange darf der Befehl laufen, dann beendet ihn der Agent (SIGKILL) und meldet
+  den Auftrag als gescheitert. Ohne Angabe gelten 900 Sekunden; die Zentrale kann die Frist für einen
+  Auftrag nur kürzen.
+- `idempotent: true` heißt: zweimal ausgeführt hat der Befehl dieselbe Wirkung wie einmal. Nur so
+  einen Befehl startet der Agent nach seinem eigenen Neustart noch einmal; jeden anderen, der beim
+  Neustart lief, meldet er als gescheitert („Agent neu gestartet“).
 
 ## Vorlagen
 

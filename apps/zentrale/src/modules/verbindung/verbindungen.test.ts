@@ -43,4 +43,19 @@ describe("verbindungen", () => {
     expect(a.geschlossen).toEqual([[4403, "revoked"]]);
     expect(v.verbundenSeit("b1", "s1")).toBeUndefined();
   });
+
+  it("sends jobs only to the server's greeted connection, never to another operator's", () => {
+    const v = verbindungen(4409);
+    const gesendet: string[] = [];
+    const s: Sockel = { senden: (text) => gesendet.push(text), schliessen: () => {} };
+    v.anmelden("b1", "s1", s, 10);
+    expect(v.senden("b1", "s1", "vor hallo")).toBe(false);
+    v.gruessen("b1", "s1", s);
+    expect(v.senden("b2", "s1", "fremd")).toBe(false);
+    expect(v.senden("b1", "s1", "auftrag")).toBe(true);
+    expect(gesendet).toEqual(["auftrag"]);
+    // a newer connection starts ungreeted
+    v.anmelden("b1", "s1", sockel().s, 20);
+    expect(v.senden("b1", "s1", "x")).toBe(false);
+  });
 });

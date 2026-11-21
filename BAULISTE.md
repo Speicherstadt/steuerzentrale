@@ -194,14 +194,19 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-303, Z-204
   Fertig, wenn: die Fakten in der CI im Container gelesen werden, die Platzierung sie ohne Umweg
   nutzt und eine SSH-Anmeldung im Container ein Ereignis erzeugt (Test).
-- [ ] **Z-305 Aufträge** – Warteschlange in der Zentrale; der Agent holt, bestätigt, meldet
+- [x] **Z-305 Aufträge** – Warteschlange in der Zentrale; der Agent holt, bestätigt, meldet
   Fortschritt und Ergebnis; idempotent über die ID; Aufträge können auf andere warten, auch über
   Installationen hinweg; der Agent führt nur Befehle aus Manifesten mit gültiger Signatur aus,
   Argumente nach Schema; Zeitlimit je Aktion.
   Fertig, wenn: ein doppelt zugestellter Auftrag einmal ausgeführt wird, ein Auftrag mit nicht
   signiertem oder verändertem Manifest vom Agenten abgelehnt wird (Test), ein wartender Auftrag erst
   nach dem Ende seines Vorgängers startet und ein Auftrag nach Neustart des Agenten fortgesetzt oder
-  als gescheitert gemeldet wird.
+  als gescheitert gemeldet wird; dazu (Tests): eine Aktion, die kein Befehl des Manifests ist, und
+  Argumente gegen das Schema des Befehls werden abgelehnt, ohne dass etwas startet; ein Befehl über
+  seinem Zeitlimit wird beendet und gescheitert gemeldet; ein wartender Auftrag startet auch über
+  Server hinweg erst nach seinem Vorgänger und wird abgebrochen, wenn der scheitert; Zyklen und
+  Vorgänger eines anderen Betreibers werden abgelehnt, und kein Betreiber und kein Agent erreicht
+  Aufträge eines anderen; ein Auftrag läuft über die Test-Pforte durch Zentrale und Agent.
 
 ## Phase 4 – Installationen
 

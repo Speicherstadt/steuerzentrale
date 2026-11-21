@@ -64,6 +64,13 @@
       "when": 1795217262639,
       "tag": "0008_fakten",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795220041997,
+      "tag": "0009_auftraege",
+      "breakpoints": true
     }
   ]
 }

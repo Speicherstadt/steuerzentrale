@@ -549,6 +549,99 @@
             "items": {
               "type": "string"
             }
+          },
+          "argumente": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "typ": {
+                      "type": "string",
+                      "const": "text"
+                    },
+                    "muster": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "max_laenge": {
+                      "default": 200,
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000
+                    }
+                  },
+                  "required": ["typ", "muster"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "typ": {
+                      "type": "string",
+                      "const": "zahl"
+                    },
+                    "min": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "max": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": ["typ"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "typ": {
+                      "type": "string",
+                      "const": "ja_nein"
+                    }
+                  },
+                  "required": ["typ"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "typ": {
+                      "type": "string",
+                      "const": "auswahl"
+                    },
+                    "werte": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": ["typ", "werte"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "zeitlimit_s": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400
+          },
+          "idempotent": {
+            "default": false,
+            "type": "boolean"
           }
         },
         "required": ["container", "argv"],

@@ -20,7 +20,11 @@ const TAG = 24 * 3600_000;
 const pfade = pfadeIn("/k", "/z");
 const PEM = (art: string, wer = "a") => `-----BEGIN ${art}-----\n${wer}\n-----END ${art}-----\n`;
 
-const aufgebaut = (zufall = 0, meldungen?: VerbindenDeps["meldungen"]) => {
+const aufgebaut = (
+  zufall = 0,
+  meldungen?: VerbindenDeps["meldungen"],
+  auftraege?: VerbindenDeps["auftraege"],
+) => {
   const uhr = { ms: JETZT };
   const plaene: { wann: number; lauf: () => void; aktiv: boolean }[] = [];
   const fs = speicher({ "/z/agent.key": PEM("PRIVATE KEY"), "/z/agent.pem": PEM("CERTIFICATE") });
@@ -66,6 +70,7 @@ const aufgebaut = (zufall = 0, meldungen?: VerbindenDeps["meldungen"]) => {
         csr: PEM("CERTIFICATE REQUEST"),
       }),
       ...(meldungen ? { meldungen } : {}),
+      ...(auftraege ? { auftraege } : {}),
     },
     "https://agent.example.de",
   );
@@ -346,6 +351,44 @@ describe("facts and SSH logins (Z-304)", () => {
     a.willkommen();
     await a.vergehen(0);
     expect(a.letzte()?.gesendet.map((n) => n.typ)).toEqual(["hallo", "fakten"]);
+  });
+});
+
+describe("jobs (Z-305)", () => {
+  it("hands a job to its handler, whose later reports go over the connection open then", async () => {
+    const erhalten: { auftragId: string; senden: (text: string) => void }[] = [];
+    const a = aufgebaut(0, undefined, {
+      empfangen: async (n, senden) => {
+        erhalten.push({ auftragId: n.auftragId, senden });
+      },
+    });
+    await a.vergehen(0);
+    a.letzte()?.e.offen();
+    a.willkommen();
+    const erste = a.letzte();
+    erste?.e.nachricht(
+      JSON.stringify({
+        typ: "auftrag",
+        protokoll: PROTOKOLL_VERSION,
+        auftragId: "a1",
+        installationId: "i",
+        aktion: "migrieren",
+        argumente: {},
+        manifest: "m",
+        signatur: "s",
+        zeitlimitS: 60,
+      }),
+    );
+    await a.vergehen(0);
+    expect(erhalten.map((e) => e.auftragId)).toEqual(["a1"]);
+    // the connection drops while the job runs; its result goes over the next one
+    erste?.e.zu(1006, "weg");
+    await a.vergehen(60_000);
+    a.letzte()?.e.offen();
+    expect(a.letzte()).not.toBe(erste);
+    erhalten[0]?.senden(JSON.stringify({ typ: "ergebnis" }));
+    expect(a.letzte()?.gesendet.at(-1)).toEqual({ typ: "ergebnis" });
+    expect(erste?.gesendet.some((n) => n.typ === "ergebnis")).toBe(false);
   });
 });
 

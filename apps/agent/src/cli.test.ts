@@ -1,3 +1,4 @@
+import { TEST_SCHLUESSEL_ID } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { speicher, TEST_PUB } from "./beitritt/testhilfen.ts";
@@ -74,6 +75,7 @@ describe("agent command line", () => {
         "https://agent.example.de",
         expect.objectContaining({ zertifikat: "/var/lib/steuerzentrale/agent.pem" }),
         "amd64",
+        { schluessel: expect.objectContaining({ id: TEST_SCHLUESSEL_ID }), zweck: "test" },
       ],
     ]);
   });

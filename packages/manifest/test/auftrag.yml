@@ -1,0 +1,24 @@
+# A manifest for the tests of jobs (Z-305), signed with the public test key (test/schluessel/):
+# auftrag.yml.minisig, made with `signieren` of scripts/minisign.ts and test/schluessel/test.key.
+# Any change here needs a new signature; the tests of the agent refuse the old one.
+schema: 1
+id: auftrag
+version: 1.0.0
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/steuerzentrale
+container:
+  - { name: app, image: "registry.example.org/auftrag@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 128, platte_gb: 1 }
+netz: { http: { dienst: app, port: 8080 } }
+anmeldung: eigen
+health: { art: keine, hinweis: nur Tests }
+befehle:
+  migrieren: { container: app, argv: [bun, /app/server.ts, migrieren] }
+  wiederherstellen:
+    container: app
+    argv: [bun, /app/server.ts, wiederherstellen, "${arg:snapshot}"]
+    argumente: { snapshot: { typ: text, muster: "[0-9a-f]{8}" } }
+  langsam: { container: app, argv: [bun, /app/server.ts, langsam], zeitlimit_s: 1 }
+  pruefen: { container: app, argv: [bun, /app/server.ts, pruefen], idempotent: true }
+aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }

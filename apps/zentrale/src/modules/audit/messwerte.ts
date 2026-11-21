@@ -1,11 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import type { SchreibDb } from "../../db/oeffnen.ts";
-import { fakten, heartbeats, server } from "../../db/schema.ts";
+import { auftraege, fakten, heartbeats, server } from "../../db/schema.ts";
 
 /*
  * Measurements, the one write past the audit log besides the retention's own (docs/plan.md,
  * "Audit-Log"): a heartbeat every 30 seconds and the facts every 15 minutes per server are readings,
- * not actions of anyone, and an audit entry for each would bury the entries that matter. Only the
+ * not actions of anyone, and an audit entry for each would bury the entries that matter; so is the
+ * step a running job reports (Z-305), whose state changes go through `schreiben`. Only the
  * tables and columns written here; the rows are kept 30 days (src/modules/aufbewahrung), and
  * deleting them goes through `schreiben` again.
  */
@@ -30,4 +31,29 @@ export const faktenAnfuegen = (schreibDb: SchreibDb, zeile: FaktenZeile): void =
       .where(and(eq(server.betreiberId, zeile.betreiberId), eq(server.serverId, zeile.serverId)))
       .run();
   });
+};
+
+export type FortschrittZeile = {
+  betreiberId: string;
+  auftragId: string;
+  schritt: string;
+  zeitpunkt: number;
+};
+
+/**
+ * Sets the step a running job last reported (Z-305): only the columns `fortschritt` and
+ * `fortschritt_am` of `auftraege`, and only while the job runs
+ */
+export const fortschrittSetzen = (schreibDb: SchreibDb, zeile: FortschrittZeile): void => {
+  schreibDb.verbindung
+    .update(auftraege)
+    .set({ fortschritt: zeile.schritt, fortschrittAm: zeile.zeitpunkt })
+    .where(
+      and(
+        eq(auftraege.betreiberId, zeile.betreiberId),
+        eq(auftraege.auftragId, zeile.auftragId),
+        eq(auftraege.zustand, "laeuft"),
+      ),
+    )
+    .run();
 };
