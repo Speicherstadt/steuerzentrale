@@ -1,7 +1,12 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { INSTALLATIONS_NAME } from "../quadlet/eingabe.ts";
+import { quadletsRendern } from "../quadlet/rendern.ts";
 import { PODMAN_4_9_SCHLUESSEL } from "../quadlet/schluessel.ts";
 import { unitLesen } from "../quadlet/systemd.ts";
 import { PFORTE_IMAGE } from "../system.ts";
+import { beispielManifest, testAnfrage } from "../quadlet/testeingabe.ts";
 import { PFORTE_ADMIN_IM_CONTAINER } from "./grund.ts";
 import { PFORTE_ADMIN_VERZEICHNIS, PFORTE_UNIT, pforteUnit } from "./unit.ts";
 
@@ -46,5 +51,22 @@ describe("the Pforte's Quadlet unit", () => {
     expect(werte("Container", "NoNewPrivileges")).toEqual(["true"]);
     expect(werte("Service", "Restart")).toEqual(["always"]);
     expect(werte("Install", "WantedBy")).toEqual(["default.target"]);
+  });
+});
+
+describe("the Pforte's Linux user", () => {
+  // An installation runs as sz-<name> (eingabe.ts): one named "pforte" would share the user of the
+  // Pforte, its units folder and the owner's access to Caddy's admin socket, and so every route
+  it("is no installation's: no installation can be named pforte", () => {
+    expect(INSTALLATIONS_NAME.test("pforte")).toBe(false);
+    expect(INSTALLATIONS_NAME.test("pforte-k1")).toBe(true);
+    const m = beispielManifest(
+      readFileSync(
+        join(import.meta.dirname, "../../../../manifeste/beispiel/manifest.vorlage.yml"),
+        "utf8",
+      ),
+    );
+    const r = quadletsRendern(testAnfrage(m, [], "pforte"));
+    expect(r.ok ? [] : r.gruende.map((g) => g.pfad.join("."))).toContain("installation.name");
   });
 });
