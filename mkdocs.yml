@@ -64,6 +64,7 @@ nav:
       - Server hinzufügen: server-hinzufuegen.md
       - Aufträge: auftraege.md
       - Apps installieren: installieren.md
+      - Health und Zustand: zustand.md
       - Pforte: pforte.md
       - Updates: updates.md
   - Für App-Entwickler:

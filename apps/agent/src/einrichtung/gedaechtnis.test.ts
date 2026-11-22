@@ -28,6 +28,25 @@ describe("the record of installations", () => {
     expect(neu.ok && neu.stand.get("a")).toEqual({ zustand: "fertig", am: 7 });
   });
 
+  it("keeps what the health check of a finished installation needs (Z-403)", async () => {
+    const fs = speicher();
+    const pruefung = {
+      units: ["a-app.service"],
+      ziel: { art: "http" as const, port: 20001, pfad: "/health" },
+    };
+    await gedaechtnisOeffnen(fs.dateien, PFAD, () => 7).setzen("a", "fertig", pruefung);
+    await gedaechtnisOeffnen(fs.dateien, PFAD, () => 8).setzen("b", "angelegt");
+    const neu = await gedaechtnisOeffnen(fs.dateien, PFAD, () => 9).lesen();
+    expect(neu.ok && neu.stand.get("a")).toEqual({ zustand: "fertig", am: 7, pruefung });
+    expect(neu.ok && neu.stand.get("b")).toEqual({ zustand: "angelegt", am: 8 });
+  });
+
+  it("reads an entry from before Z-403 without them", async () => {
+    const fs = speicher({ [PFAD]: '{"installationen":{"a":{"zustand":"fertig","am":1}}}' });
+    const g = await gedaechtnisOeffnen(fs.dateien, PFAD, () => 7).lesen();
+    expect(g.ok && g.stand.get("a")).toEqual({ zustand: "fertig", am: 1 });
+  });
+
   it("unreadable is an error, never an empty record, until it is repaired", async () => {
     const fs = speicher({ [PFAD]: '{"installationen":{"a":{"zustand":"vielleicht"}}}' });
     const g = gedaechtnisOeffnen(fs.dateien, PFAD, () => 7);

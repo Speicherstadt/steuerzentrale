@@ -1,6 +1,7 @@
 import type { Quadlets } from "@steuerzentrale/manifest";
 import type { Spawn } from "../auftraege/ausfuehren.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
+import type { PruefZiel } from "../zustand/ziel.ts";
 import type { HausDateien } from "./haus.ts";
 import type { NutzerLesen } from "./nutzer.ts";
 
@@ -15,6 +16,8 @@ export type Einrichten = {
   /** The systemd services of the containers that run */
   units: string[];
   schritte: Schritt[];
+  /** What the health check checks (Z-403, src/zustand/ziel.ts), kept once the setup is done */
+  ziel: PruefZiel;
 };
 
 export type Entfernen = { art: "entfernen"; name: string };
