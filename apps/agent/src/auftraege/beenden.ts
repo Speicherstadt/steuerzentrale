@@ -40,18 +40,25 @@ const toeten = (pid: number): void => {
   }
 };
 
-/** Rounds of looking: a process may fork while the one before is killed */
-const RUNDEN = 5;
+/**
+ * How long the agent keeps looking after the abort: conmon still starts the command when
+ * `podman exec` died before handing it over (it reads EOF on its start pipe and goes on,
+ * containers/conmon src/conmon.c), so the command can appear after a first empty look
+ * (review of PR #25). conmon goes on at once, so a few seconds hold it
+ */
+export const NACHLAUF_MS = 3000;
+const ABSTAND_MS = 100;
 
 /**
- * Kills every process that carries the entry, until a look finds none. A killed process is a
- * zombie until it is reaped, with an empty environment, so it is not found again
+ * Kills every process that carries the entry, looking again every 100 ms until the end of the
+ * after-run. A killed process is a zombie until it is reaped, with an empty environment, so it is
+ * not found again
  */
 export const markierteBeenden = async (eintrag: string, proc = "/proc"): Promise<void> => {
-  for (let i = 0; i < RUNDEN; i++) {
-    const gefunden = mitEintrag(eintrag, proc);
-    if (gefunden.length === 0) return;
-    for (const pid of gefunden) toeten(pid);
-    await Bun.sleep(50);
+  const ende = Date.now() + NACHLAUF_MS;
+  for (;;) {
+    for (const pid of mitEintrag(eintrag, proc)) toeten(pid);
+    if (Date.now() >= ende) return;
+    await Bun.sleep(ABSTAND_MS);
   }
 };

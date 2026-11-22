@@ -97,8 +97,10 @@ beendet ihn nicht, wenn `podman exec` stirbt. Deshalb tut der Agent zweierlei:
   `SIGKILL` an deren ganze Prozessgruppe: `runuser`, `env` und `podman exec`.
 - Er gibt jedem Lauf eine eigene Marke mit, `podman exec --env STEUERZENTRALE_LAUF=<uuid> …`. Nach
   dem Zeitlimit beendet er (als root) jeden Prozess, dessen Umgebung genau diesen Eintrag trägt: den
-  Befehl im Container und die Kinder, die ihn geerbt haben. Er sucht, bis er keinen mehr findet. Die
-  Umgebung eines Prozesses vergleicht er nur, er speichert und schreibt sie nirgends.
+  Befehl im Container und die Kinder, die ihn geerbt haben. Er sucht danach noch drei Sekunden lang
+  alle 100 ms weiter, denn conmon startet den Befehl auch dann noch, wenn `podman exec` schon vorher
+  beendet wurde. Die Umgebung eines Prozesses vergleicht er nur, er speichert und schreibt sie
+  nirgends.
 
 Endet der Befehl vor dem Zeitlimit von selbst, beendet der Agent nichts. Dasselbe gilt für die
 Schritte `schritte.einrichten` beim [Installieren](installieren.md).
