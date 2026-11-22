@@ -10,13 +10,15 @@ import type { Manifest } from "../schema.ts";
  * installation's name and what the Zentrale knows of it (customer, host, ports, options, settings);
  * the units, secrets and files are rendered from the manifest with quadletsRendern, never taken
  * from the job, so a job cannot name an image, a unit line or an argv. Pure: the Zentrale checks a
- * job with it when it makes one, the agent again after key and signature.
+ * job with it when it makes one, the agent again after key and signature. Reconfiguring (Z-404;
+ * docs/plan.md, "Neu konfigurieren") has the same shape and check; it runs no setup steps.
  */
 
 /** A command's name has no underscore (schema.ts, `name`), so no manifest can name these */
 export const EINRICHTUNG_AKTIONEN = {
   einrichten: "installation_einrichten",
   entfernen: "installation_entfernen",
+  konfigurieren: "installation_konfigurieren",
 } as const;
 
 /** Pulling images and the setup steps take a while; the Zentrale may shorten this */
@@ -35,16 +37,21 @@ export type EinrichtungAnfrage = {
   einrichtung?: Einrichtung | undefined;
 };
 
+/** What setting up and reconfiguring both render from the signed manifest */
+type Gerendert = {
+  name: string;
+  quadlets: Quadlets;
+  /** The systemd services Quadlet makes of the containers that run, in order */
+  units: string[];
+};
+
 export type EinrichtungAuftrag =
-  | {
+  | (Gerendert & {
       art: "einrichten";
-      name: string;
-      quadlets: Quadlets;
-      /** The systemd services Quadlet makes of the containers that run, in order */
-      units: string[];
       /** The names of the commands of `schritte.einrichten`, run once the units are up */
       schritte: string[];
-    }
+    })
+  | (Gerendert & { art: "konfigurieren" })
   | { art: "entfernen"; name: string };
 
 export type EinrichtungGeprueft =
@@ -73,29 +80,25 @@ const portBefunde = (m: Manifest, i: Einrichtung["installation"]): string[] => {
   return befunde;
 };
 
-const einrichtenPruefen = (m: Manifest, name: string, e: Einrichtung): EinrichtungGeprueft => {
+const rendern = (
+  m: Manifest,
+  name: string,
+  e: Einrichtung,
+): { ok: true; gerendert: Gerendert } | { ok: false; grund: string } => {
   const ports = portBefunde(m, e.installation);
-  if (ports.length > 0) return nein(ports.join("; "));
+  if (ports.length > 0) return { ok: false, grund: ports.join("; ") };
   const r = quadletsRendern({
     manifest: m,
     installation: { ...e.installation, name, adresse: `https://${e.installation.host}` },
     einstellungen: e.einstellungen,
   });
-  if (!r.ok) return nein(r.gruende.map((g) => `${g.pfad.join(".")}: ${g.grund}`).join("; "));
+  if (!r.ok)
+    return { ok: false, grund: r.gruende.map((g) => `${g.pfad.join(".")}: ${g.grund}`).join("; ") };
   const units = Object.keys(r.quadlets.units)
     .filter((u) => u.endsWith(".container"))
     .map((u) => u.replace(/\.container$/, ".service"))
     .sort();
-  return {
-    ok: true,
-    auftrag: {
-      art: "einrichten",
-      name,
-      quadlets: r.quadlets,
-      units,
-      schritte: m.schritte.einrichten,
-    },
-  };
+  return { ok: true, gerendert: { name, quadlets: r.quadlets, units } };
 };
 
 export const einrichtungAuftragPruefen = (
@@ -114,5 +117,9 @@ export const einrichtungAuftragPruefen = (
       : nein("removing takes no installation data (einrichtung)");
   if (a.einrichtung === undefined)
     return nein("setting up needs the installation data (einrichtung)");
-  return einrichtenPruefen(m, name, a.einrichtung);
+  const r = rendern(m, name, a.einrichtung);
+  if (!r.ok) return r;
+  return a.aktion === EINRICHTUNG_AKTIONEN.konfigurieren
+    ? { ok: true, auftrag: { art: "konfigurieren", ...r.gerendert } }
+    : { ok: true, auftrag: { art: "einrichten", ...r.gerendert, schritte: m.schritte.einrichten } };
 };
