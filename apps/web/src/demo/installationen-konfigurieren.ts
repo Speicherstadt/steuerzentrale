@@ -24,7 +24,8 @@ const nein = (status: number, fehler: string, detail?: string): Fehlschlag => ({
 const tagInBerlin = (t: number) =>
   Number(new Intl.DateTimeFormat("en", { timeZone: "Europe/Berlin", day: "numeric" }).format(t));
 
-const sperrzeit = (app: string, t: number) => {
+/** The freeze window of the demo app that holds on `t`, if any (also for a restart, Z-405) */
+export const sperrzeit = (app: string, t: number) => {
   const tag = tagInBerlin(t);
   return apps
     .find((a) => a.id === app)

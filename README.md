@@ -41,6 +41,11 @@ Betreibers, fragt der Dialog ihn ab. Eine laufende Installation bekommt neue Wer
 „Einstellungen ändern“ und Grund: der Agent konfiguriert sie neu, nie in einer Sperrzeit, und die
 Werte gelten erst nach seinem Erfolg ([Einstellungen](docs/einstellungen.md)).
 
+**Neustart, Log-Auszug, nur lesen:** die Seite einer laufenden Installation zeigt die Aktionen, die
+ihr Manifest anbietet, jede mit Grund im Audit-Log. Ein Neustart wartet auf offene Aufträge und läuft
+nie in einer Sperrzeit; ein Log-Auszug zeigt die letzten 500 Zeilen aus journald mit ersetzten
+Werten der Geheimnisse, auch für Support ([Neustart, Log-Auszug, nur lesen](docs/aktionen.md)).
+
 **Health und Zustand:** der Agent meldet alle 30 Sekunden Units und Health jeder Installation; die
 Zentrale bewertet sie grün, gelb, rot oder unbekannt, immer mit Grund (ohne Meldung seit 90 Sekunden
 unbekannt, nie grün), hält jeden Wechsel im Verlauf und meldet nach 5 Minuten Rot eine Störung. Liste

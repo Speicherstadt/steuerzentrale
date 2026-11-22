@@ -8,6 +8,7 @@ import {
 } from "./installation-ansicht.ts";
 import {
   type AuftragDerInstallation,
+  type InstallationsAktion,
   type InstallationsFormular,
   installationenQuelle,
 } from "./installationen.ts";
@@ -60,6 +61,7 @@ export type Einzelansicht = InstallationAnsicht & {
   auftraege: AuftragDerInstallation[];
   verlauf: Verlaufseintrag[];
   formular: InstallationsFormular;
+  aktionen: Record<InstallationsAktion, boolean>;
 };
 
 export const einzelansichtLaden = async (id: string): Promise<Antwort<Einzelansicht>> => {
@@ -74,6 +76,7 @@ export const einzelansichtLaden = async (id: string): Promise<Antwort<Einzelansi
       auftraege: eine.daten.auftraege,
       verlauf: eine.daten.verlauf,
       formular: eine.daten.formular,
+      aktionen: eine.daten.aktionen,
     },
   };
 };

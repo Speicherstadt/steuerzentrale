@@ -7,6 +7,7 @@ import { type Einzelansicht, einzelansichtLaden } from "../daten/installationen-
 import { bestand } from "../daten/quelle.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
+import { Aktionen } from "../seiten/installation-aktionen.tsx";
 import {
   EinrichtungsAngaben,
   EinrichtungsAuftraege,
@@ -28,7 +29,7 @@ import { InstallationsZeichen, Version } from "../teile/zeichen.tsx";
 /**
  * One installation (BAULISTE.md Z-402): from the Zentrale its place, ports, values and setup jobs,
  * its state with reason and history (Z-403), after a failed setup the way to remove it, and once
- * it runs "Einstellungen ändern" (Z-404).
+ * it runs "Einstellungen ändern" (Z-404) and the actions its manifest offers (Z-405).
  * Settings from the manifest, snapshots, events and the check from outside of the demo data stay
  * for an installation the demo knows by id, until Z-406.
  */
@@ -121,7 +122,10 @@ const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
       <div class="flex flex-wrap items-start justify-between gap-4">
         <Kopf a={props.a} />
         <Show when={props.a.zustand === "laeuft"}>
-          <EinstellungenAendern a={props.a} konfiguriert={() => props.neu()} />
+          <div class="flex flex-wrap gap-2">
+            <Aktionen a={props.a} neu={() => props.neu()} />
+            <EinstellungenAendern a={props.a} konfiguriert={() => props.neu()} />
+          </div>
         </Show>
       </div>
       <Show when={props.a.zustand === "gescheitert"}>

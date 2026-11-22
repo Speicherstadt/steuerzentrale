@@ -129,5 +129,6 @@ startet die App neu und gilt nach einem Neustart des Agenten als gescheitert. Is
 führt der Agent keinen Auftrag aus, weil er einen doppelten nicht mehr erkennen könnte. Erledigte
 Aufträge vergisst er nach 30 Tagen.
 
-Log-Auszüge zu Aufträgen kommen mit dem Punkt „Logs“ (Z-405), mit ersetzten Werten der Geheimnisse,
-und bleiben 30 Tage.
+Log-Auszüge gehören zu einem Auftrag `installation_log_auszug`: der Agent schickt die Zeilen mit
+ersetzten Werten der Geheimnisse, die Zentrale hält sie 30 Tage ([Neustart, Log-Auszug, nur
+lesen](aktionen.md)).

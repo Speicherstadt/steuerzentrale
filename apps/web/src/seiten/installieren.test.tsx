@@ -219,7 +219,12 @@ describe("with the Zentrale's API", () => {
     vi.stubGlobal("fetch", async (pfad: string) =>
       pfad.endsWith("/installationen")
         ? Response.json({ installationen: [i] })
-        : Response.json({ ...i, auftraege, verlauf: i === probe ? [] : verlauf }),
+        : Response.json({
+            ...i,
+            auftraege,
+            verlauf: i === probe ? [] : verlauf,
+            aktionen: { neustart: true, log_auszug: true, nur_lesen: false },
+          }),
     );
   const auftraege = [
     {

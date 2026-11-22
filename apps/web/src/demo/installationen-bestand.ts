@@ -1,6 +1,10 @@
 import { EINRICHTUNG_AKTIONEN, type PlatzInstallation } from "@steuerzentrale/manifest";
-import type { AuftragDerInstallation, InstallationMitAuftraegen } from "../daten/installationen.ts";
-import type { Installation } from "../daten/typen.ts";
+import type {
+  AuftragDerInstallation,
+  InstallationMitAuftraegen,
+  InstallationsAktion,
+} from "../daten/installationen.ts";
+import type { Installation, Manifest } from "../daten/typen.ts";
 import { apps } from "./apps.ts";
 import { demoFelder } from "./einstellungen.ts";
 import { installationen } from "./installationen.ts";
@@ -30,6 +34,13 @@ export const nachAuftrag = (
   fehler,
   angelegtAm: t,
   geaendertAm: t,
+});
+
+/** What a demo app offers: restart and log excerpt always, "nur lesen" unless marked unsupported */
+export const demoAktionen = (app: Manifest | undefined): Record<InstallationsAktion, boolean> => ({
+  neustart: true,
+  log_auszug: true,
+  nur_lesen: app ? !app.nichtUnterstuetzt.some((n) => n.aktion === "nur_lesen") : false,
 });
 
 const PORT = 20000;
@@ -64,6 +75,7 @@ const ausFixture = (i: Installation, n: number, jetzt: number): Eintrag => ({
       ),
       gesetzt: [],
     },
+    aktionen: demoAktionen(apps.find((a) => a.id === i.app)),
   },
   platz: ausDemoApp(
     i.kunde,
@@ -101,6 +113,7 @@ const gescheitert = (jetzt: number): Eintrag => {
         nachAuftrag(GESCHEITERT, "pforte_route_setzen", "abgebrochen", t),
       ],
       formular: { felder: [], gesetzt: [] },
+      aktionen: demoAktionen(apps.find((a) => a.id === "belegt")),
     },
     platz: { kundeId: "aust", ramMb: 0, platteGb: 0, festePorts: [], serverFuerSich: false },
     bietet: [],
