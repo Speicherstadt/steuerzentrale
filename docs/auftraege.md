@@ -60,14 +60,20 @@ Agent statt 3. und 4. ihre feste Form (Hostname, Port von 1024 bis 65535, Name d
 ruft dann nur die Admin-API der Pforte auf, keinen Prozess. Ein Befehl eines Manifests kann nicht so
 heißen, weil sein Name keinen Unterstrich haben darf.
 
-Erst dann führt er `argv` aus dem Manifest aus, als feste Argumente ohne Shell, mit
-`podman exec <installation>-<container>`. Läuft der Befehl länger als sein Zeitlimit (aus dem
-Manifest, sonst 900 Sekunden; die Zentrale kann es nur kürzen), beendet ihn der Agent und meldet den
-Auftrag als gescheitert. Einen abgelehnten Auftrag meldet er als gescheitert mit dem Grund
-(„abgelehnt: …“), ohne etwas zu starten.
+Ebenso eingebaut sind die beiden Einrichtungsaufträge `installation_einrichten` und
+`installation_entfernen` ([Apps installieren](installieren.md)): nach Schlüssel und Signatur prüft
+der Agent ihre feste Form (Name der Installation, Ports von 1024 bis 65535, nur Optionen des
+Manifests, keine Argumente) und rendert die Units selbst aus dem signierten Manifest. Die Angaben
+zur Installation (Feld `einrichtung`) trägt nur ein Einrichtungsauftrag; jeden anderen Auftrag mit
+diesem Feld lehnt der Agent ab.
 
-Unter dem Linux-Nutzer der Installation (`sz-<installation>`) laufen Befehle ab dem Punkt
-„Installieren“ (Z-402); bis dahin erreicht der Agent nur Container, die er selbst sieht.
+Erst dann führt er `argv` aus dem Manifest aus, als feste Argumente ohne Shell, mit
+`podman exec <installation>-<container>`, und zwar als Linux-Nutzer der Installation
+(`sz-<installation>`, mit `runuser` und fester Umgebung). Einen Befehl führt er nur für eine
+Installation aus, die er selbst fertig eingerichtet hat; für jede andere lehnt er ihn ab. Läuft der
+Befehl länger als sein Zeitlimit (aus dem Manifest, sonst 900 Sekunden; die Zentrale kann es nur
+kürzen), beendet ihn der Agent und meldet den Auftrag als gescheitert. Einen abgelehnten Auftrag
+meldet er als gescheitert mit dem Grund („abgelehnt: …“), ohne etwas zu starten.
 
 ## Doppelt zugestellt, Neustart
 
@@ -79,7 +85,9 @@ auszuführen.
 
 Lief ein Auftrag, als der Agent neu startete, meldet er ihn nach dem Neustart als gescheitert
 („Agent neu gestartet“): der Befehl kann einen Teil seiner Arbeit getan haben. Nur einen Befehl, den
-das Manifest als `idempotent` markiert, führt er dann noch einmal aus. Ist die Datei unlesbar,
+das Manifest als `idempotent` markiert, führt er dann noch einmal aus, ebenso die Aufträge der
+Pforte und einen Einrichtungsauftrag (der erkennt am Gedächtnis der Installationen, was schon
+eingerichtet ist, [Apps installieren](installieren.md)). Ist die Datei unlesbar,
 führt der Agent keinen Auftrag aus, weil er einen doppelten nicht mehr erkennen könnte. Erledigte
 Aufträge vergisst er nach 30 Tagen.
 
