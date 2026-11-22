@@ -231,7 +231,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   weder eine laufende Verbindung noch neue Anfragen an die andere und Caddy startet dabei nicht neu
   (Test), und Pforte-Aufträge mit falschem Host, Port oder Manifest lehnen Zentrale und Agent ab
   (Test); `install.sh` legt `sz-pforte` mit Linger an (CI, Job `server`).
-- [ ] **Z-402 Installieren** – Dialog mit Kunde, App, Server, Optionen und Einstellungen nach Ebenen,
+- [x] **Z-402 Installieren** – Dialog mit Kunde, App, Server, Optionen und Einstellungen nach Ebenen,
   Platzierung live; der Agent legt `sz-<installation>` mit Linger an, schreibt Units und Secrets,
   zieht Images, führt `schritte.einrichten` aus, startet; ebenso schreibt und startet er die Unit der
   Pforte unter `sz-pforte` (`pforteUnit`, Z-401) und setzt ihre Route mit `pforte_route_setzen`. Entfernt wird hier nur eine Installation,
