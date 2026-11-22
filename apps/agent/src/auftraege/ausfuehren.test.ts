@@ -12,6 +12,23 @@ const echtPlanen = (lauf: () => void, ms: number) => {
   return () => clearTimeout(t);
 };
 
+/** A duration no other process has in its argv, so pgrep finds only the test's own sleep */
+const einmalig = () => `299.${crypto.getRandomValues(new Uint32Array(1))[0]}`;
+
+/** Whether a process with exactly this argv runs; a zombie has none and does not count */
+const lebt = (argv: string) => Bun.spawnSync(["pgrep", "-f", "-x", argv]).exitCode === 0;
+
+const toeten = (argv: string) => Bun.spawnSync(["pkill", "-KILL", "-f", "-x", argv]);
+
+/** Asks for up to 5 s whether it holds */
+const bis = async (gilt: () => boolean): Promise<boolean> => {
+  for (let i = 0; i < 100; i++) {
+    if (gilt()) return true;
+    await Bun.sleep(50);
+  }
+  return gilt();
+};
+
 describe("echtSpawn", () => {
   it("kills a process that runs past the abort", async () => {
     const abbruch = new AbortController();
@@ -68,6 +85,23 @@ describe("echtSpawn", () => {
       echtSpawn(["/nicht/da/steuerzentrale"], new AbortController().signal),
     ).rejects.toThrow();
   });
+
+  // Review of PR #24: runuser forks and waits for its child (env, then podman exec); SIGKILL to
+  // runuser alone left the child running. timeout --foreground forks the same way, in the same
+  // process group, without needing root as runuser does
+  it("kills the children of a process that runs past the abort, not only the process", async () => {
+    const dauer = einmalig();
+    const abbruch = new AbortController();
+    try {
+      const lauf = echtSpawn(["timeout", "--foreground", "300", "sleep", dauer], abbruch.signal);
+      expect(await bis(() => lebt(`sleep ${dauer}`))).toBe(true);
+      abbruch.abort();
+      await lauf;
+      expect(await bis(() => !lebt(`sleep ${dauer}`))).toBe(true);
+    } finally {
+      toeten(`sleep ${dauer}`);
+    }
+  }, 15_000);
 });
 
 describe("ausfuehren with the real spawn", () => {
