@@ -8,6 +8,7 @@ import {
   type PlatzServer,
   platzieren,
   ramBedarf,
+  type Wert,
 } from "@steuerzentrale/manifest";
 import type { Db } from "../../db/oeffnen.ts";
 import type { Schluesselbund } from "../../db/schluessel.ts";
@@ -20,12 +21,14 @@ import {
   installationenDesKunden,
   type Werte,
 } from "./lesen.ts";
+import { betreiberWerteErgaenzen } from "./werte.ts";
 
 /*
  * Placement of a new installation (docs/plan.md, "Platzierung") with what the Zentrale knows: the
  * server's newest facts (`platzServer`), the installations on it, what the customer's
- * installations offer and the operator's values for the app. The same for the dialog's preview and
- * for making the installation, so the dialog shows what making it will decide.
+ * installations offer and the operator's values for the app, with those the dialog adds when it
+ * makes the installation (Z-404). The same for the dialog's preview and for making the
+ * installation, so the dialog shows what making it will decide.
  */
 
 export type PlatzDeps = {
@@ -40,6 +43,8 @@ export type PlatzWunsch = {
   serverId: string;
   manifest: Manifest;
   optionen: string[];
+  /** Values of the level `betreiber` the dialog adds to the operator's (Z-404) */
+  betreiberEingabe?: Readonly<Record<string, Wert>>;
 };
 
 export type Platz =
@@ -49,9 +54,22 @@ export type Platz =
       server: Server;
       /** Undefined when a fact is missing; the placement then does not fit */
       platzServer: PlatzServer | undefined;
+      /** The operator's values with those the dialog adds */
       betreiberWerte: Werte;
+      /** As stored, and what the dialog adds of the form's fields, to write them */
+      betreiberGespeichert: Werte;
+      betreiberNeu: Werte;
     }
-  | { ok: false; grund: "kein_kunde" | "kein_server" | "server_gesperrt" | "werte_unlesbar" };
+  | {
+      ok: false;
+      grund:
+        | "kein_kunde"
+        | "kein_server"
+        | "server_gesperrt"
+        | "werte_unlesbar"
+        | "einstellung_ungueltig";
+      detail?: string;
+    };
 
 /** The manifest an installation was made with; it was checked then, so this fails only on a schema change */
 const manifestVon = (i: Installation): Manifest | undefined => {
@@ -89,8 +107,10 @@ export const platzPruefen = (deps: PlatzDeps, betreiberId: string, w: PlatzWunsc
   const server = serverLesen(deps.db, betreiberId, w.serverId);
   if (!server) return { ok: false, grund: "kein_server" };
   if (server.gesperrtAm !== null) return { ok: false, grund: "server_gesperrt" };
-  const werte = betreiberWerteLesen(deps.db, deps.schluessel, betreiberId, w.manifest.id);
-  if (!werte.ok) return { ok: false, grund: "werte_unlesbar" };
+  const gespeichert = betreiberWerteLesen(deps.db, deps.schluessel, betreiberId, w.manifest.id);
+  if (!gespeichert.ok) return { ok: false, grund: "werte_unlesbar" };
+  const werte = betreiberWerteErgaenzen(w.manifest, gespeichert.werte, w.betreiberEingabe ?? {});
+  if (!werte.ok) return { ok: false, grund: "einstellung_ungueltig", detail: werte.grund };
   const ps = platzServer(
     server,
     serverFakten(server),
@@ -102,6 +122,8 @@ export const platzPruefen = (deps: PlatzDeps, betreiberId: string, w: PlatzWunsc
     server,
     platzServer: s,
     betreiberWerte: werte.werte,
+    betreiberGespeichert: gespeichert.werte,
+    betreiberNeu: werte.neu,
   });
   if (!ps.ok)
     return ergebnis(

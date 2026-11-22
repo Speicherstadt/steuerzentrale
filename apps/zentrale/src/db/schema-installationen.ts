@@ -149,3 +149,31 @@ export const appEinstellungen = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.betreiberId, t.app, t.name] })],
 );
+
+/**
+ * The values asked for by "Einstellungen ändern" (BAULISTE.md Z-404; docs/plan.md, "Neu
+ * konfigurieren"), one row per open job `installation_konfigurieren`: `einstellungen` JSON
+ * `{ betreiber, installation }` of the values that are not secret, `geheim` encrypted JSON
+ * `{ betreiber, installation, auto }` like the installation's own column. The installation keeps
+ * the values it runs with until the job succeeded; then these replace them, and the row goes
+ * whatever the job's end, so no secret it held stays behind.
+ */
+export const installationKonfigurationen = sqliteTable(
+  "installation_konfigurationen",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    auftragId: text("auftrag_id").notNull(),
+    installationId: text("installation_id").notNull(),
+    einstellungen: text("einstellungen").notNull(),
+    geheim: text("geheim").notNull(),
+    angelegtAm: integer("angelegt_am").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.betreiberId, t.auftragId] }),
+    index("installation_konfigurationen_installation").on(t.betreiberId, t.installationId),
+    foreignKey({
+      columns: [t.betreiberId, t.installationId],
+      foreignColumns: [installationen.betreiberId, installationen.installationId],
+    }),
+  ],
+);

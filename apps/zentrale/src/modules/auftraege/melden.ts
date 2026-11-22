@@ -65,7 +65,7 @@ export const auftragMelden = (
       { zustand: u.zustand, geaendertAm: jetzt, ...aenderungVon(n, jetzt) },
     );
     if (!ENDZUSTAENDE.has(u.zustand)) return [];
-    installationFortschreiben(w, deps.db, a, u.zustand, jetzt);
+    installationFortschreiben(w, deps, a, u.zustand, jetzt);
     return nachfolgerFortschreiben(
       w,
       deps.db,

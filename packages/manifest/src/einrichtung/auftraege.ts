@@ -17,6 +17,7 @@ import type { Manifest } from "../schema.ts";
 export const EINRICHTUNG_AKTIONEN = {
   einrichten: "installation_einrichten",
   entfernen: "installation_entfernen",
+  konfigurieren: "installation_konfigurieren",
 } as const;
 
 /** Pulling images and the setup steps take a while; the Zentrale may shorten this */
