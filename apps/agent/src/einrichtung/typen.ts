@@ -1,6 +1,7 @@
 import type { Quadlets } from "@steuerzentrale/manifest";
 import type { Spawn } from "../auftraege/ausfuehren.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
+import type { SpawnMitAusgabe } from "../zustand/pruefen.ts";
 import type { PruefZiel } from "../zustand/ziel.ts";
 import type { HausDateien } from "./haus.ts";
 import type { NutzerLesen } from "./nutzer.ts";
@@ -20,12 +21,23 @@ export type Einrichten = {
   ziel: PruefZiel;
 };
 
+/**
+ * A checked job to reconfigure (Z-404): the same rendering as setting up, without its setup steps;
+ * the target of the health check is kept only once it went through
+ */
+export type Konfigurieren = Omit<Einrichten, "art" | "schritte"> & { art: "konfigurieren" };
+
 export type Entfernen = { art: "entfernen"; name: string };
 
 /** What setting up and tearing down need of the server, passed in so it is tested without one */
 export type SystemDeps = {
   /** Runs a fixed argv as root, without a shell; `eingabe` goes to its standard input */
   spawn: Spawn;
+  /**
+   * Runs a fixed argv as root and reads its standard output; only for what the agent must read back
+   * (the old Podman secrets when reconfiguring, Z-404), never for a command of a manifest
+   */
+  lesen: SpawnMitAusgabe;
   planen: Planer;
   haus: HausDateien;
   nutzer: NutzerLesen;

@@ -52,6 +52,7 @@ describe("the example app", () => {
     };
     expect(stand).toMatchObject({
       version: "1.0.0",
+      titel: "Beispiel",
       eintraege: [{ text: "erster", version: "1.0.0" }],
     });
     const anfrage = await fetch("http://127.0.0.1:28481/anfrage", {
@@ -87,6 +88,18 @@ describe("the example app", () => {
       env: env({ BEISPIEL_VERSION: "2.0.0" }),
     });
     expect(migriert.exitCode).toBe(0);
+  });
+
+  it("refuses to start with the title of the tests that must fail (Z-404)", () => {
+    const lauf = Bun.spawnSync(["bun", SERVER], {
+      env: env({ BEISPIEL_HTTP_PORT: "28485", BEISPIEL_TITEL: "beim-start-scheitern" }),
+    });
+    expect(lauf.exitCode).toBe(1);
+  });
+
+  it("shows the title it was given", async () => {
+    await starten(28486, 28487, { BEISPIEL_TITEL: "Neu" });
+    expect(await (await fetch("http://127.0.0.1:28486/")).json()).toMatchObject({ titel: "Neu" });
   });
 
   it("answers health red in its broken build", async () => {

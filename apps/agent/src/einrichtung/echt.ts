@@ -1,4 +1,15 @@
-import { chmod, lchown, lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import {
+  chmod,
+  lchown,
+  lstat,
+  mkdir,
+  open,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import type { HausDateien } from "./haus.ts";
 
 /*
@@ -16,6 +27,22 @@ const istDa = async (pfad: string) =>
 
 export const echteHausDateien: HausDateien = {
   lesen: (pfad) => readFile(pfad, "utf8").catch(() => undefined),
+  dateiLesen: async (pfad) => {
+    // O_NOFOLLOW: a symlink in the user's home fails with ELOOP instead of being read as root
+    const datei = await open(pfad, constants.O_RDONLY | constants.O_NOFOLLOW).catch(
+      (fehler: NodeJS.ErrnoException) => {
+        if (fehler.code === "ENOENT") return undefined;
+        throw new Error(`${pfad} cannot be read: ${fehler.code ?? "error"}`);
+      },
+    );
+    if (datei === undefined) return undefined;
+    try {
+      if (!(await datei.stat()).isFile()) throw new Error(`${pfad} is not a regular file`);
+      return await datei.readFile("utf8");
+    } finally {
+      await datei.close();
+    }
+  },
   existiert: istDa,
   verzeichnis: async (pfad, modus, { uid, gid }) => {
     const art = await lstat(pfad).catch(() => undefined);

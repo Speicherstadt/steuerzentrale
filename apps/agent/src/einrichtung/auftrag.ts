@@ -2,10 +2,11 @@ import type { Ergebnis } from "../auftraege/ausfuehren.ts";
 import { abbauen } from "./abbauen.ts";
 import { einrichten } from "./einrichten.ts";
 import type { Gedaechtnis, InstallationsStand } from "./gedaechtnis.ts";
+import { konfigurieren } from "./konfigurieren.ts";
 import { laeufer } from "./lauf.ts";
 import { homeVon, type Nutzer, nutzerName } from "./nutzer.ts";
 import { pforteSicherstellen } from "./pforte.ts";
-import type { Einrichten, Entfernen, SystemDeps } from "./typen.ts";
+import type { Einrichten, Entfernen, Konfigurieren, SystemDeps } from "./typen.ts";
 
 /*
  * The setup jobs on the agent (BAULISTE.md Z-402; docs/plan.md, "Scheitern beim Einrichten"),
@@ -18,13 +19,18 @@ import type { Einrichten, Entfernen, SystemDeps } from "./typen.ts";
  * - any failing step tears everything down before the result is sent; only if that fails too does
  *   the record keep the installation, as `angelegt`, so that removing it may try again;
  * - removing is only for an installation whose setup did not finish; one that runs has data, and
- *   removing it comes with Z-604 (backup first).
+ *   removing it comes with Z-604 (backup first);
+ * - reconfiguring (Z-404, konfigurieren.ts) is only for a `fertig` installation whose units stay
+ *   the same; the record changes only once it went through.
  * A command of a job runs only in an installation this agent set up and finished.
  */
 
 export type EinrichtungsDeps = SystemDeps & { gedaechtnis: Gedaechtnis };
 
-export type EinrichtungsAuftrag = { auftrag: Einrichten | Entfernen; zeitlimitMs: number };
+export type EinrichtungsAuftrag = {
+  auftrag: Einrichten | Konfigurieren | Entfernen;
+  zeitlimitMs: number;
+};
 
 const fehler = (text: string): Ergebnis => ({ ok: false, fehler: text });
 
@@ -124,6 +130,43 @@ const entfernenAuftrag = async (
   return { ok: true, daten: { installation: a.name, geaendert: "entfernt" } };
 };
 
+const konfigurierenAuftrag = async (
+  deps: EinrichtungsDeps,
+  stand: InstallationsStand,
+  a: Konfigurieren,
+  zeitlimitMs: number,
+): Promise<Ergebnis> => {
+  const bekannt = stand.get(a.name);
+  if (bekannt?.zustand !== "fertig")
+    return fehler(
+      `abgelehnt: ${a.name} ist keine fertig eingerichtete Installation dieses Agenten`,
+    );
+  const alt = bekannt.pruefung?.units;
+  if (alt === undefined)
+    return fehler(`abgelehnt: das Gedächtnis kennt die Units von ${a.name} nicht (vor Z-403)`);
+  if (alt.join("\n") !== a.units.join("\n"))
+    return fehler(
+      `abgelehnt: die Units von ${a.name} wären ${a.units.join(", ")} statt ${alt.join(", ")}; neu konfigurieren ändert keine Optionen`,
+    );
+  const n = await deps.nutzer(nutzerName(a.name));
+  if (!n) return fehler(`abgelehnt: ${nutzerName(a.name)} fehlt`);
+  const r = await mitZeitlimit(deps, zeitlimitMs, (signal) => konfigurieren(deps, a, n, signal));
+  if (!r.ok) return r;
+  await deps.gedaechtnis.setzen(a.name, "fertig", { units: a.units, ziel: a.ziel });
+  return { ok: true, daten: { installation: a.name, geaendert: "konfiguriert", units: a.units } };
+};
+
+const auftragAusfuehren = (
+  deps: EinrichtungsDeps,
+  stand: InstallationsStand,
+  plan: EinrichtungsAuftrag,
+): Promise<Ergebnis> => {
+  const a = plan.auftrag;
+  if (a.art === "einrichten") return einrichtenAuftrag(deps, stand, a, plan.zeitlimitMs);
+  if (a.art === "konfigurieren") return konfigurierenAuftrag(deps, stand, a, plan.zeitlimitMs);
+  return entfernenAuftrag(deps, stand, a);
+};
+
 export const einrichtungAusfuehren = async (
   deps: EinrichtungsDeps,
   plan: EinrichtungsAuftrag,
@@ -132,9 +175,7 @@ export const einrichtungAusfuehren = async (
   // without its record the agent cannot tell its own users from someone else's
   if (!g.ok) return fehler(`abgelehnt: ${g.grund}`);
   try {
-    return plan.auftrag.art === "einrichten"
-      ? await einrichtenAuftrag(deps, g.stand, plan.auftrag, plan.zeitlimitMs)
-      : await entfernenAuftrag(deps, g.stand, plan.auftrag);
+    return await auftragAusfuehren(deps, g.stand, plan);
   } catch (e) {
     // the record could not be written: say so rather than leave the job running
     return fehler(`Einrichtung: ${String(e).slice(0, 500)}`);

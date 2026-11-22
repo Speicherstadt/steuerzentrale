@@ -96,7 +96,7 @@ export const imagesDerUnits = (units: Readonly<Record<string, string>>): string[
   ),
 ];
 
-const nacheinander = async (
+export const nacheinander = async (
   laeufe: (() => Promise<Schrittergebnis>)[],
 ): Promise<Schrittergebnis> => {
   for (const lauf of laeufe) {
@@ -122,6 +122,28 @@ const secretsUndImages = (k: Kontext, n: Nutzer) =>
     ),
   ]);
 
+/** `systemctl --user is-active --quiet` of the units: all of them active */
+export const sindAktiv = async (lauf: Lauf, n: Nutzer, units: readonly string[]) =>
+  (
+    await lauf(
+      "systemctl --user is-active",
+      alsNutzer(n, ["systemctl", "--user", "is-active", "--quiet", ...units]),
+    )
+  ).ok;
+
+/** Asks the user's systemd until all the units are active, or gives up */
+export const bisAktiv = async (
+  deps: Pick<SystemDeps, "warten">,
+  lauf: Lauf,
+  n: Nutzer,
+  units: readonly string[],
+  auftrag?: AbortSignal,
+): Promise<Schrittergebnis> => {
+  const frage = () => sindAktiv(lauf, n, units);
+  const aktiv = await bisJa(deps, AKTIV_VERSUCHE, WARTEN_MS, frage, auftrag);
+  return aktiv ? gelungen : gescheitert(`units not active: ${units.join(", ")}`);
+};
+
 const unitsStarten = async (k: Kontext, n: Nutzer): Promise<Schrittergebnis> => {
   const systemctl = (...argv: string[]) => alsNutzer(n, ["systemctl", "--user", ...argv]);
   const gestartet = await nacheinander([
@@ -129,16 +151,7 @@ const unitsStarten = async (k: Kontext, n: Nutzer): Promise<Schrittergebnis> => 
     () => k.lauf("systemctl --user start", systemctl("start", ...k.a.units)),
   ]);
   if (!gestartet.ok) return gestartet;
-  const aktiv = await bisJa(
-    k.deps,
-    AKTIV_VERSUCHE,
-    WARTEN_MS,
-    async () =>
-      (await k.lauf("systemctl --user is-active", systemctl("is-active", "--quiet", ...k.a.units)))
-        .ok,
-    k.auftrag,
-  );
-  return aktiv ? gelungen : gescheitert(`units not active: ${k.a.units.join(", ")}`);
+  return bisAktiv(k.deps, k.lauf, n, k.a.units, k.auftrag);
 };
 
 /** `podman exec <installation>-<container>`, the container's name from its unit, marked (imContainer) */

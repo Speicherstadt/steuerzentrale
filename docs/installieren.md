@@ -208,6 +208,41 @@ gelungen sind. Daran hält er sich:
 - Ist die Datei unlesbar, richtet er nichts ein, entfernt nichts und führt keinen Befehl aus, bis
   sie repariert ist.
 
+### Neu konfigurieren
+
+Neue Einstellungen bringt der Auftrag `installation_konfigurieren` auf den Server. Er hat dieselbe
+Form wie `installation_einrichten` (signiertes Manifest, Name, Feld `einrichtung` mit Optionen,
+Ports und Einstellungen), und der Agent prüft und rendert ihn ebenso. Er nimmt ihn nur an, wenn
+
+- die Installation in seinem Gedächtnis „fertig“ ist (eine fremde oder halb eingerichtete lehnt er
+  ab, ohne etwas zu tun),
+- die Units dieselben bleiben wie im Gedächtnis: andere Optionen ändert neu konfigurieren nicht,
+- jede Datei, die er schreiben würde, schon da ist (eine Unit, die Slice oder eine Datei aus
+  `dateien`); sonst änderte sich, welche Dateien die Installation hat.
+
+Dann, jeder Schritt ein festes Programm ohne Shell, als Nutzer der Installation:
+
+1. Den alten Stand sichern, nur im Speicher: den Inhalt der Units, der Slice und der Dateien (als
+   root gelesen, ohne einem Symlink im Home zu folgen) und die Werte der Podman-Secrets. Die Namen
+   liefert `podman secret ls`, die Werte `podman secret inspect --showsecret`, beides über eine
+   Pipe in den Speicher des Agenten, nie in eine Datei, ein Log oder ein Ergebnis. Sind sie nicht
+   lesbar, bricht er ab, bevor er etwas ändert.
+2. Units, Slice und Dateien neu schreiben, jedes Secret mit `podman secret rm` entfernen und mit
+   `podman secret create` über die benannte Pipe neu anlegen.
+3. `systemctl --user daemon-reload`, `reset-failed` und `restart` der Units; er wartet, bis sie
+   aktiv sind und zehn Sekunden lang aktiv bleiben. Die Units starten bei einem Absturz neu
+   (`Restart=always`), eine App, die beim Start abbricht, ist darum kurz aktiv und fällt dann aus.
+
+Scheitert ein Schritt, schreibt er die alten Dateien zurück, legt die alten Secrets wieder an und
+startet die Units neu, jeder Schritt mit eigenem Zeitlimit, auch wenn das des Auftrags abgelaufen
+ist. Das Ergebnis nennt den Schritt und endet mit „alter Stand wiederhergestellt“ oder
+„Wiederherstellung unvollständig: …“. Volumes und Daten fasst er nie an, er zieht kein Image, und
+`schritte.einrichten` laufen nicht noch einmal. Das Gedächtnis (Units, Ziel der Prüfung) ändert er
+nur, wenn alles gelungen ist. Konfigurationsaufträge laufen in derselben Reihe wie die
+Einrichtungsaufträge, einer nach dem anderen. Startet der Agent mitten im Neukonfigurieren neu,
+meldet er den Auftrag als gescheitert („Agent neu gestartet“), statt ihn zu wiederholen; der Neustart
+der App könnte sonst später kommen, als die Zentrale ihn erlaubt hat.
+
 ### Wie es geprüft wird
 
 In der CI (`apps/agent/test/einrichtung.agent.test.ts`) richtet der Agent die Beispiel-App per
@@ -215,4 +250,7 @@ Auftrag ein, mit echtem `useradd`, Linger, Quadlet und rootless Podman. Geprüft
 unter ihrem Nutzer und antwortet auf ihrem Port, ein zweiter Auftrag ändert nichts, ein Secret
 landet bei Podman und in keiner Datei, eine Installation kann die Dateien einer anderen nicht lesen,
 und ein scheiternder Einrichtungsschritt hinterlässt weder Nutzer noch Home, Units, Prozesse oder
-Container.
+Container. In `apps/agent/test/konfigurieren.agent.test.ts` konfiguriert er die Beispiel-App mit
+einem neuen `BEISPIEL_TITEL` neu: der neue Wert ist im Container, ein vorher über HTTP angelegter
+Eintrag ist noch da, das Secret hat seinen Wert. Mit einem Titel, bei dem die App beim Start abbricht,
+läuft danach wieder der alte Stand mit dem Eintrag.

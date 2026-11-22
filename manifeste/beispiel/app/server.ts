@@ -5,6 +5,8 @@
  * exists only to drive installs, updates, backups and restores in CI.
  *
  * Modes (argv[2]): server (default), worker, migrieren, export.
+ * BEISPIEL_TITEL is the setting an operator changes (Z-404, reconfiguring); the server shows it, and
+ * the one title BEIM_START_SCHEITERN makes it exit at its start, as an app does with a bad setting.
  */
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
@@ -15,6 +17,9 @@ const KAPUTT = process.env.BEISPIEL_KAPUTT === "1";
 const DATEN = process.env.BEISPIEL_DATEN ?? "/daten";
 const HTTP_PORT = Number(process.env.BEISPIEL_HTTP_PORT ?? "8080");
 const TCP_PORT = Number(process.env.BEISPIEL_TCP_PORT ?? "9000");
+const TITEL = process.env.BEISPIEL_TITEL ?? "Beispiel";
+/** The setting of the tests that the app refuses at its start, so reconfiguring must roll back */
+const BEIM_START_SCHEITERN = "beim-start-scheitern";
 
 const oeffnen = () => {
   mkdirSync(DATEN, { recursive: true });
@@ -58,7 +63,7 @@ const server = (db: Database) => {
       if (url.pathname === "/") {
         const eintraege = db.query("SELECT id, text, version FROM eintraege ORDER BY id").all();
         const migrationen = db.query("SELECT version FROM migrationen ORDER BY version").all();
-        return json({ version: VERSION, eintraege, migrationen });
+        return json({ version: VERSION, titel: TITEL, eintraege, migrationen });
       }
       return json({ fehler: "nicht gefunden" }, 404);
     },
@@ -74,6 +79,10 @@ const server = (db: Database) => {
 };
 
 const modus = process.argv[2] ?? "server";
+if (modus === "server" && TITEL === BEIM_START_SCHEITERN) {
+  console.error(`the title ${TITEL} is refused`);
+  process.exit(1);
+}
 const db = oeffnen();
 if (modus === "server") server(db);
 else if (modus === "migrieren") {
