@@ -18,6 +18,7 @@ import {
 } from "@steuerzentrale/manifest";
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
 import type { Einrichten, Entfernen, Schritt } from "../einrichtung/typen.ts";
+import { pruefZiel } from "../zustand/ziel.ts";
 
 /*
  * What the agent checks before it runs anything a job asks (BAULISTE.md Z-305; docs/plan.md, "Was
@@ -109,13 +110,18 @@ const einrichtungsAuftrag = (m: Manifest, n: AuftragNachricht) => {
   if (!geprueft.ok) return geprueft;
   const a = geprueft.auftrag;
   if (a.art === "entfernen") return { ok: true as const, auftrag: a };
+  // einrichtungAuftragPruefen refuses a setup without it already
+  if (n.einrichtung === undefined)
+    return { ok: false as const, grund: "setting up needs the installation data (einrichtung)" };
   const schritte: Schritt[] = [];
   for (const name of a.schritte) {
     const s = schrittFuellen(m, name);
     if (typeof s === "string") return { ok: false as const, grund: s };
     schritte.push(s);
   }
-  return { ok: true as const, auftrag: { ...a, schritte } };
+  // the health check's target from the signed manifest and the ports the job assigned (Z-403)
+  const ziel = pruefZiel(m, n.einrichtung.installation);
+  return { ok: true as const, auftrag: { ...a, schritte, ziel } };
 };
 
 const einrichtungPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {

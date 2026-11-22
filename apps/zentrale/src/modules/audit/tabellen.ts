@@ -10,6 +10,7 @@ import {
   heartbeats,
   installationen,
   installationsPorts,
+  installationVerlauf,
   kunden,
   logAuszuege,
   mitglieder,
@@ -42,6 +43,11 @@ export const tabellen = {
   fakten: { tabelle: fakten, schluessel: ["serverId", "zeitpunkt"], zeit: fakten.zeitpunkt },
   auftraege: { tabelle: auftraege, schluessel: ["auftragId"], zeit: undefined },
   installationen: { tabelle: installationen, schluessel: ["installationId"], zeit: undefined },
+  installationVerlauf: {
+    tabelle: installationVerlauf,
+    schluessel: ["installationId", "zeitpunkt"],
+    zeit: installationVerlauf.zeitpunkt,
+  },
   installationsPorts: {
     tabelle: installationsPorts,
     schluessel: ["serverId", "port"],

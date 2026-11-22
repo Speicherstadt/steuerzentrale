@@ -1,5 +1,12 @@
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
-import { betreiber, ereignisse, fakten, heartbeats, logAuszuege } from "../../db/schema.ts";
+import {
+  betreiber,
+  ereignisse,
+  fakten,
+  heartbeats,
+  installationVerlauf,
+  logAuszuege,
+} from "../../db/schema.ts";
 import { schreiben } from "../audit/index.ts";
 import type { AufbewahrteTabelle } from "../audit/tabellen.ts";
 import { aufbewahrungsGrenzen, TAG_MS } from "./grenzen.ts";
@@ -9,19 +16,26 @@ export type Geloescht = Record<AufbewahrteTabelle, number>;
 /** Every operator with rows, also one already deleted from `betreiber`: its old rows go too */
 const betreiberMitDaten = (db: Db): Set<string> =>
   new Set(
-    [betreiber, heartbeats, fakten, logAuszuege, ereignisse].flatMap((tabelle) =>
-      db
-        .selectDistinct({ betreiberId: tabelle.betreiberId })
-        .from(tabelle)
-        .all()
-        .map((zeile) => zeile.betreiberId),
+    [betreiber, heartbeats, fakten, logAuszuege, installationVerlauf, ereignisse].flatMap(
+      (tabelle) =>
+        db
+          .selectDistinct({ betreiberId: tabelle.betreiberId })
+          .from(tabelle)
+          .all()
+          .map((zeile) => zeile.betreiberId),
     ),
   );
 
 /** One retention run for every operator, each in its own transaction with its audit entries */
 export const aufbewahren = (db: Db, schreibDb: SchreibDb, jetzt: number): Geloescht => {
   const grenzen = aufbewahrungsGrenzen(jetzt);
-  const summe: Geloescht = { heartbeats: 0, fakten: 0, logAuszuege: 0, ereignisse: 0 };
+  const summe: Geloescht = {
+    heartbeats: 0,
+    fakten: 0,
+    logAuszuege: 0,
+    installationVerlauf: 0,
+    ereignisse: 0,
+  };
   for (const betreiberId of betreiberMitDaten(db)) {
     const kontext = { betreiberId, akteur: "system", jetzt, grund: "Aufbewahrung (docs/plan.md)" };
     schreiben(schreibDb, kontext, "aufbewahrung", (s) => {

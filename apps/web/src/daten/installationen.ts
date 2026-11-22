@@ -1,6 +1,7 @@
 import type { Platzierung } from "@steuerzentrale/manifest";
 import { type Antwort, api } from "../anmeldung/api.ts";
 import { demo } from "../demo/index.ts";
+import type { HealthDerZentrale, Verlaufseintrag } from "./bewertung.ts";
 import { kundenQuelle } from "./kunden.ts";
 import { serverQuelle } from "./server.ts";
 
@@ -47,6 +48,8 @@ export type InstallationDerZentrale = {
     installation: Record<string, Einstellungswert>;
   };
   zustand: InstallationsZustand;
+  /** The state the agent reported, unknown 90 s after its last report (Z-403) */
+  health: HealthDerZentrale;
   angelegtVon: string;
   angelegtAm: number;
   geaendertAm: number;
@@ -65,6 +68,8 @@ export type AuftragDerInstallation = {
 
 export type InstallationMitAuftraegen = InstallationDerZentrale & {
   auftraege: AuftragDerInstallation[];
+  /** Every change of the state, newest first */
+  verlauf: Verlaufseintrag[];
 };
 
 /** What the dialog asks the placement about: the signed manifest's exact text and signature */

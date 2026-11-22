@@ -21,6 +21,12 @@ import { type Aufgerufen, PFORTE } from "./testsystem.ts";
  */
 
 const UNITS = [`${NAME}-app.service`];
+/** A finished setup in the record, with what its health check needs (Z-403) */
+const FERTIG = {
+  zustand: "fertig",
+  am: expect.any(Number),
+  pruefung: { units: UNITS, ziel: expect.objectContaining({ art: "http" }) },
+};
 
 const FEHLSCHRITTE: [string, (l: Aufgerufen) => boolean][] = [
   ["useradd", (l) => l.argv[0] === "useradd"],
@@ -214,7 +220,7 @@ describe("a setup job sent twice", () => {
     const a = einrichtungsAgent();
     await Promise.all([a.empfangen(), a.empfangen(einrichtenAuftrag({ auftragId: "e2" }))]);
     expect(useradds(a)).toBe(1);
-    expect(a.record()).toEqual({ [NAME]: { zustand: "fertig", am: expect.any(Number) } });
+    expect(a.record()).toEqual({ [NAME]: FERTIG });
   });
 
   it("after a restart in the middle tears the half one down and sets up once", async () => {
@@ -233,7 +239,7 @@ describe("a setup job sent twice", () => {
     const danach = sys.laeufe.slice(bis).map((l) => l.argv[0]);
     expect(danach.indexOf("userdel")).toBeLessThan(danach.indexOf("useradd"));
     expect(danach.filter((p) => p === "useradd")).toHaveLength(1);
-    expect(nachher.record()).toEqual({ [NAME]: { zustand: "fertig", am: expect.any(Number) } });
+    expect(nachher.record()).toEqual({ [NAME]: FERTIG });
   });
 });
 

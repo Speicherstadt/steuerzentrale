@@ -9,7 +9,8 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 /*
  * BAULISTE.md Z-402 over HTTP: the placement as the dialog's preview, making, listing, reading and
  * removing installations. Every role reads, owner and technik write; no operator reaches another's
- * installations (a test per endpoint); no answer carries a secret.
+ * installations (a test per endpoint); no answer carries a secret. Their state (Z-403) is tested in
+ * installationen-zustand.test.ts.
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 type Antwort = { status: number; daten: Record<string, unknown> };
@@ -188,6 +189,13 @@ describe("an installation over the API", () => {
       optionen: [],
       einstellungen: { betreiber: {}, installation: { PROBE_TITEL: "Kanzlei" } },
       zustand: "wird_eingerichtet",
+      health: {
+        zustand: "unbekannt",
+        grund: { code: "noch_keine_meldung", werte: {} },
+        seit: null,
+        gemeldetAm: null,
+        units: [],
+      },
       angelegtVon: technik.nutzerId,
       angelegtAm: server.jetzt(),
       geaendertAm: server.jetzt(),
@@ -201,6 +209,7 @@ describe("an installation over the API", () => {
         { aktion: EINRICHTUNG_AKTIONEN.einrichten, zustand: "zugestellt", fehler: null },
         { aktion: "pforte_route_setzen", zustand: "wartend", fehler: null },
       ],
+      verlauf: [],
     });
     const eintrag = server.db
       .select()

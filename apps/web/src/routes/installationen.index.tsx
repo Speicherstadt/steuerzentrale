@@ -2,6 +2,7 @@ import { Icon, m, SearchInput } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
 import { createMemo, createSignal, For, Loading, refresh, Show } from "solid-js";
 import { appVon, istAktuell, loeschungAm } from "../daten/ableitungen.ts";
+import { grundText, grundZeigen } from "../daten/bewertung.ts";
 import { anzeige, type InstallationAnsicht } from "../daten/installation-ansicht.ts";
 import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
@@ -36,8 +37,9 @@ import {
 
 /**
  * Every installation of the Zentrale (BAULISTE.md Z-402), grouped by server or as a list, filtered
- * by state, with a search, and the dialog "Installieren". Health, backups and data still come from
- * the demo data by id until Z-403 and Z-406, so an installation of the Zentrale shows "–" there.
+ * by state, with a search, and the dialog "Installieren". The state with its reason comes from the
+ * Zentrale (Z-403); backups and data still from the demo data by id until Z-406, so an installation
+ * of the Zentrale shows "–" there.
  */
 
 const FILTERNAMEN: Record<Filter, () => string> = {
@@ -56,9 +58,9 @@ const ZustandZelle = (props: { a: InstallationAnsicht }) => (
     <Show
       when={props.a.vertragsende}
       fallback={
-        <Show when={props.a.demo?.grund}>
+        <Show when={props.a.zustand === "laeuft" && grundZeigen(props.a.health)}>
           <span class="mt-1 block max-w-[220px] text-xs text-muted-foreground">
-            {props.a.demo?.grund}
+            {grundText(props.a.health.grund)}
           </span>
         </Show>
       }

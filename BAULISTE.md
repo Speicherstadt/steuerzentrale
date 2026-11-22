@@ -248,10 +248,16 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   für eine fertig eingerichtete Installation abgelehnt; zwei Installationen bekommen auf einem Server
   nie denselben Port oder Namen; die Route der Pforte wird erst gesetzt, wenn die Einrichtung
   gelungen ist; kein Betreiber erreicht Installationen eines anderen (Test je Endpunkt).
-- [ ] **Z-403 Health und Zustand** – Health nach Art aus dem Manifest, dazu der Zustand der
+- [x] **Z-403 Health und Zustand** – Health nach Art aus dem Manifest, dazu der Zustand der
   systemd-Units; grün, gelb, rot oder unbekannt mit Grund und Verlauf; Störung nach plan.md.
   Fertig, wenn: die kaputte Beispiel-App rot wird, eine beendete Unit gelb, eine App mit
-  `health: keine` nur nach Units bewertet wird und 5 Minuten Rot ein Ereignis „Störung“ erzeugen.
+  `health: keine` nur nach Units bewertet wird und 5 Minuten Rot ein Ereignis „Störung“ erzeugen;
+  dazu (Tests): Health `http`, `tcp` und `befehl` prüfen nur das Ziel aus dem signierten Manifest
+  (kein Ziel aus der Zentrale), `befehl` läuft als Nutzer der Installation mit Zeitlimit; ohne
+  Meldung seit 90 s ist eine Installation unbekannt, nie grün; nach einer Störung erzeugt Grün
+  einmal „Störung behoben“; der Verlauf hält jeden Wechsel mit Grund; eine Meldung für eine
+  Installation eines anderen Servers oder Betreibers ändert nichts; die Installationsseite zeigt
+  Zustand, Grund und Verlauf (Playwright).
 - [ ] **Z-404 Einstellungen** – Ebenen aus dem Manifest; Formular aus dem Schema (keine App fest
   eingebaut); Änderung erzeugt den Auftrag „neu konfigurieren“; Geheimnisse nie zurück an die
   Oberfläche.

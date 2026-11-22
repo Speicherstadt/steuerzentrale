@@ -63,7 +63,8 @@ laufen dort über den virtuellen Authenticator von Chromium. Für das Installier
 den öffentlichen Test-Schlüssel als `minisign.pub` (`playwright.config.ts`), die Tests signieren ihr
 Manifest zur Laufzeit mit dem Test-Schlüssel, und ein Stellvertreter des Agenten
 (`e2e/hilfen/agent.ts`) tritt mit dem Einmal-Token bei, verbindet sich und meldet Fakten; er führt
-keinen Auftrag aus, eine Einrichtung für einen Host `kaputt…` meldet er gescheitert.
+keinen Auftrag aus, eine Einrichtung für einen Host `kaputt…` meldet er gescheitert, eine für einen
+Host `laeuft…` erledigt; den Zustand von Installationen (`zustand`) meldet er, wenn ein Test es sagt.
 
 Die Zentrale legt ihre Datenbank `zentrale.db` (SQLite, WAL) in `STEUERZENTRALE_DATA` an (Vorgabe:
 `data`). Die Migrationen in `apps/zentrale/drizzle/` stecken im Binary (`migrationen.gen.ts`, erzeugt
