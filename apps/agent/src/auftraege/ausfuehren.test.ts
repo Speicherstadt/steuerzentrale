@@ -42,6 +42,7 @@ describe("ausfuehren with the real spawn", () => {
     const ergebnis = await ausfuehren(
       { spawn: (argv, signal) => echtSpawn(argv.slice(3), signal), planen: echtPlanen },
       {
+        art: "befehl",
         aktion: "langsam",
         installationId: "i",
         container: "app",

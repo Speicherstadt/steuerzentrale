@@ -2,8 +2,10 @@ import type { Manifest } from "../schema.ts";
 
 /*
  * The route of an installation in the Pforte, the server's Caddy (docs/plan.md, "Pforte"), as JSON
- * for its admin API: added with POST to the routes of the HTTP server, removed with DELETE /id/<@id>.
- * Field names from caddyserver/caddy v2.10.2 (commit 551f7937): modules/caddyhttp/reverseproxy
+ * for its admin API: set in front of the routes of the HTTP server (PUT …/routes/0, or PATCH /id/<@id>
+ * when it is there), removed with DELETE /id/<@id> (apps/agent/src/pforte/admin.ts).
+ * Field names from caddyserver/caddy v2.11.9 (commit 0d98caea), the Pforte's version (system.ts),
+ * as in v2.10.2 (commit 551f7937): modules/caddyhttp/reverseproxy
  * (reverseproxy.go: upstreams, headers, flush_interval, stream_close_delay; httptransport.go:
  * response_header_timeout), modules/caddyhttp/requestbody (request_body, max_size in bytes),
  * modules/caddyhttp/headers (request set/delete); durations as strings (caddy.go, Duration).

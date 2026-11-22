@@ -54,6 +54,12 @@ Bevor der Agent etwas startet, prüft er der Reihe nach:
 4. die Argumente gegen die Erklärung des Befehls ([Manifest](manifest.md), „Befehle in
    Aufträgen“).
 
+Die beiden Aufträge der [Pforte](pforte.md) (`pforte_route_setzen`, `pforte_route_entfernen`) sind
+in die Steuerzentrale eingebaut und kein Befehl eines Manifests: nach Schlüssel und Signatur prüft der
+Agent statt 3. und 4. ihre feste Form (Hostname, Port von 1024 bis 65535, Name der Installation) und
+ruft dann nur die Admin-API der Pforte auf, keinen Prozess. Ein Befehl eines Manifests kann nicht so
+heißen, weil sein Name keinen Unterstrich haben darf.
+
 Erst dann führt er `argv` aus dem Manifest aus, als feste Argumente ohne Shell, mit
 `podman exec <installation>-<container>`. Läuft der Befehl länger als sein Zeitlimit (aus dem
 Manifest, sonst 900 Sekunden; die Zentrale kann es nur kürzen), beendet ihn der Agent und meldet den

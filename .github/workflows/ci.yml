@@ -91,6 +91,25 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      # BAULISTE.md Z-401: two installations behind the Pforte, each as a Linux user of its own with
+      # its own rootless network namespace, as sz-<installation> on a server; the test runs Podman
+      # as them with sudo -u (apps/agent/test/pforte.agent.test.ts)
+      - name: Linux users for the Pforte's test
+        run: |
+          erste=1000000
+          for nutzer in sz-test-pa sz-test-pb; do
+            sudo useradd -m -s /bin/bash "$nutzer"
+            # rootless Podman needs subordinate ids; useradd gives them where /etc/subuid exists
+            if ! grep -q "^$nutzer:" /etc/subuid; then
+              sudo usermod --add-subuids "$erste-$((erste + 65535))" --add-subgids "$erste-$((erste + 65535))" "$nutzer"
+            fi
+            erste=$((erste + 65536))
+            sudo loginctl enable-linger "$nutzer"
+            uid="$(id -u "$nutzer")"
+            for i in $(seq 1 30); do test -d "/run/user/$uid" && break; sleep 1; done
+            test -d "/run/user/$uid"
+          done
+          echo "SZ_TEST_PFORTE_NUTZER=sz-test-pa sz-test-pb" >> "$GITHUB_ENV"
       - run: podman --version && bun run test:agent
 
   # What a user does, desktop and @phone, with axe; Playwright fails when no test ran
@@ -173,6 +192,10 @@ jobs:
           sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
           sudo incus exec "$VM" -- podman --version
           test "$(sudo incus exec "$VM" -- sysctl -n net.ipv4.ip_unprivileged_port_start)" = 80
+          # the Pforte's user (Z-401): rootless Podman needs subordinate ids, its units lingering
+          sudo incus exec "$VM" -- id sz-pforte
+          sudo incus exec "$VM" -- grep -q '^sz-pforte:' /etc/subuid
+          test "$(sudo incus exec "$VM" -- loginctl show-user sz-pforte -p Linger --value)" = yes
           vm="$(sudo incus exec "$VM" -- sh -c "sed '1d;\$d' /var/lib/steuerzentrale/agent.pem | base64 -d | sha256sum | cut -d' ' -f1")"
           zentrale="$(bun apps/zentrale/src/testhilfen/testserver.ts fingerabdruck "$SERVER_ID")"
           echo "VM: $vm, Zentrale: $zentrale"

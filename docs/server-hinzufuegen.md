@@ -44,7 +44,8 @@ Der Befehl läuft als root auf **Debian 13** oder **Ubuntu 24.04** (amd64 oder a
 4. lädt `SHA256SUMS`, dessen Signatur `SHA256SUMS.minisig` und den Agenten für die Architektur des
    Servers und installiert ihn nur, wenn die Signatur mit dem öffentlichen Schlüssel im Skript gilt
    und die Prüfsumme stimmt;
-5. setzt `net.ipv4.ip_unprivileged_port_start=80` (für die Pforte) und legt den öffentlichen
+5. setzt `net.ipv4.ip_unprivileged_port_start=80` (für die Pforte), legt den Linux-Nutzer der
+   [Pforte](pforte.md) `sz-pforte` an (ohne Login-Shell, mit Linger) und legt den öffentlichen
    Schlüssel für Manifeste unter `/etc/steuerzentrale/manifest.pub` ab;
 6. lässt den Agenten das Token gegen sein Client-Zertifikat tauschen und richtet ihn als systemd-Dienst
    `steuerzentrale-agent` ein.

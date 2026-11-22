@@ -1,4 +1,9 @@
-import { schluesselLesen } from "@steuerzentrale/manifest";
+import {
+  PFORTE_AKTIONEN,
+  pforteGrundkonfiguration,
+  schluesselLesen,
+  UNBEKANNT_ID,
+} from "@steuerzentrale/manifest";
 import { afterEach, describe, expect, it } from "vitest";
 import { auftraege as auftragsTabelle } from "../../zentrale/src/db/schema.ts";
 import {
@@ -16,6 +21,7 @@ import { auftraegeAnnehmen } from "../src/auftraege/auftraege.ts";
 import type { Spawn } from "../src/auftraege/ausfuehren.ts";
 import { speicher, TEST_PUB } from "../src/beitritt/testhilfen.ts";
 import { pfadeIn } from "../src/pfade.ts";
+import { testCaddy } from "../src/pforte/testcaddy.ts";
 import { echtOeffnen } from "../src/verbindung/sockel.ts";
 import { verbindungsSchleife } from "../src/verbindung/verbinden.ts";
 
@@ -55,6 +61,7 @@ const aufgebaut = async () => {
     ablauf.push(`ende ${argv.at(-1)}`);
     return { code: 0 };
   };
+  const caddy = testCaddy();
   const planen = (lauf: () => void, ms: number) => {
     const t = setTimeout(lauf, ms);
     return () => clearTimeout(t);
@@ -76,6 +83,7 @@ const aufgebaut = async () => {
         pfad: pfade.auftraege,
         vertrauen: { schluessel, zweck: "test" },
         spawn,
+        pforte: { admin: caddy.admin, grund: pforteGrundkonfiguration() },
         planen,
         jetzt: Date.now,
         log: () => {},
@@ -96,7 +104,7 @@ const aufgebaut = async () => {
     grund: "Test",
   });
   const zustand = (id: string) => auftragLesen(zentrale.db, inhaber.betreiberId, id)?.zustand;
-  return { zentrale, inhaber, agent, kontext, zustand, ablauf, laeufe };
+  return { zentrale, inhaber, agent, kontext, zustand, ablauf, laeufe, caddy };
 };
 
 describe("a job through Pforte, Zentrale and agent", () => {
@@ -153,5 +161,24 @@ describe("a job through Pforte, Zentrale and agent", () => {
     await new Promise((r) => setTimeout(r, 200));
     expect(laeufe).toHaveLength(2);
     expect(auftragLesen(zentrale.db, zeile.betreiberId, "erst")?.geaendertAm).toBe(geaendert);
+  });
+});
+
+describe("a job of the Pforte through Zentrale and agent (Z-401)", () => {
+  it("is made by the Zentrale and sets the route through the admin API, no process started", async () => {
+    const { zentrale, agent, kontext, zustand, laeufe, caddy } = await aufgebaut();
+    const angelegt = auftragAnlegen(
+      zentrale.deps,
+      kontext(),
+      neuerAuftrag(agent.serverId, {
+        auftragId: "route",
+        aktion: PFORTE_AKTIONEN.setzen,
+        argumente: { host: "auftrag.kunde.example", port: 20001 },
+      }),
+    );
+    expect(angelegt).toMatchObject({ ok: true, auftrag: { zeitlimitS: 60 } });
+    await expect.poll(() => zustand("route"), { timeout: 5000 }).toBe("erfolgreich");
+    expect(caddy.routen()).toEqual(["auftrag-k1", UNBEKANNT_ID]);
+    expect(laeufe).toEqual([]);
   });
 });

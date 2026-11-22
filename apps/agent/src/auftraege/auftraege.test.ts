@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { schluesselLesen } from "@steuerzentrale/manifest";
+import { pforteGrundkonfiguration, schluesselLesen } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { speicher, TEST_PUB } from "../beitritt/testhilfen.ts";
+import { testCaddy } from "../pforte/testcaddy.ts";
 import { type AuftraegeDeps, auftraegeAnnehmen, NEU_GESTARTET } from "./auftraege.ts";
 import type { Spawn } from "./ausfuehren.ts";
 import type { AuftragNachricht } from "./pruefen.ts";
@@ -56,6 +57,7 @@ const aufgebaut = (teil: Partial<AuftraegeDeps> = {}, fs = speicher()) => {
     pfad: PFAD,
     vertrauen: { schluessel, zweck: "test" },
     spawn,
+    pforte: { admin: testCaddy().admin, grund: pforteGrundkonfiguration() },
     planen: (lauf, ms) => {
       plaene.push({ ms, lauf });
       return () => {};

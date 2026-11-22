@@ -30,6 +30,26 @@ export {
 export const MANIFEST_SCHEMA = 1;
 export { manifestJsonSchema } from "./json-schema.ts";
 export {
+  istPforteAktion,
+  PFORTE_AKTIONEN,
+  PFORTE_PORT,
+  PFORTE_ZEITLIMIT_S,
+  type PforteAnfrage,
+  type PforteAuftrag,
+  type PforteGeprueft,
+  pforteAuftragPruefen,
+} from "./pforte/auftraege.ts";
+export {
+  GRUND_ID,
+  PFORTE_ADMIN_IM_CONTAINER,
+  PFORTE_SERVER,
+  type PforteGrund,
+  type PforteOptionen,
+  pforteGrundkonfiguration,
+  UNBEKANNT_ID,
+} from "./pforte/grund.ts";
+export { PFORTE_ADMIN_VERZEICHNIS, PFORTE_UNIT, pforteUnit } from "./pforte/unit.ts";
+export {
   type Befund as PlatzBefund,
   festePorts,
   type PlatzAnfrage,
@@ -55,4 +75,5 @@ export {
   type Quadlets,
   type Wert,
 } from "./quadlet/typen.ts";
+export { PFORTE_IMAGE, type SystemImage } from "./system.ts";
 export { schluesselVertrauen, TEST_SCHLUESSEL_ID, type Zweck } from "./vertrauen.ts";

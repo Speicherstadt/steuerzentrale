@@ -6,14 +6,22 @@ import {
   schreiben,
 } from "@steuerzentrale/protokoll";
 import type { Dateien } from "../dateien.ts";
+import { type PforteDeps, pforteAusfuehren } from "../pforte/ausfuehren.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
 import { ausfuehren, type Ergebnis, type Spawn } from "./ausfuehren.ts";
-import { type AuftragNachricht, auftragPruefen, type Vertrauen } from "./pruefen.ts";
+import {
+  type AuftragNachricht,
+  auftragPruefen,
+  type PfortePlan,
+  type Plan,
+  type Vertrauen,
+} from "./pruefen.ts";
 import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.ts";
 
 /*
  * The agent's side of jobs (BAULISTE.md Z-305): it acknowledges a job, checks it (pruefen.ts),
- * reports that it runs, runs it (ausfuehren.ts) and reports the result. Idempotent by the job's
+ * reports that it runs, runs it (ausfuehren.ts; a job of the Pforte through its admin API,
+ * src/pforte) and reports the result. Idempotent by the job's
  * id through its record (zustand.ts): a finished job sent again gets its stored result, a running
  * one only an acknowledgement. A job that was running when the agent stopped is reported failed
  * ("Agent neu gestartet") when the Zentrale sends it again after the restart; only a command the
@@ -26,6 +34,8 @@ export type AuftraegeDeps = {
   pfad: string;
   vertrauen: Vertrauen;
   spawn: Spawn;
+  /** The Pforte's admin API and base configuration, for its jobs (Z-401) */
+  pforte: PforteDeps;
   planen: Planer;
   jetzt: () => number;
   log: (msg: string, mehr?: Record<string, unknown>) => void;
@@ -44,10 +54,24 @@ const MAX_FEHLER = 2000;
 const bestaetigt = (auftragId: string) =>
   schreiben(Bestaetigt, { typ: "bestaetigt", protokoll: PROTOKOLL_VERSION, auftragId });
 
+/**
+ * Runs what it is given one after another: the jobs of the Pforte read its routes, check them and
+ * then write (pforte/admin.ts), and a second job in between would pass the check on stale routes
+ */
+const reihe = () => {
+  let letzte: Promise<unknown> = Promise.resolve();
+  return <T>(f: () => Promise<T>): Promise<T> => {
+    const naechste = letzte.then(f, f);
+    letzte = naechste.catch(() => {});
+    return naechste;
+  };
+};
+
 export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const schreibe = standSchreiber(deps.dateien, deps.pfad, deps.jetzt);
   let geladen: Promise<Geladen> | undefined;
   const laufend = new Set<string>();
+  const pforteReihe = reihe();
 
   const ergebnisSenden = (auftragId: string, ergebnis: Ergebnis, senden: (t: string) => void) =>
     senden(
@@ -79,7 +103,7 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const starten = async (
     stand: Stand,
     n: AuftragNachricht,
-    plan: Parameters<typeof ausfuehren>[1],
+    plan: Plan | PfortePlan,
     senden: (t: string) => void,
   ) => {
     laufend.add(n.auftragId);
@@ -95,7 +119,10 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
           zeit: deps.jetzt(),
         }),
       );
-      const ergebnis = await ausfuehren(deps, plan);
+      const ergebnis =
+        plan.art === "pforte"
+          ? await pforteReihe(() => pforteAusfuehren(deps, plan))
+          : await ausfuehren(deps, plan);
       await abschliessen(stand, n.auftragId, ergebnis, senden);
     } finally {
       laufend.delete(n.auftragId);
