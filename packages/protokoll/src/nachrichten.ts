@@ -161,6 +161,30 @@ export const Zertifikat = z.object({
   gueltigBis: zeitpunkt,
 });
 
+const wert = z.union([z.string(), z.number(), z.boolean()]);
+
+/**
+ * What a setup job (`installation_einrichten`) tells the agent about the installation, besides its
+ * name (`installationId`) and the signed manifest: the agent renders the units itself from both
+ * (docs/plan.md, "Wer die Units einer Installation rendert"). The Zentrale stores it without the
+ * `auto` values and adds them, decrypted, only when it sends the job
+ */
+export const Einrichtung = z.object({
+  installation: z.object({
+    kundeId: z.string().min(1).max(200),
+    optionen: z.array(z.string().max(100)).max(50),
+    httpPort: z.number().int().nullable(),
+    ports: z.record(z.string().max(100), z.number().int()),
+    host: z.string().min(1).max(253),
+    ipv4: z.string().max(15).nullable(),
+  }),
+  einstellungen: z.object({
+    betreiber: z.record(z.string(), wert),
+    installation: z.record(z.string(), wert),
+    auto: z.record(z.string(), wert),
+  }),
+});
+
 export const Auftrag = z.object({
   typ: z.literal("auftrag"),
   protokoll,
@@ -168,10 +192,12 @@ export const Auftrag = z.object({
   installationId: id.nullable(),
   /** The name of an action the manifest describes (an action, a step or a named command) */
   aktion: z.string().regex(/^[a-z][a-z0-9_-]*$/),
-  argumente: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+  argumente: z.record(z.string(), wert),
   manifest: z.string().min(1),
   signatur: z.string().min(1),
   zeitlimitS: z.number().int().positive(),
+  /** Only with `installation_einrichten` (BAULISTE.md Z-402) */
+  einrichtung: Einrichtung.optional(),
 });
 
 export const VomAgenten = z.discriminatedUnion("typ", [

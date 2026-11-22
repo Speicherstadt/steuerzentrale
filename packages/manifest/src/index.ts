@@ -28,6 +28,16 @@ export {
 
 /** The manifest schema version this build reads (docs/plan.md, "Manifest": `schema: 1`) */
 export const MANIFEST_SCHEMA = 1;
+export {
+  EINRICHTUNG_AKTIONEN,
+  EINRICHTUNG_ZEITLIMIT_S,
+  type Einrichtung,
+  type EinrichtungAnfrage,
+  type EinrichtungAuftrag,
+  type EinrichtungGeprueft,
+  einrichtungAuftragPruefen,
+  istEinrichtungAktion,
+} from "./einrichtung/auftraege.ts";
 export { manifestJsonSchema } from "./json-schema.ts";
 export {
   istPforteAktion,

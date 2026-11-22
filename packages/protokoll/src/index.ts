@@ -25,6 +25,7 @@ export {
 export {
   Auftrag,
   Bestaetigt,
+  Einrichtung,
   Ergebnis,
   Fakten,
   Fortschritt,
