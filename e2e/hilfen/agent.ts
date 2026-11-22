@@ -9,8 +9,9 @@ import { serverAnlegen } from "./server.ts";
  * reports facts (Z-304) and so makes the server one an app can be placed on. It takes the jobs it
  * gets and runs none, so an installation stays "wird eingerichtet"; a setup whose host starts with
  * `kaputt` it reports failed, as the real agent does after cleaning up, one whose host starts with
- * `laeuft` done. It reports the state of installations when a test tells it to (Z-403). No Podman,
- * no server.
+ * `laeuft` done, and the Pforte's route of such a host too. A job `installation_konfigurieren`
+ * (Z-404) it reports done as the real agent does (`geaendert: "konfiguriert"`). It reports the
+ * state of installations when a test tells it to (Z-403). No Podman, no server.
  */
 
 // The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite
@@ -90,13 +91,24 @@ const fakten = (zeit: number) => ({
 const ergebnis = (auftragId: string, e: Record<string, unknown>) =>
   JSON.stringify({ typ: "ergebnis", protokoll: 1, auftragId, zeit: Date.now(), ergebnis: e });
 
-/** Takes a job; a setup of a `kaputt…` host it reports failed, of a `laeuft…` host done */
+/** Done as the real agent reports configuring anew (apps/agent, Z-404) */
+const konfiguriert = (n: Nachricht) => ({
+  ok: true,
+  daten: { installation: n.installationId, geaendert: "konfiguriert", units: [] },
+});
+
+/**
+ * Takes a job; a setup of a `kaputt…` host it reports failed, of a `laeuft…` host done, with its
+ * route; configuring anew done
+ */
 const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   const auftragId = n.auftragId as string;
   ws.send(JSON.stringify({ typ: "bestaetigt", protokoll: 1, auftragId }));
-  const host = (n.einrichtung as { installation?: { host?: string } } | undefined)?.installation
-    ?.host;
-  if (n.aktion !== "installation_einrichten") return;
+  const einrichtung = n.einrichtung as { installation?: { host?: string } } | undefined;
+  const host = einrichtung?.installation?.host ?? (n.argumente as { host?: string }).host;
+  if (n.aktion === "installation_konfigurieren")
+    return ws.send(ergebnis(auftragId, konfiguriert(n)));
+  if (n.aktion !== "installation_einrichten" && n.aktion !== "pforte_route_setzen") return;
   if (host?.startsWith("kaputt"))
     ws.send(ergebnis(auftragId, { ok: false, fehler: "image ziehen: manifest unknown" }));
   if (host?.startsWith("laeuft")) ws.send(ergebnis(auftragId, { ok: true, daten: {} }));

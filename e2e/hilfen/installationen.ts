@@ -11,7 +11,8 @@ import { kundeAnlegen } from "./kunden.ts";
  * the public test key (test/schluessel/; docs/plan.md, "Signaturen in Tests"), whose public half
  * playwright.config.ts hands the Zentrale as `minisign.pub`. After the Zentrale's own test
  * manifest (apps/zentrale/src/testhilfen/manifeste/probe.yml), without a required value of the
- * operator, which no dialog sets before Z-404.
+ * operator; `mitBetreiberwert` gives it one under an app id of its own (Z-404), so the dialog asks
+ * for it in each run of the test, on desktop and phone alike.
  */
 const PROBE = `schema: 1
 id: probe
@@ -39,22 +40,29 @@ env:
 
 const REPO = join(import.meta.dirname, "../..");
 
+/** The probe manifest under the app id `app` with a required secret of the operator */
+export const mitBetreiberwert = (app: string) =>
+  PROBE.replace("id: probe", `id: ${app}`).replace(
+    "env:\n",
+    "env:\n  - { name: PROBE_LIZENZ, ebene: betreiber, typ: geheim, pflicht: true }\n",
+  );
+
 /** The manifest's text and signature */
-export const signiertesManifest = () => {
+export const signiertesManifest = (text = PROBE) => {
   const schluessel = geheimenSchluesselLesen(
     readFileSync(join(REPO, "test/schluessel/test.key"), "utf8"),
   );
   return {
-    manifest: PROBE,
-    signatur: signieren(new TextEncoder().encode(PROBE), schluessel, "probe 1.0.0 (test key)"),
+    manifest: text,
+    signatur: signieren(new TextEncoder().encode(text), schluessel, "probe 1.0.0 (test key)"),
   };
 };
 
 /** Both as files to upload in the dialog, in the tests' own directory */
-export const manifestDateien = () => {
+export const manifestDateien = (text = PROBE) => {
   const ordner = join(process.env.SZ_E2E_DATEN ?? "", `manifest-${randomUUID().slice(0, 8)}`);
   mkdirSync(ordner, { recursive: true });
-  const { manifest, signatur } = signiertesManifest();
+  const { manifest, signatur } = signiertesManifest(text);
   const pfad = join(ordner, "manifest.yml");
   writeFileSync(pfad, manifest);
   writeFileSync(`${pfad}.minisig`, signatur);
