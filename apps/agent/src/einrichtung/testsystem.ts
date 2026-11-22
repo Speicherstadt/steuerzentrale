@@ -1,3 +1,4 @@
+import type { ZeilenLesen } from "../aktionen/journal.ts";
 import { MARKE, type Spawn, type SpawnOptionen } from "../auftraege/ausfuehren.ts";
 import type { SpawnMitAusgabe } from "../zustand/pruefen.ts";
 import type { Besitzer, HausDateien } from "./haus.ts";
@@ -255,9 +256,30 @@ export const testSystem = (o: TestSystemOptionen = {}) => {
     const r = a.als === "root" ? { code: 127, aus: "" } : secretAusgabe(z, a);
     return { code: r.code, aus: o.ausgabe?.(a) ?? r.aus };
   };
+  // the journal by _UID=<uid>, as journalctl prints it (Z-405); handed over in two pieces
+  const journal = new Map<string, string>();
+  const zeilenLesen: ZeilenLesen = async (argv, signal, sammler) => {
+    const a: Aufgerufen = { ...ohnePraefix(argv), gelesen: true };
+    z.laeufe.push(a);
+    if (o.haengt?.(a))
+      return new Promise((fertig) =>
+        signal.addEventListener("abort", () => fertig({ code: null })),
+      );
+    const code = o.scheitern?.(a);
+    if (code !== undefined) return { code };
+    if (a.argv[0] !== "journalctl") return { code: 127 };
+    const uid = a.argv.find((w) => w.startsWith("_UID="))?.slice("_UID=".length) ?? "";
+    const text = journal.get(uid) ?? "-- No entries --\n";
+    const mitte = Math.floor(text.length / 2);
+    sammler.hinzu(text.slice(0, mitte));
+    sammler.hinzu(text.slice(mitte));
+    return { code: 0 };
+  };
   return {
     spawn,
     lesen,
+    zeilenLesen,
+    journal,
     haus: hausIn(z, o),
     nutzerLesen: async (name: string) => z.nutzer.get(name),
     nutzer: z.nutzer,

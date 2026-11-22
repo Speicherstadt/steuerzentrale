@@ -102,6 +102,32 @@ describe("the example app", () => {
     expect(await (await fetch("http://127.0.0.1:28486/")).json()).toMatchObject({ titel: "Neu" });
   });
 
+  it("writes the values BEISPIEL_AUSGEBEN names to its log at its start, and only those (Z-405)", async () => {
+    const lauf = Bun.spawn(["bun", SERVER], {
+      env: env({
+        BEISPIEL_HTTP_PORT: "28488",
+        BEISPIEL_TCP_PORT: "28489",
+        BEISPIEL_AUSGEBEN: "BEISPIEL_SCHLUESSEL,BEISPIEL_PASSWORT",
+        BEISPIEL_SCHLUESSEL: "auto+Wert/1==",
+        BEISPIEL_PASSWORT: "pw-4711",
+        BEISPIEL_TITEL: "nicht-genannt",
+      }),
+      stdout: "pipe",
+    });
+    prozesse.push(lauf);
+    const leser = lauf.stdout.getReader();
+    let aus = "";
+    while (!aus.includes("beispiel listening")) {
+      const { done, value } = await leser.read();
+      if (done) break;
+      aus += new TextDecoder().decode(value);
+    }
+    leser.releaseLock();
+    expect(aus).toContain("beispiel test: BEISPIEL_SCHLUESSEL=auto+Wert/1==\n");
+    expect(aus).toContain("beispiel test: BEISPIEL_PASSWORT=pw-4711\n");
+    expect(aus).not.toContain("nicht-genannt");
+  });
+
   it("answers health red in its broken build", async () => {
     expect((await starten(28483, 28484, { BEISPIEL_KAPUTT: "1" })).status).toBe(500);
   });

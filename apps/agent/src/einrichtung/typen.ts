@@ -19,6 +19,8 @@ export type Einrichten = {
   schritte: Schritt[];
   /** What the health check checks (Z-403, src/zustand/ziel.ts), kept once the setup is done */
   ziel: PruefZiel;
+  /** The names of the settings a log excerpt replaces (Z-405), kept once the setup is done */
+  geheim: string[];
 };
 
 /**

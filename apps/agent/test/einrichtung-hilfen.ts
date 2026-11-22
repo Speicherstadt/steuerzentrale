@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { pforteGrundkonfiguration, schluesselLesen } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { geheimenSchluesselLesen, signieren } from "../../../scripts/minisign.ts";
+import type { ZeilenLesen } from "../src/aktionen/journal.ts";
 import { auftraegeAnnehmen } from "../src/auftraege/auftraege.ts";
 import { eingabeRohr, type Spawn } from "../src/auftraege/ausfuehren.ts";
 import type { AuftragNachricht } from "../src/auftraege/pruefen.ts";
@@ -69,6 +70,13 @@ export const sudoLesen: SpawnMitAusgabe = async (argv, signal) => {
   });
   const aus = await new Response(p.stdout).text();
   return { code: (await p.exited) ?? null, aus };
+};
+
+/** Root's journalctl through sudo, its output into the collector, as a log excerpt reads it (Z-405) */
+export const sudoZeilenLesen: ZeilenLesen = async (argv, signal, sammler) => {
+  const r = await sudoLesen(argv, signal);
+  sammler.hinzu(r.aus);
+  return { code: r.code };
 };
 
 const sudo = (...argv: string[]) => lauf(["sudo", "-n", ...argv]);
@@ -161,6 +169,7 @@ export const echterAgent = () => {
       haus: sudoHaus(ordner, besitzer),
       nutzer: nutzerLesen,
       lesen: sudoLesen,
+      journal: sudoZeilenLesen,
       warten: (ms) => Bun.sleep(ms),
     },
     planen,
@@ -192,7 +201,7 @@ export const echterAgent = () => {
     JSON.parse(fs.inhalt.get("/z/installationen.json")?.text ?? '{"installationen":{}}')
       .installationen as Record<string, unknown>;
   const aufraeumen = () => rmSync(ordner, { recursive: true, force: true });
-  return { auftrag, record, besitzer, aufraeumen, zustand };
+  return { auftrag, gesendet, record, besitzer, aufraeumen, zustand };
 };
 
 /** Takes an installation off the runner, whatever state it is in; for afterAll */

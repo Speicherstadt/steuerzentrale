@@ -43,7 +43,7 @@ const fremd = async (deps: EinrichtungsDeps, name: string): Promise<string | und
   return undefined;
 };
 
-const mitZeitlimit = async <T>(
+export const mitZeitlimit = async <T>(
   deps: EinrichtungsDeps,
   ms: number,
   f: (signal: AbortSignal) => Promise<T>,
@@ -75,7 +75,7 @@ const neuEinrichten = async (
     return einrichten(deps, a, lauf, signal);
   });
   if (r.ok) {
-    await deps.gedaechtnis.setzen(a.name, "fertig", { units: a.units, ziel: a.ziel });
+    await deps.gedaechtnis.setzen(a.name, "fertig", { units: a.units, ziel: a.ziel }, a.geheim);
     return { ok: true, daten: { installation: a.name, geaendert: "neu", units: a.units } };
   }
   // the Pforte failed before anything was made: nothing to tear down, nothing recorded
@@ -152,7 +152,7 @@ const konfigurierenAuftrag = async (
   if (!n) return fehler(`abgelehnt: ${nutzerName(a.name)} fehlt`);
   const r = await mitZeitlimit(deps, zeitlimitMs, (signal) => konfigurieren(deps, a, n, signal));
   if (!r.ok) return r;
-  await deps.gedaechtnis.setzen(a.name, "fertig", { units: a.units, ziel: a.ziel });
+  await deps.gedaechtnis.setzen(a.name, "fertig", { units: a.units, ziel: a.ziel }, a.geheim);
   return { ok: true, daten: { installation: a.name, geaendert: "konfiguriert", units: a.units } };
 };
 

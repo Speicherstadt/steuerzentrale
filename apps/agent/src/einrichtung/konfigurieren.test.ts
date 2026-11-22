@@ -126,7 +126,12 @@ describe("reconfiguring an installation", () => {
       ...UNITS,
     ]);
     expect(a.recordGeschrieben()).toBe(1);
-    expect(a.record()[NAME]).toMatchObject({ zustand: "fertig", pruefung: { units: UNITS } });
+    // the names a log excerpt replaces (Z-405) are kept again, from the new signed manifest
+    expect(a.record()[NAME]).toMatchObject({
+      zustand: "fertig",
+      pruefung: { units: UNITS },
+      geheim: ["BEISPIEL_SCHLUESSEL"],
+    });
   });
 
   it("runs no setup step, pulls no image, makes no user and touches no volume", async () => {
