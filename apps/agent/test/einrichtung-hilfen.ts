@@ -28,8 +28,8 @@ export const EINRICHTUNG_BEREIT = process.env.SZ_TEST_EINRICHTUNG === "1";
  * output is read while it runs and not waited for after the end: a child that outlives a killed
  * sudo keeps the pipe open
  */
-export const sudoSpawn: Spawn = async (argv, signal, eingabe) => {
-  const rohr = eingabe === undefined ? undefined : eingabeRohr(eingabe);
+export const sudoSpawn: Spawn = async (argv, signal, o = {}) => {
+  const rohr = o.eingabe === undefined ? undefined : eingabeRohr(o.eingabe);
   const p = Bun.spawn(["sudo", "-n", ...argv], {
     stdin: rohr ?? "ignore",
     stdout: "ignore",

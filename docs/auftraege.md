@@ -79,18 +79,29 @@ zur Installation (Feld `einrichtung`) trägt nur ein Einrichtungsauftrag; jeden 
 diesem Feld lehnt der Agent ab.
 
 Erst dann führt er `argv` aus dem Manifest aus, als feste Argumente ohne Shell, mit
-`podman exec <installation>-<container>`. Läuft der Befehl länger als sein Zeitlimit (aus dem
-Manifest, sonst 900 Sekunden; die Zentrale kann es nur kürzen), beendet ihn der Agent und meldet den
-Auftrag als gescheitert. Einen abgelehnten Auftrag meldet er als gescheitert mit dem Grund
-(„abgelehnt: …“), ohne etwas zu starten.
-
-Erst dann führt er `argv` aus dem Manifest aus, als feste Argumente ohne Shell, mit
 `podman exec <installation>-<container>`, und zwar als Linux-Nutzer der Installation
 (`sz-<installation>`, mit `runuser` und fester Umgebung). Einen Befehl führt er nur für eine
 Installation aus, die er selbst fertig eingerichtet hat; für jede andere lehnt er ihn ab. Läuft der
 Befehl länger als sein Zeitlimit (aus dem Manifest, sonst 900 Sekunden; die Zentrale kann es nur
 kürzen), beendet ihn der Agent und meldet den Auftrag als gescheitert. Einen abgelehnten Auftrag
 meldet er als gescheitert mit dem Grund („abgelehnt: …“), ohne etwas zu starten.
+
+## Zeitlimit
+
+Nach dem Zeitlimit läuft nichts mehr weiter, was der Befehl gestartet hat. `runuser` startet sein
+Kind (`env`, dann `podman exec`) ohne eigene Sitzung und wartet darauf; den Befehl im Container
+startet aber nicht `podman exec`, sondern conmon, in einer eigenen Prozessgruppe, und Podman 4.9
+beendet ihn nicht, wenn `podman exec` stirbt. Deshalb tut der Agent zweierlei:
+
+- Er startet jeden Befehl in einer eigenen Sitzung (`setsid`) und schickt nach dem Zeitlimit
+  `SIGKILL` an deren ganze Prozessgruppe: `runuser`, `env` und `podman exec`.
+- Er gibt jedem Lauf eine eigene Marke mit, `podman exec --env STEUERZENTRALE_LAUF=<uuid> …`. Nach
+  dem Zeitlimit beendet er (als root) jeden Prozess, dessen Umgebung genau diesen Eintrag trägt: den
+  Befehl im Container und die Kinder, die ihn geerbt haben. Er sucht, bis er keinen mehr findet. Die
+  Umgebung eines Prozesses vergleicht er nur, er speichert und schreibt sie nirgends.
+
+Endet der Befehl vor dem Zeitlimit von selbst, beendet der Agent nichts. Dasselbe gilt für die
+Schritte `schritte.einrichten` beim [Installieren](installieren.md).
 
 ## Doppelt zugestellt, Neustart
 

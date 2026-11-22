@@ -8,7 +8,7 @@ import { gelungen, gescheitert, type Schrittergebnis } from "./typen.ts";
  * input can come back in a result.
  */
 
-export type LaufOptionen = { eingabe?: string; zeitlimitMs?: number };
+export type LaufOptionen = { eingabe?: string; zeitlimitMs?: number; marke?: string };
 
 export type Lauf = (
   schritt: string,
@@ -34,7 +34,10 @@ export const laeufer =
           }, o.zeitlimitMs);
     const signal = auftrag ? AbortSignal.any([auftrag, eigen.signal]) : eigen.signal;
     try {
-      const { code } = await deps.spawn(argv, signal, o.eingabe);
+      const { code } = await deps.spawn(argv, signal, {
+        ...(o.eingabe === undefined ? {} : { eingabe: o.eingabe }),
+        ...(o.marke === undefined ? {} : { marke: o.marke }),
+      });
       if (auftrag?.aborted) return ueberschritten();
       if (abgelaufen)
         return gescheitert(

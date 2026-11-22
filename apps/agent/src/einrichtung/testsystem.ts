@@ -1,4 +1,4 @@
-import type { Spawn } from "../auftraege/ausfuehren.ts";
+import { MARKE, type Spawn, type SpawnOptionen } from "../auftraege/ausfuehren.ts";
 import type { Besitzer, HausDateien } from "./haus.ts";
 import type { Nutzer } from "./nutzer.ts";
 
@@ -18,6 +18,8 @@ export type Aufgerufen = {
   /** The environment `env -i` set, for a run as a user */
   umgebung: string[];
   eingabe?: string;
+  /** The mark spawn was given; its `--env` is taken off `podman exec`'s argv when it matches */
+  marke?: string;
 };
 
 export type TestSystemOptionen = {
@@ -37,15 +39,28 @@ export type TestSystemOptionen = {
 
 const SUB = ["/etc/subuid", "/etc/subgid"];
 
-const ohnePraefix = (argv: readonly string[], eingabe?: string): Aufgerufen => {
-  const mit = eingabe === undefined ? {} : { eingabe };
+/** `podman exec --env STEUERZENTRALE_LAUF=<marke> …` without the mark, if it is spawn's */
+const ohneMarke = (argv: string[], marke?: string): string[] =>
+  marke !== undefined &&
+  argv[0] === "podman" &&
+  argv[1] === "exec" &&
+  argv[2] === "--env" &&
+  argv[3] === `${MARKE}=${marke}`
+    ? ["podman", "exec", ...argv.slice(4)]
+    : argv;
+
+const ohnePraefix = (argv: readonly string[], o: SpawnOptionen = {}): Aufgerufen => {
+  const mit = {
+    ...(o.eingabe === undefined ? {} : { eingabe: o.eingabe }),
+    ...(o.marke === undefined ? {} : { marke: o.marke }),
+  };
   if (argv[0] !== "runuser") return { als: "root", argv: [...argv], umgebung: [], ...mit };
   const env = argv.indexOf("env");
   let i = env + 2;
   while (argv[i]?.includes("=")) i++;
   return {
     als: argv[2] ?? "",
-    argv: argv.slice(i),
+    argv: ohneMarke(argv.slice(i), o.marke),
     umgebung: argv.slice(env + 2, i),
     ...mit,
   };
@@ -180,8 +195,8 @@ const hausIn = (z: Zustand, o: TestSystemOptionen): HausDateien => {
 
 export const testSystem = (o: TestSystemOptionen = {}) => {
   const z = zustandAnlegen(o.nutzer ?? []);
-  const spawn: Spawn = (argv, signal, eingabe) => {
-    const a = ohnePraefix(argv, eingabe);
+  const spawn: Spawn = (argv, signal, mit) => {
+    const a = ohnePraefix(argv, mit);
     z.laeufe.push(a);
     if (o.haengt?.(a))
       return new Promise((fertig) =>

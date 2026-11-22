@@ -159,6 +159,11 @@ describe("a setup job", () => {
     expect(argv("podman", "exec")).toEqual([
       ["podman", "exec", `${NAME}-app`, "bun", "/app/server.ts", "migrieren"],
     ]);
+    // marked, so that at its time limit the step's command under conmon is killed too (the test
+    // system takes the mark off the argv only when it is the one spawn was given)
+    expect(
+      a.sys.laeufe.filter((l) => l.argv[1] === "exec").map((l) => l.marke !== undefined),
+    ).toEqual([true]);
   });
 
   it("waits for the units to be active before the setup steps", async () => {

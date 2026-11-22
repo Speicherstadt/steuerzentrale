@@ -112,7 +112,17 @@ describe("a job with a signed manifest", () => {
     const fertig = a.empfangen();
     await weiter();
     expect(a.laeufe.map((l) => l.argv)).toEqual([
-      [...ALS, "podman", "exec", "auftrag-k1-app", "bun", "/app/server.ts", "migrieren"],
+      [
+        ...ALS,
+        "podman",
+        "exec",
+        "--env",
+        expect.stringMatching(/^STEUERZENTRALE_LAUF=[0-9a-f-]{36}$/),
+        "auftrag-k1-app",
+        "bun",
+        "/app/server.ts",
+        "migrieren",
+      ],
     ]);
     expect(a.record().auftraege.a1).toMatchObject({ zustand: "laeuft" });
     a.laeufe[0]?.ende(0);
@@ -136,7 +146,8 @@ describe("a job with a signed manifest", () => {
       auftrag({ aktion: "wiederherstellen", argumente: { snapshot: "a1b2c3d4" } }),
     );
     await weiter();
-    expect(a.laeufe[0]?.argv.slice(ALS.length + 3)).toEqual([
+    // podman exec --env <mark> <container>
+    expect(a.laeufe[0]?.argv.slice(ALS.length + 5)).toEqual([
       "bun",
       "/app/server.ts",
       "wiederherstellen",
