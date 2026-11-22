@@ -34,6 +34,13 @@ Platzierung zeigt bei jeder Änderung, ob die App passt, mit jedem Grund. Die In
 zeigen die Installationen der Zentrale mit Zustand und Aufträgen; eine gescheiterte Einrichtung lässt
 sich mit Grund entfernen ([Apps installieren](docs/installieren.md)).
 
+**Einstellungen:** die Einstellungen jeder App entstehen als Formular aus ihrem Manifest. Unter
+Einstellungen → Apps pflegt der Betreiber seine Werte je App; ein Geheimnis erscheint nur als
+„gesetzt“, ein leeres geheimes Feld behält den Wert. Fehlt beim Installieren ein Pflichtwert des
+Betreibers, fragt der Dialog ihn ab. Eine laufende Installation bekommt neue Werte mit
+„Einstellungen ändern“ und Grund: der Agent konfiguriert sie neu, nie in einer Sperrzeit, und die
+Werte gelten erst nach seinem Erfolg ([Einstellungen](docs/einstellungen.md)).
+
 **Health und Zustand:** der Agent meldet alle 30 Sekunden Units und Health jeder Installation; die
 Zentrale bewertet sie grün, gelb, rot oder unbekannt, immer mit Grund (ohne Meldung seit 90 Sekunden
 unbekannt, nie grün), hält jeden Wechsel im Verlauf und meldet nach 5 Minuten Rot eine Störung. Liste
