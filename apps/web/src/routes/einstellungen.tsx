@@ -1,18 +1,21 @@
 import { m, Tabs } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
 import { bestand } from "../daten/quelle.ts";
+import { AppWerte } from "../seiten/einstellungen-apps.tsx";
 import {
   Backup,
   Benachrichtigungen,
   Darstellung,
   Dns,
   Konten,
-  WerteJeApp,
   Zentrale,
 } from "../seiten/einstellungen-teile.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
 
-/** Operator values per app, backup target, DNS, notifications, accounts, the Zentrale, the look */
+/**
+ * The operator's values per app (Z-404: a form from each app's manifest), backup target, DNS,
+ * notifications, accounts, the Zentrale, the look
+ */
 
 const REITER = ["werte", "backup", "dns", "melden", "konten", "zentrale", "darstellung"] as const;
 type Reiter = (typeof REITER)[number];
@@ -32,7 +35,7 @@ const Einstellungen = () => {
             label: m.einst_werte(),
             content: () => (
               <div class="grid gap-4">
-                <WerteJeApp b={b} />
+                <AppWerte />
               </div>
             ),
           },

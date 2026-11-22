@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { EINRICHTUNG_AKTIONEN, PFORTE_AKTIONEN } from "@steuerzentrale/manifest";
 import { describe, expect, it } from "vitest";
 import {
@@ -9,6 +8,7 @@ import {
   installationsPorts,
 } from "../../db/schema.ts";
 import {
+  dateiInhalt,
   installationsUmgebung,
   KENNWORT,
   LIZENZ,
@@ -60,18 +60,6 @@ const einrichtenJob = (u: U, installationId: string) =>
   jobs(u).find(
     (a) => a.installationId === installationId && a.aktion === EINRICHTUNG_AKTIONEN.einrichten,
   );
-
-/** The database file and its write-ahead log, as bytes an attacker with the disk would read */
-const dateiInhalt = (pfad: string): string =>
-  [pfad, `${pfad}-wal`]
-    .map((datei) => {
-      try {
-        return readFileSync(datei).toString("latin1");
-      } catch {
-        return "";
-      }
-    })
-    .join("");
 
 describe("a new installation", () => {
   it("gets its name, ports and a setup job with the Pforte's route waiting for it", () => {

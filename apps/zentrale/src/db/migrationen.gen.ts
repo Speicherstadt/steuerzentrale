@@ -47,5 +47,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0011_zustand",
     "sql": "CREATE TABLE `installation_verlauf` (\n\t`betreiber_id` text NOT NULL,\n\t`installation_id` text NOT NULL,\n\t`zeitpunkt` integer NOT NULL,\n\t`bewertung` text NOT NULL,\n\t`grund` text NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `installation_id`, `zeitpunkt`),\n\tFOREIGN KEY (`betreiber_id`,`installation_id`) REFERENCES `installationen`(`betreiber_id`,`installation_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `installation_verlauf_zeitpunkt` ON `installation_verlauf` (`zeitpunkt`);--> statement-breakpoint\nALTER TABLE `installationen` ADD `bewertung` text;--> statement-breakpoint\nALTER TABLE `installationen` ADD `bewertung_grund` text;--> statement-breakpoint\nALTER TABLE `installationen` ADD `bewertung_seit` integer;--> statement-breakpoint\nALTER TABLE `installationen` ADD `gemeldet_am` integer;--> statement-breakpoint\nALTER TABLE `installationen` ADD `meldung` text;"
+  },
+  {
+    "tag": "0012_konfigurieren",
+    "sql": "CREATE TABLE `installation_konfigurationen` (\n\t`betreiber_id` text NOT NULL,\n\t`auftrag_id` text NOT NULL,\n\t`installation_id` text NOT NULL,\n\t`einstellungen` text NOT NULL,\n\t`geheim` text NOT NULL,\n\t`angelegt_am` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `auftrag_id`),\n\tFOREIGN KEY (`betreiber_id`,`installation_id`) REFERENCES `installationen`(`betreiber_id`,`installation_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `installation_konfigurationen_installation` ON `installation_konfigurationen` (`betreiber_id`,`installation_id`);"
   }
 ];

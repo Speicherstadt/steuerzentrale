@@ -9,6 +9,11 @@ export {
 export { einrichtungFuer } from "./einrichtung.ts";
 export { type Entfernt, installationEntfernen } from "./entfernen.ts";
 export {
+  installationKonfigurieren,
+  installationsFormular,
+  type Konfiguriert,
+} from "./konfigurieren.ts";
+export {
   auftraegeDerInstallation,
   type Installation,
   installationenAufServer,

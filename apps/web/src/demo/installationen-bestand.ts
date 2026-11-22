@@ -2,6 +2,7 @@ import { EINRICHTUNG_AKTIONEN, type PlatzInstallation } from "@steuerzentrale/ma
 import type { AuftragDerInstallation, InstallationMitAuftraegen } from "../daten/installationen.ts";
 import type { Installation } from "../daten/typen.ts";
 import { apps } from "./apps.ts";
+import { demoFelder } from "./einstellungen.ts";
 import { installationen } from "./installationen.ts";
 import { demoHealth, ohneMeldung } from "./installationen-health.ts";
 import { ausDemoApp } from "./platz.ts";
@@ -56,6 +57,13 @@ const ausFixture = (i: Installation, n: number, jetzt: number): Eintrag => ({
     angelegtAm: i.laeuftSeit,
     geaendertAm: i.laeuftSeit,
     auftraege: [nachAuftrag(i.id, EINRICHTUNG_AKTIONEN.einrichten, "erfolgreich", i.laeuftSeit)],
+    formular: {
+      felder: demoFelder(
+        apps.find((a) => a.id === i.app),
+        "installation",
+      ),
+      gesetzt: [],
+    },
   },
   platz: ausDemoApp(
     i.kunde,
@@ -92,6 +100,7 @@ const gescheitert = (jetzt: number): Eintrag => {
         nachAuftrag(GESCHEITERT, EINRICHTUNG_AKTIONEN.einrichten, "gescheitert", t, "image ziehen"),
         nachAuftrag(GESCHEITERT, "pforte_route_setzen", "abgebrochen", t),
       ],
+      formular: { felder: [], gesetzt: [] },
     },
     platz: { kundeId: "aust", ramMb: 0, platteGb: 0, festePorts: [], serverFuerSich: false },
     bietet: [],
