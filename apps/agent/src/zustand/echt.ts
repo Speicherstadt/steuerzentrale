@@ -1,4 +1,5 @@
 import { createConnection } from "node:net";
+import { gruppeBeiAbbruch } from "../auftraege/ausfuehren.ts";
 import { PATH } from "../einrichtung/nutzer.ts";
 import type { SpawnMitAusgabe, Verbinden } from "./pruefen.ts";
 
@@ -39,19 +40,26 @@ const ausgabeLesen = async (
   }
 };
 
-/** Bun's spawn as in auftraege/ausfuehren.ts (no shell, no input, only PATH), its output read */
+/**
+ * Bun's spawn as in auftraege/ausfuehren.ts (no shell, no input, only PATH, a session of its own
+ * whose process group the signal kills, runuser's child with it), its output read
+ */
 export const echtLesen: SpawnMitAusgabe = async (argv, signal) => {
   const lauf = Bun.spawn([...argv], {
     stdin: "ignore",
     stdout: "pipe",
     stderr: "ignore",
     cwd: "/",
-    signal,
-    killSignal: "SIGKILL",
+    detached: true,
     env: { PATH, LC_ALL: "C" },
   });
-  const aus = await ausgabeLesen(lauf.stdout, signal);
-  return { code: (await lauf.exited) ?? null, aus };
+  const aufheben = gruppeBeiAbbruch(lauf, signal);
+  try {
+    const aus = await ausgabeLesen(lauf.stdout, signal);
+    return { code: (await lauf.exited) ?? null, aus };
+  } finally {
+    aufheben();
+  }
 };
 
 export const echtVerbinden: Verbinden = (host, port, signal) =>

@@ -45,14 +45,17 @@ export const pruefDeps = (a: Antworten = {}) => {
   const u = uhr();
   const gerufen = {
     spawn: [] as string[][],
+    /** The mark each spawn was given (auftraege/ausfuehren.ts, imContainer) */
+    marken: [] as (string | undefined)[],
     lesen: [] as string[][],
     holen: [] as { url: string; init: RequestInit }[],
     verbinden: [] as { host: string; port: number }[],
   };
   const deps: PruefDeps = {
     planen: u.planen,
-    spawn: async (argv, signal) => {
+    spawn: async (argv, signal, o) => {
       gerufen.spawn.push([...argv]);
+      gerufen.marken.push(o?.marke);
       const r = a.spawn?.(argv) ?? 0;
       if (r === "haengt") return haengt(signal);
       if (r instanceof Error) throw r;

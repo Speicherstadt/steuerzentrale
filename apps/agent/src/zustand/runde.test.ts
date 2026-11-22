@@ -106,7 +106,7 @@ describe("a round of checks", () => {
         ],
       },
     });
-    expect(p.gerufen).toEqual({ spawn: [], lesen: [], holen: [], verbinden: [] });
+    expect(p.gerufen).toEqual({ spawn: [], marken: [], lesen: [], holen: [], verbinden: [] });
   });
 
   it("reports units unknown when the installation's user is gone", async () => {

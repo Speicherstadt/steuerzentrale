@@ -125,6 +125,20 @@ const gruppeToeten = (lauf: ReturnType<typeof Bun.spawn>): void => {
 };
 
 /**
+ * Kills the process group of a process started with Bun's `detached` (its own session) when the
+ * signal aborts; returns what takes the listener off again, once the process has ended
+ */
+export const gruppeBeiAbbruch = (
+  lauf: ReturnType<typeof Bun.spawn>,
+  signal: AbortSignal,
+): (() => void) => {
+  const abbrechen = () => gruppeToeten(lauf);
+  signal.addEventListener("abort", abbrechen, { once: true });
+  if (signal.aborted) abbrechen();
+  return () => signal.removeEventListener("abort", abbrechen);
+};
+
+/**
  * Bun's spawn: no shell, input only when given (a Podman secret, on a named pipe), output dropped
  * (log excerpts come with Z-405), in / and with no environment of the agent's but PATH: what a
  * process as another user needs, runuser and `env -i` set (einrichtung/nutzer.ts). It starts in a
@@ -147,14 +161,12 @@ export const echtSpawn: Spawn = async (argv, signal, o = {}) => {
   } finally {
     if (rohr !== undefined) closeSync(rohr);
   }
-  const abbrechen = () => gruppeToeten(lauf);
-  signal.addEventListener("abort", abbrechen, { once: true });
-  if (signal.aborted) abbrechen();
+  const aufheben = gruppeBeiAbbruch(lauf, signal);
   let code: number | null;
   try {
     code = (await lauf.exited) ?? null;
   } finally {
-    signal.removeEventListener("abort", abbrechen);
+    aufheben();
   }
   if (signal.aborted && o.marke !== undefined) await markierteBeenden(`${MARKE}=${o.marke}`);
   return { code };

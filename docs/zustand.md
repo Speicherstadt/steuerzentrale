@@ -33,6 +33,10 @@ Der Host-Port ist der Port auf 127.0.0.1, den die Zentrale dem Dienst vergeben h
 von `netz.http` der HTTP-Port der Installation, für einen Port aus `netz.ports` sein vergebener oder
 fester Port. Ohne eigenen `port` prüft `http` den Port von `netz.http`.
 
+Läuft ein Befehl (`befehl`) oder `systemctl show` ins Zeitlimit, beendet der Agent alles, was er
+gestartet hat, auch den Befehl im Container unter conmon; nichts bleibt verwaist zurück, obwohl die
+Prüfung alle 30 Sekunden läuft. Wie, steht unter [Aufträge](auftraege.md#zeitlimit).
+
 Das Ergebnis ist `gruen`, `rot` oder `unbekannt`, immer mit einem kurzen Grund, etwa „HTTP 200“,
 „HTTP 500“, „keine Antwort in 5 s“, „Befehl endete mit Code 1“. Der Grund enthält nie, was ein
 Befehl oder die App ausgegeben hat.
