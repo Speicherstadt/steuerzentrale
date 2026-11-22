@@ -86,6 +86,27 @@ describe("a restart of an installation", () => {
     expect(a.seither()).toEqual([]);
   });
 
+  it("is refused with the manifest of another app or version than the installation's", async () => {
+    // the installation's own manifest does not offer the restart; a job may not lend it another
+    const ohne = aktionsManifest(
+      "{ nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt, neustart: nicht_unterstuetzt }",
+    );
+    const a = einrichtungsAgent();
+    await a.empfangen(aktionsEinrichtung(ohne));
+    expect(a.ergebnis()).toMatchObject({ ok: true });
+    const vorher = a.sys.laeufe.length;
+    const fremde = [
+      aktionsManifest().replace("id: beispiel", "id: anderes"),
+      aktionsManifest(undefined, "1.0.1"),
+    ];
+    for (const [i, manifest] of fremde.entries()) {
+      await a.empfangen(aktionsAuftrag("neustart", { auftragId: `fremd-${i}` }, manifest));
+      expect(a.ergebnis()).toMatchObject({ ok: false });
+      expect(String((a.ergebnis() as { fehler?: string }).fehler)).toMatch(/^abgelehnt: /);
+    }
+    expect(a.sys.laeufe.slice(vorher)).toEqual([]);
+  });
+
   it("is refused with arguments or installation data", async () => {
     const a = await eingerichteterAgent();
     await a.empfangen(aktionsAuftrag("neustart", { argumente: { units: "alle" } }));

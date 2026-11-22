@@ -124,6 +124,40 @@ describe("a log excerpt of an installation", () => {
     expect(a.gesendet.some((g) => g.typ === "log_auszug")).toBe(false);
   });
 
+  it("is refused with the manifest of another app than the installation's", async () => {
+    // the installation's own manifest does not offer the log excerpt; a job may not lend it another
+    const ohne = aktionsManifest(
+      "{ nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt, log_auszug: { nicht_unterstuetzt: Datenschutz } }",
+    );
+    const a = await eingerichteterAgent(undefined, ohne);
+    a.sys.journal.set(a.uid, `${zeile("kundendaten")}\n`);
+    const fremd = aktionsManifest().replace("id: beispiel", "id: anderes");
+    await a.empfangen(aktionsAuftrag("log_auszug", {}, fremd));
+    expect(a.ergebnis()).toMatchObject({ ok: false });
+    expect(a.seither().some((l) => l.argv[0] === "journalctl")).toBe(false);
+    expect(a.gesendet.some((g) => g.typ === "log_auszug")).toBe(false);
+  });
+
+  it("replaces the rest of a value at the start of an entry that continues a split line", async () => {
+    // conmon writes a line longer than its buffer of 8192 bytes as several entries (STDIO_BUF_SIZE,
+    // CONTAINER_PARTIAL_MESSAGE in src/ctr_logging.c of containers/conmon): a value can be cut in
+    // two, its first part at the end of one entry, the rest at the start of the next
+    const a = await eingerichteterAgent();
+    const teil = 8;
+    a.sys.journal.set(
+      a.uid,
+      [
+        zeile(`{"config":"${"x".repeat(8150)}${AUTO.slice(0, teil)}`),
+        zeile(`${AUTO.slice(teil)}","ende":1}`),
+        "",
+      ].join("\n"),
+    );
+    await a.empfangen(aktionsAuftrag("log_auszug"));
+    const auszug = a.gesendet.at(-2) as { zeilen: string[] };
+    expect(auszug.zeilen[1]).toBe(zeile('[geheim]","ende":1}'));
+    expect(JSON.stringify(auszug)).not.toContain(AUTO.slice(teil));
+  });
+
   it("is refused for an installation this agent did not set up and finish", async () => {
     for (const anfang of [{}, eingerichtet({ [NAME]: "angelegt" })]) {
       const a = einrichtungsAgent({ anfang });
