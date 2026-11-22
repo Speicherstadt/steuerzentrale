@@ -28,6 +28,16 @@ export {
 
 /** The manifest schema version this build reads (docs/plan.md, "Manifest": `schema: 1`) */
 export const MANIFEST_SCHEMA = 1;
+export {
+  EINRICHTUNG_AKTIONEN,
+  EINRICHTUNG_ZEITLIMIT_S,
+  type Einrichtung,
+  type EinrichtungAnfrage,
+  type EinrichtungAuftrag,
+  type EinrichtungGeprueft,
+  einrichtungAuftragPruefen,
+  istEinrichtungAktion,
+} from "./einrichtung/auftraege.ts";
 export { manifestJsonSchema } from "./json-schema.ts";
 export {
   istPforteAktion,
@@ -52,6 +62,7 @@ export { PFORTE_ADMIN_VERZEICHNIS, PFORTE_UNIT, pforteUnit } from "./pforte/unit
 export {
   type Befund as PlatzBefund,
   festePorts,
+  istOeffentlich as istOeffentlicheIpv4,
   type PlatzAnfrage,
   type PlatzInstallation,
   type Platzierung,
@@ -61,7 +72,7 @@ export {
   ramBedarf,
   WARNSCHWELLE,
 } from "./platzierung.ts";
-export { INSTALLATIONS_NAME } from "./quadlet/eingabe.ts";
+export { HOST, INSTALLATIONS_NAME } from "./quadlet/eingabe.ts";
 export { type PforteRoute, STREAM_SCHLIESSEN_NACH } from "./quadlet/pforte.ts";
 export { quadletsRendern } from "./quadlet/rendern.ts";
 export { PODMAN_4_9_SCHLUESSEL } from "./quadlet/schluessel.ts";

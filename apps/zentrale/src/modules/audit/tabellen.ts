@@ -1,5 +1,6 @@
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import {
+  appEinstellungen,
   auftraege,
   betreiber,
   einladungen,
@@ -7,6 +8,8 @@ import {
   fakten,
   geheimnisse,
   heartbeats,
+  installationen,
+  installationsPorts,
   kunden,
   logAuszuege,
   mitglieder,
@@ -38,6 +41,13 @@ export const tabellen = {
   },
   fakten: { tabelle: fakten, schluessel: ["serverId", "zeitpunkt"], zeit: fakten.zeitpunkt },
   auftraege: { tabelle: auftraege, schluessel: ["auftragId"], zeit: undefined },
+  installationen: { tabelle: installationen, schluessel: ["installationId"], zeit: undefined },
+  installationsPorts: {
+    tabelle: installationsPorts,
+    schluessel: ["serverId", "port"],
+    zeit: undefined,
+  },
+  appEinstellungen: { tabelle: appEinstellungen, schluessel: ["app", "name"], zeit: undefined },
 } satisfies Record<
   string,
   { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined }
@@ -51,6 +61,8 @@ export type TabellenName = keyof typeof tabellen;
  */
 export const verschluesselteSpalten: Partial<Record<TabellenName, readonly string[]>> = {
   geheimnisse: ["wert"],
+  installationen: ["geheim"],
+  appEinstellungen: ["wertVerschluesselt"],
 };
 /**
  * Columns the audit log records only as set: a job's manifest text and signature (Z-305) would put
@@ -58,6 +70,7 @@ export const verschluesselteSpalten: Partial<Record<TabellenName, readonly strin
  */
 export const ausgelasseneSpalten: Partial<Record<TabellenName, readonly string[]>> = {
   auftraege: ["manifest", "signatur"],
+  installationen: ["manifest", "signatur"],
 };
 export type Tabelle<N extends TabellenName> = (typeof tabellen)[N]["tabelle"];
 

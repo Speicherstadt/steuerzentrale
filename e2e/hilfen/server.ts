@@ -15,5 +15,5 @@ export const serverAnlegen = async (request: APIRequestContext, name: string) =>
     },
   });
   expect(antwort.status()).toBe(201);
-  return (await antwort.json()) as { serverId: string; name: string };
+  return (await antwort.json()) as { serverId: string; name: string; befehl: string };
 };

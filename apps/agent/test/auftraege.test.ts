@@ -20,6 +20,8 @@ import { agentBeitreten, pforteTls } from "../../zentrale/src/testhilfen/tls.ts"
 import { auftraegeAnnehmen } from "../src/auftraege/auftraege.ts";
 import type { Spawn } from "../src/auftraege/ausfuehren.ts";
 import { speicher, TEST_PUB } from "../src/beitritt/testhilfen.ts";
+import { eingerichtet, installationenAuf } from "../src/einrichtung/testauftraege.ts";
+import { testSystem } from "../src/einrichtung/testsystem.ts";
 import { pfadeIn } from "../src/pfade.ts";
 import { testCaddy } from "../src/pforte/testcaddy.ts";
 import { echtOeffnen } from "../src/verbindung/sockel.ts";
@@ -46,7 +48,12 @@ const aufgebaut = async () => {
   const tls = await pforteTls();
   const pforte = testPforte({ ziel: bun.port ?? 0, ...tls, clientCas: [agent.ca] });
   const pfade = pfadeIn("/k", "/z");
+  // since Z-402 a command runs only in an installation the agent set up, as its user
+  const server = testSystem({
+    nutzer: [{ name: "sz-auftrag-k1", uid: 1001, gid: 1001, home: "/home/sz-auftrag-k1" }],
+  });
   const fs = speicher({
+    ...eingerichtet({ "auftrag-k1": "fertig" }),
     [pfade.schluessel]: agent.schluessel,
     [pfade.zertifikat]: agent.zertifikat,
   });
@@ -84,6 +91,7 @@ const aufgebaut = async () => {
         vertrauen: { schluessel, zweck: "test" },
         spawn,
         pforte: { admin: caddy.admin, grund: pforteGrundkonfiguration() },
+        installationen: installationenAuf(server),
         planen,
         jetzt: Date.now,
         log: () => {},
@@ -135,7 +143,8 @@ describe("a job through Pforte, Zentrale and agent", () => {
       "start a1b2c3d4",
       "ende a1b2c3d4",
     ]);
-    expect(laeufe[1]).toEqual([
+    expect(laeufe[1]?.slice(0, 3)).toEqual(["runuser", "-u", "sz-auftrag-k1"]);
+    expect(laeufe[1]?.slice(laeufe[1].indexOf("podman"))).toEqual([
       "podman",
       "exec",
       "auftrag-k1-app",

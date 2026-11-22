@@ -5,5 +5,8 @@
     "types": ["bun"],
     "rootDir": ".."
   },
+  // the stand-in agent asks for its certificate as the Zentrale's tests do (testhilfen/agent.ts),
+  // and the manifest is signed with the test key as scripts/minisign.ts signs
+  "references": [{ "path": "../apps/zentrale" }, { "path": "../scripts" }],
   "include": ["**/*.ts", "../playwright.config.ts"]
 }

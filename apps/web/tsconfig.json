@@ -9,6 +9,9 @@
   "include": ["src", "vite.config.ts"],
   "references": [
     {
+      "path": "../../packages/manifest"
+    },
+    {
       "path": "../../packages/ui"
     }
   ]

@@ -69,11 +69,13 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 | Kunden und Verträge sehen | ja | ja | ja |
 | Kunden anlegen, ändern, kündigen | ja | ja | – |
 | Server hinzufügen | ja | ja | – |
+| Installationen und Platzierung sehen | ja | ja | ja |
+| Installationen anlegen, gescheiterte entfernen | ja | ja | – |
 
 Die Rollen sind die Zugriffssteuerung des Organization-Plugins von Better Auth; jeder Betreiber ist
 dort eine Organisation mit derselben ID. Ein Betreiber behält immer einen Inhaber: der letzte kann
 seine Rolle nicht abgeben und nicht entfernt werden. Wer entfernt wird, verliert den Zugang sofort.
-Weitere Rechte (Installationen, Support-Zugänge) kommen mit ihren Punkten der Bauliste.
+Weitere Rechte (Support-Zugänge, Updates) kommen mit ihren Punkten der Bauliste.
 Technik legt Kunden an und pflegt ihre Verträge, weil eine Installation von ihnen ausgeht; Support
 sieht sie nur ([Kunden und Verträge](kunden.md)).
 
@@ -92,6 +94,8 @@ oder geändert hat.
 | `GET`, `POST /api/v1/einladungen`, `DELETE …/:einladungId` | Inhaber |
 | `GET /api/v1/kunden`, `GET …/:kundeId` | alle Rollen ([Kunden und Verträge](kunden.md)) |
 | `POST /api/v1/kunden`, `PUT …/:kundeId`, `PUT`, `DELETE …/:kundeId/kuendigung` | Inhaber, Technik |
+| `GET /api/v1/installationen`, `GET …/:installationId`, `POST …/platzierung` | alle Rollen ([Apps installieren](installieren.md)) |
+| `POST /api/v1/installationen`, `DELETE …/:installationId` | Inhaber, Technik |
 
 Von Better Auth unter `/api/auth` sind nur Anmeldung (`sign-in/email`, Passkey, TOTP, Ersatzcode),
 Abmelden, die Sitzung und das Einrichten von Passkey und TOTP erreichbar; Registrieren, die Routen der

@@ -1,5 +1,7 @@
+import { readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
-import { ausfuehren, echtSpawn } from "./ausfuehren.ts";
+import { ausfuehren, EINGABE_PRAEFIX, echtSpawn } from "./ausfuehren.ts";
 
 /*
  * BAULISTE.md Z-305: the real spawn starts a fixed argv without a shell and kills it when the time
@@ -21,12 +23,44 @@ describe("echtSpawn", () => {
     expect(Date.now() - beginn).toBeLessThan(5000);
   });
 
+  // Podman 4.9 reads `secret create … -` only from a named pipe (cmd/podman/secrets/create.go);
+  // Bun hands a buffer or "pipe" over as a socket, which it refuses
+  it("hands its input over on a named pipe, all of it, and leaves no file behind", async () => {
+    const signal = new AbortController().signal;
+    expect((await echtSpawn(["test", "-p", "/dev/stdin"], signal, "geheim")).code).toBe(0);
+    expect((await echtSpawn(["grep", "-qx", "geheim"], signal, "geheim")).code).toBe(0);
+    expect((await echtSpawn(["grep", "-qx", "anders"], signal, "geheim")).code).toBe(1);
+    expect(readdirSync(tmpdir()).filter((n) => n.startsWith(EINGABE_PRAEFIX))).toEqual([]);
+  });
+
+  // Review Z-402: the pipe's buffer holds 64 KiB; a longer input written before the process reads
+  // blocked writeSync, and with it the agent's whole event loop, for ever. In a child process, so
+  // that a hang fails this test instead of the test run
+  it("does not hang the agent on an input longer than a pipe's buffer", async () => {
+    const skript = [
+      `import { echtSpawn } from ${JSON.stringify(new URL("./ausfuehren.ts", import.meta.url).pathname)};`,
+      `try { await echtSpawn(["cat"], new AbortController().signal, "x".repeat(100_000)); } catch {}`,
+      "process.exit(0);",
+    ].join("\n");
+    const kind = Bun.spawn(["bun", "-e", skript], { stdout: "ignore", stderr: "ignore" });
+    const zeit = setTimeout(() => kind.kill("SIGKILL"), 10_000);
+    const code = await kind.exited;
+    clearTimeout(zeit);
+    expect(code).toBe(0);
+  }, 15_000);
+
   it("hands each word over as it is, with no shell to read it", async () => {
     const { code } = await echtSpawn(
       ["test", "$(false)", "=", "$(false)"],
       new AbortController().signal,
     );
     expect(code).toBe(0);
+  });
+
+  it("hands the input to the process on its standard input", async () => {
+    const abbruch = new AbortController().signal;
+    expect((await echtSpawn(["grep", "-qx", "geheim"], abbruch, "geheim\n")).code).toBe(0);
+    expect((await echtSpawn(["grep", "-qx", "geheim"], abbruch, "anders\n")).code).toBe(1);
   });
 
   it("throws for a program that is not there", async () => {
@@ -38,9 +72,13 @@ describe("echtSpawn", () => {
 
 describe("ausfuehren with the real spawn", () => {
   it("reports the time limit when it had to kill", async () => {
-    // podman is not here: a stand-in that runs the plan's argv without the prefix
+    // podman and the installation's user are not here: a stand-in that runs the plan's argv
+    // without runuser's and podman's prefix
     const ergebnis = await ausfuehren(
-      { spawn: (argv, signal) => echtSpawn(argv.slice(3), signal), planen: echtPlanen },
+      {
+        spawn: (argv, signal) => echtSpawn(argv.slice(argv.indexOf("exec") + 2), signal),
+        planen: echtPlanen,
+      },
       {
         art: "befehl",
         aktion: "langsam",
@@ -50,6 +88,7 @@ describe("ausfuehren with the real spawn", () => {
         zeitlimitMs: 100,
         idempotent: false,
       },
+      { name: "sz-i", uid: 1001, gid: 1001, home: "/home/sz-i" },
     );
     expect(ergebnis).toEqual({
       ok: false,

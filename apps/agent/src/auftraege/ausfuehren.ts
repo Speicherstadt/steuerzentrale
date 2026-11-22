@@ -1,65 +1,117 @@
+import { closeSync, constants, mkdtempSync, openSync, rmSync, writeSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { alsNutzer, type Nutzer, PATH } from "../einrichtung/nutzer.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
 import type { Plan } from "./pruefen.ts";
 
 /*
  * Running a checked job (BAULISTE.md Z-305): the command's argv from the signed manifest as a fixed
  * argv in its installation's container, never through a shell, killed when its time limit runs
- * out. The process is started by a spawn passed in, so the logic is tested without one; Z-402
- * brings the installation's Linux user and its units, which the real spawn then runs as.
+ * out. Since Z-402 it runs as the installation's Linux user (docs/plan.md, "Was ein Auftrag
+ * ausführt"), whose rootless Podman runs the container. The process is started by a spawn passed
+ * in, so the logic is tested without one.
  */
 
-/** Runs a fixed argv; the signal kills it. Throws when it cannot start */
+/** Runs a fixed argv; the signal kills it; `eingabe` is its standard input. Throws when it cannot start */
 export type Spawn = (
   argv: readonly string[],
   signal: AbortSignal,
+  eingabe?: string,
 ) => Promise<{ code: number | null }>;
 
 export type Ergebnis = { ok: true; daten: Record<string, unknown> } | { ok: false; fehler: string };
 
 /** The container of an installation is named `<installation>-<container>` (its Quadlet unit) */
-export const befehlArgv = (plan: Plan): string[] => [
-  "podman",
-  "exec",
-  `${plan.installationId}-${plan.container}`,
-  ...plan.argv,
-];
+export const befehlArgv = (plan: Plan, nutzer: Nutzer): string[] =>
+  alsNutzer(nutzer, ["podman", "exec", `${plan.installationId}-${plan.container}`, ...plan.argv]);
 
-const PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
-
-/** The agent's own HOME and XDG_RUNTIME_DIR, where podman finds its storage and its socket */
-const umgebung = (): Record<string, string> =>
-  Object.fromEntries(
-    ["HOME", "XDG_RUNTIME_DIR"].flatMap((name) => {
-      const wert = process.env[name];
-      return wert === undefined ? [] : [[name, wert]];
-    }),
-  );
+/** The folder of a named pipe for a process's input, under the agent's temporary folder */
+export const EINGABE_PRAEFIX = "sz-eingabe-";
 
 /**
- * Bun's spawn: no shell, no input, output dropped (log excerpts come with Z-405), SIGKILL on abort,
- * and of the agent's environment only what podman needs
+ * A process's input on a named pipe, the read end of it: Podman 4.9 takes `secret create … -` only
+ * from one (cmd/podman/secrets/create.go), and Bun hands a buffer or "pipe" over as a socket. The
+ * value is written into the pipe's buffer (a secret is far below its 64 KiB; a longer input is
+ * refused, never waited for) and the write end
+ * closed, so the process reads it and then the end; the pipe's node is gone before the process
+ * starts, in a folder only its owner (root) can enter: the value is never on disk, in an argv or in
+ * the environment. The caller closes the descriptor once the process has it
  */
-export const echtSpawn: Spawn = async (argv, signal) => {
-  const lauf = Bun.spawn([...argv], {
-    stdin: "ignore",
-    stdout: "ignore",
-    stderr: "ignore",
-    signal,
-    killSignal: "SIGKILL",
-    env: { PATH, LC_ALL: "C", ...umgebung() },
-  });
+/**
+ * Writes the input into the pipe without ever blocking: nobody reads it before the process starts,
+ * so a blocking write longer than the buffer would stop the agent's event loop for good. An input
+ * the buffer cannot hold is refused instead (the error names no part of it)
+ */
+const rohrFuellen = (rohr: string, eingabe: string): void => {
+  const bytes = Buffer.from(eingabe, "utf8");
+  const schreiben = openSync(rohr, constants.O_WRONLY | constants.O_NONBLOCK);
+  try {
+    let geschrieben = 0;
+    while (geschrieben < bytes.length)
+      geschrieben += writeSync(schreiben, bytes, geschrieben, bytes.length - geschrieben);
+  } catch (fehler) {
+    if ((fehler as NodeJS.ErrnoException).code === "EAGAIN")
+      throw new Error(`the input of ${bytes.length} bytes is longer than a pipe's buffer`);
+    throw fehler;
+  } finally {
+    closeSync(schreiben);
+  }
+};
+
+export const eingabeRohr = (eingabe: string): number => {
+  const ordner = mkdtempSync(join(tmpdir(), EINGABE_PRAEFIX));
+  try {
+    const rohr = join(ordner, "eingabe");
+    const mk = Bun.spawnSync(["mkfifo", "-m", "0600", rohr], { cwd: "/", env: { PATH } });
+    if (mk.exitCode !== 0) throw new Error("mkfifo failed");
+    const lesen = openSync(rohr, constants.O_RDONLY | constants.O_NONBLOCK);
+    try {
+      rohrFuellen(rohr, eingabe);
+    } catch (fehler) {
+      closeSync(lesen);
+      throw fehler;
+    }
+    return lesen;
+  } finally {
+    rmSync(ordner, { recursive: true, force: true });
+  }
+};
+
+/**
+ * Bun's spawn: no shell, input only when given (a Podman secret, on a named pipe), output dropped (log excerpts come
+ * with Z-405), SIGKILL on abort, in / and with no environment of the agent's but PATH: what a
+ * process as another user needs, runuser and `env -i` set (einrichtung/nutzer.ts)
+ */
+export const echtSpawn: Spawn = async (argv, signal, eingabe) => {
+  const rohr = eingabe === undefined ? undefined : eingabeRohr(eingabe);
+  let lauf: ReturnType<typeof Bun.spawn>;
+  try {
+    lauf = Bun.spawn([...argv], {
+      stdin: rohr ?? "ignore",
+      stdout: "ignore",
+      stderr: "ignore",
+      cwd: "/",
+      signal,
+      killSignal: "SIGKILL",
+      env: { PATH, LC_ALL: "C" },
+    });
+  } finally {
+    if (rohr !== undefined) closeSync(rohr);
+  }
   return { code: (await lauf.exited) ?? null };
 };
 
 const kurz = (text: string) => text.slice(0, 500);
 
 /**
- * Runs the plan within its time limit; an argv still running then is killed and the job failed.
- * A non-zero exit fails it too; the exit code is the result's data.
+ * Runs the plan as the installation's user within its time limit; an argv still running then is
+ * killed and the job failed. A non-zero exit fails it too; the exit code is the result's data.
  */
 export const ausfuehren = async (
   deps: { spawn: Spawn; planen: Planer },
   plan: Plan,
+  nutzer: Nutzer,
 ): Promise<Ergebnis> => {
   const abbruch = new AbortController();
   let abgelaufen = false;
@@ -68,7 +120,7 @@ export const ausfuehren = async (
     abbruch.abort();
   }, plan.zeitlimitMs);
   try {
-    const { code } = await deps.spawn(befehlArgv(plan), abbruch.signal);
+    const { code } = await deps.spawn(befehlArgv(plan, nutzer), abbruch.signal);
     if (abgelaufen)
       return {
         ok: false,

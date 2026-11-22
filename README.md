@@ -27,6 +27,13 @@ sich sofort sperren. Der Agent meldet die Fakten seines Servers (CPU, RAM, Platt
 „Neustart nötig“, ausstehende Updates, Podman, Adressen, PTR, Ports, Port 25, Uhrzeit) alle 15
 Minuten, die Server-Seiten zeigen sie, und jede SSH-Anmeldung wird ein Ereignis.
 
+**Apps installieren:** im Dialog „App installieren“ (Installationen oder Kundenseite) wählt der
+Betreiber Kunde und Server, lädt das signierte Manifest mit seiner `.minisig` hoch, wählt die Optionen,
+füllt die Einstellungen der Installation aus dem Manifest aus und gibt Adresse und Grund an; die
+Platzierung zeigt bei jeder Änderung, ob die App passt, mit jedem Grund. Die Installationen-Seiten
+zeigen die Installationen der Zentrale mit Zustand und Aufträgen; eine gescheiterte Einrichtung lässt
+sich mit Grund entfernen ([Apps installieren](docs/installieren.md)).
+
 **Stand:** in Planung. Plan und Bauliste: [`docs/plan.md`](docs/plan.md), [`BAULISTE.md`](BAULISTE.md).
 
 Lizenz: AGPL-3.0 ([`NOTICE`](NOTICE)). Beiträge mit Developer Certificate of Origin (`git commit -s`), kein CLA;

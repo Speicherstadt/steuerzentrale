@@ -6,12 +6,21 @@ import {
   schreiben,
 } from "@steuerzentrale/protokoll";
 import type { Dateien } from "../dateien.ts";
+import {
+  type EinrichtungsDeps,
+  einrichtungAusfuehren,
+  installationsNutzer,
+} from "../einrichtung/auftrag.ts";
+import { gedaechtnisOeffnen } from "../einrichtung/gedaechtnis.ts";
+import type { HausDateien } from "../einrichtung/haus.ts";
+import type { NutzerLesen } from "../einrichtung/nutzer.ts";
 import { type PforteDeps, pforteAusfuehren } from "../pforte/ausfuehren.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
 import { ausfuehren, type Ergebnis, type Spawn } from "./ausfuehren.ts";
 import {
   type AuftragNachricht,
   auftragPruefen,
+  type EinrichtungPlan,
   type PfortePlan,
   type Plan,
   type Vertrauen,
@@ -20,13 +29,24 @@ import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.
 
 /*
  * The agent's side of jobs (BAULISTE.md Z-305): it acknowledges a job, checks it (pruefen.ts),
- * reports that it runs, runs it (ausfuehren.ts; a job of the Pforte through its admin API,
- * src/pforte) and reports the result. Idempotent by the job's
+ * reports that it runs, runs it (ausfuehren.ts as the installation's user; a job of the Pforte
+ * through its admin API, src/pforte; a setup job by src/einrichtung) and reports the result.
+ * Idempotent by the job's
  * id through its record (zustand.ts): a finished job sent again gets its stored result, a running
  * one only an acknowledgement. A job that was running when the agent stopped is reported failed
  * ("Agent neu gestartet") when the Zentrale sends it again after the restart; only a command the
- * manifest marks `idempotent` is run again instead (docs/plan.md, "Aufträge").
+ * manifest marks `idempotent` is run again instead (docs/plan.md, "Aufträge"), and a setup job,
+ * which its record of installations tells apart (src/einrichtung/gedaechtnis.ts).
  */
+
+/** What the setup jobs and the commands need of the installations (Z-402) */
+export type InstallationenDeps = {
+  /** The record of installations (pfade.ts, `installationen`) */
+  pfad: string;
+  haus: HausDateien;
+  nutzer: NutzerLesen;
+  warten: (ms: number) => Promise<void>;
+};
 
 export type AuftraegeDeps = {
   dateien: Dateien;
@@ -36,6 +56,7 @@ export type AuftraegeDeps = {
   spawn: Spawn;
   /** The Pforte's admin API and base configuration, for its jobs (Z-401) */
   pforte: PforteDeps;
+  installationen: InstallationenDeps;
   planen: Planer;
   jetzt: () => number;
   log: (msg: string, mehr?: Record<string, unknown>) => void;
@@ -67,11 +88,32 @@ const reihe = () => {
   };
 };
 
+/** Runs a checked plan by its kind: a command as the installation's user, or a built-in job */
+const ausfuehrer = (deps: AuftraegeDeps) => {
+  const pforteReihe = reihe();
+  // one setup after the other: two would write the Pforte's unit or one installation at once
+  const einrichtungReihe = reihe();
+  const system: EinrichtungsDeps = {
+    ...deps.installationen,
+    spawn: deps.spawn,
+    planen: deps.planen,
+    gedaechtnis: gedaechtnisOeffnen(deps.dateien, deps.installationen.pfad, deps.jetzt),
+  };
+  return async (plan: Plan | PfortePlan | EinrichtungPlan): Promise<Ergebnis> => {
+    if (plan.art === "pforte") return pforteReihe(() => pforteAusfuehren(deps, plan));
+    if (plan.art === "einrichtung")
+      return einrichtungReihe(() => einrichtungAusfuehren(system, plan));
+    const als = await installationsNutzer(system, plan.installationId);
+    if (!als.ok) return { ok: false, fehler: `abgelehnt: ${als.grund}` };
+    return ausfuehren(deps, plan, als.nutzer);
+  };
+};
+
 export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const schreibe = standSchreiber(deps.dateien, deps.pfad, deps.jetzt);
   let geladen: Promise<Geladen> | undefined;
   const laufend = new Set<string>();
-  const pforteReihe = reihe();
+  const planAusfuehren = ausfuehrer(deps);
 
   const ergebnisSenden = (auftragId: string, ergebnis: Ergebnis, senden: (t: string) => void) =>
     senden(
@@ -103,7 +145,7 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const starten = async (
     stand: Stand,
     n: AuftragNachricht,
-    plan: Plan | PfortePlan,
+    plan: Plan | PfortePlan | EinrichtungPlan,
     senden: (t: string) => void,
   ) => {
     laufend.add(n.auftragId);
@@ -119,10 +161,7 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
           zeit: deps.jetzt(),
         }),
       );
-      const ergebnis =
-        plan.art === "pforte"
-          ? await pforteReihe(() => pforteAusfuehren(deps, plan))
-          : await ausfuehren(deps, plan);
+      const ergebnis = await planAusfuehren(plan);
       await abschliessen(stand, n.auftragId, ergebnis, senden);
     } finally {
       laufend.delete(n.auftragId);

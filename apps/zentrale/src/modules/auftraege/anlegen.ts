@@ -3,7 +3,11 @@ import {
   type ArgumentWert,
   befehlFuellen,
   befehlZurAktion,
+  EINRICHTUNG_ZEITLIMIT_S,
+  type Einrichtung,
+  einrichtungAuftragPruefen,
   INSTALLATIONS_NAME,
+  istEinrichtungAktion,
   istPforteAktion,
   type Manifest,
   manifestPruefen,
@@ -11,7 +15,8 @@ import {
   pforteAuftragPruefen,
   STANDARD_ZEITLIMIT_S,
 } from "@steuerzentrale/manifest";
-import { type Kontext, schreiben } from "../audit/index.ts";
+import type { AuftragZustand } from "@steuerzentrale/protokoll";
+import { type Kontext, type Schreiber, schreiben } from "../audit/index.ts";
 import { serverLesen } from "../server/index.ts";
 import { startzustand, zyklusIn } from "./abhaengigkeiten.ts";
 import { type Auftrag, auftragLesen, vorgaengerVon, zustaendeLesen } from "./lesen.ts";
@@ -24,7 +29,9 @@ import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
  * it again, and the signature, before it runs anything. A job may wait for jobs of its operator on
  * any server; it is ready once they all succeeded and then goes to its agent at once. A job of the
  * Pforte (Z-401) is no command of the manifest but one of the Steuerzentrale's own, with a fixed
- * shape (packages/manifest, pforte/auftraege.ts).
+ * shape (packages/manifest, pforte/auftraege.ts), and so are the setup jobs of an installation
+ * (Z-402, einrichtung/auftraege.ts), checked with the installation's data, which the row does not
+ * keep: it is taken from the installation when the job is sent (zustellen.ts).
  */
 
 export type NeuerAuftrag = {
@@ -40,6 +47,8 @@ export type NeuerAuftrag = {
   wartetAuf?: readonly string[];
   /** A caller's own id, so that making the same job again is refused instead of doubled */
   auftragId?: string;
+  /** Only to check `installation_einrichten`; not stored with the job */
+  einrichtung?: Einrichtung;
 };
 
 export type AnlageFehler =
@@ -62,11 +71,25 @@ type Geprueft =
   | { ok: true; manifest: Manifest; zeitlimitS: number }
   | { ok: false; grund: AnlageFehler; detail?: string };
 
+type Fehler = { ok: false; grund: AnlageFehler; detail?: string };
+
+/** A job checked and ready to be written, as its row */
+export type Vorbereitet = { ok: true; zeile: Auftrag } | Fehler;
+
+/** A job written in the same change, not yet visible to the read-only connection */
+export type VorabAuftrag = Pick<Auftrag, "auftragId" | "zustand" | "wartetAuf">;
+
 /** The job against its manifest: a command it names, with arguments that fit */
 const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
   const geprueft = manifestPruefen(neu.manifest);
   if (!geprueft.ok)
     return { ok: false, grund: "manifest_ungueltig", detail: geprueft.fehler.join("; ") };
+  if (istEinrichtungAktion(neu.aktion)) {
+    const einrichtung = einrichtungAuftragPruefen(geprueft.manifest, neu);
+    return einrichtung.ok
+      ? { ok: true, manifest: geprueft.manifest, zeitlimitS: EINRICHTUNG_ZEITLIMIT_S }
+      : { ok: false, grund: "argumente_ungueltig", detail: einrichtung.grund };
+  }
   if (istPforteAktion(neu.aktion)) {
     const pforte = pforteAuftragPruefen(geprueft.manifest, neu);
     return pforte.ok
@@ -87,11 +110,16 @@ const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
   };
 };
 
-export const auftragAnlegen = (
+/**
+ * Checks a job against its server, manifest and predecessors and returns its row, unwritten;
+ * `vorab` are jobs of the same change that the read-only connection does not see yet
+ */
+export const auftragVorbereiten = (
   deps: AuftragDeps,
   kontext: Kontext,
   neu: NeuerAuftrag,
-): Angelegt => {
+  vorab: readonly VorabAuftrag[] = [],
+): Vorbereitet => {
   const { betreiberId, jetzt } = kontext;
   const server = serverLesen(deps.db, betreiberId, neu.serverId);
   if (!server) return { ok: false, grund: "server_unbekannt" };
@@ -99,19 +127,23 @@ export const auftragAnlegen = (
   const geprueft = gegenManifest(neu);
   if (!geprueft.ok) return geprueft;
   const auftragId = neu.auftragId ?? randomUUID();
-  if (auftragLesen(deps.db, betreiberId, auftragId))
-    return { ok: false, grund: "auftrag_vorhanden" };
+  const bekannt = (id: string) =>
+    vorab.find((a) => a.auftragId === id) ?? auftragLesen(deps.db, betreiberId, id);
+  if (bekannt(auftragId)) return { ok: false, grund: "auftrag_vorhanden" };
   const wartetAuf = [...new Set(neu.wartetAuf ?? [])];
   const vorgaenger = (id: string) => {
-    const a = auftragLesen(deps.db, betreiberId, id);
+    const a = bekannt(id);
     return a ? vorgaengerVon(a) : [];
   };
   if (zyklusIn({ id: auftragId, wartetAuf }, vorgaenger)) return { ok: false, grund: "zyklus" };
-  const zustaende = zustaendeLesen(deps.db, betreiberId, wartetAuf);
+  const zustaende = new Map<string, AuftragZustand>([
+    ...zustaendeLesen(deps.db, betreiberId, wartetAuf),
+    ...vorab.map((a) => [a.auftragId, a.zustand] as const),
+  ]);
   const unbekannt = wartetAuf.filter((id) => !zustaende.has(id));
   if (unbekannt.length > 0)
     return { ok: false, grund: "vorgaenger_unbekannt", detail: unbekannt.join(", ") };
-  const zeile = {
+  const zeile: Auftrag = {
     betreiberId,
     auftragId,
     serverId: neu.serverId,
@@ -126,19 +158,39 @@ export const auftragAnlegen = (
     zeitlimitS: geprueft.zeitlimitS,
     zustand: startzustand(wartetAuf.map((id) => zustaende.get(id) ?? "wartend")),
     wartetAuf: JSON.stringify(wartetAuf),
+    fortschritt: null,
+    fortschrittAm: null,
+    ergebnis: null,
     angelegtVon: kontext.akteur,
     angelegtAm: jetzt,
     geaendertAm: jetzt,
   };
   // a job the protocol cannot carry (an id or a manifest too long) would stay ready for ever
   try {
-    auftragNachricht({ ...zeile, fortschritt: null, fortschrittAm: null, ergebnis: null });
+    auftragNachricht(zeile, neu.einrichtung);
   } catch (fehler) {
     return { ok: false, grund: "nachricht_ungueltig", detail: String(fehler).slice(0, 500) };
   }
+  return { ok: true, zeile };
+};
+
+/** Writes a prepared job within a change of the caller (`schreiben`); returns the stored row */
+export const auftragEinfuegen = (w: Schreiber, zeile: Auftrag): Auftrag => {
+  const { fortschritt: _f, fortschrittAm: _fa, ergebnis: _e, ...werte } = zeile;
+  return w.einfuegen("auftraege", werte);
+};
+
+export const auftragAnlegen = (
+  deps: AuftragDeps,
+  kontext: Kontext,
+  neu: NeuerAuftrag,
+): Angelegt => {
+  const vorbereitet = auftragVorbereiten(deps, kontext, neu);
+  if (!vorbereitet.ok) return vorbereitet;
   const auftrag = schreiben(deps.schreibDb, kontext, "auftrag.anlegen", (w) =>
-    w.einfuegen("auftraege", zeile),
+    auftragEinfuegen(w, vorbereitet.zeile),
   );
   zustellen(deps, [auftrag]);
-  return { ok: true, auftrag: auftragLesen(deps.db, betreiberId, auftragId) ?? auftrag };
+  const { betreiberId } = kontext;
+  return { ok: true, auftrag: auftragLesen(deps.db, betreiberId, auftrag.auftragId) ?? auftrag };
 };

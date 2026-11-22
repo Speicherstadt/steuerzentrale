@@ -17,6 +17,8 @@ import { AUSGABE } from "../../../scripts/beispiel-images.ts";
 import { auftraegeAnnehmen } from "../src/auftraege/auftraege.ts";
 import type { AuftragNachricht } from "../src/auftraege/pruefen.ts";
 import { speicher, TEST_PUB } from "../src/beitritt/testhilfen.ts";
+import { installationenAuf } from "../src/einrichtung/testauftraege.ts";
+import { testSystem } from "../src/einrichtung/testsystem.ts";
 import { adminUeberSocket } from "../src/pforte/admin.ts";
 import {
   alsNutzer,
@@ -118,6 +120,8 @@ const agent = () => {
         zertifikate: "intern",
       }),
     },
+    // a job of the Pforte touches no installation's user
+    installationen: installationenAuf(testSystem()),
     planen: (los, ms) => {
       const t = setTimeout(los, ms);
       return () => clearTimeout(t);

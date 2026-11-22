@@ -102,6 +102,32 @@ export const VON_DER_ZENTRALE_V1: readonly Record<string, unknown>[] = [
     zeitlimitS: 1800,
   },
   {
+    typ: "auftrag",
+    protokoll: 1,
+    auftragId: "a-2",
+    installationId: "beispiel-x7k2p9",
+    aktion: "installation_einrichten",
+    argumente: {},
+    manifest: MANIFEST,
+    signatur: SIGNATUR,
+    zeitlimitS: 1800,
+    einrichtung: {
+      installation: {
+        kundeId: "k-1",
+        optionen: [],
+        httpPort: 20001,
+        ports: { "app:9000": 20002 },
+        host: "beispiel.kunde.example",
+        ipv4: "203.0.113.10",
+      },
+      einstellungen: {
+        betreiber: {},
+        installation: { BEISPIEL_TITEL: "Beispiel" },
+        auto: { BEISPIEL_SCHLUESSEL: "c2VjcmV0" },
+      },
+    },
+  },
+  {
     typ: "zertifikat",
     protokoll: 1,
     zertifikat: ZERTIFIKAT,

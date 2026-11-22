@@ -60,14 +60,37 @@ Agent statt 3. und 4. ihre feste Form (Hostname, Port von 1024 bis 65535, Name d
 ruft dann nur die Admin-API der Pforte auf, keinen Prozess. Ein Befehl eines Manifests kann nicht so
 heißen, weil sein Name keinen Unterstrich haben darf.
 
+Ebenso eingebaut sind die beiden Einrichtungsaufträge einer Installation
+([Apps installieren](installieren.md)): `installation_einrichten` und `installation_entfernen`, mit
+dem signierten Manifest und dem Namen der Installation, ohne Argumente, Zeitlimit 30 Minuten. Die
+Zentrale legt `installation_einrichten` mit der Installation an und dazu, wenn die App hinter der
+Pforte liegt, `pforte_route_setzen`, der darauf wartet: die Route kommt erst, wenn das Einrichten
+gelungen ist, und wird abgebrochen, wenn es scheitert. Nur `installation_einrichten` trägt das Feld
+`einrichtung` mit Installation (Kunde, Optionen, Ports, Host, IPv4) und Einstellungen nach Ebenen;
+die Zentrale setzt es erst beim Zustellen aus der Zeile der Installation ein, mit den entschlüsselten
+geheimen und erzeugten Werten, sodass der Auftrag in der Datenbank und das Audit-Log keine
+Geheimnisse enthalten. Der Agent rendert die Units daraus und aus dem Manifest selbst. Das Ergebnis
+setzt den Zustand der Installation in derselben Transaktion: erfolgreich `laeuft`, gescheitert
+`gescheitert`; ein erfolgreiches `installation_entfernen` setzt `entfernt` und gibt die Ports frei.
+
+Nach Schlüssel und Signatur prüft der Agent die feste Form der Einrichtungsaufträge (Name der Installation, Ports von 1024 bis 65535, nur Optionen des
+Manifests, keine Argumente) und rendert die Units selbst aus dem signierten Manifest. Die Angaben
+zur Installation (Feld `einrichtung`) trägt nur ein Einrichtungsauftrag; jeden anderen Auftrag mit
+diesem Feld lehnt der Agent ab.
+
 Erst dann führt er `argv` aus dem Manifest aus, als feste Argumente ohne Shell, mit
 `podman exec <installation>-<container>`. Läuft der Befehl länger als sein Zeitlimit (aus dem
 Manifest, sonst 900 Sekunden; die Zentrale kann es nur kürzen), beendet ihn der Agent und meldet den
 Auftrag als gescheitert. Einen abgelehnten Auftrag meldet er als gescheitert mit dem Grund
 („abgelehnt: …“), ohne etwas zu starten.
 
-Unter dem Linux-Nutzer der Installation (`sz-<installation>`) laufen Befehle ab dem Punkt
-„Installieren“ (Z-402); bis dahin erreicht der Agent nur Container, die er selbst sieht.
+Erst dann führt er `argv` aus dem Manifest aus, als feste Argumente ohne Shell, mit
+`podman exec <installation>-<container>`, und zwar als Linux-Nutzer der Installation
+(`sz-<installation>`, mit `runuser` und fester Umgebung). Einen Befehl führt er nur für eine
+Installation aus, die er selbst fertig eingerichtet hat; für jede andere lehnt er ihn ab. Läuft der
+Befehl länger als sein Zeitlimit (aus dem Manifest, sonst 900 Sekunden; die Zentrale kann es nur
+kürzen), beendet ihn der Agent und meldet den Auftrag als gescheitert. Einen abgelehnten Auftrag
+meldet er als gescheitert mit dem Grund („abgelehnt: …“), ohne etwas zu starten.
 
 ## Doppelt zugestellt, Neustart
 
@@ -79,7 +102,9 @@ auszuführen.
 
 Lief ein Auftrag, als der Agent neu startete, meldet er ihn nach dem Neustart als gescheitert
 („Agent neu gestartet“): der Befehl kann einen Teil seiner Arbeit getan haben. Nur einen Befehl, den
-das Manifest als `idempotent` markiert, führt er dann noch einmal aus. Ist die Datei unlesbar,
+das Manifest als `idempotent` markiert, führt er dann noch einmal aus, ebenso die Aufträge der
+Pforte und einen Einrichtungsauftrag (der erkennt am Gedächtnis der Installationen, was schon
+eingerichtet ist, [Apps installieren](installieren.md)). Ist die Datei unlesbar,
 führt der Agent keinen Auftrag aus, weil er einen doppelten nicht mehr erkennen könnte. Erledigte
 Aufträge vergisst er nach 30 Tagen.
 

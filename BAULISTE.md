@@ -231,7 +231,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   weder eine laufende Verbindung noch neue Anfragen an die andere und Caddy startet dabei nicht neu
   (Test), und Pforte-Aufträge mit falschem Host, Port oder Manifest lehnen Zentrale und Agent ab
   (Test); `install.sh` legt `sz-pforte` mit Linger an (CI, Job `server`).
-- [ ] **Z-402 Installieren** – Dialog mit Kunde, App, Server, Optionen und Einstellungen nach Ebenen,
+- [x] **Z-402 Installieren** – Dialog mit Kunde, App, Server, Optionen und Einstellungen nach Ebenen,
   Platzierung live; der Agent legt `sz-<installation>` mit Linger an, schreibt Units und Secrets,
   zieht Images, führt `schritte.einrichten` aus, startet; ebenso schreibt und startet er die Unit der
   Pforte unter `sz-pforte` (`pforteUnit`, Z-401) und setzt ihre Route mit `pforte_route_setzen`. Entfernt wird hier nur eine Installation,
@@ -239,7 +239,15 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-401, Z-204, Z-801
   Fertig, wenn: die Beispiel-App in der CI per Auftrag installiert wird, ein Fehler im
   Einrichtungsschritt nichts halb Installiertes zurücklässt, eine Installation die Dateien einer
-  anderen nicht lesen kann (Test) und der Ablauf in Playwright läuft.
+  anderen nicht lesen kann (Test) und der Ablauf in Playwright läuft; dazu (Tests): der Agent rendert
+  die Units selbst aus dem signierten Manifest und lehnt einen Einrichtungsauftrag mit verändertem
+  Manifest, ungültigem Namen (auch `pforte`), Port außerhalb 1024–65535 oder unbekannter Option ab,
+  ohne etwas anzulegen; kein Geheimnis steht im Klartext in der Datenbank, im Audit-Log oder in
+  einer API-Antwort; ein doppelt zugestellter Einrichtungsauftrag richtet einmal ein; einen Nutzer
+  `sz-<name>`, den der Agent nicht angelegt hat, fasst er nicht an; `installation_entfernen` wird
+  für eine fertig eingerichtete Installation abgelehnt; zwei Installationen bekommen auf einem Server
+  nie denselben Port oder Namen; die Route der Pforte wird erst gesetzt, wenn die Einrichtung
+  gelungen ist; kein Betreiber erreicht Installationen eines anderen (Test je Endpunkt).
 - [ ] **Z-403 Health und Zustand** – Health nach Art aus dem Manifest, dazu der Zustand der
   systemd-Units; grün, gelb, rot oder unbekannt mit Grund und Verlauf; Störung nach plan.md.
   Fertig, wenn: die kaputte Beispiel-App rot wird, eine beendete Unit gelb, eine App mit

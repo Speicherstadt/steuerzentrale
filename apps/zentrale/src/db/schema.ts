@@ -308,3 +308,6 @@ export const auftraege = sqliteTable(
     }),
   ],
 );
+
+// Installations, their ports and the operator's app settings (Z-402), in a file of their own
+export * from "./schema-installationen.ts";

@@ -31,6 +31,13 @@ const oeffne = async (pfad: string) => {
   dispose = render(() => <RouterProvider router={router} />, root);
   await router.load();
   await new Promise((fertig) => setTimeout(fertig, 0));
+  // a page that loads its data first (the demo installations load on first use) has its heading
+  // only then; the assertions below say what is missing if it never comes
+  await vi
+    .waitFor(() => {
+      if (!root.querySelector("main h1")) throw new Error("no heading yet");
+    })
+    .catch(() => undefined);
   return root;
 };
 

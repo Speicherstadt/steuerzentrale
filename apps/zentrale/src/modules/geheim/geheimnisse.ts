@@ -3,11 +3,12 @@ import type { Db } from "../../db/oeffnen.ts";
 import { geheimnisse } from "../../db/schema.ts";
 import type { Schluesselbund } from "../../db/schluessel.ts";
 import type { Schreiber } from "../audit/index.ts";
+import { spaltenZweck } from "./spalten.ts";
 import { type Entschluesselt, entschluesseln, verschluesseln } from "./verschluesseln.ts";
 
 /** Binds a value to its operator and row, so it cannot be copied into another one */
 export const geheimnisZweck = (betreiberId: string, geheimnisId: string): string =>
-  `geheimnisse:${betreiberId}:${geheimnisId}`;
+  spaltenZweck("geheimnisse", betreiberId, { geheimnisId });
 
 export type NeuesGeheimnis = {
   betreiberId: string;

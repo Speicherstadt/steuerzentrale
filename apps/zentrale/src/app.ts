@@ -9,6 +9,7 @@ import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { einladungRouten } from "./routes/einladungen.ts";
 import { ersterInhaberRouten } from "./routes/erster-inhaber.ts";
+import { installationenRouten } from "./routes/installationen.ts";
 import { kontoRouten } from "./routes/konto.ts";
 import { kundenRouten } from "./routes/kunden.ts";
 import { mitgliederRouten } from "./routes/mitglieder.ts";
@@ -89,6 +90,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   einladungRouten(route, deps);
   kundenRouten(route, deps);
   serverRouten(route, deps);
+  installationenRouten(route, deps);
   agentRouten(route, deps);
   verbindungRouten(route, deps);
 

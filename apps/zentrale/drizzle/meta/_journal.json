@@ -71,6 +71,13 @@
       "when": 1795220041997,
       "tag": "0009_auftraege",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795369623368,
+      "tag": "0010_installationen",
+      "breakpoints": true
     }
   ]
 }

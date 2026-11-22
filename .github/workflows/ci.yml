@@ -94,6 +94,15 @@ jobs:
       # BAULISTE.md Z-401: two installations behind the Pforte, each as a Linux user of its own with
       # its own rootless network namespace, as sz-<installation> on a server; the test runs Podman
       # as them with sudo -u (apps/agent/test/pforte.agent.test.ts)
+      # The runner image sets the runner's XDG directories (XDG_CONFIG_HOME, XDG_RUNTIME_DIR) in
+      # /etc/environment, which pam_env hands every user's systemd manager: Quadlet would look for
+      # the units of sz-pforte and sz-<installation> in the runner's home, Podman would use the
+      # runner's /run/user. A server has no such lines.
+      - name: No runner XDG directories for other users
+        run: |
+          sudo sed -i '/^XDG_/d' /etc/environment
+          ! grep -q '^XDG_' /etc/environment
+          cat /etc/environment
       - name: Linux users for the Pforte's test
         run: |
           erste=1000000
@@ -110,7 +119,38 @@ jobs:
             test -d "/run/user/$uid"
           done
           echo "SZ_TEST_PFORTE_NUTZER=sz-test-pa sz-test-pb" >> "$GITHUB_ENV"
+      # BAULISTE.md Z-402: the agent sets up installations by jobs with real useradd, loginctl and
+      # runuser, through sudo (apps/agent/test/einrichtung.agent.test.ts). The Pforte's user as
+      # install.sh makes it (pforte_einrichten); the agent writes and starts its unit. The users the
+      # agent makes pull the example app from the test registry on localhost:5000, which speaks HTTP
+      # (scripts/beispiel-images.ts); containers-registries.conf.d(5) lets Podman pull from it.
+      - name: Pforte's user and test registry for the setup tests
+        run: |
+          sudo useradd --create-home --home-dir /home/sz-pforte --shell /usr/sbin/nologin \
+            --comment "Pforte der Steuerzentrale" sz-pforte
+          grep -q '^sz-pforte:' /etc/subuid
+          sudo loginctl enable-linger sz-pforte
+          uid="$(id -u sz-pforte)"
+          for i in $(seq 1 30); do test -d "/run/user/$uid" && break; sleep 1; done
+          test -d "/run/user/$uid"
+          sudo mkdir -p /etc/containers/registries.conf.d
+          printf '[[registry]]\nlocation = "localhost:5000"\ninsecure = true\n' |
+            sudo tee /etc/containers/registries.conf.d/sz-test-registry.conf
+          echo "SZ_TEST_EINRICHTUNG=1" >> "$GITHUB_ENV"
       - run: podman --version && bun run test:agent
+      - name: What the Pforte's user manager saw
+        if: failure()
+        run: |
+          uid="$(id -u sz-pforte)"
+          als() { sudo -n -u sz-pforte env -i HOME=/home/sz-pforte XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" PATH=/usr/bin:/bin "$@"; }
+          ls -la /usr/lib/systemd/user-generators/ /usr/libexec/podman/ || true
+          sudo ls -laR /home/sz-pforte/.config || true
+          als systemctl --user list-unit-files 'sz-*' --no-pager || true
+          als systemctl --user status sz-pforte.service --no-pager || true
+          sudo -n -u sz-pforte env -i HOME=/home/sz-pforte /usr/libexec/podman/quadlet --user --dryrun || true
+          sudo journalctl --user-unit sz-pforte.service -n 50 --no-pager || true
+          sudo journalctl _UID="$uid" -n 80 --no-pager || true
 
   # What a user does, desktop and @phone, with axe; Playwright fails when no test ran
   e2e:

@@ -1,0 +1,134 @@
+import { createHash, randomInt } from "node:crypto";
+import { type APIRequestContext, expect } from "@playwright/test";
+import { testAnfrage } from "../../apps/zentrale/src/testhilfen/agent.ts";
+import { serverAnlegen } from "./server.ts";
+
+/*
+ * A stand-in for the agent of a server in the e2e tests (BAULISTE.md Z-402): it joins with the
+ * one-time token of the dialog "Server hinzufügen" (Z-302), connects as an agent does (Z-303),
+ * reports facts (Z-304) and so makes the server one an app can be placed on. It takes the jobs it
+ * gets and runs none, so an installation stays "wird eingerichtet"; a setup whose host starts with
+ * `kaputt` it reports failed, as the real agent does after cleaning up. No Podman, no server.
+ */
+
+// The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite
+const ZENTRALE = "127.0.0.1:28300";
+// What the Pforte hands the Zentrale (apps/zentrale, modules/verbindung/herkunft.ts)
+const FINGERABDRUCK_HEADER = "x-sz-client-fingerabdruck";
+
+export type TestAgent = { serverId: string; name: string; trennen: () => void };
+
+type Nachricht = Record<string, unknown> & { typ: string };
+
+/** Node's WebSocket (undici) takes headers besides the protocols; the DOM's type does not know it */
+const NodeWebSocket = WebSocket as unknown as new (
+  url: string,
+  init: { headers: Record<string, string> },
+) => WebSocket;
+
+/** The SHA-256 of the certificate's DER bytes in hex, as the Pforte names it */
+const fingerabdruck = (pem: string) =>
+  createHash("sha256")
+    .update(Buffer.from(pem.replace(/-----[A-Z ]+-----/g, "").replace(/\s/g, ""), "base64"))
+    .digest("hex");
+
+/**
+ * Exchanges the token for a certificate. Each server comes from an address of its own, as the
+ * Pforte reports it, so the joins of parallel tests do not share one bucket of the rate limit
+ */
+const beitreten = async (befehl: string): Promise<string> => {
+  const token = /--token (\S+)/.exec(befehl)?.[1] ?? "";
+  const antwort = await fetch(`http://${ZENTRALE}/api/v1/agent/beitreten`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-forwarded-for": `198.51.100.${randomInt(1, 255)}`,
+    },
+    body: JSON.stringify(await testAnfrage(token)),
+  });
+  expect(antwort.status).toBe(201);
+  return ((await antwort.json()) as { zertifikat: string }).zertifikat;
+};
+
+/** The facts of a small Debian server with room for an app (packages/protokoll, beispiele-v1.ts) */
+const fakten = (zeit: number) => ({
+  typ: "fakten",
+  protokoll: 1,
+  zeit,
+  cpuKerne: 4,
+  ramMb: 8192,
+  platten: [{ mount: "/", gesamtMb: 81920, freiMb: 61440 }],
+  architektur: "amd64",
+  os: { name: "Debian GNU/Linux", version: "13" },
+  kernel: { laeuft: "6.12.0-1-amd64", installiert: "6.12.0-1-amd64" },
+  neustartNoetig: false,
+  updatesAusstehend: 0,
+  podman: "5.4.2",
+  ipv4: ["203.0.113.10"],
+  ipv6: ["2001:db8::10"],
+  ptr: { "203.0.113.10": "server-a.example.org" },
+  portsBelegt: [{ port: 443, proto: "tcp" }],
+  port25Ausgehend: false,
+  uhrzeitAbweichungMs: 12,
+});
+
+/** Takes a job and, for a setup of a `kaputt…` host, reports it failed */
+const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
+  const auftragId = n.auftragId as string;
+  ws.send(JSON.stringify({ typ: "bestaetigt", protokoll: 1, auftragId }));
+  const host = (n.einrichtung as { installation?: { host?: string } } | undefined)?.installation
+    ?.host;
+  if (n.aktion === "installation_einrichten" && host?.startsWith("kaputt"))
+    ws.send(
+      JSON.stringify({
+        typ: "ergebnis",
+        protokoll: 1,
+        auftragId,
+        zeit: Date.now(),
+        ergebnis: { ok: false, fehler: "image ziehen: manifest unknown" },
+      }),
+    );
+};
+
+const verbinden = (zertifikat: string): Promise<WebSocket> =>
+  new Promise((bereit, fehler) => {
+    const ws = new NodeWebSocket(`ws://${ZENTRALE}/api/v1/agent/verbindung`, {
+      headers: { [FINGERABDRUCK_HEADER]: fingerabdruck(zertifikat) },
+    });
+    ws.onopen = () =>
+      ws.send(
+        JSON.stringify({
+          typ: "hallo",
+          protokoll: 1,
+          agentVersion: "0.0.0",
+          architektur: "amd64",
+          zeit: Date.now(),
+        }),
+      );
+    ws.onmessage = (event) => {
+      const n = JSON.parse(String(event.data)) as Nachricht;
+      if (n.typ === "willkommen") {
+        ws.send(JSON.stringify(fakten(Date.now())));
+        bereit(ws);
+      }
+      if (n.typ === "auftrag") auftragNehmen(ws, n);
+    };
+    ws.onerror = () => fehler(new Error("the agent's connection failed"));
+  });
+
+/** A shared server of the first owner's operator whose agent is connected and reported its facts */
+export const agentVerbinden = async (
+  request: APIRequestContext,
+  name: string,
+): Promise<TestAgent> => {
+  const server = await serverAnlegen(request, name);
+  const ws = await verbinden(await beitreten(server.befehl));
+  await expect
+    .poll(async () => {
+      const s = await request.get(`/api/v1/server/${server.serverId}`);
+      const sv = (await s.json()) as { agent: { zustand: string }; fakten: unknown };
+      return sv.agent.zustand === "verbunden" && sv.fakten !== null;
+    })
+    .toBe(true);
+  return { serverId: server.serverId, name: server.name, trennen: () => ws.close() };
+};

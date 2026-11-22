@@ -20,6 +20,8 @@ export type Pfade = {
   sshCursor: string;
   /** The record of jobs, by id (src/auftraege/zustand.ts) */
   auftraege: string;
+  /** The record of the installations the agent made (src/einrichtung/gedaechtnis.ts) */
+  installationen: string;
 };
 
 export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
@@ -32,4 +34,5 @@ export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
   zertifikatNeu: join(zustand, "agent.pem.rotiert"),
   sshCursor: join(zustand, "ssh-cursor"),
   auftraege: join(zustand, "auftraege.json"),
+  installationen: join(zustand, "installationen.json"),
 });

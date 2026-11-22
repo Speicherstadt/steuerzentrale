@@ -1,0 +1,112 @@
+import { describe, expect, it } from "vitest";
+import { demo } from "./index.ts";
+import { GESCHEITERT } from "./installationen-bestand.ts";
+import { demoInstallationenQuelle } from "./installationen-quelle.ts";
+import { demoKunden } from "./kunden-quelle.ts";
+import { PROBE_MANIFEST, PROBE_SIGNATUR } from "./probe-manifest.ts";
+import { demoServerQuelle } from "./server-quelle.ts";
+
+// BAULISTE.md Z-402: the demo answers the dialog as the Zentrale would (routes/installationen.ts),
+// so `bun run dev:demo` and the component tests show the same flow as the e2e tests
+const quelle = () => {
+  const kunden = demoKunden(demo.kunden, () => demo.jetzt);
+  const server = demoServerQuelle(demo.server, () => demo.jetzt);
+  return demoInstallationenQuelle({
+    jetzt: () => demo.jetzt,
+    kunden: kunden.liste,
+    server: server.liste,
+    betreiberWerte: [],
+  });
+};
+
+const wunsch = {
+  kundeId: "atelier-nord",
+  serverId: "shared-1",
+  manifest: PROBE_MANIFEST,
+  signatur: PROBE_SIGNATUR,
+  optionen: [],
+};
+const neu = { ...wunsch, host: "probe.atelier-nord.example", einstellungen: {} };
+
+describe("the demo's installations", () => {
+  it("place the manifest on a server, with every reason when it does not fit", async () => {
+    const q = quelle();
+    expect(await q.platzierung(wunsch)).toEqual({
+      ok: true,
+      status: 200,
+      daten: { art: "passt", hinweise: [] },
+    });
+    const nicht = await q.platzierung({ ...wunsch, optionen: ["gibt-es-nicht"] });
+    expect(nicht.ok && nicht.daten).toEqual({
+      art: "passt_nicht",
+      gruende: [{ code: "unbekannte_option", werte: { option: "gibt-es-nicht" } }],
+      hinweise: [],
+    });
+  });
+
+  it("refuse what the Zentrale refuses before placing", async () => {
+    const q = quelle();
+    expect(await q.platzierung({ ...wunsch, signatur: " " })).toMatchObject({
+      status: 422,
+      fehler: "signatur_ungueltig",
+    });
+    expect(await q.platzierung({ ...wunsch, manifest: "schema: 2\n" })).toMatchObject({
+      status: 422,
+      fehler: "manifest_ungueltig",
+    });
+    expect(await q.platzierung({ ...wunsch, kundeId: "x" })).toMatchObject({ status: 404 });
+    expect(await q.platzierung({ ...wunsch, serverId: "x" })).toMatchObject({ status: 404 });
+  });
+
+  it("make an installation that waits for its agent, without its secret", async () => {
+    const q = quelle();
+    const a = await q.anlegen(
+      { ...neu, einstellungen: { PROBE_TITEL: "Atelier", PROBE_KENNWORT: "geheim-7" } },
+      "Auftrag",
+    );
+    if (!a.ok) throw new Error(a.fehler);
+    expect(a).toMatchObject({ status: 201, daten: { app: "probe", zustand: "wird_eingerichtet" } });
+    expect(a.daten.installationId).toMatch(/^probe-[a-z0-9]{6}$/);
+    expect(a.daten.einstellungen.installation).toEqual({ PROBE_TITEL: "Atelier" });
+    const eine = await q.installation(a.daten.installationId);
+    expect(eine.ok && eine.daten.auftraege.map((x) => [x.aktion, x.zustand])).toEqual([
+      ["installation_einrichten", "zugestellt"],
+      ["pforte_route_setzen", "wartend"],
+    ]);
+    const liste = await q.liste();
+    expect(liste.ok && liste.daten.some((i) => i.installationId === a.daten.installationId)).toBe(
+      true,
+    );
+  });
+
+  it("refuse a host given twice and a value of no setting", async () => {
+    const q = quelle();
+    expect((await q.anlegen(neu, "g")).ok).toBe(true);
+    expect(await q.anlegen(neu, "g")).toMatchObject({ status: 409, fehler: "host_vergeben" });
+    expect(
+      await q.anlegen({ ...neu, host: "b.example.org", einstellungen: { FREMD: "x" } }, "g"),
+    ).toMatchObject({ status: 400, fehler: "einstellung_ungueltig" });
+    expect(await q.anlegen({ ...neu, optionen: ["nein"] }, "g")).toMatchObject({
+      status: 409,
+      fehler: "passt_nicht",
+      gruende: [{ code: "unbekannte_option", werte: { option: "nein" } }],
+    });
+  });
+
+  it("remove only a failed setup, once", async () => {
+    const q = quelle();
+    expect(await q.entfernen("intern-haben", "g")).toMatchObject({
+      status: 409,
+      fehler: "nicht_gescheitert",
+    });
+    const weg = await q.entfernen(GESCHEITERT, "neu anlegen");
+    expect(weg.ok && weg.daten.auftraege.at(-1)).toMatchObject({
+      aktion: "installation_entfernen",
+      zustand: "zugestellt",
+    });
+    expect(await q.entfernen(GESCHEITERT, "noch mal")).toMatchObject({
+      status: 409,
+      fehler: "entfernen_laeuft",
+    });
+  });
+});
