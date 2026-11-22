@@ -1,0 +1,42 @@
+# A manifest for the agent's tests of setting up (Z-402), signed with the public test key
+# (test/schluessel/): einrichtung.yml.minisig, made with `signieren` of scripts/minisign.ts and
+# test/schluessel/test.key. The example app (manifeste/beispiel/manifest.vorlage.yml) with a made-up
+# digest, its key setting a secret (typ: geheim) and a file, so that secrets and `dateien` are set
+# up too. Any change here needs a new signature; the tests of the agent refuse the old one.
+schema: 1
+id: beispiel
+version: "1.0.0"
+lizenz: AGPL-3.0-only
+quelle: https://github.com/Speicherstadt/steuerzentrale/tree/main/manifeste/beispiel
+container:
+  - name: app
+    image: "localhost:5000/beispiel@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    volumes: [{ name: daten, pfad: /daten }]
+    env: [BEISPIEL_TITEL, BEISPIEL_SCHLUESSEL]
+    dateien: [{ pfad: /etc/beispiel/titel.txt, inhalt: "Beispiel" }]
+optionen:
+  - id: worker
+    name: Hintergrundarbeiter
+    container:
+      - { name: worker, image: "localhost:5000/beispiel@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", argv: [worker], volumes: [{ name: daten, pfad: /daten }] }
+    ram_mb: 64
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 128, platte_gb: 1 }
+netz:
+  http: { dienst: app, port: 8080, websocket: false, sse: false, max_body_mb: 1, timeout_s: 30 }
+  ports: [{ dienst: app, port: 9000, proto: tcp, fest: false }]
+proxy: geteilt
+anmeldung: eigen
+health: { art: http, dienst: app, pfad: /health }
+befehle:
+  migrieren: { container: app, argv: [bun, /app/server.ts, migrieren] }
+  export: { container: app, argv: [bun, /app/server.ts, export] }
+schritte: { einrichten: [migrieren], nach_update: [migrieren] }
+backup:
+  - { art: volume, volume: daten }
+  - { art: befehl, befehl: export }
+aktionen: { nur_lesen: nicht_unterstuetzt, export: { befehl: export } }
+env:
+  - { name: BEISPIEL_TITEL, ebene: installation, vorgabe: Beispiel }
+  - { name: BEISPIEL_SCHLUESSEL, ebene: auto, erzeugen: zufall_32, typ: geheim }
+hinweis: Beispiel-App der Steuerzentrale, nur für Tests

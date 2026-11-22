@@ -1,7 +1,10 @@
 import {
   befehlFuellen,
   befehlZurAktion,
+  EINRICHTUNG_ZEITLIMIT_S,
+  einrichtungAuftragPruefen,
   INSTALLATIONS_NAME,
+  istEinrichtungAktion,
   istPforteAktion,
   type Manifest,
   type OeffentlicherSchluessel,
@@ -14,6 +17,7 @@ import {
   type Zweck,
 } from "@steuerzentrale/manifest";
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
+import type { Einrichten, Entfernen, Schritt } from "../einrichtung/typen.ts";
 
 /*
  * What the agent checks before it runs anything a job asks (BAULISTE.md Z-305; docs/plan.md, "Was
@@ -22,7 +26,9 @@ import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
  * manifest, the arguments against the command's declaration. Only then is there an argv to run,
  * taken from the signed manifest. A job of the Pforte (Z-401) passes the same key and signature
  * checks, then its fixed shape (packages/manifest, pforte/auftraege.ts) instead of a command; its
- * route is rendered from the signed manifest. Pure, no I/O.
+ * route is rendered from the signed manifest. A setup job (Z-402) likewise, with
+ * einrichtungAuftragPruefen: its units are rendered from the signed manifest, and the commands of
+ * `schritte.einrichten` filled from it. Pure, no I/O.
  */
 
 export type AuftragNachricht = Extract<NachrichtVonDerZentrale, { typ: "auftrag" }>;
@@ -52,7 +58,22 @@ export type PfortePlan = {
   idempotent: true;
 };
 
-export type Geprueft = { ok: true; plan: Plan | PfortePlan } | { ok: false; grund: string };
+/** What a setup job does: set up or tear down an installation (src/einrichtung) */
+export type EinrichtungPlan = {
+  art: "einrichtung";
+  aktion: string;
+  auftrag: Einrichten | Entfernen;
+  zeitlimitMs: number;
+  /**
+   * Run again after a restart: the record of installations (src/einrichtung/gedaechtnis.ts) tells
+   * a finished setup, and a half one is torn down before it is set up anew
+   */
+  idempotent: true;
+};
+
+export type Geprueft =
+  | { ok: true; plan: Plan | PfortePlan | EinrichtungPlan }
+  | { ok: false; grund: string };
 
 const pfortePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
   const geprueft = pforteAuftragPruefen(m, n);
@@ -69,6 +90,49 @@ const pfortePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
   };
 };
 
+/** A command of `schritte.einrichten` as it runs: no arguments, its own time limit */
+const schrittFuellen = (m: Manifest, name: string): Schritt | string => {
+  const befehl = befehlZurAktion(m, name);
+  if (!befehl) return `schritte.einrichten: ${name} is not a command of the manifest`;
+  const gefuellt = befehlFuellen(befehl, {});
+  if (!gefuellt.ok) return `schritte.einrichten: ${name}: ${gefuellt.grund}`;
+  return {
+    name,
+    container: befehl.container,
+    argv: gefuellt.argv,
+    zeitlimitMs: (befehl.zeitlimit_s ?? STANDARD_ZEITLIMIT_S) * 1000,
+  };
+};
+
+const einrichtungsAuftrag = (m: Manifest, n: AuftragNachricht) => {
+  const geprueft = einrichtungAuftragPruefen(m, n);
+  if (!geprueft.ok) return geprueft;
+  const a = geprueft.auftrag;
+  if (a.art === "entfernen") return { ok: true as const, auftrag: a };
+  const schritte: Schritt[] = [];
+  for (const name of a.schritte) {
+    const s = schrittFuellen(m, name);
+    if (typeof s === "string") return { ok: false as const, grund: s };
+    schritte.push(s);
+  }
+  return { ok: true as const, auftrag: { ...a, schritte } };
+};
+
+const einrichtungPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
+  const geprueft = einrichtungsAuftrag(m, n);
+  if (!geprueft.ok) return geprueft;
+  return {
+    ok: true,
+    plan: {
+      art: "einrichtung",
+      aktion: n.aktion,
+      auftrag: geprueft.auftrag,
+      zeitlimitMs: Math.min(n.zeitlimitS, EINRICHTUNG_ZEITLIMIT_S) * 1000,
+      idempotent: true,
+    },
+  };
+};
+
 export const auftragPruefen = (n: AuftragNachricht, vertrauen: Vertrauen): Geprueft => {
   const vertraut = schluesselVertrauen(vertrauen.schluessel, vertrauen.zweck);
   if (!vertraut.ok) return vertraut;
@@ -78,6 +142,10 @@ export const auftragPruefen = (n: AuftragNachricht, vertrauen: Vertrauen): Gepru
     vertrauen.schluessel,
   );
   if (!geladen.ok) return { ok: false, grund: geladen.fehler.join("; ") };
+  if (istEinrichtungAktion(n.aktion)) return einrichtungPlan(geladen.manifest, n);
+  // the installation's data and its secrets belong to a setup job, and only there
+  if (n.einrichtung !== undefined)
+    return { ok: false, grund: "only a setup job carries installation data (einrichtung)" };
   if (istPforteAktion(n.aktion)) return pfortePlan(geladen.manifest, n);
   const befehl = befehlZurAktion(geladen.manifest, n.aktion);
   if (!befehl) return { ok: false, grund: `${n.aktion} is not a command of the manifest` };

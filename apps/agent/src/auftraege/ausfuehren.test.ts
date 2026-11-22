@@ -29,6 +29,12 @@ describe("echtSpawn", () => {
     expect(code).toBe(0);
   });
 
+  it("hands the input to the process on its standard input", async () => {
+    const abbruch = new AbortController().signal;
+    expect((await echtSpawn(["grep", "-qx", "geheim"], abbruch, "geheim\n")).code).toBe(0);
+    expect((await echtSpawn(["grep", "-qx", "geheim"], abbruch, "anders\n")).code).toBe(1);
+  });
+
   it("throws for a program that is not there", async () => {
     await expect(
       echtSpawn(["/nicht/da/steuerzentrale"], new AbortController().signal),
@@ -38,9 +44,13 @@ describe("echtSpawn", () => {
 
 describe("ausfuehren with the real spawn", () => {
   it("reports the time limit when it had to kill", async () => {
-    // podman is not here: a stand-in that runs the plan's argv without the prefix
+    // podman and the installation's user are not here: a stand-in that runs the plan's argv
+    // without runuser's and podman's prefix
     const ergebnis = await ausfuehren(
-      { spawn: (argv, signal) => echtSpawn(argv.slice(3), signal), planen: echtPlanen },
+      {
+        spawn: (argv, signal) => echtSpawn(argv.slice(argv.indexOf("exec") + 2), signal),
+        planen: echtPlanen,
+      },
       {
         art: "befehl",
         aktion: "langsam",
@@ -50,6 +60,7 @@ describe("ausfuehren with the real spawn", () => {
         zeitlimitMs: 100,
         idempotent: false,
       },
+      { name: "sz-i", uid: 1001, gid: 1001, home: "/home/sz-i" },
     );
     expect(ergebnis).toEqual({
       ok: false,

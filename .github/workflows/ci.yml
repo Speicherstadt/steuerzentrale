@@ -110,6 +110,24 @@ jobs:
             test -d "/run/user/$uid"
           done
           echo "SZ_TEST_PFORTE_NUTZER=sz-test-pa sz-test-pb" >> "$GITHUB_ENV"
+      # BAULISTE.md Z-402: the agent sets up installations by jobs with real useradd, loginctl and
+      # runuser, through sudo (apps/agent/test/einrichtung.agent.test.ts). The Pforte's user as
+      # install.sh makes it (pforte_einrichten); the agent writes and starts its unit. The users the
+      # agent makes pull the example app from the test registry on localhost:5000, which speaks HTTP
+      # (scripts/beispiel-images.ts); containers-registries.conf.d(5) lets Podman pull from it.
+      - name: Pforte's user and test registry for the setup tests
+        run: |
+          sudo useradd --create-home --home-dir /home/sz-pforte --shell /usr/sbin/nologin \
+            --comment "Pforte der Steuerzentrale" sz-pforte
+          grep -q '^sz-pforte:' /etc/subuid
+          sudo loginctl enable-linger sz-pforte
+          uid="$(id -u sz-pforte)"
+          for i in $(seq 1 30); do test -d "/run/user/$uid" && break; sleep 1; done
+          test -d "/run/user/$uid"
+          sudo mkdir -p /etc/containers/registries.conf.d
+          printf '[[registry]]\nlocation = "localhost:5000"\ninsecure = true\n' |
+            sudo tee /etc/containers/registries.conf.d/sz-test-registry.conf
+          echo "SZ_TEST_EINRICHTUNG=1" >> "$GITHUB_ENV"
       - run: podman --version && bun run test:agent
 
   # What a user does, desktop and @phone, with axe; Playwright fails when no test ran

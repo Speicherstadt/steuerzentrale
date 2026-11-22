@@ -6,6 +6,8 @@ import type { Vertrauen } from "./auftraege/pruefen.ts";
 import { beitreten } from "./beitritt/beitreten.ts";
 import { type Dateien, echteDateien } from "./dateien.ts";
 import { dienstPruefen } from "./dienst.ts";
+import { echteHausDateien } from "./einrichtung/echt.ts";
+import { nutzerAusPasswd } from "./einrichtung/nutzer.ts";
 import { type FaktenNachricht, faktenLesen } from "./fakten/lesen.ts";
 import { echteQuellen } from "./fakten/quellen.ts";
 import { type Pfade, pfadeIn } from "./pfade.ts";
@@ -85,6 +87,12 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
         pforte: {
           admin: adminUeberSocket((url, init) => fetch(url, init), PFORTE_ADMIN_SOCKET),
           grund: pforteGrundkonfiguration(),
+        },
+        installationen: {
+          pfad: pfade.installationen,
+          haus: echteHausDateien,
+          nutzer: nutzerAusPasswd(echteHausDateien.lesen),
+          warten: (ms) => Bun.sleep(ms),
         },
         planen,
         jetzt: Date.now,
