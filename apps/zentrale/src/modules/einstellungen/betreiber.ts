@@ -44,13 +44,18 @@ export type Gelesen =
 
 const antwort = (m: Manifest, werte: FormularWerte): BetreiberEinstellungen => {
   const felder = einstellungsFormular(m, "betreiber", alleOptionen(m));
-  const imFormular = (name: string) => felder.some((f) => f.name === name);
+  // a value stored in plain text under an older manifest is secret once this one says so
+  const gesetzt = (name: string) => name in werte.geheim || name in werte.offen;
   return {
     app: m.id,
     version: m.version,
     felder,
-    werte: Object.fromEntries(Object.entries(werte.offen).filter(([n]) => imFormular(n))),
-    gesetzt: Object.keys(werte.geheim).filter(imFormular),
+    werte: Object.fromEntries(
+      felder
+        .filter((f) => !f.geheim && f.name in werte.offen)
+        .map((f) => [f.name, werte.offen[f.name] as Wert]),
+    ),
+    gesetzt: felder.filter((f) => f.geheim && gesetzt(f.name)).map((f) => f.name),
   };
 };
 
