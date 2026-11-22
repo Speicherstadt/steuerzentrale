@@ -1,5 +1,6 @@
 import type { LogSink } from "../../log.ts";
 import { type AuftragDeps, type AuftragsMeldung, auftragMelden } from "../auftraege/index.ts";
+import { type LogAuszugNachricht, logAuszugAnnehmen } from "../auftraege/log-auszug.ts";
 import type { Server } from "../server/index.ts";
 
 /**
@@ -36,3 +37,25 @@ export const auftragsEingang = (
       );
   };
 };
+
+/**
+ * What one connection does with a log excerpt (Z-405): kept for a log job of its server, any other
+ * dropped and logged without its lines
+ */
+export const logAuszugEingang =
+  (
+    deps: AuftragDeps & { log: LogSink },
+    server: () => Server,
+  ): ((n: LogAuszugNachricht, jetzt: number) => void) =>
+  (n, jetzt) => {
+    const r = logAuszugAnnehmen(deps, server(), n, jetzt);
+    if (!r.ok)
+      deps.log(
+        JSON.stringify({
+          msg: "log excerpt dropped",
+          serverId: server().serverId,
+          auftragId: n.auftragId,
+          grund: r.grund,
+        }),
+      );
+  };

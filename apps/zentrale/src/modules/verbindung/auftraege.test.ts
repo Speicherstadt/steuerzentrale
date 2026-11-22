@@ -1,6 +1,6 @@
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
-import { auditLog, auftraege } from "../../db/schema.ts";
+import { auditLog, auftraege, logAuszuege } from "../../db/schema.ts";
 import { serverHinzufuegen } from "../../testhilfen/agent.ts";
 import { neuerAuftrag } from "../../testhilfen/auftraege.ts";
 import { testServer } from "../../testhilfen/server.ts";
@@ -27,8 +27,8 @@ const aufgebaut = async () => {
     jetzt: 1,
     grund: "Test",
   };
-  const anlegen = (auftragId: string) =>
-    auftragAnlegen(zentrale.deps, kontext, neuerAuftrag(serverId, { auftragId }));
+  const anlegen = (auftragId: string, aktion = "migrieren") =>
+    auftragAnlegen(zentrale.deps, kontext, neuerAuftrag(serverId, { auftragId, aktion }));
   const gesendet: Record<string, unknown>[] = [];
   const s = sitzung(zentrale.deps, gefunden);
   s.offen({ senden: (text) => gesendet.push(JSON.parse(text)), schliessen: () => {} });
@@ -92,5 +92,19 @@ describe("jobs over the agent's session", () => {
     await melden({ typ: "ergebnis", zeit: 2, ergebnis: { ok: true, daten: {} } });
     expect(zeile()?.zustand).toBe("gescheitert");
     expect(zentrale.log.some((z) => z.includes("job report refused"))).toBe(true);
+  });
+
+  // Z-405: the lines of a log excerpt are kept for a log job of this server only
+  it("keep a log excerpt of a log job and drop one of another job, logging it", async () => {
+    const { zentrale, anlegen, hallo, melden } = await aufgebaut();
+    await hallo();
+    anlegen("a1");
+    anlegen("a2", "installation_log_auszug");
+    await melden({ typ: "log_auszug", zeilen: ["fremd"] });
+    await melden({ typ: "log_auszug", auftragId: "a2", zeilen: ["app[1]: started"] });
+    expect(zentrale.db.select().from(logAuszuege).all()).toEqual([
+      expect.objectContaining({ auftragId: "a2", inhalt: JSON.stringify(["app[1]: started"]) }),
+    ]);
+    expect(zentrale.log.filter((z) => z.includes("log excerpt dropped"))).toHaveLength(1);
   });
 });

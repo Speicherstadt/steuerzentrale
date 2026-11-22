@@ -5,6 +5,7 @@ import type { Context } from "hono";
 import { z } from "zod";
 import { standVon, verlaufLesen } from "../modules/bewertung/index.ts";
 import {
+  angeboteneAktionen,
   auftraegeDerInstallation,
   hochgeladenesManifest,
   type Installation,
@@ -27,7 +28,8 @@ import type { Anfrage, Registrar } from "./zugang.ts";
  * first (a preview that writes nothing), then makes the installation with the same input. No
  * answer carries a secret: the encrypted column stays in the Zentrale. Each installation comes with
  * its state (Z-403), unknown 90 s after the last report, the page also with its history and the
- * form of its settings, with which "Einstellungen ändern" configures it anew (Z-404).
+ * form of its settings, with which "Einstellungen ändern" configures it anew (Z-404), and which
+ * actions its manifest offers (Z-405, routes/aktionen.ts).
  */
 
 const id = z.string().min(1).max(200);
@@ -156,6 +158,7 @@ export const installationenRouten = (route: Registrar, deps: RoutenDeps): void =
     auftraege: auftraegeAntwort(deps, i),
     verlauf: verlaufLesen(deps.db, i.betreiberId, i.installationId),
     formular: installationsFormular(deps.schluessel, i),
+    aktionen: angeboteneAktionen(i),
   });
 
   route("GET /api/v1/installationen", (c) =>

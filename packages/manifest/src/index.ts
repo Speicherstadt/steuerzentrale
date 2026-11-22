@@ -29,6 +29,17 @@ export {
 /** The manifest schema version this build reads (docs/plan.md, "Manifest": `schema: 1`) */
 export const MANIFEST_SCHEMA = 1;
 export {
+  AKTION_ZEITLIMIT_S,
+  AKTIONS_AUFTRAEGE,
+  type AktionsAnfrage,
+  type AktionsGeprueft,
+  aktionAngeboten,
+  aktionsAuftragPruefen,
+  type InstallationsAktion,
+  istAktionsAuftrag,
+  nurLesenBefehl,
+} from "./aktionen.ts";
+export {
   EINRICHTUNG_AKTIONEN,
   EINRICHTUNG_ZEITLIMIT_S,
   type Einrichtung,

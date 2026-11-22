@@ -67,6 +67,7 @@ export {
   Power,
   Radar,
   RefreshCw,
+  RotateCw,
   Ruler,
   ScanQrCode,
   ScrollText,

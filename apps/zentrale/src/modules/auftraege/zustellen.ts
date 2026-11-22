@@ -1,4 +1,9 @@
-import { EINRICHTUNG_AKTIONEN, type Einrichtung, manifestPruefen } from "@steuerzentrale/manifest";
+import {
+  AKTIONS_AUFTRAEGE,
+  EINRICHTUNG_AKTIONEN,
+  type Einrichtung,
+  manifestPruefen,
+} from "@steuerzentrale/manifest";
 import { sperrzeitAm } from "@steuerzentrale/planung";
 import {
   Auftrag as AuftragNachricht,
@@ -67,13 +72,19 @@ const nachrichtFuer = (deps: AuftragDeps, a: Auftrag): string => {
   return auftragNachricht(a, einrichtung.einrichtung);
 };
 
+/** The jobs that restart an app: configuring anew (Z-404) and the restart itself (Z-405) */
+const STARTEN_NEU: readonly string[] = [
+  EINRICHTUNG_AKTIONEN.konfigurieren,
+  AKTIONS_AUFTRAEGE.neustart,
+];
+
 /**
- * A job `installation_konfigurieren` the agent may not have yet, in a freeze window of its
- * manifest: it restarts the app, so it waits for a connection outside the window (docs/plan.md,
- * "Neu konfigurieren"); one the agent acknowledged it knows from its own record
+ * A job that restarts the app and that the agent may not have yet, in a freeze window of its
+ * manifest: it waits for a connection outside the window (docs/plan.md, "Neu konfigurieren",
+ * "Neustart"); one the agent acknowledged it knows from its own record
  */
 const inSperrzeit = (a: Auftrag, jetzt: number): boolean => {
-  if (a.aktion !== EINRICHTUNG_AKTIONEN.konfigurieren) return false;
+  if (!STARTEN_NEU.includes(a.aktion)) return false;
   if (a.zustand !== "bereit" && a.zustand !== "zugestellt") return false;
   const m = manifestPruefen(a.manifest);
   return !m.ok || sperrzeitAm(m.manifest.sperrzeiten, jetzt) !== undefined;

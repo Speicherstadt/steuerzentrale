@@ -79,9 +79,11 @@ export const verschluesselteSpalten: Partial<Record<TabellenName, readonly strin
 };
 /**
  * Columns the audit log records only as set: a job's manifest text and signature (Z-305) would put
- * the same kilobytes into the append-only log with every job; its hash stands in the row
+ * the same kilobytes into the append-only log with every job; its hash stands in the row. The lines
+ * of a log excerpt (Z-405) hold the customers' data and go after 30 days; the audit log stays.
  */
 export const ausgelasseneSpalten: Partial<Record<TabellenName, readonly string[]>> = {
+  logAuszuege: ["inhalt"],
   auftraege: ["manifest", "signatur"],
   installationen: ["manifest", "signatur"],
 };

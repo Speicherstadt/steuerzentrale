@@ -34,6 +34,13 @@ describe("darf", () => {
     expect(darf("support", "server:anlegen")).toBe(false);
   });
 
+  it("lets every role take a log excerpt, and only owner and technik restart (Z-405)", () => {
+    for (const rolle of ROLLEN) expect(darf(rolle, "installationen:log_auszug"), rolle).toBe(true);
+    expect(darf("inhaber", "installationen:schreiben")).toBe(true);
+    expect(darf("technik", "installationen:schreiben")).toBe(true);
+    expect(darf("support", "installationen:schreiben")).toBe(false);
+  });
+
   it("gives a member with several roles the rights of each", () => {
     expect(rollenVon("support, inhaber")).toEqual(["support", "inhaber"]);
     expect(darf("support,inhaber", "mitglieder:einladen")).toBe(true);
