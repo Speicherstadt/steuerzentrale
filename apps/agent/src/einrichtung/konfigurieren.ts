@@ -1,6 +1,7 @@
-import { bisAktiv, nacheinander, sindAktiv } from "./einrichten.ts";
+import { nacheinander } from "./einrichten.ts";
 import { type HausPlan, hausPlan, hausSchreiben } from "./haus.ts";
 import { type Lauf, laeufer } from "./lauf.ts";
+import { neustarten } from "./neustarten.ts";
 import { alsNutzer, type Nutzer } from "./nutzer.ts";
 import { secretsLesen } from "./secrets.ts";
 import {
@@ -27,9 +28,6 @@ import {
  */
 
 const SCHRITT_MS = 60_000;
-/** An app that fails at its start fails within this; one that stays up this long counts as up */
-const STABIL_VERSUCHE = 10;
-const STABIL_WARTEN_MS = 1000;
 
 type AlterStand = { dateien: HausPlan["dateien"]; secrets: ReadonlyMap<string, string> };
 
@@ -53,38 +51,22 @@ const dateienSichern = async (
   return { ok: true, dateien };
 };
 
-/** Active now, and still active after a while (Restart=always hides an app that fails at start) */
-const aktivBleiben = async (
+/** daemon-reload, then reset-failed, restart and staying active (neustarten.ts) */
+const neuLadenUndStarten = (
   deps: SystemDeps,
   lauf: Lauf,
   n: Nutzer,
   units: readonly string[],
   auftrag?: AbortSignal,
-): Promise<Schrittergebnis> => {
-  const aktiv = await bisAktiv(deps, lauf, n, units, auftrag);
-  if (!aktiv.ok) return aktiv;
-  for (let i = 0; i < STABIL_VERSUCHE; i++) {
-    await deps.warten(STABIL_WARTEN_MS);
-    if (!(await sindAktiv(lauf, n, units)))
-      return gescheitert(`units did not stay active: ${units.join(", ")}`);
-  }
-  return gelungen;
-};
-
-const neuStarten = (lauf: Lauf, n: Nutzer, units: readonly string[]) => {
-  const systemctl = (...argv: string[]) => alsNutzer(n, ["systemctl", "--user", ...argv]);
-  return [
-    () => lauf("systemctl --user daemon-reload", systemctl("daemon-reload")),
-    // a unit that hit systemd's start limit (an app failing at its start) refuses a manual restart
-    // within the limit's interval until its counter is reset; a unit that did not is unchanged,
-    // and whether it did is told by the restart, not by this
-    async () => {
-      await lauf("systemctl --user reset-failed", systemctl("reset-failed", ...units));
-      return gelungen;
-    },
-    () => lauf("systemctl --user restart", systemctl("restart", ...units)),
-  ];
-};
+): Promise<Schrittergebnis> =>
+  nacheinander([
+    () =>
+      lauf(
+        "systemctl --user daemon-reload",
+        alsNutzer(n, ["systemctl", "--user", "daemon-reload"]),
+      ),
+    () => neustarten(deps, lauf, n, units, auftrag),
+  ]);
 
 const secretAnlegen = (lauf: Lauf, n: Nutzer, name: string, wert: string) => () =>
   lauf(`podman secret create ${name}`, alsNutzer(n, ["podman", "secret", "create", name, "-"]), {
@@ -110,8 +92,7 @@ const anwenden = async (
         lauf(`podman secret rm ${name}`, alsNutzer(n, ["podman", "secret", "rm", name])),
     ),
     ...Object.entries(a.quadlets.secrets).map(([name, wert]) => secretAnlegen(lauf, n, name, wert)),
-    ...neuStarten(lauf, n, a.units),
-    () => aktivBleiben(deps, lauf, n, a.units, auftrag),
+    () => neuLadenUndStarten(deps, lauf, n, a.units, auftrag),
   ]);
 };
 
@@ -154,10 +135,7 @@ const wiederherstellen = async (
   const secrets = [...alt.secrets].map(([name, wert]) => secretAnlegen(lauf, n, name, wert));
   const gesetzt = await alleVersuchen([...dateien, weg, ...secrets]);
   // started again even when something could not be brought back: as much of the app as can run
-  const gestartet = await nacheinander([
-    ...neuStarten(lauf, n, a.units),
-    () => aktivBleiben(deps, lauf, n, a.units),
-  ]);
+  const gestartet = await neuLadenUndStarten(deps, lauf, n, a.units);
   return gesetzt.ok ? gestartet : gesetzt;
 };
 

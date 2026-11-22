@@ -1,6 +1,6 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: ${…} is text a word must keep
 import { describe, expect, it } from "vitest";
-import { systemdWort, unitLesen, unitText } from "./systemd.ts";
+import { systemdWort, systemdWortLesen, unitLesen, unitText } from "./systemd.ts";
 
 /**
  * The reverse of systemdWort as Quadlet (C unescape inside double quotes, split.go) and then systemd
@@ -31,6 +31,14 @@ describe("a word of a systemd command line", () => {
     const w = systemdWort(wort);
     expect(w).not.toBeNull();
     expect(gelesen(w ?? "")).toBe(wort);
+    // the agent reads its own units back the same way (Z-405, the values of a log excerpt)
+    expect(systemdWortLesen(w ?? "")).toBe(wort);
+  });
+
+  it("reads back only a word as systemdWort writes it", () => {
+    expect(systemdWortLesen('"A=x\\"y\\\\%%h$$z"')).toBe('A=x"y\\%h$z');
+    for (const fremd of ["bare", '"offen', '"a"b"', '"%h"', '"$X"', '"ende\\"', '""'])
+      expect(systemdWortLesen(fremd)).toBeNull();
   });
 
   it("doubles % and $, so systemd expands no specifier and no variable", () => {

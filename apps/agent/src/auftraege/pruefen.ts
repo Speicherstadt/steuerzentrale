@@ -1,9 +1,13 @@
 import {
+  AKTION_ZEITLIMIT_S,
+  aktionsAuftragPruefen,
   befehlFuellen,
   befehlZurAktion,
   EINRICHTUNG_ZEITLIMIT_S,
   einrichtungAuftragPruefen,
+  geheimeEinstellungen,
   INSTALLATIONS_NAME,
+  istAktionsAuftrag,
   istEinrichtungAktion,
   istPforteAktion,
   type Manifest,
@@ -17,6 +21,7 @@ import {
   type Zweck,
 } from "@steuerzentrale/manifest";
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
+import type { Aktion } from "../aktionen/auftrag.ts";
 import type { Einrichten, Entfernen, Konfigurieren, Schritt } from "../einrichtung/typen.ts";
 import { pruefZiel } from "../zustand/ziel.ts";
 
@@ -29,7 +34,9 @@ import { pruefZiel } from "../zustand/ziel.ts";
  * checks, then its fixed shape (packages/manifest, pforte/auftraege.ts) instead of a command; its
  * route is rendered from the signed manifest. A setup job (Z-402) likewise, with
  * einrichtungAuftragPruefen: its units are rendered from the signed manifest, and the commands of
- * `schritte.einrichten` filled from it; reconfiguring (Z-404) alike, without them. Pure, no I/O.
+ * `schritte.einrichten` filled from it; reconfiguring (Z-404) alike, without them. A restart or a
+ * log excerpt (Z-405) passes aktionsAuftragPruefen: refused unless the manifest offers it.
+ * Pure, no I/O.
  */
 
 export type AuftragNachricht = Extract<NachrichtVonDerZentrale, { typ: "auftrag" }>;
@@ -74,8 +81,21 @@ export type EinrichtungPlan = {
   idempotent: boolean;
 };
 
+/** What an action of an installation does: restart it or read its log (src/aktionen) */
+export type AktionPlan = {
+  art: "aktion";
+  aktion: string;
+  auftrag: Aktion;
+  zeitlimitMs: number;
+  /**
+   * A log excerpt only reads and runs again after a restart of the agent; a restart does not: after
+   * a restart of the agent it may come later than the Zentrale allowed (a freeze window)
+   */
+  idempotent: boolean;
+};
+
 export type Geprueft =
-  | { ok: true; plan: Plan | PfortePlan | EinrichtungPlan }
+  | { ok: true; plan: Plan | PfortePlan | EinrichtungPlan | AktionPlan }
   | { ok: false; grund: string };
 
 const pfortePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
@@ -89,6 +109,26 @@ const pfortePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
       auftrag: geprueft.auftrag,
       zeitlimitMs: Math.min(n.zeitlimitS, PFORTE_ZEITLIMIT_S) * 1000,
       idempotent: true,
+    },
+  };
+};
+
+const aktionPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
+  const geprueft = aktionsAuftragPruefen(m, n);
+  if (!geprueft.ok) return geprueft;
+  const { art, name } = geprueft.auftrag;
+  return {
+    ok: true,
+    plan: {
+      art: "aktion",
+      aktion: n.aktion,
+      auftrag: {
+        art,
+        name,
+        manifest: { id: m.id, version: m.version, geheim: geheimeEinstellungen(m) },
+      },
+      zeitlimitMs: Math.min(n.zeitlimitS, AKTION_ZEITLIMIT_S) * 1000,
+      idempotent: art === "log_auszug",
     },
   };
 };
@@ -117,14 +157,16 @@ const einrichtungsAuftrag = (m: Manifest, n: AuftragNachricht) => {
     return { ok: false as const, grund: "setting up needs the installation data (einrichtung)" };
   // the health check's target from the signed manifest and the ports the job assigned (Z-403)
   const ziel = pruefZiel(m, n.einrichtung.installation);
-  if (a.art === "konfigurieren") return { ok: true as const, auftrag: { ...a, ziel } };
+  // the names a log excerpt replaces (Z-405), kept in the record with the installation
+  const geheim = geheimeEinstellungen(m);
+  if (a.art === "konfigurieren") return { ok: true as const, auftrag: { ...a, ziel, geheim } };
   const schritte: Schritt[] = [];
   for (const name of a.schritte) {
     const s = schrittFuellen(m, name);
     if (typeof s === "string") return { ok: false as const, grund: s };
     schritte.push(s);
   }
-  return { ok: true as const, auftrag: { ...a, schritte, ziel } };
+  return { ok: true as const, auftrag: { ...a, schritte, ziel, geheim } };
 };
 
 const einrichtungPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
@@ -156,6 +198,7 @@ export const auftragPruefen = (n: AuftragNachricht, vertrauen: Vertrauen): Gepru
   if (n.einrichtung !== undefined)
     return { ok: false, grund: "only a setup job carries installation data (einrichtung)" };
   if (istPforteAktion(n.aktion)) return pfortePlan(geladen.manifest, n);
+  if (istAktionsAuftrag(n.aktion)) return aktionPlan(geladen.manifest, n);
   const befehl = befehlZurAktion(geladen.manifest, n.aktion);
   if (!befehl) return { ok: false, grund: `${n.aktion} is not a command of the manifest` };
   const gefuellt = befehlFuellen(befehl, n.argumente);

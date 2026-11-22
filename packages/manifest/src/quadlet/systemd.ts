@@ -32,6 +32,30 @@ export const systemdWort = (wort: string): string | null => {
   return `"${maskiert}"`;
 };
 
+/** The characters systemdWort doubles */
+const VERDOPPELT = new Set(["%", "$"]);
+
+/**
+ * The text of a word systemdWort wrote, or null for anything it does not write (Z-405: the agent
+ * reads the values of its own units back, the reverse of the escaping above)
+ */
+export const systemdWortLesen = (wort: string): string | null => {
+  if (wort.length < 3 || !wort.startsWith('"') || !wort.endsWith('"')) return null;
+  const innen = wort.slice(1, -1);
+  let text = "";
+  for (let i = 0; i < innen.length; i++) {
+    const z = innen[i] as string;
+    const naechstes = innen[i + 1];
+    const paar =
+      (z === "\\" && (naechstes === "\\" || naechstes === '"')) ||
+      (VERDOPPELT.has(z) && naechstes === z);
+    if (paar) i++;
+    else if (z === '"' || z === "\\" || VERDOPPELT.has(z)) return null;
+    text += paar ? (naechstes as string) : z;
+  }
+  return text;
+};
+
 export type Zeile = readonly [schluessel: string, wert: string];
 export type Abschnitt = { name: string; zeilen: readonly Zeile[] };
 

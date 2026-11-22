@@ -60,6 +60,7 @@ export {
   type FormularGeprueft,
   type FormularWerte,
 } from "./einstellungen/formular.ts";
+export { geheimeEinstellungen } from "./einstellungen/geheim.ts";
 export { manifestJsonSchema } from "./json-schema.ts";
 export {
   istPforteAktion,
@@ -94,11 +95,17 @@ export {
   ramBedarf,
   WARNSCHWELLE,
 } from "./platzierung.ts";
+export { LABEL as QUADLET_LABEL } from "./quadlet/container.ts";
 export { HOST, INSTALLATIONS_NAME } from "./quadlet/eingabe.ts";
 export { type PforteRoute, STREAM_SCHLIESSEN_NACH } from "./quadlet/pforte.ts";
 export { quadletsRendern } from "./quadlet/rendern.ts";
 export { PODMAN_4_9_SCHLUESSEL } from "./quadlet/schluessel.ts";
-export { type Abschnitt, systemdWort, unitLesen } from "./quadlet/systemd.ts";
+export {
+  type Abschnitt,
+  systemdWort,
+  systemdWortLesen,
+  unitLesen,
+} from "./quadlet/systemd.ts";
 export {
   DATEIEN_VERZEICHNIS,
   type Gerendert,

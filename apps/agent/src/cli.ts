@@ -1,5 +1,6 @@
 import { pforteGrundkonfiguration } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
+import { echtZeilenLesen } from "./aktionen/journal.ts";
 import { auftraegeAnnehmen } from "./auftraege/auftraege.ts";
 import { echtSpawn } from "./auftraege/ausfuehren.ts";
 import type { Vertrauen } from "./auftraege/pruefen.ts";
@@ -120,6 +121,7 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
           haus: echteHausDateien,
           nutzer,
           lesen: echtLesen,
+          journal: echtZeilenLesen,
           warten: (ms) => Bun.sleep(ms),
         },
         planen,

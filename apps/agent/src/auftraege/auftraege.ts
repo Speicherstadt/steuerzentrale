@@ -2,15 +2,14 @@ import {
   Bestaetigt,
   Ergebnis as ErgebnisNachricht,
   Fortschritt,
+  LogAuszug,
   PROTOKOLL_VERSION,
   schreiben,
 } from "@steuerzentrale/protokoll";
+import { type AktionsDeps, aktionAusfuehren } from "../aktionen/auftrag.ts";
+import type { ZeilenLesen } from "../aktionen/journal.ts";
 import type { Dateien } from "../dateien.ts";
-import {
-  type EinrichtungsDeps,
-  einrichtungAusfuehren,
-  installationsNutzer,
-} from "../einrichtung/auftrag.ts";
+import { einrichtungAusfuehren, installationsNutzer } from "../einrichtung/auftrag.ts";
 import { type Gedaechtnis, gedaechtnisOeffnen } from "../einrichtung/gedaechtnis.ts";
 import type { HausDateien } from "../einrichtung/haus.ts";
 import type { NutzerLesen } from "../einrichtung/nutzer.ts";
@@ -19,6 +18,7 @@ import type { Planer } from "../verbindung/verbinden.ts";
 import type { SpawnMitAusgabe } from "../zustand/pruefen.ts";
 import { ausfuehren, type Ergebnis, type Spawn } from "./ausfuehren.ts";
 import {
+  type AktionPlan,
   type AuftragNachricht,
   auftragPruefen,
   type EinrichtungPlan,
@@ -31,7 +31,8 @@ import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.
 /*
  * The agent's side of jobs (BAULISTE.md Z-305): it acknowledges a job, checks it (pruefen.ts),
  * reports that it runs, runs it (ausfuehren.ts as the installation's user; a job of the Pforte
- * through its admin API, src/pforte; a setup job by src/einrichtung) and reports the result.
+ * through its admin API, src/pforte; a setup job by src/einrichtung; a restart or log excerpt by
+ * src/aktionen, whose lines go out as `log_auszug` before the result) and reports the result.
  * Idempotent by the job's
  * id through its record (zustand.ts): a finished job sent again gets its stored result, a running
  * one only an acknowledgement. A job that was running when the agent stopped is reported failed
@@ -53,6 +54,8 @@ export type InstallationenDeps = {
   nutzer: NutzerLesen;
   /** Reads the old Podman secrets before reconfiguring (Z-404, einrichtung/secrets.ts) */
   lesen: SpawnMitAusgabe;
+  /** Reads the journal for a log excerpt (Z-405, aktionen/journal.ts) */
+  journal: ZeilenLesen;
   warten: (ms: number) => Promise<void>;
 };
 
@@ -96,12 +99,15 @@ const reihe = () => {
   };
 };
 
+type JederPlan = Plan | PfortePlan | EinrichtungPlan | AktionPlan;
+
 /** Runs a checked plan by its kind: a command as the installation's user, or a built-in job */
 const ausfuehrer = (deps: AuftraegeDeps) => {
   const pforteReihe = reihe();
-  // one setup after the other: two would write the Pforte's unit or one installation at once
+  // one setup after the other: two would write the Pforte's unit or one installation at once; the
+  // actions of an installation (Z-405) wait in the same line, so none meets a setup half done
   const einrichtungReihe = reihe();
-  const system: EinrichtungsDeps = {
+  const system: AktionsDeps = {
     ...deps.installationen,
     spawn: deps.spawn,
     planen: deps.planen,
@@ -109,10 +115,12 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
       deps.installationen.gedaechtnis ??
       gedaechtnisOeffnen(deps.dateien, deps.installationen.pfad, deps.jetzt),
   };
-  return async (plan: Plan | PfortePlan | EinrichtungPlan): Promise<Ergebnis> => {
+  return async (plan: JederPlan, auszugSenden: (zeilen: string[]) => void): Promise<Ergebnis> => {
     if (plan.art === "pforte") return pforteReihe(() => pforteAusfuehren(deps, plan));
     if (plan.art === "einrichtung")
       return einrichtungReihe(() => einrichtungAusfuehren(system, plan));
+    if (plan.art === "aktion")
+      return einrichtungReihe(() => aktionAusfuehren(system, plan, auszugSenden));
     const als = await installationsNutzer(system, plan.installationId);
     if (!als.ok) return { ok: false, fehler: `abgelehnt: ${als.grund}` };
     return ausfuehren(deps, plan, als.nutzer);
@@ -155,7 +163,7 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const starten = async (
     stand: Stand,
     n: AuftragNachricht,
-    plan: Plan | PfortePlan | EinrichtungPlan,
+    plan: JederPlan,
     senden: (t: string) => void,
   ) => {
     laufend.add(n.auftragId);
@@ -171,7 +179,17 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
           zeit: deps.jetzt(),
         }),
       );
-      const ergebnis = await planAusfuehren(plan);
+      // the lines of a log excerpt go out before its result (docs/plan.md, "Log-Auszug")
+      const ergebnis = await planAusfuehren(plan, (zeilen) =>
+        senden(
+          schreiben(LogAuszug, {
+            typ: "log_auszug",
+            protokoll: PROTOKOLL_VERSION,
+            auftragId: n.auftragId,
+            zeilen,
+          }),
+        ),
+      );
       await abschliessen(stand, n.auftragId, ergebnis, senden);
     } finally {
       laufend.delete(n.auftragId);
