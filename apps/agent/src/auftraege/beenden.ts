@@ -48,6 +48,8 @@ const toeten = (pid: number): void => {
  */
 export const NACHLAUF_MS = 3000;
 const ABSTAND_MS = 100;
+/** Counted, not timed: a wall clock stepped back must not stretch it (review of PR #25) */
+const RUNDEN = NACHLAUF_MS / ABSTAND_MS;
 
 /**
  * Kills every process that carries the entry, looking again every 100 ms until the end of the
@@ -55,10 +57,9 @@ const ABSTAND_MS = 100;
  * not found again
  */
 export const markierteBeenden = async (eintrag: string, proc = "/proc"): Promise<void> => {
-  const ende = Date.now() + NACHLAUF_MS;
-  for (;;) {
+  for (let runde = 0; ; runde++) {
     for (const pid of mitEintrag(eintrag, proc)) toeten(pid);
-    if (Date.now() >= ende) return;
+    if (runde >= RUNDEN) return;
     await Bun.sleep(ABSTAND_MS);
   }
 };
