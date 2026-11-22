@@ -99,7 +99,10 @@ test.describe("settings", { tag: "@phone" }, () => {
         zustand: "erfolgreich",
       });
       await page.reload();
-      await expect(page.getByText("Neu konfigurieren").first()).toBeVisible();
+      // the job in the page's list of jobs, not the text of the closed dialog
+      await expect(
+        page.getByRole("listitem").filter({ hasText: "Neu konfigurieren" }),
+      ).toBeVisible();
       await ohneBefund(page);
     } finally {
       i.agent.trennen();
