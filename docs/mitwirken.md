@@ -113,6 +113,30 @@ Solid 1 auftaucht,
 und dass kein Code Muster aus Solid 1.x nutzt. Die Oberfläche ist Solid 2.0; dessen Doku liegt als Kopie in
 `docs/solid-2.0/` (Einstieg: `MIGRATION.md`).
 
+## Den Agenten-Loop starten
+
+Wer als Maintainer weiterbaut, startet eine Session (z. B. Claude Code) mit diesem Prompt; der Stand
+steht in `BAULISTE.md` (Häkchen, Abschnitt „Übergabe“) und in den offenen Pull Requests:
+
+```text
+Arbeite BAULISTE.md im Repo Speicherstadt/steuerzentrale ab, wie sie es beschreibt (Stufe 1),
+beginnend mit Schritt 0 (offene Pull Requests und „Übergabe“). Lies vorher CLAUDE.md, AGENTS.md,
+docs/plan.md und docs/mitwirken.md; vor jeder Arbeit an Solid-Code docs/solid-2.0/MIGRATION.md und
+den Abschnitt „What changed from 1.x“ in docs/solid-2.0/CHEATSHEET.md.
+Git: deine eigene Identität als Maintainer, jeder Commit mit `git commit -s`, Claude als
+Co-Authored-By. Pull Requests gegen main, nie direkt auf main pushen; Pflicht-Checks sind check und
+pr-regeln. Actions-Minuten sind knapp: lokal `bun run check` grün vor jedem Push.
+Pro Punkt: Draft-PR zur Reservierung, Tests zuerst, bei grüner CI selbst squash-mergen und den Punkt
+im selben PR abhaken; ein unabhängiges Review (tdd-review) nur bei sicherheitsrelevanten Änderungen
+(Liste in CLAUDE.md). Nicht auf Menschen warten; offene Fragen entscheidet docs/plan.md
+(„Entscheidungen“). Mach weiter, bis Stufe 1 fertig ist oder nur noch Punkte offen sind, die von
+Schritten für Menschen abhängen, und fasse jeden gemergten Punkt in einer Zeile zusammen.
+```
+
+Hört eine Session auf, bevor ihr Pull Request gemergt ist, trägt sie unter „Übergabe“ in
+`BAULISTE.md` ein, was offen ist (auf `main`, über einen eigenen kleinen Pull Request), damit die
+nächste dort weitermacht.
+
 ## Pull Request
 
 - Ein Thema je Pull Request. Titel: `Z-xxx: was gebaut wird` für einen Punkt der

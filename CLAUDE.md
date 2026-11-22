@@ -23,9 +23,10 @@ not to `docs/*.md`.
 ## The agent loop
 
 Work through `BAULISTE.md` as it describes: the first open item whose dependencies are done, one
-item per pull request, tests first, an independent review by a separate subagent (`tdd-review`),
-then **merge it yourself** (squash) once CI is green and the review has no findings left, and tick
-the item in the same pull request. Never wait for a person: open questions are decided by
+item per pull request, tests first, then **merge it yourself** (squash) once CI is green, and tick
+the item in the same pull request. A security-relevant change (see „Pull requests“) needs an
+independent review by a separate subagent (`tdd-review`) with no findings left before the merge.
+An open loop pull request whose session has stopped is finished first (`BAULISTE.md`, step 0). Never wait for a person: open questions are decided by
 `docs/plan.md` ("Entscheidungen"), and a new decision is written there with its reason. An item that
 fails three times goes under "Zurückgestellt" with the reason and the loop goes on with the next
 independent one. Steps only a person can do (servers, domain, contracts, changes in the app repos)
@@ -67,7 +68,7 @@ it settles a detail.
   version that is not exact or outside the entry's `major`, or a package from its `forbidden` list.
   `bun add` installs npm's `latest`, which for TanStack Router and Query is still the Solid 1 line:
   name the version (`bun add @tanstack/solid-router@2.0.0-rc.11 --exact`).
-- Push to `main`, merge without the independent review, create or comment on issues and pull
+- Push to `main`, merge a security-relevant change without the independent review, create or comment on issues and pull
   requests without being asked.
 - Stop the user's processes or containers, or work around `sudo`.
 
@@ -109,7 +110,11 @@ CI decides.
   `.github/workflows/pr-regeln.yml` checks title, sign-off and the ticked item.
 - Before every push check whether the branch's pull request is still open. If it is merged, start
   again from the current `origin/main` and open a **new** pull request.
-- An independent review by a separate subagent before the merge (`tdd-review`).
+- An independent review by a separate subagent before the merge (`tdd-review`) only for a
+  security-relevant change: what the agent may run (manifests, signatures, jobs, argv), login, roles
+  and rights, secrets and keys, separation of operators (`betreiber_id`), the audit log, the agent
+  connection and certificates, the Pforte and network isolation, `install.sh`. Everything else is
+  merged once CI is green.
 - Merge method: squash.
 
 ## Working rules
