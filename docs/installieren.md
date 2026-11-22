@@ -45,13 +45,14 @@ Einrichten noch einmal.
 Dann, in dieser Reihenfolge:
 
 1. **Platzierung** mit den neuesten Fakten des Servers, den Installationen darauf und den Werten des
-   Betreibers. Passt die App nicht, lehnt die Zentrale mit jedem Grund ab; fehlt ein Pflichtwert der
-   Ebene `betreiber`, steht sein Name im Grund (`betreiberwert_fehlt`).
+   Betreibers, mit denen, die der Dialog dazu angibt ([Einstellungen](einstellungen.md)). Passt die
+   App nicht, lehnt die Zentrale mit jedem Grund ab; fehlt ein Pflichtwert der Ebene `betreiber`,
+   steht sein Name im Grund (`betreiberwert_fehlt`).
 2. **Host**: eindeutig unter den nicht entfernten Installationen des Betreibers. Den DNS-Eintrag setzt
    die Zentrale erst mit Z-407.
-3. **Einstellungen der Ebene `installation`** aus dem Dialog: nur Einstellungen dieser Ebene, die mit
-   den gewählten Optionen gelten, mit einem Wert ihres Typs; eine fehlende ohne Vorgabe lehnt das
-   Gegenrendern ab.
+3. **Einstellungen der Ebene `installation`** aus dem Dialog, geprüft gegen das Formular des
+   Manifests (`einstellungenPruefen`): nur Einstellungen dieser Ebene, die mit den gewählten Optionen
+   gelten, mit einem Wert ihres Typs; ein Pflichtfeld ohne Wert und ohne Vorgabe wird abgelehnt.
 4. **Name** `<app>-<6 Zeichen a–z, 0–9>`, z. B. `haben-x7k2p9`; er ist das Präfix der Units und der
    Linux-Nutzer `sz-<name>`.
 5. **Ports** aus 20000–29999 auf dem Server: der HTTP-Port auf 127.0.0.1 und jeder Port mit
@@ -63,8 +64,9 @@ Dann, in dieser Reihenfolge:
    was nicht rendert.
 
 Erst dann schreibt sie in einer Transaktion mit dem Audit-Log die Installation (Zustand
-`wird_eingerichtet`), ihre Ports, den Auftrag `installation_einrichten` und, wenn die App hinter der
-Pforte liegt, `pforte_route_setzen`, der auf das Einrichten wartet ([Aufträge](auftraege.md)).
+`wird_eingerichtet`), ihre Ports, die Werte des Betreibers, die der Dialog dazu angab, den Auftrag
+`installation_einrichten` und, wenn die App hinter der Pforte liegt, `pforte_route_setzen`, der auf
+das Einrichten wartet ([Aufträge](auftraege.md)).
 
 ### Geheimnisse
 
@@ -100,11 +102,14 @@ Vertrag nicht gekündigt ist, nur den Rollen Inhaber und Technik. Der Dialog fra
   Oberfläche liest das Manifest mit derselben Funktion wie die Zentrale (`manifestPruefen`) und nennt
   App und Version oder, was am Manifest nicht stimmt; die Signatur prüft nur die Zentrale;
 - **Optionen** aus dem Manifest, je ein Kästchen;
-- **Einstellungen dieser Installation**: ein Feld je Einstellung der Ebene `installation`, die mit den
-  gewählten Optionen gilt und keine `vorlage` hat, nach ihrem Typ (Text, Zahl, Ja/Nein, geheim als
-  Passwortfeld). Eine Einstellung ohne Vorgabe muss ausgefüllt sein; ein leeres Feld mit Vorgabe
-  bleibt leer, dann gilt die Vorgabe des Manifests. Werte des Betreibers und `auto`-Werte setzt die
-  Zentrale. Kein App-Name steht im Code der Oberfläche;
+- **Einstellungen dieser Installation**: ein Feld je Feld von `einstellungsFormular` für die Ebene
+  `installation` und die gewählten Optionen, nach seinem Typ (Text, Zahl, Ja/Nein, geheim als
+  Passwortfeld). Ein Pflichtfeld des Manifests ohne Vorgabe muss ausgefüllt sein; ein leeres Feld
+  mit Vorgabe bleibt leer, dann gilt die Vorgabe des Manifests. `auto`-Werte setzt die Zentrale.
+  Kein App-Name steht im Code der Oberfläche;
+- **Fehlende Werte des Betreibers**, nur wenn die Platzierung einen Pflichtwert der Ebene
+  `betreiber` vermisst: ein Feld je fehlendem Wert; die Zentrale speichert ihn mit der Installation
+  für alle Installationen der App ([Einstellungen](einstellungen.md));
 - **Adresse** (Host) und **Grund** fürs Audit-Log.
 
 Sobald Kunde, Server, Manifest und Signatur da sind, fragt der Dialog die **Platzierung** ab und
@@ -119,7 +124,8 @@ Liste filtert nach Zustand: eine gescheiterte Einrichtung zählt zu „Rot“, e
 Zustand“, eine entfernte steht nicht mehr darin. Die Seite einer Installation zeigt Kunde, Server,
 Linux-Nutzer, Adresse, HTTP-Port, weitere Ports, Optionen, die Werte dieser Installation (ohne
 Geheimnisse) und ihre Aufträge mit Zustand, letztem Schritt und Fehler. Nach einer gescheiterten
-Einrichtung bietet sie **Entfernen …** mit Grund an. Health, Backups und Daten zeigen die Seiten bis
+Einrichtung bietet sie **Entfernen …** mit Grund an, eine laufende **Einstellungen ändern**
+([Einstellungen](einstellungen.md)). Health, Backups und Daten zeigen die Seiten bis
 Z-403 und Z-406 nur für Installationen der Demodaten (`bun run dev:demo`).
 
 ## API
@@ -130,9 +136,9 @@ ins Audit-Log geht.
 | Route | Körper | Antwort |
 | --- | --- | --- |
 | `POST /api/v1/installationen/platzierung` | `kundeId`, `serverId`, `manifest`, `signatur`, `optionen` | `{ platzierung }` mit `art` `passt`, `hinweise` oder `passt_nicht` und den Codes |
-| `POST /api/v1/installationen` | wie oben, dazu `host`, `einstellungen` (Ebene `installation`), `grund` | `201` mit der Installation |
+| `POST /api/v1/installationen` | wie oben, dazu `host`, `einstellungen` (Ebene `installation`), `betreiberWerte` (fehlende Werte des Betreibers, freiwillig), `grund` | `201` mit der Installation |
 | `GET /api/v1/installationen` | – | `{ installationen }` |
-| `GET /api/v1/installationen/:installationId` | – | die Installation mit ihren Aufträgen (Zustand, letzter Schritt, Fehler) |
+| `GET /api/v1/installationen/:installationId` | – | die Installation mit ihren Aufträgen (Zustand, letzter Schritt, Fehler) und dem Formular ihrer Einstellungen |
 | `DELETE /api/v1/installationen/:installationId` | `grund` | die Installation mit dem neuen Auftrag `installation_entfernen` |
 
 Fehler kommen als `{ fehler }` mit einem Code, bei `passt_nicht` mit `gruende`, bei einem
@@ -208,6 +214,41 @@ gelungen sind. Daran hält er sich:
 - Ist die Datei unlesbar, richtet er nichts ein, entfernt nichts und führt keinen Befehl aus, bis
   sie repariert ist.
 
+### Neu konfigurieren
+
+Neue Einstellungen bringt der Auftrag `installation_konfigurieren` auf den Server. Er hat dieselbe
+Form wie `installation_einrichten` (signiertes Manifest, Name, Feld `einrichtung` mit Optionen,
+Ports und Einstellungen), und der Agent prüft und rendert ihn ebenso. Er nimmt ihn nur an, wenn
+
+- die Installation in seinem Gedächtnis „fertig“ ist (eine fremde oder halb eingerichtete lehnt er
+  ab, ohne etwas zu tun),
+- die Units dieselben bleiben wie im Gedächtnis: andere Optionen ändert neu konfigurieren nicht,
+- jede Datei, die er schreiben würde, schon da ist (eine Unit, die Slice oder eine Datei aus
+  `dateien`); sonst änderte sich, welche Dateien die Installation hat.
+
+Dann, jeder Schritt ein festes Programm ohne Shell, als Nutzer der Installation:
+
+1. Den alten Stand sichern, nur im Speicher: den Inhalt der Units, der Slice und der Dateien (als
+   root gelesen, ohne einem Symlink im Home zu folgen) und die Werte der Podman-Secrets. Die Namen
+   liefert `podman secret ls`, die Werte `podman secret inspect --showsecret`, beides über eine
+   Pipe in den Speicher des Agenten, nie in eine Datei, ein Log oder ein Ergebnis. Sind sie nicht
+   lesbar, bricht er ab, bevor er etwas ändert.
+2. Units, Slice und Dateien neu schreiben, jedes Secret mit `podman secret rm` entfernen und mit
+   `podman secret create` über die benannte Pipe neu anlegen.
+3. `systemctl --user daemon-reload`, `reset-failed` und `restart` der Units; er wartet, bis sie
+   aktiv sind und zehn Sekunden lang aktiv bleiben. Die Units starten bei einem Absturz neu
+   (`Restart=always`), eine App, die beim Start abbricht, ist darum kurz aktiv und fällt dann aus.
+
+Scheitert ein Schritt, schreibt er die alten Dateien zurück, legt die alten Secrets wieder an und
+startet die Units neu, jeder Schritt mit eigenem Zeitlimit, auch wenn das des Auftrags abgelaufen
+ist. Das Ergebnis nennt den Schritt und endet mit „alter Stand wiederhergestellt“ oder
+„Wiederherstellung unvollständig: …“. Volumes und Daten fasst er nie an, er zieht kein Image, und
+`schritte.einrichten` laufen nicht noch einmal. Das Gedächtnis (Units, Ziel der Prüfung) ändert er
+nur, wenn alles gelungen ist. Konfigurationsaufträge laufen in derselben Reihe wie die
+Einrichtungsaufträge, einer nach dem anderen. Startet der Agent mitten im Neukonfigurieren neu,
+meldet er den Auftrag als gescheitert („Agent neu gestartet“), statt ihn zu wiederholen; der Neustart
+der App könnte sonst später kommen, als die Zentrale ihn erlaubt hat.
+
 ### Wie es geprüft wird
 
 In der CI (`apps/agent/test/einrichtung.agent.test.ts`) richtet der Agent die Beispiel-App per
@@ -215,4 +256,7 @@ Auftrag ein, mit echtem `useradd`, Linger, Quadlet und rootless Podman. Geprüft
 unter ihrem Nutzer und antwortet auf ihrem Port, ein zweiter Auftrag ändert nichts, ein Secret
 landet bei Podman und in keiner Datei, eine Installation kann die Dateien einer anderen nicht lesen,
 und ein scheiternder Einrichtungsschritt hinterlässt weder Nutzer noch Home, Units, Prozesse oder
-Container.
+Container. In `apps/agent/test/konfigurieren.agent.test.ts` konfiguriert er die Beispiel-App mit
+einem neuen `BEISPIEL_TITEL` neu: der neue Wert ist im Container, ein vorher über HTTP angelegter
+Eintrag ist noch da, das Secret hat seinen Wert. Mit einem Titel, bei dem die App beim Start abbricht,
+läuft danach wieder der alte Stand mit dem Eintrag.

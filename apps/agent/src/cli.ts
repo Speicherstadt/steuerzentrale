@@ -119,6 +119,7 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
           gedaechtnis,
           haus: echteHausDateien,
           nutzer,
+          lesen: echtLesen,
           warten: (ms) => Bun.sleep(ms),
         },
         planen,

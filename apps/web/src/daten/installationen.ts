@@ -1,4 +1,4 @@
-import type { Platzierung } from "@steuerzentrale/manifest";
+import type { EinstellungsFeld, Platzierung } from "@steuerzentrale/manifest";
 import { type Antwort, api } from "../anmeldung/api.ts";
 import { demo } from "../demo/index.ts";
 import type { HealthDerZentrale, Verlaufseintrag } from "./bewertung.ts";
@@ -66,10 +66,15 @@ export type AuftragDerInstallation = {
   geaendertAm: number;
 };
 
+/** The form of the installation's settings and the names of its secret values that are set */
+export type InstallationsFormular = { felder: EinstellungsFeld[]; gesetzt: string[] };
+
 export type InstallationMitAuftraegen = InstallationDerZentrale & {
   auftraege: AuftragDerInstallation[];
   /** Every change of the state, newest first */
   verlauf: Verlaufseintrag[];
+  /** For "Einstellungen ändern" (Z-404) */
+  formular: InstallationsFormular;
 };
 
 /** What the dialog asks the placement about: the signed manifest's exact text and signature */
@@ -85,6 +90,8 @@ export type NeueInstallation = PlatzWunsch & {
   host: string;
   /** Values of the level `installation`, by name */
   einstellungen: Record<string, Einstellungswert>;
+  /** Values of the level `betreiber` the dialog adds to the operator's (Z-404) */
+  betreiberWerte?: Record<string, Einstellungswert>;
 };
 
 export type InstallationenQuelle = {
@@ -95,6 +102,12 @@ export type InstallationenQuelle = {
   anlegen: (neu: NeueInstallation, grund: string) => Promise<Antwort<InstallationDerZentrale>>;
   /** Only an installation whose setup failed (Z-402); answers it with the new removal job */
   entfernen: (id: string, grund: string) => Promise<Antwort<InstallationMitAuftraegen>>;
+  /** "Einstellungen ändern" (Z-404); answers the installation with the new job */
+  konfigurieren: (
+    id: string,
+    einstellungen: Record<string, Einstellungswert>,
+    grund: string,
+  ) => Promise<Antwort<InstallationMitAuftraegen>>;
 };
 
 const PFAD = "/api/v1/installationen";
@@ -115,6 +128,11 @@ export const apiInstallationen: InstallationenQuelle = {
   anlegen: (neu, grund) => api<InstallationDerZentrale>(PFAD, { body: { ...neu, grund } }),
   entfernen: (id, grund) =>
     api<InstallationMitAuftraegen>(pfad(id), { method: "DELETE", body: { grund } }),
+  konfigurieren: (id, einstellungen, grund) =>
+    api<InstallationMitAuftraegen>(`${pfad(id)}/einstellungen`, {
+      method: "PUT",
+      body: { einstellungen, grund },
+    }),
 };
 
 /**
@@ -140,6 +158,7 @@ const spaeterDemo = (): InstallationenQuelle => {
     platzierung: async (w) => (await laden()).platzierung(w),
     anlegen: async (neu, grund) => (await laden()).anlegen(neu, grund),
     entfernen: async (id, grund) => (await laden()).entfernen(id, grund),
+    konfigurieren: async (id, e, grund) => (await laden()).konfigurieren(id, e, grund),
   };
 };
 

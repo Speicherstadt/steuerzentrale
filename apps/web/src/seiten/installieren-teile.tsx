@@ -1,15 +1,14 @@
 import type { Manifest, Platzierung } from "@steuerzentrale/manifest";
-import { Icon, Input, m } from "@steuerzentrale/ui";
+import { Icon, m } from "@steuerzentrale/ui";
 import { CircleCheck, CircleX, TriangleAlert } from "@steuerzentrale/ui/icons";
 import { For, Match, Show, Switch } from "solid-js";
 import type { Antwort } from "../anmeldung/api.ts";
-import { angehakt, type Feld, feldName } from "../daten/einstellungs-formular.ts";
 import { grundText, installationsFehler } from "./installieren-texte.ts";
 
 /*
  * The parts of the dialog "Installieren" that come from the manifest (BAULISTE.md Z-402; mockup
- * openInstall): the options, the settings of the level `installation` as a form from the `env`
- * schema, and the placement the Zentrale answers for what is chosen. No app is known by name.
+ * openInstall): the options and the placement the Zentrale answers for what is chosen; the settings
+ * are in einstellungs-felder.tsx. No app is known by name.
  */
 
 const KOPF = {
@@ -108,57 +107,3 @@ export const OptionenFelder = (props: {
     </Show>
   );
 };
-
-const hinweis = (f: Feld) =>
-  [
-    f.beschreibung,
-    f.vorgabe === undefined ? undefined : m.installieren_vorgabe({ wert: String(f.vorgabe) }),
-  ]
-    .filter(Boolean)
-    .join(" · ") || undefined;
-
-const EINGABE = { text: "text", zahl: "number", geheim: "password" } as const;
-
-const EinstellungsFeld = (props: { f: Feld }) => (
-  <Show
-    when={props.f.typ !== "ja_nein"}
-    fallback={
-      <label class="flex items-center gap-2 text-[13px]">
-        <input
-          type="checkbox"
-          name={feldName(props.f.name)}
-          checked={angehakt(props.f)}
-          class={haken}
-        />
-        <code class="font-mono text-xs">{props.f.name}</code>
-        <Show when={props.f.beschreibung}>
-          <span class="text-xs text-muted-foreground">{props.f.beschreibung}</span>
-        </Show>
-      </label>
-    }
-  >
-    <Input
-      label={props.f.name}
-      name={feldName(props.f.name)}
-      type={EINGABE[props.f.typ as keyof typeof EINGABE]}
-      required={props.f.noetig}
-      placeholder={props.f.vorgabe === undefined ? undefined : String(props.f.vorgabe)}
-      autocomplete={props.f.typ === "geheim" ? "new-password" : "off"}
-      hint={hinweis(props.f)}
-      class="font-mono"
-    />
-  </Show>
-);
-
-/** The settings of the level `installation` that apply with the chosen options */
-export const EinstellungsFelder = (props: { felder: Feld[] }) => (
-  <Show when={props.felder.length > 0}>
-    <fieldset class="grid gap-3">
-      <legend class="mb-1 grid gap-0.5">
-        <span class="text-xs font-medium">{m.installieren_einstellungen()}</span>
-        <span class="text-xs text-muted-foreground">{m.installieren_einstellungen_text()}</span>
-      </legend>
-      <For each={props.felder}>{(f) => <EinstellungsFeld f={f} />}</For>
-    </fieldset>
-  </Show>
-);

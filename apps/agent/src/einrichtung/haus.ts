@@ -14,6 +14,11 @@ export type Besitzer = { uid: number; gid: number };
 /** The file system as root writes into a user's home, passed in so the logic is tested without one */
 export type HausDateien = {
   lesen: (pfad: string) => Promise<string | undefined>;
+  /**
+   * Reads a regular file in a user's home, never through a symlink; undefined when it is missing,
+   * throws when it is something else (Z-404: the old files before reconfiguring)
+   */
+  dateiLesen: (pfad: string) => Promise<string | undefined>;
   existiert: (pfad: string) => Promise<boolean>;
   /** Makes the folder if it is missing, then sets mode and owner; refuses a symlink */
   verzeichnis: (pfad: string, modus: number, besitzer: Besitzer) => Promise<void>;

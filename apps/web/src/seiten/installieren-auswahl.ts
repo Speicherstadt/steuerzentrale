@@ -1,4 +1,6 @@
 import {
+  alleOptionen,
+  einstellungsFormular,
   type Geprueft,
   type Manifest,
   manifestPruefen,
@@ -7,7 +9,7 @@ import {
 import { m } from "@steuerzentrale/ui";
 import { createMemo, createSignal } from "solid-js";
 import type { Antwort } from "../anmeldung/api.ts";
-import { type Feld, installationsFelder } from "../daten/einstellungs-formular.ts";
+import type { Feld } from "../daten/einstellungs-formular.ts";
 import { installationenQuelle, type PlatzWunsch } from "../daten/installationen.ts";
 import { kundenQuelle } from "../daten/kunden.ts";
 import { type ServerDerZentrale, serverQuelle } from "../daten/server.ts";
@@ -35,6 +37,14 @@ export type Auswahl = {
   geprueft: () => Geprueft | undefined;
   gelesen: () => Manifest | undefined;
   einstellungen: () => Feld[];
+  /**
+   * The operator's fields of the manifest whose required value the placement found missing
+   * (`betreiberwert_fehlt`, Z-404): the dialog asks for them and they are stored with the
+   * installation. Read under the placement's Loading, as they follow its answer.
+   */
+  betreiberFelder: () => Feld[];
+  /** Every field of the operator's form of the manifest, to read what the dialog entered */
+  betreiberFormular: () => Feld[];
   /** Undefined until customer, server, manifest and signature are there */
   wunsch: () => PlatzWunsch | undefined;
   platzierung: () => Antwort<Platzierung> | undefined;
@@ -57,7 +67,7 @@ export const auswahlZustand = (vorgewaehlt: () => string | undefined): Auswahl =
   };
   const einstellungen = createMemo(() => {
     const mf = gelesen();
-    return mf ? installationsFelder(mf, optionen()) : [];
+    return mf ? einstellungsFormular(mf, "installation", optionen()) : [];
   });
   const wunsch = createMemo((): PlatzWunsch | undefined =>
     kundeId() && serverId() && manifest() && signatur()
@@ -74,6 +84,18 @@ export const auswahlZustand = (vorgewaehlt: () => string | undefined): Auswahl =
     const w = wunsch();
     return w ? installationenQuelle().platzierung(w) : undefined;
   });
+  const betreiberFormular = createMemo(() => {
+    const mf = gelesen();
+    return mf ? einstellungsFormular(mf, "betreiber", alleOptionen(mf)) : [];
+  });
+  const betreiberFelder = () => {
+    const p = platzierung();
+    if (!p?.ok || p.daten.art !== "passt_nicht") return [];
+    const fehlt = new Set(
+      p.daten.gruende.filter((g) => g.code === "betreiberwert_fehlt").map((g) => g.werte.name),
+    );
+    return betreiberFormular().filter((f) => fehlt.has(f.name));
+  };
   const titel = () => {
     const s = server();
     const name = s.ok ? s.daten.find((x) => x.serverId === serverId())?.name : undefined;
@@ -96,6 +118,8 @@ export const auswahlZustand = (vorgewaehlt: () => string | undefined): Auswahl =
     geprueft,
     gelesen,
     einstellungen,
+    betreiberFelder,
+    betreiberFormular,
     wunsch,
     platzierung,
     titel,

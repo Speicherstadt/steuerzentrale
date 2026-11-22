@@ -73,6 +73,13 @@ Geheimnisse enthalten. Der Agent rendert die Units daraus und aus dem Manifest s
 setzt den Zustand der Installation in derselben Transaktion: erfolgreich `laeuft`, gescheitert
 `gescheitert`; ein erfolgreiches `installation_entfernen` setzt `entfernt` und gibt die Ports frei.
 
+Der dritte Einrichtungsauftrag, `installation_konfigurieren`, bringt geänderte Einstellungen auf den
+Server: dieselbe Form wie `installation_einrichten`, mit dem Feld `einrichtung`; der Agent nimmt ihn
+nur für eine Installation an, die er fertig eingerichtet hat, und nur, wenn ihre Units gleich
+bleiben. Er schreibt Units, Slice, Dateien und Secrets neu, startet die Units neu und stellt bei
+einem Fehler den alten Stand wieder her ([Apps installieren](installieren.md), „Neu
+konfigurieren“). Erfolgreich meldet er `{ installation, geaendert: "konfiguriert", units }`.
+
 Nach Schlüssel und Signatur prüft der Agent die feste Form der Einrichtungsaufträge (Name der Installation, Ports von 1024 bis 65535, nur Optionen des
 Manifests, keine Argumente) und rendert die Units selbst aus dem signierten Manifest. Die Angaben
 zur Installation (Feld `einrichtung`) trägt nur ein Einrichtungsauftrag; jeden anderen Auftrag mit
@@ -117,7 +124,8 @@ Lief ein Auftrag, als der Agent neu startete, meldet er ihn nach dem Neustart al
 („Agent neu gestartet“): der Befehl kann einen Teil seiner Arbeit getan haben. Nur einen Befehl, den
 das Manifest als `idempotent` markiert, führt er dann noch einmal aus, ebenso die Aufträge der
 Pforte und einen Einrichtungsauftrag (der erkennt am Gedächtnis der Installationen, was schon
-eingerichtet ist, [Apps installieren](installieren.md)). Ist die Datei unlesbar,
+eingerichtet ist, [Apps installieren](installieren.md)); `installation_konfigurieren` nicht, er
+startet die App neu und gilt nach einem Neustart des Agenten als gescheitert. Ist die Datei unlesbar,
 führt der Agent keinen Auftrag aus, weil er einen doppelten nicht mehr erkennen könnte. Erledigte
 Aufträge vergisst er nach 30 Tagen.
 

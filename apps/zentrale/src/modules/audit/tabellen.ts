@@ -9,6 +9,7 @@ import {
   geheimnisse,
   heartbeats,
   installationen,
+  installationKonfigurationen,
   installationsPorts,
   installationVerlauf,
   kunden,
@@ -54,6 +55,11 @@ export const tabellen = {
     zeit: undefined,
   },
   appEinstellungen: { tabelle: appEinstellungen, schluessel: ["app", "name"], zeit: undefined },
+  installationKonfigurationen: {
+    tabelle: installationKonfigurationen,
+    schluessel: ["auftragId"],
+    zeit: undefined,
+  },
 } satisfies Record<
   string,
   { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined }
@@ -69,6 +75,7 @@ export const verschluesselteSpalten: Partial<Record<TabellenName, readonly strin
   geheimnisse: ["wert"],
   installationen: ["geheim"],
   appEinstellungen: ["wertVerschluesselt"],
+  installationKonfigurationen: ["geheim"],
 };
 /**
  * Columns the audit log records only as set: a job's manifest text and signature (Z-305) would put

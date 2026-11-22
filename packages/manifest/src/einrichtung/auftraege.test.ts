@@ -140,6 +140,44 @@ describe("the setup jobs, built into the Steuerzentrale", () => {
     );
   });
 
+  it("reconfigures with the same shape, rendered alike, and without the setup steps", () => {
+    const geaendert = einrichten({ aktion: EINRICHTUNG_AKTIONEN.konfigurieren });
+    if (!geaendert.einrichtung) throw new Error("test");
+    geaendert.einrichtung.einstellungen.installation = { BEISPIEL_TITEL: "Neu" };
+    const r = einrichtungAuftragPruefen(beispiel, geaendert);
+    if (!r.ok || r.auftrag.art !== "konfigurieren") throw new Error(r.ok ? "art" : r.grund);
+    expect(r.auftrag.name).toBe("beispiel-x7k2p9");
+    expect(r.auftrag.units).toEqual(["beispiel-x7k2p9-app.service"]);
+    expect(r.auftrag.quadlets.units["beispiel-x7k2p9-app.container"]).toContain(
+      "BEISPIEL_TITEL=Neu",
+    );
+    expect(r.auftrag).not.toHaveProperty("schritte");
+  });
+
+  it.each([
+    ["no installation data", { einrichtung: undefined }, "einrichtung"],
+    ["an argument", { argumente: { image: "x" } }, "unknown argument image"],
+    ["no name", { installationId: null }, "named installation"],
+  ] as const)("refuses to reconfigure with %s", (_fall, teil, erwartet) => {
+    expect(
+      grund(
+        einrichten({
+          aktion: EINRICHTUNG_AKTIONEN.konfigurieren,
+          ...(teil as Partial<EinrichtungAnfrage>),
+        }),
+      ),
+    ).toContain(erwartet);
+  });
+
+  it("refuses to reconfigure with a port out of range, as setting up does", () => {
+    const a = mitInstallation({ httpPort: 80 });
+    expect(grund({ ...a, aktion: EINRICHTUNG_AKTIONEN.konfigurieren })).toContain("httpPort");
+  });
+
+  it("names the reconfiguring job installation_konfigurieren", () => {
+    expect(EINRICHTUNG_AKTIONEN.konfigurieren).toBe("installation_konfigurieren");
+  });
+
   it("is not a job of another kind", () => {
     expect(grund(einrichten({ aktion: "pforte_route_setzen" }))).toContain("not a setup job");
   });

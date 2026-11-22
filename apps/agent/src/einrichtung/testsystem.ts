@@ -1,4 +1,5 @@
 import { MARKE, type Spawn, type SpawnOptionen } from "../auftraege/ausfuehren.ts";
+import type { SpawnMitAusgabe } from "../zustand/pruefen.ts";
 import type { Besitzer, HausDateien } from "./haus.ts";
 import type { Nutzer } from "./nutzer.ts";
 
@@ -6,7 +7,8 @@ import type { Nutzer } from "./nutzer.ts";
  * A server in memory for the tests of setting up (Z-402): users, their homes and files, lingering,
  * Podman secrets and started units, driven by the argv the agent runs. Every argv is recorded with
  * the user it ran as (runuser's prefix taken off) and its standard input; a test makes a step fail
- * by its exit code. Nothing here runs a process.
+ * by its exit code. What the agent reads (`lesen`: `podman secret ls` and `inspect --showsecret`,
+ * Z-404) is recorded alike, marked `gelesen`. Nothing here runs a process.
  */
 
 export type Eintrag = { art: "verzeichnis" | "datei"; inhalt?: string; modus: number } & Besitzer;
@@ -20,6 +22,8 @@ export type Aufgerufen = {
   eingabe?: string;
   /** The mark spawn was given; its `--env` is taken off `podman exec`'s argv when it matches */
   marke?: string;
+  /** Run by `lesen`, its standard output read */
+  gelesen?: true;
 };
 
 export type TestSystemOptionen = {
@@ -31,6 +35,8 @@ export type TestSystemOptionen = {
   haengt?: (a: Aufgerufen) => boolean;
   /** Writing this file throws */
   schreibenScheitert?: (pfad: string) => boolean;
+  /** The standard output of a run by `lesen`, instead of the usual one */
+  ausgabe?: (a: Aufgerufen) => string | undefined;
   /** systemd's user manager never comes up after lingering */
   ohneBus?: boolean;
   /** useradd gives no subordinate ids (no /etc/subuid entry) */
@@ -152,19 +158,33 @@ const alsRoot = (z: Zustand, o: TestSystemOptionen, argv: string[]): number => {
   return 0;
 };
 
+const secretsVon = (z: Zustand, als: string): Map<string, string> => {
+  const s = z.secrets.get(als) ?? new Map<string, string>();
+  z.secrets.set(als, s);
+  return s;
+};
+
 const alsNutzer = (z: Zustand, a: Aufgerufen): number => {
   const [programm, x, y, ...rest] = a.argv;
   if (programm === "podman" && x === "secret" && y === "create") {
-    const s = z.secrets.get(a.als) ?? new Map<string, string>();
+    const s = secretsVon(z, a.als);
+    // Podman refuses a name that is taken
+    if (s.has(rest[0] ?? "")) return 125;
     s.set(rest[0] ?? "", a.eingabe ?? "");
-    z.secrets.set(a.als, s);
     return 0;
+  }
+  if (programm === "podman" && x === "secret" && y === "rm") {
+    // --ignore: a missing secret is no error
+    const ignorieren = rest[0] === "--ignore";
+    const namen = ignorieren ? rest.slice(1) : rest;
+    const weg = namen.map((n) => secretsVon(z, a.als).delete(n));
+    return ignorieren || weg.every(Boolean) ? 0 : 1;
   }
   if (programm === "systemctl" && x === "--user") {
     const units = a.argv.slice(2).filter((w) => !w.startsWith("-") && w !== y);
     const laufend = z.aktiv.get(a.als) ?? new Set<string>();
     z.aktiv.set(a.als, laufend);
-    if (y === "start") for (const u of units) laufend.add(u);
+    if (y === "start" || y === "restart") for (const u of units) laufend.add(u);
     if (y === "stop") for (const u of units) laufend.delete(u);
     if (y === "is-active") return units.every((u) => laufend.has(u)) ? 0 : 3;
     return 0;
@@ -179,6 +199,11 @@ const hausIn = (z: Zustand, o: TestSystemOptionen): HausDateien => {
   };
   return {
     lesen: async (pfad) => z.dateien.get(pfad)?.inhalt,
+    dateiLesen: async (pfad) => {
+      const e = z.dateien.get(pfad);
+      if (e !== undefined && e.art !== "datei") throw new Error(`${pfad} is not a regular file`);
+      return e?.inhalt;
+    },
     existiert: async (pfad) => z.dateien.has(pfad),
     verzeichnis: async (pfad, modus, { uid, gid }) => {
       if (z.dateien.get(pfad)?.art === "datei") throw new Error(`${pfad} is not a folder`);
@@ -193,6 +218,23 @@ const hausIn = (z: Zustand, o: TestSystemOptionen): HausDateien => {
   };
 };
 
+/** `podman secret ls --format {{.Name}}` and `podman secret inspect --showsecret`, as Podman 4.9 */
+const secretAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string } => {
+  const [programm, x, y, ...rest] = a.argv;
+  if (programm !== "podman" || x !== "secret") return { code: 127, aus: "" };
+  const s = secretsVon(z, a.als);
+  if (y === "ls") return { code: 0, aus: [...s.keys()].map((n) => `${n}\n`).join("") };
+  if (y !== "inspect" || rest[0] !== "--showsecret") return { code: 125, aus: "" };
+  const namen = rest.slice(1);
+  if (!namen.every((n) => s.has(n))) return { code: 125, aus: "[]\n" };
+  const berichte = namen.map((n) => ({
+    ID: n,
+    Spec: { Name: n, Driver: { Name: "file" } },
+    SecretData: s.get(n),
+  }));
+  return { code: 0, aus: `${JSON.stringify(berichte, null, 4)}\n` };
+};
+
 export const testSystem = (o: TestSystemOptionen = {}) => {
   const z = zustandAnlegen(o.nutzer ?? []);
   const spawn: Spawn = (argv, signal, mit) => {
@@ -205,8 +247,17 @@ export const testSystem = (o: TestSystemOptionen = {}) => {
     const code = o.scheitern?.(a) ?? (a.als === "root" ? alsRoot(z, o, a.argv) : alsNutzer(z, a));
     return Promise.resolve({ code });
   };
+  const lesen: SpawnMitAusgabe = async (argv) => {
+    const a: Aufgerufen = { ...ohnePraefix(argv), gelesen: true };
+    z.laeufe.push(a);
+    const code = o.scheitern?.(a);
+    if (code !== undefined) return { code, aus: "" };
+    const r = a.als === "root" ? { code: 127, aus: "" } : secretAusgabe(z, a);
+    return { code: r.code, aus: o.ausgabe?.(a) ?? r.aus };
+  };
   return {
     spawn,
+    lesen,
     haus: hausIn(z, o),
     nutzerLesen: async (name: string) => z.nutzer.get(name),
     nutzer: z.nutzer,

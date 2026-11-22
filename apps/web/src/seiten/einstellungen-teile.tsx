@@ -9,34 +9,11 @@ import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 
 /**
  * The tabs of the settings, read-only until their items let them be changed (each change with a
- * reason, DESIGN.md); "Darstellung" is the viewer's own and takes effect at once
+ * reason, DESIGN.md); the operator's values per app are in einstellungen-apps.tsx (Z-404);
+ * "Darstellung" is the viewer's own and takes effect at once
  */
 
 const mono = (text: string) => <span class="font-mono text-xs">{text}</span>;
-
-export const WerteJeApp = (props: { b: Bestand }) => (
-  <For each={props.b.apps.filter((a) => a.variablen.some((v) => v.ebene === "betreiber"))}>
-    {(a) => (
-      <Karte>
-        <KartenKopf titel={a.name} text={m.einst_werte_text()} />
-        <KartenInhalt>
-          <Angaben
-            zeilen={a.variablen
-              .filter((v) => v.ebene === "betreiber")
-              .map((v) => ({
-                name: v.name,
-                wert: v.geheim
-                  ? props.b.betreiber.geheimGesetzt.includes(v.name)
-                    ? m.inst_wert_gesetzt()
-                    : m.einst_nicht_gesetzt()
-                  : (props.b.betreiber.werte[v.name] ?? m.inst_wert_fehlt()),
-              }))}
-          />
-        </KartenInhalt>
-      </Karte>
-    )}
-  </For>
-);
 
 export const Backup = (props: { b: Bestand }) => (
   <Karte>

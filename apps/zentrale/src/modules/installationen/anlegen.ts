@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import {
+  alleOptionen,
   EINRICHTUNG_AKTIONEN,
   type Einrichtung,
+  type EinstellungsFeld,
+  einstellungsFormular,
   istOeffentlicheIpv4,
   type Manifest,
   manifestPruefen,
@@ -21,12 +24,19 @@ import {
 } from "../auftraege/anlegen.ts";
 import type { Auftrag } from "../auftraege/lesen.ts";
 import { type AuftragDeps, zustellen } from "../auftraege/zustellen.ts";
+import { betreiberWerteSchreiben } from "../einstellungen/betreiber.ts";
 import {
   type GeheimeEinstellungen,
   geheimVerschluesseln,
   type OffeneEinstellungen,
 } from "./einrichtung.ts";
-import { hostVergeben, type Installation, installationLesen, vergebenePorts } from "./lesen.ts";
+import {
+  hostVergeben,
+  type Installation,
+  installationLesen,
+  vergebenePorts,
+  type Werte,
+} from "./lesen.ts";
 import { platzPruefen } from "./platz.ts";
 import { nameErzeugen, portbedarf, portsVergeben, type Vergeben } from "./vergabe.ts";
 import { autoWerteErzeugen, betreiberWerteFuer, installationsWerte, type Zufall } from "./werte.ts";
@@ -37,8 +47,8 @@ import { autoWerteErzeugen, betreiberWerteFuer, installationsWerte, type Zufall 
  * signature of the key install.sh hands the agents; it must fit the server (placement with the
  * server's facts, the operator's required values included) and render with the installation's
  * values (`einrichtungAuftragPruefen`). Then, in one transaction with the audit log, the row with
- * its secrets encrypted, its ports, the job `installation_einrichten` and, for an app with a route,
- * `pforte_route_setzen` that waits for it.
+ * its secrets encrypted, its ports, the operator's values the dialog added (Z-404), the job
+ * `installation_einrichten` and, for an app with a route, `pforte_route_setzen` that waits for it.
  */
 
 export type InstallationsDeps = AuftragDeps & {
@@ -56,6 +66,8 @@ export type NeueInstallation = {
   host: string;
   /** Values of the level `installation`, by name */
   einstellungen: Record<string, Wert>;
+  /** Values of the level `betreiber` the dialog adds to the operator's, stored with it (Z-404) */
+  betreiberWerte?: Record<string, Wert>;
 };
 
 export type InstallationsFehler =
@@ -112,6 +124,8 @@ type Plan = {
   offen: OffeneEinstellungen;
   /** What the encrypted column `geheim` keeps */
   geheim: GeheimeEinstellungen;
+  /** The operator's values as stored and with what the dialog adds, to write the change */
+  betreiber: { felder: EinstellungsFeld[]; bisher: Werte; neu: Werte };
 };
 
 /** Everything the installation gets before anything is written, or why it cannot be made */
@@ -122,7 +136,12 @@ const planen = (
   neu: NeueInstallation,
 ): ({ ok: true } & Plan) | Fehler => {
   const optionen = [...new Set(neu.optionen)];
-  const platz = platzPruefen(deps, betreiberId, { ...neu, manifest: m, optionen });
+  const platz = platzPruefen(deps, betreiberId, {
+    ...neu,
+    manifest: m,
+    optionen,
+    betreiberEingabe: neu.betreiberWerte ?? {},
+  });
   if (!platz.ok) return platz;
   if (platz.platzierung.art === "passt_nicht")
     return { ok: false, grund: "passt_nicht", gruende: platz.platzierung.gruende };
@@ -159,7 +178,12 @@ const planen = (
       auto: geheim.auto,
     },
   };
-  return { ok: true, manifest: m, name, vergeben, einrichtung, offen, geheim };
+  const betreiber = {
+    felder: einstellungsFormular(m, "betreiber", alleOptionen(m)),
+    bisher: platz.betreiberGespeichert,
+    neu: platz.betreiberNeu,
+  };
+  return { ok: true, manifest: m, name, vergeben, einrichtung, offen, geheim, betreiber };
 };
 
 /** The setup job and, for an app with a route, the Pforte's job that waits for it */
@@ -253,6 +277,15 @@ export const installationAnlegen = (
           installationId: plan.name,
           zweck: v.zweck,
         });
+    if (neu.betreiberWerte && Object.keys(neu.betreiberWerte).length > 0)
+      betreiberWerteSchreiben(
+        w,
+        deps.schluessel,
+        { betreiberId, app: plan.manifest.id, jetzt: kontext.jetzt },
+        plan.betreiber.felder,
+        plan.betreiber.bisher,
+        plan.betreiber.neu,
+      );
     return auftraege.zeilen.map((z) => auftragEinfuegen(w, z));
   });
   if (einrichten) zustellen(deps, [einrichten]);

@@ -64,6 +64,17 @@ export const entfernenAuftrag = (teil: Partial<AuftragNachricht> = {}): AuftragN
     ...teil,
   });
 
+export const konfigurierenAuftrag = (
+  einrichtung: Einrichtung,
+  teil: Partial<AuftragNachricht> = {},
+): AuftragNachricht =>
+  einrichtenAuftrag({
+    auftragId: "k1",
+    aktion: EINRICHTUNG_AKTIONEN.konfigurieren,
+    einrichtung,
+    ...teil,
+  });
+
 /** The record of installations with these as set up by the agent */
 export const eingerichtet = (
   namen: Record<string, "angelegt" | "fertig">,
@@ -80,6 +91,7 @@ export const installationenAuf = (sys: TestSystem): AuftraegeDeps["installatione
   pfad: INSTALLATIONEN,
   haus: sys.haus,
   nutzer: sys.nutzerLesen,
+  lesen: sys.lesen,
   warten: async () => {},
 });
 

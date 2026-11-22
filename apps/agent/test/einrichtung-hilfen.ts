@@ -84,6 +84,14 @@ export const sudoHaus = (ordner: string, besitzer = new Map<string, number>()): 
     const l = sudo("cat", "--", pfad);
     return l.code === 0 ? l.aus : undefined;
   },
+  dateiLesen: async (pfad) => {
+    if (sudo("test", "-L", pfad).code === 0) throw new Error(`${pfad} is a symlink`);
+    if (sudo("test", "-e", pfad).code !== 0) return undefined;
+    if (sudo("test", "-f", pfad).code !== 0) throw new Error(`${pfad} is not a regular file`);
+    const l = sudo("cat", "--", pfad);
+    if (l.code !== 0) throw new Error(`${pfad} cannot be read`);
+    return l.aus;
+  },
   existiert: async (pfad) => sudo("test", "-e", pfad).code === 0,
   verzeichnis: async (pfad, modus, { uid, gid }) => {
     besitzer.set(pfad, uid);
@@ -152,6 +160,7 @@ export const echterAgent = () => {
       gedaechtnis,
       haus: sudoHaus(ordner, besitzer),
       nutzer: nutzerLesen,
+      lesen: sudoLesen,
       warten: (ms) => Bun.sleep(ms),
     },
     planen,

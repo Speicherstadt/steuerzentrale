@@ -2,12 +2,15 @@ import { EINRICHTUNG_AKTIONEN } from "@steuerzentrale/manifest";
 import type { AuftragZustand } from "@steuerzentrale/protokoll";
 import type { Db } from "../../db/oeffnen.ts";
 import type { INSTALLATIONS_ZUSTAENDE } from "../../db/schema.ts";
+import type { Schluesselbund } from "../../db/schluessel.ts";
 import type { Schreiber } from "../audit/index.ts";
+import { konfigurationAbschliessen } from "./konfiguration.ts";
 import { installationLesen, portsDerInstallation } from "./lesen.ts";
 
 /*
  * What the end of a setup job means for its installation (BAULISTE.md Z-402): set up, it runs; failed
- * or cancelled, it failed; removed, it is gone and its ports are free again. Runs inside the
+ * or cancelled, it failed; removed, it is gone and its ports are free again; configured anew
+ * (Z-404), it runs with the asked values, after a failure with its old ones. Runs inside the
  * transaction that records the job's end (modules/auftraege/melden.ts), so the installation's state
  * and the job's never disagree.
  */
@@ -35,12 +38,17 @@ export const zustandNach = (
 
 export const installationFortschreiben = (
   w: Schreiber,
-  db: Db,
-  a: { betreiberId: string; installationId: string | null; aktion: string },
+  deps: { db: Db; schluessel: Schluesselbund },
+  a: { betreiberId: string; auftragId: string; installationId: string | null; aktion: string },
   auftrag: AuftragZustand,
   jetzt: number,
 ): void => {
   if (a.installationId === null) return;
+  if (a.aktion === EINRICHTUNG_AKTIONEN.konfigurieren) {
+    konfigurationAbschliessen(w, deps, a, auftrag === "erfolgreich", jetzt);
+    return;
+  }
+  const { db } = deps;
   const i = installationLesen(db, a.betreiberId, a.installationId);
   const neu = i && zustandNach(a.aktion, i.zustand, auftrag);
   if (!i || !neu) return;

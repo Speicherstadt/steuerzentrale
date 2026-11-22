@@ -258,12 +258,18 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   einmal „Störung behoben“; der Verlauf hält jeden Wechsel mit Grund; eine Meldung für eine
   Installation eines anderen Servers oder Betreibers ändert nichts; die Installationsseite zeigt
   Zustand, Grund und Verlauf (Playwright).
-- [ ] **Z-404 Einstellungen** – Ebenen aus dem Manifest; Formular aus dem Schema (keine App fest
+- [x] **Z-404 Einstellungen** – Ebenen aus dem Manifest; Formular aus dem Schema (keine App fest
   eingebaut); Änderung erzeugt den Auftrag „neu konfigurieren“; Geheimnisse nie zurück an die
   Oberfläche.
   Fertig, wenn: das Formular für jedes der acht Manifeste ohne App-spezifischen Code entsteht
   (Test), ein fehlender Pflichtwert des Betreibers die Installation blockiert, und kein Geheimnis in
-  einer API-Antwort steht (Test).
+  einer API-Antwort steht (Test); dazu (Tests): ein Wert gegen das Schema (Typ, Pflicht, Ebene,
+  unbekannter Name) wird abgelehnt; ein leeres geheimes Feld behält den alten Wert; „neu
+  konfigurieren“ wird in einer Sperrzeit und bei einem offenen Auftrag der Installation abgelehnt;
+  der Agent konfiguriert nur eine fertig eingerichtete Installation neu, behält ihre Daten (Volume)
+  und stellt bei einem Fehler den alten Stand wieder her (CI gegen Podman); kein Betreiber erreicht
+  die Einstellungen eines anderen (Test je Endpunkt); Werte des Betreibers im Dialog und neu
+  konfigurieren in Playwright.
 - [ ] **Z-405 Neustart, Logs, nur lesen** – Aktionen Neustart, Log-Auszug (letzte 500 Zeilen aus
   journald, Werte der Secrets ersetzt), nur lesen, wenn das Manifest sie anbietet; jede mit Grund.
   Fertig, wenn: eine nicht angebotene Aktion in der Oberfläche fehlt und vom Agenten abgelehnt wird

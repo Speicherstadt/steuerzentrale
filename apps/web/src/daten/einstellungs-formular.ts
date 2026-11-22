@@ -1,39 +1,26 @@
-import type { Manifest } from "@steuerzentrale/manifest";
+import type { EinstellungsFeld } from "@steuerzentrale/manifest";
 import type { Einstellungswert } from "./installationen.ts";
 
 /*
- * The settings of the level `installation` as the dialog "Installieren" asks for them (BAULISTE.md
- * Z-402): one field per setting of the manifest's `env` that applies with the chosen options and is
- * no template, as the Zentrale checks them (apps/zentrale, modules/installationen/werte.ts). Pure:
- * the form gives text, the API takes a value of the setting's type. No app is known by name.
+ * The forms of the settings (BAULISTE.md Z-402, Z-404): their fields come from
+ * `einstellungsFormular` in packages/manifest, the function the Zentrale checks every written value
+ * with, either in the browser from an uploaded manifest or from the Zentrale's answer. Pure: the
+ * form gives text, the API takes a value of the setting's type. No app is known by name.
  */
 
-export type Feld = {
-  name: string;
-  typ: "text" | "zahl" | "ja_nein" | "geheim";
-  /** Without a default the setting must be entered, else the units do not render */
-  noetig: boolean;
-  vorgabe: Einstellungswert | undefined;
-  beschreibung: string | undefined;
+export type Feld = EinstellungsFeld;
+
+/**
+ * The form field's name: apart from the dialog's own fields (host, reason), and the operator's
+ * fields (`betreiber`) apart from the installation's
+ */
+export const feldName = (einstellung: string, praefix = "env") => `${praefix}:${einstellung}`;
+
+/** Whether a yes/no setting starts ticked: its value, else its default, also written as text */
+export const angehakt = (f: Feld, wert?: Einstellungswert): boolean => {
+  const w = wert ?? f.vorgabe;
+  return w === true || w === "true";
 };
-
-/** The form field's name: apart from the dialog's own fields (host, reason) */
-export const feldName = (einstellung: string) => `env:${einstellung}`;
-
-export const installationsFelder = (m: Manifest, optionen: readonly string[]): Feld[] =>
-  m.env
-    .filter((e) => e.ebene === "installation" && e.vorlage === undefined)
-    .filter((e) => e.option === undefined || optionen.includes(e.option))
-    .map((e) => ({
-      name: e.name,
-      typ: e.typ,
-      noetig: e.pflicht || (e.vorgabe === undefined && e.typ !== "ja_nein"),
-      vorgabe: e.vorgabe,
-      beschreibung: e.beschreibung,
-    }));
-
-/** Whether a yes/no setting starts ticked: its default, also written as text */
-export const angehakt = (f: Feld): boolean => f.vorgabe === true || f.vorgabe === "true";
 
 const wert = (f: Feld, text: string | undefined): Einstellungswert | undefined => {
   if (f.typ === "ja_nein") return text !== undefined;
@@ -43,16 +30,37 @@ const wert = (f: Feld, text: string | undefined): Einstellungswert | undefined =
 
 /**
  * The values to send from the form's fields (src/seiten/anmeldung-teile.tsx, `felder`: trimmed,
- * empty ones left out): a yes/no setting always, as the checkbox is sent only when ticked; an empty
- * field is left out, so the manifest's default applies
+ * empty ones left out): a yes/no setting always, as the checkbox is sent only when ticked. A new
+ * installation leaves an empty field out, so the manifest's default applies; a change
+ * (`aendern`) sends an empty text as "" so the Zentrale unsets it, and leaves an empty secret out,
+ * which keeps its value.
  */
 export const einstellungenAus = (
   felder: readonly Feld[],
   eingabe: Readonly<Record<string, string>>,
+  { aendern = false }: { aendern?: boolean } = {},
 ): Record<string, Einstellungswert> =>
   Object.fromEntries(
     felder.flatMap((f) => {
       const w = wert(f, eingabe[feldName(f.name)]);
+      if (w !== undefined) return [[f.name, w] as const];
+      return aendern && !f.geheim ? [[f.name, ""] as const] : [];
+    }),
+  );
+
+/**
+ * Only the values entered, with their type: the operator's fields the dialog "App installieren"
+ * asks for (Z-404) add to the stored values and never unset one
+ */
+export const eingetragen = (
+  felder: readonly Feld[],
+  eingabe: Readonly<Record<string, string>>,
+  praefix: string,
+): Record<string, Einstellungswert> =>
+  Object.fromEntries(
+    felder.flatMap((f) => {
+      const text = eingabe[feldName(f.name, praefix)];
+      const w = text === undefined ? undefined : wert(f, text);
       return w === undefined ? [] : [[f.name, w] as const];
     }),
   );

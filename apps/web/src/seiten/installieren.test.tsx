@@ -1,6 +1,4 @@
-import { render } from "@solidjs/web";
 import { setLocale } from "@steuerzentrale/ui";
-import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/solid-router";
 import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiInstallationen, installationenQuelleEinsetzen } from "../daten/installationen.ts";
@@ -14,11 +12,10 @@ import { demoInstallationenQuelle } from "../demo/installationen-quelle.ts";
 import { demoKunden } from "../demo/kunden-quelle.ts";
 import { PROBE_MANIFEST, PROBE_SIGNATUR } from "../demo/probe-manifest.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
-import { routeTree } from "../routeTree.gen.ts";
+import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
 
 // BAULISTE.md Z-402: the dialog "Installieren" with the placement live, making an installation
 // that waits for its agent, and removing a failed one, against the demo sources
-let dispose = () => {};
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
 
@@ -38,47 +35,7 @@ beforeEach(() => {
   );
   rolle("technik");
 });
-afterEach(() => {
-  dispose();
-  document.body.innerHTML = "";
-});
-
-const warten = async () => {
-  for (let i = 0; i < 8; i++) {
-    await new Promise((fertig) => setTimeout(fertig, 0));
-    flush();
-  }
-};
-
-const oeffne = async (pfad: string) => {
-  const router = createRouter({
-    routeTree,
-    history: createMemoryHistory({ initialEntries: [pfad] }),
-  });
-  const root = document.createElement("div");
-  document.body.append(root);
-  dispose = render(() => <RouterProvider router={router} />, root);
-  await router.load();
-  await warten();
-  return { root, router };
-};
-
-const knopf = (root: HTMLElement, text: string) =>
-  [...root.querySelectorAll("button")].find((b) => b.textContent?.trim() === text);
-
-const dialog = () => {
-  const d = document.querySelector<HTMLDialogElement>("dialog[open]");
-  if (!d) throw new Error("no open dialog");
-  return d;
-};
-
-/** The field of the open dialog with this visible label */
-const feld = <T extends HTMLElement>(label: string): T => {
-  const marke = [...dialog().querySelectorAll("label")].find((l) => l.textContent === label);
-  const f = dialog().querySelector<T>(`#${CSS.escape(marke?.htmlFor ?? "")}`);
-  if (!f) throw new Error(`no field "${label}"`);
-  return f;
-};
+afterEach(aufraeumen);
 
 const waehlen = async (label: string, wert: string) => {
   const s = feld<HTMLSelectElement>(label);
@@ -94,12 +51,6 @@ const hochladen = async (label: string, text: string, name: string) => {
   f.files = uebergabe.files;
   f.dispatchEvent(new Event("change", { bubbles: true }));
   await warten();
-};
-
-const eintragen = (label: string, wert: string) => {
-  const f = feld<HTMLInputElement>(label);
-  f.value = wert;
-  f.dispatchEvent(new Event("input", { bubbles: true }));
 };
 
 /** Opens the dialog and chooses customer, server and the signed probe manifest */
@@ -146,7 +97,7 @@ describe("the dialog Installieren", () => {
     );
     option?.querySelector("input")?.click();
     await warten();
-    expect(feld<HTMLInputElement>("PROBE_EXTRA").required).toBe(true);
+    expect(feld<HTMLInputElement>("PROBE_EXTRA").required).toBe(false);
     expect(platzierung()).toContain("Passt");
   });
 

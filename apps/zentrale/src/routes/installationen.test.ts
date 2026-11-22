@@ -3,7 +3,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { auditLog, installationen } from "../db/schema.ts";
 import { schreiben } from "../modules/audit/index.ts";
 import { spalteVerschluesseln } from "../modules/geheim/spalten.ts";
-import { FAKTEN, KENNWORT, LIZENZ, signiert } from "../testhilfen/installationen.ts";
+import { KENNWORT, LIZENZ, signiert } from "../testhilfen/installationen.ts";
+import {
+  BEGINN,
+  kundeAnlegen,
+  serverMitAgent as serverMitAgentVon,
+} from "../testhilfen/installationen-api.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
@@ -14,8 +19,6 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 type Antwort = { status: number; daten: Record<string, unknown> };
-
-const BEGINN = Date.UTC(2026, 10, 30, 23);
 
 let server: TestServer;
 let teufel: Person;
@@ -56,34 +59,8 @@ const neu = (host: string, teil: Record<string, unknown> = {}) =>
   });
 
 /** A server of the operator with facts and a connected agent */
-const serverMitAgent = async (p: Person, gesendet: Record<string, unknown>[]) => {
-  const { daten } = await json(p, "/api/v1/server", {
-    body: {
-      name: "Server A",
-      art: "gemeinsam",
-      wartungsfenster: { tage: [0], von: "03:00", bis: "04:00" },
-      grund: "neu",
-    },
-  });
-  const id = String(daten.serverId);
-  const kontext = {
-    betreiberId: p.betreiberId,
-    akteur: "test",
-    jetzt: server.jetzt(),
-    grund: "Test",
-  };
-  schreiben(server.schreibDb, kontext, "test", (w) =>
-    w.aendern(
-      "server",
-      { serverId: id },
-      { fakten: JSON.stringify(FAKTEN), faktenAm: server.jetzt() },
-    ),
-  );
-  const sockel = { senden: (t: string) => gesendet.push(JSON.parse(t)), schliessen: () => {} };
-  server.deps.verbindungen.anmelden(p.betreiberId, id, sockel, server.jetzt());
-  server.deps.verbindungen.gruessen(p.betreiberId, id, sockel);
-  return id;
-};
+const serverMitAgent = (p: Person, gesendet: Record<string, unknown>[]) =>
+  serverMitAgentVon(server, json, p, gesendet);
 
 /** The operator's secret value for the test app, as Z-404 will write it */
 const lizenzSetzen = (betreiberId: string) =>
@@ -129,15 +106,7 @@ beforeAll(async () => {
   technik = await server.eingeladen(teufel, "technik");
   support = await server.eingeladen(teufel, "support");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
-  const { daten } = await json(teufel, "/api/v1/kunden", {
-    body: {
-      name: "Kanzlei Nord",
-      kontakt: { name: "Kim", email: "kim@kanzlei.test" },
-      vertrag: { sla: "basis", beginn: BEGINN },
-      grund: "Vertrag",
-    },
-  });
-  kundeId = String(daten.id);
+  kundeId = await kundeAnlegen(json, teufel);
   serverId = await serverMitAgent(teufel, agent);
   lizenzSetzen(teufel.betreiberId);
 }, 60_000);
@@ -385,6 +354,7 @@ describe("the answers of the API", () => {
     expect(auto.length).toBeGreaterThan(0);
     const text = JSON.stringify(antworten);
     for (const geheim of [LIZENZ, KENNWORT, ...auto]) expect(text).not.toContain(geheim);
-    expect(text).not.toContain('geheim":');
+    // the encrypted column (a ciphertext) or its content; a field of the form says only `geheim: true`
+    expect(text).not.toMatch(/"geheim":["{]/);
   });
 });

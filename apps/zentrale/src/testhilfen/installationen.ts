@@ -11,15 +11,28 @@ import { auftragsUmgebung } from "./auftraege.ts";
 /*
  * For the tests of installing (Z-402): the job environment with customers, server facts and the
  * operator's values for an app, and two manifests signed with the public test key
- * (testhilfen/manifeste/), the key install.sh hands the agents in tests.
+ * (testhilfen/manifeste/), the key install.sh hands the agents in tests; `gesperrt` is `probe`
+ * with a freeze window (Z-404).
  */
 const ORDNER = join(import.meta.dirname, "manifeste");
 const REPO = join(import.meta.dirname, "../../../..");
 
-export const signiert = (app: "probe" | "stumm") => ({
+export const signiert = (app: "probe" | "stumm" | "gesperrt") => ({
   manifest: readFileSync(join(ORDNER, `${app}.yml`), "utf8"),
   signatur: readFileSync(join(ORDNER, `${app}.yml.minisig`), "utf8"),
 });
+
+/** The database file and its write-ahead log, as bytes an attacker with the disk would read */
+export const dateiInhalt = (pfad: string): string =>
+  [pfad, `${pfad}-wal`]
+    .map((datei) => {
+      try {
+        return readFileSync(datei).toString("latin1");
+      } catch {
+        return "";
+      }
+    })
+    .join("");
 
 export const TEST_SCHLUESSEL = schluesselLesen(
   readFileSync(join(REPO, "test/schluessel/test.pub"), "utf8"),

@@ -17,7 +17,7 @@ import {
   type Zweck,
 } from "@steuerzentrale/manifest";
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
-import type { Einrichten, Entfernen, Schritt } from "../einrichtung/typen.ts";
+import type { Einrichten, Entfernen, Konfigurieren, Schritt } from "../einrichtung/typen.ts";
 import { pruefZiel } from "../zustand/ziel.ts";
 
 /*
@@ -29,7 +29,7 @@ import { pruefZiel } from "../zustand/ziel.ts";
  * checks, then its fixed shape (packages/manifest, pforte/auftraege.ts) instead of a command; its
  * route is rendered from the signed manifest. A setup job (Z-402) likewise, with
  * einrichtungAuftragPruefen: its units are rendered from the signed manifest, and the commands of
- * `schritte.einrichten` filled from it. Pure, no I/O.
+ * `schritte.einrichten` filled from it; reconfiguring (Z-404) alike, without them. Pure, no I/O.
  */
 
 export type AuftragNachricht = Extract<NachrichtVonDerZentrale, { typ: "auftrag" }>;
@@ -59,17 +59,19 @@ export type PfortePlan = {
   idempotent: true;
 };
 
-/** What a setup job does: set up or tear down an installation (src/einrichtung) */
+/** What a setup job does: set up, reconfigure or tear down an installation (src/einrichtung) */
 export type EinrichtungPlan = {
   art: "einrichtung";
   aktion: string;
-  auftrag: Einrichten | Entfernen;
+  auftrag: Einrichten | Konfigurieren | Entfernen;
   zeitlimitMs: number;
   /**
-   * Run again after a restart: the record of installations (src/einrichtung/gedaechtnis.ts) tells
-   * a finished setup, and a half one is torn down before it is set up anew
+   * Setting up and tearing down run again after a restart: the record of installations
+   * (src/einrichtung/gedaechtnis.ts) tells a finished setup, and a half one is torn down before it
+   * is set up anew. Reconfiguring does not: it restarts the app, and after a restart of the agent
+   * that may be later than the Zentrale allowed (a freeze window); the Zentrale sends it anew
    */
-  idempotent: true;
+  idempotent: boolean;
 };
 
 export type Geprueft =
@@ -113,14 +115,15 @@ const einrichtungsAuftrag = (m: Manifest, n: AuftragNachricht) => {
   // einrichtungAuftragPruefen refuses a setup without it already
   if (n.einrichtung === undefined)
     return { ok: false as const, grund: "setting up needs the installation data (einrichtung)" };
+  // the health check's target from the signed manifest and the ports the job assigned (Z-403)
+  const ziel = pruefZiel(m, n.einrichtung.installation);
+  if (a.art === "konfigurieren") return { ok: true as const, auftrag: { ...a, ziel } };
   const schritte: Schritt[] = [];
   for (const name of a.schritte) {
     const s = schrittFuellen(m, name);
     if (typeof s === "string") return { ok: false as const, grund: s };
     schritte.push(s);
   }
-  // the health check's target from the signed manifest and the ports the job assigned (Z-403)
-  const ziel = pruefZiel(m, n.einrichtung.installation);
   return { ok: true as const, auftrag: { ...a, schritte, ziel } };
 };
 
@@ -134,7 +137,7 @@ const einrichtungPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
       aktion: n.aktion,
       auftrag: geprueft.auftrag,
       zeitlimitMs: Math.min(n.zeitlimitS, EINRICHTUNG_ZEITLIMIT_S) * 1000,
-      idempotent: true,
+      idempotent: geprueft.auftrag.art !== "konfigurieren",
     },
   };
 };

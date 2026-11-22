@@ -12,10 +12,13 @@ import {
   installationAnlegen,
   installationEntfernen,
   installationenListe,
+  installationKonfigurieren,
   installationLesen,
+  installationsFormular,
   platzPruefen,
 } from "../modules/installationen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { einstellungsWerte } from "./einstellungen.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
@@ -23,7 +26,8 @@ import type { Anfrage, Registrar } from "./zugang.ts";
  * (src/auth/rollen.ts); every write names its reason in `grund`. The dialog asks for the placement
  * first (a preview that writes nothing), then makes the installation with the same input. No
  * answer carries a secret: the encrypted column stays in the Zentrale. Each installation comes with
- * its state (Z-403), unknown 90 s after the last report, the page also with its history.
+ * its state (Z-403), unknown 90 s after the last report, the page also with its history and the
+ * form of its settings, with which "Einstellungen ändern" configures it anew (Z-404).
  */
 
 const id = z.string().min(1).max(200);
@@ -44,13 +48,13 @@ const anlegenSchema = z
   .object({
     ...wunsch,
     host: z.string().regex(HOST, "a lowercase host name with a dot"),
-    einstellungen: z
-      .record(z.string().max(100), z.union([z.string().max(10_000), z.number(), z.boolean()]))
-      .default({}),
+    einstellungen: einstellungsWerte.default({}),
+    betreiberWerte: einstellungsWerte.default({}),
     grund,
   })
   .strict();
 const grundSchema = z.object({ grund }).strict();
+const konfigurierenSchema = z.object({ einstellungen: einstellungsWerte, grund }).strict();
 
 const STATUS: Record<string, 400 | 404 | 409 | 422 | 500 | 503> = {
   kein_kunde: 404,
@@ -62,6 +66,9 @@ const STATUS: Record<string, 400 | 404 | 409 | 422 | 500 | 503> = {
   keine_ports: 409,
   nicht_gescheitert: 409,
   entfernen_laeuft: 409,
+  laeuft_nicht: 409,
+  sperrzeit: 409,
+  auftrag_offen: 409,
   einstellung_ungueltig: 400,
   signatur_ungueltig: 422,
   manifest_ungueltig: 422,
@@ -148,6 +155,7 @@ export const installationenRouten = (route: Registrar, deps: RoutenDeps): void =
     ...installationAntwort(i, deps.now()),
     auftraege: auftraegeAntwort(deps, i),
     verlauf: verlaufLesen(deps.db, i.betreiberId, i.installationId),
+    formular: installationsFormular(deps.schluessel, i),
   });
 
   route("GET /api/v1/installationen", (c) =>
@@ -197,6 +205,22 @@ export const installationenRouten = (route: Registrar, deps: RoutenDeps): void =
     const k = kontext(c, angaben.grund);
     const entfernt = installationEntfernen(modul, k, installationId(c));
     if (!entfernt.ok) return fehler(c, entfernt);
+    const i = installationLesen(deps.db, k.betreiberId, installationId(c)) as Installation;
+    return c.json(seite(i));
+  });
+
+  // "Einstellungen ändern" (Z-404): the values asked for apply once the agent reports success
+  route("PUT /api/v1/installationen/:installationId/einstellungen", async (c) => {
+    const angaben = await eingabe(c, konfigurierenSchema);
+    if (!angaben) return ungueltig(c);
+    const k = kontext(c, angaben.grund);
+    const konfiguriert = installationKonfigurieren(
+      modul,
+      k,
+      installationId(c),
+      angaben.einstellungen,
+    );
+    if (!konfiguriert.ok) return fehler(c, konfiguriert);
     const i = installationLesen(deps.db, k.betreiberId, installationId(c)) as Installation;
     return c.json(seite(i));
   });

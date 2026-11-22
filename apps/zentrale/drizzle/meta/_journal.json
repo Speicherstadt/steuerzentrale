@@ -85,6 +85,13 @@
       "when": 1795379137606,
       "tag": "0011_zustand",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1795384756787,
+      "tag": "0012_konfigurieren",
+      "breakpoints": true
     }
   ]
 }

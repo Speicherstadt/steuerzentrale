@@ -22,7 +22,7 @@ health: { art: http, dienst: app, pfad: /health }
 aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }
 env:
   - { name: PROBE_TITEL, ebene: installation, vorgabe: Probe, beschreibung: Titel der Seite }
-  - { name: PROBE_KENNWORT, ebene: installation, typ: geheim }
+  - { name: PROBE_KENNWORT, ebene: installation, typ: geheim, pflicht: true }
   - { name: PROBE_LIMIT, ebene: installation, typ: zahl, vorgabe: 5 }
   - { name: PROBE_OFFEN, ebene: installation, typ: ja_nein, vorgabe: false }
   - { name: PROBE_EXTRA, ebene: installation, option: extra }

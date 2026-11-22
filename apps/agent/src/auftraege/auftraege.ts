@@ -16,6 +16,7 @@ import type { HausDateien } from "../einrichtung/haus.ts";
 import type { NutzerLesen } from "../einrichtung/nutzer.ts";
 import { type PforteDeps, pforteAusfuehren } from "../pforte/ausfuehren.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
+import type { SpawnMitAusgabe } from "../zustand/pruefen.ts";
 import { ausfuehren, type Ergebnis, type Spawn } from "./ausfuehren.ts";
 import {
   type AuftragNachricht,
@@ -50,6 +51,8 @@ export type InstallationenDeps = {
   gedaechtnis?: Gedaechtnis;
   haus: HausDateien;
   nutzer: NutzerLesen;
+  /** Reads the old Podman secrets before reconfiguring (Z-404, einrichtung/secrets.ts) */
+  lesen: SpawnMitAusgabe;
   warten: (ms: number) => Promise<void>;
 };
 

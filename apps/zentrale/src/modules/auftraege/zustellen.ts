@@ -1,4 +1,5 @@
-import { EINRICHTUNG_AKTIONEN, type Einrichtung } from "@steuerzentrale/manifest";
+import { EINRICHTUNG_AKTIONEN, type Einrichtung, manifestPruefen } from "@steuerzentrale/manifest";
+import { sperrzeitAm } from "@steuerzentrale/planung";
 import {
   Auftrag as AuftragNachricht,
   BEIM_AGENTEN,
@@ -10,6 +11,7 @@ import type { Schluesselbund } from "../../db/schluessel.ts";
 import type { LogSink } from "../../log.ts";
 import { schreiben } from "../audit/index.ts";
 import { einrichtungFuer } from "../installationen/einrichtung.ts";
+import { konfigurationFuer } from "../installationen/konfiguration.ts";
 import type { Verbindungen } from "../verbindung/verbindungen.ts";
 import { type Auftrag, offeneAuftraege } from "./lesen.ts";
 
@@ -19,7 +21,8 @@ import { type Auftrag, offeneAuftraege } from "./lesen.ts";
  * whenever the agent connects; the agent answers a job it knows from its own record (idempotent by
  * the id), so a job sent twice runs once. A setup job (`installation_einrichten`, Z-402) gets the
  * installation's data only here, with its secrets decrypted from the installation's row: the job's
- * row and the audit log never hold them.
+ * row and the audit log never hold them. A job `installation_konfigurieren` (Z-404) gets the values
+ * it asked for, from their own row (modules/installationen/konfiguration.ts).
  */
 
 export type AuftragDeps = {
@@ -47,21 +50,44 @@ export const auftragNachricht = (a: Auftrag, einrichtung?: Einrichtung): string 
     ...(einrichtung ? { einrichtung } : {}),
   });
 
+/** The installation's data for a setup job, or undefined for a job without */
+const einrichtungVon = (deps: AuftragDeps, a: Auftrag) => {
+  if (a.aktion === EINRICHTUNG_AKTIONEN.einrichten)
+    return einrichtungFuer(deps, a.betreiberId, a.installationId);
+  if (a.aktion === EINRICHTUNG_AKTIONEN.konfigurieren)
+    return konfigurationFuer(deps, a.betreiberId, a);
+  return undefined;
+};
+
 /** The message of a job; for a setup job with the installation's data, or why there is none */
 const nachrichtFuer = (deps: AuftragDeps, a: Auftrag): string => {
-  if (a.aktion !== EINRICHTUNG_AKTIONEN.einrichten) return auftragNachricht(a);
-  const einrichtung = einrichtungFuer(deps, a.betreiberId, a.installationId);
+  const einrichtung = einrichtungVon(deps, a);
+  if (!einrichtung) return auftragNachricht(a);
   if (!einrichtung.ok) throw new Error(einrichtung.grund);
   return auftragNachricht(a, einrichtung.einrichtung);
 };
 
 /**
+ * A job `installation_konfigurieren` the agent may not have yet, in a freeze window of its
+ * manifest: it restarts the app, so it waits for a connection outside the window (docs/plan.md,
+ * "Neu konfigurieren"); one the agent acknowledged it knows from its own record
+ */
+const inSperrzeit = (a: Auftrag, jetzt: number): boolean => {
+  if (a.aktion !== EINRICHTUNG_AKTIONEN.konfigurieren) return false;
+  if (a.zustand !== "bereit" && a.zustand !== "zugestellt") return false;
+  const m = manifestPruefen(a.manifest);
+  return !m.ok || sperrzeitAm(m.manifest.sperrzeiten, jetzt) !== undefined;
+};
+
+/**
  * Sends each job that is ready or with the agent to its server's agent, if connected; a ready one
- * is `zugestellt` from then on. A waiting or finished job is not sent.
+ * is `zugestellt` from then on. A waiting or finished job is not sent, nor one that would restart
+ * an app in its freeze window.
  */
 export const zustellen = (deps: AuftragDeps, liste: readonly Auftrag[]): void => {
   for (const a of liste) {
     if (a.zustand !== "bereit" && !BEIM_AGENTEN.has(a.zustand)) continue;
+    if (inSperrzeit(a, deps.now())) continue;
     let text: string;
     try {
       text = nachrichtFuer(deps, a);

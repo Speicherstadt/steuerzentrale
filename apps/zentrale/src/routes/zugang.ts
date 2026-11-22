@@ -72,6 +72,10 @@ export const ROUTEN = {
   "POST /api/v1/installationen/platzierung": recht("installationen:lesen"),
   "POST /api/v1/installationen": recht("installationen:schreiben"),
   "DELETE /api/v1/installationen/:installationId": recht("installationen:schreiben"),
+  "PUT /api/v1/installationen/:installationId/einstellungen": recht("installationen:schreiben"),
+  // the operator's values of an app (Z-404): rights as for installations, which they serve
+  "GET /api/v1/apps/:app/einstellungen": recht("installationen:lesen"),
+  "PUT /api/v1/apps/:app/einstellungen": recht("installationen:schreiben"),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,
