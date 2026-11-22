@@ -69,7 +69,7 @@ const neuEinrichten = async (
     return einrichten(deps, a, lauf, signal);
   });
   if (r.ok) {
-    await deps.gedaechtnis.setzen(a.name, "fertig");
+    await deps.gedaechtnis.setzen(a.name, "fertig", { units: a.units, ziel: a.ziel });
     return { ok: true, daten: { installation: a.name, geaendert: "neu", units: a.units } };
   }
   // the Pforte failed before anything was made: nothing to tear down, nothing recorded

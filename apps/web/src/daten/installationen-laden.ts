@@ -1,5 +1,6 @@
 import type { Antwort } from "../anmeldung/api.ts";
 import { suche } from "./ableitungen.ts";
+import type { Verlaufseintrag } from "./bewertung.ts";
 import {
   type InstallationAnsicht,
   installationAnsicht,
@@ -51,7 +52,10 @@ export const uebersichtLaden = async (): Promise<Antwort<Uebersicht>> => {
   };
 };
 
-export type Einzelansicht = InstallationAnsicht & { auftraege: AuftragDerInstallation[] };
+export type Einzelansicht = InstallationAnsicht & {
+  auftraege: AuftragDerInstallation[];
+  verlauf: Verlaufseintrag[];
+};
 
 export const einzelansichtLaden = async (id: string): Promise<Antwort<Einzelansicht>> => {
   const [eine, namen] = await Promise.all([installationenQuelle().installation(id), namenLaden()]);
@@ -60,6 +64,10 @@ export const einzelansichtLaden = async (id: string): Promise<Antwort<Einzelansi
   return {
     ok: true,
     status: 200,
-    daten: { ...installationAnsicht(eine.daten, namen.daten), auftraege: eine.daten.auftraege },
+    daten: {
+      ...installationAnsicht(eine.daten, namen.daten),
+      auftraege: eine.daten.auftraege,
+      verlauf: eine.daten.verlauf,
+    },
   };
 };

@@ -1,4 +1,18 @@
 /**
+ * Whether a message may pass at `jetzt`: only `abstandMs` after the last that passed. A clock that
+ * jumped back lets the next one pass, so it never silences a server for good.
+ */
+export const mindestabstand = (abstandMs: number): ((jetzt: number) => boolean) => {
+  let letzte = Number.NEGATIVE_INFINITY;
+  return (jetzt) => {
+    const abstand = jetzt - letzte;
+    if (abstand >= 0 && abstand < abstandMs) return false;
+    letzte = jetzt;
+    return true;
+  };
+};
+
+/**
  * A bucket of `vorrat` refilled with one every `nachschubMs`: whether one more may pass at `jetzt`.
  * A clock that jumped back refills nothing.
  */

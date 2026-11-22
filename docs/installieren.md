@@ -203,6 +203,8 @@ gelungen sind. Daran hält er sich:
 - `installation_entfernen` nimmt er nur für eine Installation an, deren Einrichtung nicht fertig
   wurde. Eine laufende Installation hat Daten; sie wird erst mit Backup entfernt (Z-604).
 - Befehle aus Aufträgen führt er nur in Installationen aus, die er fertig eingerichtet hat.
+- Mit „fertig“ merkt er sich, was die Health-Prüfung braucht: die Units und das Ziel der Prüfung
+  aus dem signierten Manifest ([Health und Zustand](zustand.md)).
 - Ist die Datei unlesbar, richtet er nichts ein, entfernt nichts und führt keinen Befehl aus, bis
   sie repariert ist.
 

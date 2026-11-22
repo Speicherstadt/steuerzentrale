@@ -7,7 +7,8 @@ import { beitreten } from "./beitritt/beitreten.ts";
 import { type Dateien, echteDateien } from "./dateien.ts";
 import { dienstPruefen } from "./dienst.ts";
 import { echteHausDateien } from "./einrichtung/echt.ts";
-import { nutzerAusPasswd } from "./einrichtung/nutzer.ts";
+import { type Gedaechtnis, gedaechtnisOeffnen } from "./einrichtung/gedaechtnis.ts";
+import { type NutzerLesen, nutzerAusPasswd } from "./einrichtung/nutzer.ts";
 import { type FaktenNachricht, faktenLesen } from "./fakten/lesen.ts";
 import { echteQuellen } from "./fakten/quellen.ts";
 import { type Pfade, pfadeIn } from "./pfade.ts";
@@ -16,6 +17,8 @@ import { anmeldungenFolgen } from "./ssh/anmeldungen.ts";
 import { echtFolgen } from "./ssh/journal.ts";
 import { echtOeffnen } from "./verbindung/sockel.ts";
 import { type Planer, verbindungsSchleife } from "./verbindung/verbinden.ts";
+import { echtLesen, echtVerbinden } from "./zustand/echt.ts";
+import { zustandMelder } from "./zustand/runde.ts";
 
 /** What `steuerzentrale-agent --version` prints: its version and the protocol it speaks */
 export const versionLine = (): string =>
@@ -56,7 +59,29 @@ const planen: Planer = (lauf, ms) => {
   return () => clearTimeout(t);
 };
 
+const jsonLog = (msg: string, mehr: Record<string, unknown> = {}) =>
+  console.log(JSON.stringify({ msg, ...mehr }));
+
+/** The checks of the installations (src/zustand, Z-403) on the record the jobs write */
+const zustandMelden = (gedaechtnis: Gedaechtnis, nutzer: NutzerLesen) =>
+  zustandMelder(
+    {
+      gedaechtnis,
+      nutzer,
+      spawn: echtSpawn,
+      lesen: echtLesen,
+      holen: (url, init) => fetch(url, init),
+      verbinden: echtVerbinden,
+      planen,
+      jetzt: Date.now,
+    },
+    jsonLog,
+  );
+
 const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, vertrauen) => {
+  // one record of installations for jobs and checks, so a finished setup is checked at once
+  const gedaechtnis = gedaechtnisOeffnen(echteDateien, pfade.installationen, Date.now);
+  const nutzer = nutzerAusPasswd(echteHausDateien.lesen);
   verbindungsSchleife(
     {
       oeffnen: echtOeffnen,
@@ -77,6 +102,7 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
             cursorPfad: pfade.sshCursor,
             melden,
           }),
+        zustand: zustandMelden(gedaechtnis, nutzer),
       },
       auftraege: auftraegeAnnehmen({
         dateien: echteDateien,
@@ -90,13 +116,14 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
         },
         installationen: {
           pfad: pfade.installationen,
+          gedaechtnis,
           haus: echteHausDateien,
-          nutzer: nutzerAusPasswd(echteHausDateien.lesen),
+          nutzer,
           warten: (ms) => Bun.sleep(ms),
         },
         planen,
         jetzt: Date.now,
-        log: (msg, mehr = {}) => console.log(JSON.stringify({ msg, ...mehr })),
+        log: jsonLog,
       }),
     },
     zentrale,

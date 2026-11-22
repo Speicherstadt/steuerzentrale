@@ -11,7 +11,7 @@ import {
   einrichtungAusfuehren,
   installationsNutzer,
 } from "../einrichtung/auftrag.ts";
-import { gedaechtnisOeffnen } from "../einrichtung/gedaechtnis.ts";
+import { type Gedaechtnis, gedaechtnisOeffnen } from "../einrichtung/gedaechtnis.ts";
 import type { HausDateien } from "../einrichtung/haus.ts";
 import type { NutzerLesen } from "../einrichtung/nutzer.ts";
 import { type PforteDeps, pforteAusfuehren } from "../pforte/ausfuehren.ts";
@@ -43,6 +43,11 @@ import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.
 export type InstallationenDeps = {
   /** The record of installations (pfade.ts, `installationen`) */
   pfad: string;
+  /**
+   * The record opened once and shared with the checks (src/zustand, Z-403), so both see each
+   * write; opened from `pfad` without
+   */
+  gedaechtnis?: Gedaechtnis;
   haus: HausDateien;
   nutzer: NutzerLesen;
   warten: (ms: number) => Promise<void>;
@@ -97,7 +102,9 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
     ...deps.installationen,
     spawn: deps.spawn,
     planen: deps.planen,
-    gedaechtnis: gedaechtnisOeffnen(deps.dateien, deps.installationen.pfad, deps.jetzt),
+    gedaechtnis:
+      deps.installationen.gedaechtnis ??
+      gedaechtnisOeffnen(deps.dateien, deps.installationen.pfad, deps.jetzt),
   };
   return async (plan: Plan | PfortePlan | EinrichtungPlan): Promise<Ergebnis> => {
     if (plan.art === "pforte") return pforteReihe(() => pforteAusfuehren(deps, plan));

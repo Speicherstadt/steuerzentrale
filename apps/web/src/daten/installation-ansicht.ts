@@ -1,3 +1,4 @@
+import type { HealthDerZentrale } from "./bewertung.ts";
 import type {
   Einstellungswert,
   InstallationDerZentrale,
@@ -8,9 +9,9 @@ import type { Art, Health, Installation, Kunde, Manifest } from "./typen.ts";
 
 /*
  * An installation as the installation pages show it (BAULISTE.md Z-402): what the Zentrale's API
- * has, named by its customer, server and app, and nothing invented. Health, backups and data come
- * from the demo data by the installation's id until Z-403 and Z-406 (`demo`), so an installation of
- * the Zentrale shows its state of setup and none of those yet.
+ * has, named by its customer, server and app, and nothing invented; its state from the agent's
+ * reports (Z-403). Backups, data and the settings of the manifest come from the demo data by the
+ * installation's id until Z-406 (`demo`), so an installation of the Zentrale shows none of those yet.
  */
 
 export type Namen = {
@@ -40,6 +41,7 @@ export type InstallationAnsicht = {
   optionen: string[];
   werte: Record<string, Einstellungswert>;
   zustand: InstallationsZustand;
+  health: HealthDerZentrale;
   angelegtAm: number;
   geaendertAm: number;
   demo: Installation | undefined;
@@ -70,20 +72,18 @@ export const installationAnsicht = (i: InstallationDerZentrale, n: Namen): Insta
     optionen: i.optionen,
     werte: i.einstellungen.installation,
     zustand: i.zustand,
+    health: i.health,
     angelegtAm: i.angelegtAm,
     geaendertAm: i.geaendertAm,
     demo: n.demo.find((d) => d.id === i.installationId),
   };
 };
 
-/**
- * One word for the installation: its state of setup until it runs, then its health (the demo's
- * until Z-403; unknown without)
- */
+/** One word for the installation: its state of setup until it runs, then its health (Z-403) */
 export type Anzeige = Health | Exclude<InstallationsZustand, "laeuft">;
 
-export const anzeige = (a: InstallationAnsicht): Anzeige =>
-  a.zustand === "laeuft" ? (a.demo?.health ?? "unbekannt") : a.zustand;
+export const anzeige = (a: Pick<InstallationAnsicht, "zustand" | "health">): Anzeige =>
+  a.zustand === "laeuft" ? a.health.zustand : a.zustand;
 
 export const titelVon = (a: Pick<InstallationAnsicht, "kundeName" | "appName">) =>
   `${a.kundeName} · ${a.appName}`;

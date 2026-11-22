@@ -10,6 +10,7 @@ import type { Schluesselbund } from "./db/schluessel.ts";
 import { parseEnv } from "./env.ts";
 import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
+import { bewertungsSchleife } from "./modules/bewertung/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
 import { stilleSchleife } from "./modules/verbindung/stille.ts";
@@ -76,6 +77,7 @@ const planen = (lauf: () => void, ms: number) => {
 };
 aufbewahrungsSchleife(db, schreibDb, Date.now, planen, log);
 stilleSchleife(db, schreibDb, Date.now, planen, log);
+bewertungsSchleife(db, schreibDb, Date.now, planen, log);
 const auth = createAuth({ schreibDb, url: env.url, geheimnis: datenbank.anmeldeGeheimnis });
 const app = createApp({
   log,

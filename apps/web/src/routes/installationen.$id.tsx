@@ -13,6 +13,7 @@ import {
   Gescheitert,
   InstallationsWerte,
 } from "../seiten/installation-einrichtung.tsx";
+import { UnitsUndHealth, Verlauf } from "../seiten/installation-health.tsx";
 import {
   InstallationBackups,
   InstallationEinstellungen,
@@ -25,8 +26,9 @@ import { InstallationsZeichen, Version } from "../teile/zeichen.tsx";
 
 /**
  * One installation (BAULISTE.md Z-402): from the Zentrale its place, ports, values and setup jobs,
- * and after a failed setup the way to remove it. State, settings from the manifest, snapshots and
- * events of the demo data stay for an installation the demo knows by id, until Z-403 and Z-406.
+ * its state with reason and history (Z-403), and after a failed setup the way to remove it.
+ * Settings from the manifest, snapshots, events and the check from outside of the demo data stay
+ * for an installation the demo knows by id, until Z-406.
  */
 
 const Kopf = (props: { a: Einzelansicht }) => (
@@ -58,9 +60,22 @@ const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): T
       <EinrichtungsAuftraege auftraege={a.auftraege} />
     </div>
   );
+  const verlauf = () => <Verlauf verlauf={a.verlauf} />;
   if (!demo)
     return [
-      { id: "zustand", label: m.server_spalte_zustand(), content: einrichtung },
+      {
+        id: "zustand",
+        label: m.server_spalte_zustand(),
+        content: () => (
+          <div class="grid gap-4">
+            <div class="grid gap-4 lg:grid-cols-2">
+              <UnitsUndHealth health={a.health} />
+              {verlauf()}
+            </div>
+            {einrichtung()}
+          </div>
+        ),
+      },
       {
         id: "einstellungen",
         label: m.nav_einstellungen(),
@@ -73,7 +88,8 @@ const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): T
       label: m.server_spalte_zustand(),
       content: () => (
         <div class="grid gap-4">
-          <InstallationZustand b={b} i={demo} />
+          <InstallationZustand b={b} i={demo} health={a.health} />
+          {verlauf()}
           {einrichtung()}
         </div>
       ),

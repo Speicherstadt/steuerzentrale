@@ -8,9 +8,14 @@ import { auftraegeAnnehmen } from "../src/auftraege/auftraege.ts";
 import { eingabeRohr, type Spawn } from "../src/auftraege/ausfuehren.ts";
 import type { AuftragNachricht } from "../src/auftraege/pruefen.ts";
 import { speicher, TEST_PUB } from "../src/beitritt/testhilfen.ts";
+import { gedaechtnisOeffnen } from "../src/einrichtung/gedaechtnis.ts";
 import type { HausDateien } from "../src/einrichtung/haus.ts";
 import { nutzerAusPasswd, PATH } from "../src/einrichtung/nutzer.ts";
 import { testCaddy } from "../src/pforte/testcaddy.ts";
+import type { Planer } from "../src/verbindung/verbinden.ts";
+import { echtVerbinden } from "../src/zustand/echt.ts";
+import type { SpawnMitAusgabe } from "../src/zustand/pruefen.ts";
+import { type ZustandNachricht, zustandLesen } from "../src/zustand/runde.ts";
 import { lauf } from "./pforte-hilfen.ts";
 
 /*
@@ -49,6 +54,21 @@ export const sudoSpawn: Spawn = async (argv, signal, o = {}) => {
   await Promise.race([lesen, Bun.sleep(500)]);
   if (code !== 0) console.warn(`${argv.join(" ")} ended with ${code}\n${fehler.slice(-4000)}`);
   return { code };
+};
+
+/** Root's argv through sudo with its standard output, as the checks read `systemctl show` (Z-403) */
+export const sudoLesen: SpawnMitAusgabe = async (argv, signal) => {
+  const p = Bun.spawn(["sudo", "-n", ...argv], {
+    stdin: "ignore",
+    stdout: "pipe",
+    stderr: "ignore",
+    cwd: "/",
+    signal,
+    killSignal: "SIGKILL",
+    env: { PATH, LC_ALL: "C" },
+  });
+  const aus = await new Response(p.stdout).text();
+  return { code: (await p.exited) ?? null, aus };
 };
 
 const sudo = (...argv: string[]) => lauf(["sudo", "-n", ...argv]);
@@ -115,6 +135,12 @@ export const echterAgent = () => {
   const besitzer = new Map<string, number>();
   const gesendet: Record<string, unknown>[] = [];
   const fs = speicher();
+  const planen: Planer = (los, ms) => {
+    const t = setTimeout(los, ms);
+    return () => clearTimeout(t);
+  };
+  // one record for jobs and checks, as the service has (cli.ts)
+  const gedaechtnis = gedaechtnisOeffnen(fs.dateien, "/z/installationen.json", Date.now);
   const a = auftraegeAnnehmen({
     dateien: fs.dateien,
     pfad: "/z/auftraege.json",
@@ -123,17 +149,30 @@ export const echterAgent = () => {
     pforte: { admin: testCaddy().admin, grund: pforteGrundkonfiguration() },
     installationen: {
       pfad: "/z/installationen.json",
+      gedaechtnis,
       haus: sudoHaus(ordner, besitzer),
       nutzer: nutzerLesen,
       warten: (ms) => Bun.sleep(ms),
     },
-    planen: (los, ms) => {
-      const t = setTimeout(los, ms);
-      return () => clearTimeout(t);
-    },
+    planen,
     jetzt: Date.now,
     log: () => {},
   });
+  /** One round of the checks (Z-403) with the real fetch and socket, root's part through sudo */
+  const zustand = async (): Promise<ZustandNachricht> => {
+    const r = await zustandLesen({
+      gedaechtnis,
+      nutzer: nutzerLesen,
+      spawn: sudoSpawn,
+      lesen: sudoLesen,
+      holen: (url, init) => fetch(url, init),
+      verbinden: echtVerbinden,
+      planen,
+      jetzt: Date.now,
+    });
+    if (!r.ok) throw new Error(r.grund);
+    return r.nachricht;
+  };
   const auftrag = async (n: Omit<AuftragNachricht, "typ" | "protokoll">) => {
     await a.empfangen({ typ: "auftrag", protokoll: PROTOKOLL_VERSION, ...n }, (t) =>
       gesendet.push(JSON.parse(t)),
@@ -144,7 +183,7 @@ export const echterAgent = () => {
     JSON.parse(fs.inhalt.get("/z/installationen.json")?.text ?? '{"installationen":{}}')
       .installationen as Record<string, unknown>;
   const aufraeumen = () => rmSync(ordner, { recursive: true, force: true });
-  return { auftrag, record, besitzer, aufraeumen };
+  return { auftrag, record, besitzer, aufraeumen, zustand };
 };
 
 /** Takes an installation off the runner, whatever state it is in; for afterAll */

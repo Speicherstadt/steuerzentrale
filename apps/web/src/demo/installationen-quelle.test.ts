@@ -109,4 +109,37 @@ describe("the demo's installations", () => {
       fehler: "entfernen_laeuft",
     });
   });
+
+  // Z-403: the state as the Zentrale reports it, the history only on the page
+  it("answer with their state, a red one with its failed unit and its history", async () => {
+    const q = quelle();
+    const liste = await q.liste();
+    const rot = liste.ok
+      ? liste.daten.find((i) => i.installationId === "berger-schreibzeug")
+      : null;
+    expect(rot?.health).toMatchObject({
+      zustand: "rot",
+      grund: { code: "health", werte: { text: "HTTP 503" } },
+      units: [{ name: "app.service", aktiv: "failed" }],
+    });
+    expect(rot && "verlauf" in rot).toBe(false);
+    const eine = await q.installation("berger-schreibzeug");
+    expect(eine.ok && eine.daten.verlauf.map((v) => v.bewertung)).toEqual(["rot", "gruen"]);
+    const ohne = await q.installation("kraft-fixpunkt");
+    expect(ohne.ok && ohne.daten.health.grund.code).toBe("keine_meldung");
+  });
+
+  it("have no state before the agent reported: a new one or a failed setup", async () => {
+    const q = quelle();
+    const neueInstallation = await q.anlegen(neu, "g");
+    const gescheitert = await q.installation(GESCHEITERT);
+    for (const a of [neueInstallation, gescheitert])
+      expect(a.ok && a.daten.health).toEqual({
+        zustand: "unbekannt",
+        grund: { code: "noch_keine_meldung", werte: {} },
+        seit: null,
+        gemeldetAm: null,
+        units: [],
+      });
+  });
 });

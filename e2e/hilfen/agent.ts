@@ -8,7 +8,9 @@ import { serverAnlegen } from "./server.ts";
  * one-time token of the dialog "Server hinzufügen" (Z-302), connects as an agent does (Z-303),
  * reports facts (Z-304) and so makes the server one an app can be placed on. It takes the jobs it
  * gets and runs none, so an installation stays "wird eingerichtet"; a setup whose host starts with
- * `kaputt` it reports failed, as the real agent does after cleaning up. No Podman, no server.
+ * `kaputt` it reports failed, as the real agent does after cleaning up, one whose host starts with
+ * `laeuft` done. It reports the state of installations when a test tells it to (Z-403). No Podman,
+ * no server.
  */
 
 // The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite
@@ -16,7 +18,20 @@ const ZENTRALE = "127.0.0.1:28300";
 // What the Pforte hands the Zentrale (apps/zentrale, modules/verbindung/herkunft.ts)
 const FINGERABDRUCK_HEADER = "x-sz-client-fingerabdruck";
 
-export type TestAgent = { serverId: string; name: string; trennen: () => void };
+/** One installation in a `zustand` message (packages/protokoll, nachrichten.ts) */
+export type ZustandEintrag = {
+  installationId: string;
+  units: { name: string; aktiv: string }[];
+  health: { zustand: "gruen" | "gelb" | "rot" | "unbekannt"; grund: string };
+};
+
+export type TestAgent = {
+  serverId: string;
+  name: string;
+  /** Sends the state of installations, as the agent does every 30 s */
+  melden: (installationen: ZustandEintrag[]) => void;
+  trennen: () => void;
+};
 
 type Nachricht = Record<string, unknown> & { typ: string };
 
@@ -72,22 +87,19 @@ const fakten = (zeit: number) => ({
   uhrzeitAbweichungMs: 12,
 });
 
-/** Takes a job and, for a setup of a `kaputt…` host, reports it failed */
+const ergebnis = (auftragId: string, e: Record<string, unknown>) =>
+  JSON.stringify({ typ: "ergebnis", protokoll: 1, auftragId, zeit: Date.now(), ergebnis: e });
+
+/** Takes a job; a setup of a `kaputt…` host it reports failed, of a `laeuft…` host done */
 const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   const auftragId = n.auftragId as string;
   ws.send(JSON.stringify({ typ: "bestaetigt", protokoll: 1, auftragId }));
   const host = (n.einrichtung as { installation?: { host?: string } } | undefined)?.installation
     ?.host;
-  if (n.aktion === "installation_einrichten" && host?.startsWith("kaputt"))
-    ws.send(
-      JSON.stringify({
-        typ: "ergebnis",
-        protokoll: 1,
-        auftragId,
-        zeit: Date.now(),
-        ergebnis: { ok: false, fehler: "image ziehen: manifest unknown" },
-      }),
-    );
+  if (n.aktion !== "installation_einrichten") return;
+  if (host?.startsWith("kaputt"))
+    ws.send(ergebnis(auftragId, { ok: false, fehler: "image ziehen: manifest unknown" }));
+  if (host?.startsWith("laeuft")) ws.send(ergebnis(auftragId, { ok: true, daten: {} }));
 };
 
 const verbinden = (zertifikat: string): Promise<WebSocket> =>
@@ -130,5 +142,11 @@ export const agentVerbinden = async (
       return sv.agent.zustand === "verbunden" && sv.fakten !== null;
     })
     .toBe(true);
-  return { serverId: server.serverId, name: server.name, trennen: () => ws.close() };
+  return {
+    serverId: server.serverId,
+    name: server.name,
+    melden: (installationen) =>
+      ws.send(JSON.stringify({ typ: "zustand", protokoll: 1, zeit: Date.now(), installationen })),
+    trennen: () => ws.close(),
+  };
 };

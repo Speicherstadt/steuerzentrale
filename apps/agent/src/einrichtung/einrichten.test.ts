@@ -52,7 +52,14 @@ describe("a setup job", () => {
       `${NUTZER}: systemctl --user is-active`,
       `${NUTZER}: podman exec`,
     ]);
-    expect(a.record()).toEqual({ [NAME]: { zustand: "fertig", am: expect.any(Number) } });
+    // what the health check needs (Z-403): the units, and netz.http's assigned port on 127.0.0.1
+    expect(a.record()).toEqual({
+      [NAME]: {
+        zustand: "fertig",
+        am: expect.any(Number),
+        pruefung: { units: UNITS, ziel: { art: "http", port: 20001, pfad: "/health" } },
+      },
+    });
   });
 
   it("makes the user with a home of its own and no login shell", async () => {
