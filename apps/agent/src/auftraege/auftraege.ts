@@ -54,10 +54,24 @@ const MAX_FEHLER = 2000;
 const bestaetigt = (auftragId: string) =>
   schreiben(Bestaetigt, { typ: "bestaetigt", protokoll: PROTOKOLL_VERSION, auftragId });
 
+/**
+ * Runs what it is given one after another: the jobs of the Pforte read its routes, check them and
+ * then write (pforte/admin.ts), and a second job in between would pass the check on stale routes
+ */
+const reihe = () => {
+  let letzte: Promise<unknown> = Promise.resolve();
+  return <T>(f: () => Promise<T>): Promise<T> => {
+    const naechste = letzte.then(f, f);
+    letzte = naechste.catch(() => {});
+    return naechste;
+  };
+};
+
 export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const schreibe = standSchreiber(deps.dateien, deps.pfad, deps.jetzt);
   let geladen: Promise<Geladen> | undefined;
   const laufend = new Set<string>();
+  const pforteReihe = reihe();
 
   const ergebnisSenden = (auftragId: string, ergebnis: Ergebnis, senden: (t: string) => void) =>
     senden(
@@ -106,7 +120,9 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
         }),
       );
       const ergebnis =
-        plan.art === "pforte" ? await pforteAusfuehren(deps, plan) : await ausfuehren(deps, plan);
+        plan.art === "pforte"
+          ? await pforteReihe(() => pforteAusfuehren(deps, plan))
+          : await ausfuehren(deps, plan);
       await abschliessen(stand, n.auftragId, ergebnis, senden);
     } finally {
       laufend.delete(n.auftragId);

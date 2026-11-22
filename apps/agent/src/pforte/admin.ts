@@ -80,18 +80,76 @@ const folge = async (
   return { ok: true, status };
 };
 
-/** A fresh Pforte has no configuration yet: the base configuration is loaded once */
-const grundSicherstellen = async (admin: Admin, grund: PforteGrund, signal: AbortSignal) => {
-  const da = await folge(admin, signal, [
-    { methode: "GET", pfad: `/id/${GRUND_ID}`, erwartet: [200, 404] },
-  ]);
-  if (!da.ok || da.status[0] === 200) return da;
-  return folge(admin, signal, [{ methode: "POST", pfad: "/load", body: grund, erwartet: [200] }]);
+type Gesetzt = { "@id"?: unknown; match?: unknown; handle?: unknown };
+
+/**
+ * The routes of the Pforte's HTTPS server. A fresh Pforte has no configuration yet: the base
+ * configuration is loaded once, and its routes are the ones there are
+ */
+const routenLesen = async (
+  admin: Admin,
+  grund: PforteGrund,
+  signal: AbortSignal,
+): Promise<{ ok: true; routen: Gesetzt[] } | { ok: false; ergebnis: Ergebnis }> => {
+  const r = await anfragen(admin, "GET", `/id/${GRUND_ID}`, undefined, signal);
+  if (!r.ok) return { ok: false, ergebnis: r };
+  if (r.antwort.status === 404) {
+    const geladen = await folge(admin, signal, [
+      { methode: "POST", pfad: "/load", body: grund, erwartet: [200] },
+    ]);
+    if (!geladen.ok) return geladen;
+    return { ok: true, routen: Object.values(grund.apps.http.servers).flatMap((s) => s.routes) };
+  }
+  if (r.antwort.status !== 200)
+    return { ok: false, ergebnis: abgelehnt("GET", `/id/${GRUND_ID}`, r.antwort) };
+  try {
+    const server = JSON.parse(r.antwort.text) as { routes?: unknown };
+    if (Array.isArray(server.routes)) return { ok: true, routen: server.routes as Gesetzt[] };
+  } catch {}
+  return { ok: false, ergebnis: { ok: false, fehler: "Pforte: Routen nicht lesbar" } };
+};
+
+/** Host names a route matches, lower case as Caddy compares them (caddyhttp/matchers.go, MatchHost) */
+const hostsVon = (r: Gesetzt): string[] =>
+  Array.isArray(r.match)
+    ? r.match.flatMap((m: { host?: unknown }) =>
+        Array.isArray(m?.host) ? m.host.map((h) => String(h).toLowerCase()) : [],
+      )
+    : [];
+
+/** The upstreams a route proxies to */
+const upstreamsVon = (r: Gesetzt): string[] =>
+  Array.isArray(r.handle)
+    ? r.handle.flatMap((h: { upstreams?: unknown }) =>
+        Array.isArray(h?.upstreams)
+          ? h.upstreams.map((u: { dial?: unknown }) => String(u?.dial))
+          : [],
+      )
+    : [];
+
+/**
+ * A host or upstream of the new route that another installation's route has already: setting it
+ * would take that installation's requests away, or serve them under a foreign address
+ */
+const fremdBelegt = (routen: Gesetzt[], route: PforteRoute): string | null => {
+  const hosts = new Set(hostsVon(route));
+  const upstreams = new Set(upstreamsVon(route));
+  for (const r of routen) {
+    if (r["@id"] === route["@id"]) continue;
+    const host = hostsVon(r).find((h) => hosts.has(h));
+    if (host) return `Host ${host} gehört schon zur Route ${String(r["@id"])}`;
+    const upstream = upstreamsVon(r).find((u) => upstreams.has(u));
+    if (upstream) return `${upstream} gehört schon zur Route ${String(r["@id"])}`;
+  }
+  return null;
 };
 
 /**
  * Sets the route of an installation: replaces it when its `@id` is there (PATCH), else puts it in
- * front of the base configuration's 404 route (PUT …/routes/0), so the same job twice is one route
+ * front of the base configuration's 404 route (PUT …/routes/0), so the same job twice is one route.
+ * A host or upstream port of another installation's route is refused before anything changes; the
+ * agent runs the Pforte's jobs one after another (auftraege.ts), so no other job changes the routes
+ * between reading and writing
  */
 export const routeSetzen = async (
   admin: Admin,
@@ -100,8 +158,10 @@ export const routeSetzen = async (
   signal: AbortSignal,
 ): Promise<Ergebnis> => {
   const id = route["@id"];
-  const g = await grundSicherstellen(admin, grund, signal);
-  if (!g.ok) return g.ergebnis;
+  const gelesen = await routenLesen(admin, grund, signal);
+  if (!gelesen.ok) return gelesen.ergebnis;
+  const belegt = fremdBelegt(gelesen.routen, route);
+  if (belegt) return { ok: false, fehler: `abgelehnt: ${belegt}` };
   const ersetzt = await folge(admin, signal, [
     { methode: "PATCH", pfad: `/id/${id}`, body: route, erwartet: [200, 404] },
   ]);

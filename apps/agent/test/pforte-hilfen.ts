@@ -23,7 +23,9 @@ export const muss = (argv: string[], timeout?: number): string => {
 
 /**
  * Podman as a Linux user of its own, as each installation has (docs/plan.md, "Pforte"): its own
- * rootless network namespace. ci.yml makes the users with lingering, so /run/user/<uid> is there
+ * rootless network namespace. ci.yml makes the users with lingering, so /run/user/<uid> is there.
+ * `env -i`: the runner's sudo passes its environment on (XDG_CONFIG_HOME and the like), and Podman
+ * would then read the runner's ~/.config, which the user may not
  */
 export const alsNutzer = (nutzer: string) => {
   const uid = muss(["id", "-u", nutzer]);
@@ -33,7 +35,11 @@ export const alsNutzer = (nutzer: string) => {
     "-u",
     nutzer,
     "env",
+    "-i",
     `HOME=/home/${nutzer}`,
+    `USER=${nutzer}`,
+    `LOGNAME=${nutzer}`,
+    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
     `XDG_RUNTIME_DIR=/run/user/${uid}`,
     ...argv,
   ];

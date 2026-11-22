@@ -78,6 +78,49 @@ describe("an address in the Pforte", () => {
     expect(c.routen()).toEqual(["a-k1", UNBEKANNT_ID]);
   });
 
+  it("refuses a host that belongs to another installation's route, and changes nothing", async () => {
+    const c = testCaddy();
+    await routeSetzen(c.admin, grund, route("a-k1", "a.example", 20001), signal);
+    const vorher = c.aufrufe.length;
+    expect(await routeSetzen(c.admin, grund, route("b-k1", "a.example", 20002), signal)).toEqual({
+      ok: false,
+      fehler: "abgelehnt: Host a.example gehört schon zur Route a-k1",
+    });
+    expect(c.routen()).toEqual(["a-k1", UNBEKANNT_ID]);
+    expect(c.aufrufe.slice(vorher).map((a) => a.methode)).toEqual(["GET"]);
+  });
+
+  it("refuses an upstream port that belongs to another installation's route", async () => {
+    const c = testCaddy();
+    await routeSetzen(c.admin, grund, route("a-k1", "a.example", 20001), signal);
+    expect(await routeSetzen(c.admin, grund, route("b-k1", "b.example", 20001), signal)).toEqual({
+      ok: false,
+      fehler: "abgelehnt: 127.0.0.1:20001 gehört schon zur Route a-k1",
+    });
+    expect(c.routen()).toEqual(["a-k1", UNBEKANNT_ID]);
+  });
+
+  it("lets an installation keep its own host and port when its route is set again", async () => {
+    const c = testCaddy();
+    await routeSetzen(c.admin, grund, route("a-k1", "a.example", 20001), signal);
+    expect(await routeSetzen(c.admin, grund, route("a-k1", "a.example", 20001), signal)).toEqual({
+      ok: true,
+      daten: { route: "a-k1", geaendert: "ersetzt" },
+    });
+  });
+
+  it("refuses to work on a base configuration it cannot read", async () => {
+    const c = testCaddy();
+    await routeSetzen(c.admin, grund, route("a-k1", "a.example", 20001), signal);
+    const kaputt: typeof c.admin = async (m, p, b, s) =>
+      m === "GET" ? { status: 200, text: "kein json" } : c.admin(m, p, b, s);
+    expect(await routeSetzen(kaputt, grund, route("b-k1", "b.example", 20002), signal)).toEqual({
+      ok: false,
+      fehler: "Pforte: Routen nicht lesbar",
+    });
+    expect(c.routen()).toEqual(["a-k1", UNBEKANNT_ID]);
+  });
+
   it("reports what Caddy refused, with its status", async () => {
     const c = testCaddy((m) => (m === "PUT" ? 400 : undefined));
     expect(await routeSetzen(c.admin, grund, route("a-k1", "a.example", 20001), signal)).toEqual({

@@ -48,6 +48,12 @@ Verbindungen zu anderen Installationen laufen weiter, und eine Änderung, die Ca
 nimmt Caddy zurück. Ein Auftrag der Pforte hat höchstens 60 Sekunden; nach einem Neustart des
 Agenten führt er ihn noch einmal aus, weil beide Aufträge wiederholbar sind.
 
+Gehört der Hostname oder der Port (`127.0.0.1:<port>`) schon zur Route einer anderen Installation,
+lehnt der Agent `pforte_route_setzen` ab, bevor sich etwas ändert: Eine Installation nimmt der
+anderen weder ihre Anfragen weg noch bedient sie sie unter fremder Adresse. Aufträge der Pforte
+führt der Agent nacheinander aus, damit kein zweiter zwischen Prüfen und Setzen dieselbe Adresse
+belegt.
+
 Findet der Agent eine leere Pforte vor, lädt er zuerst ihre Grundkonfiguration: einen HTTPS-Server
 auf 443 (Weiterleitung von 80) und als letzte Route eine Antwort 404 für jeden Host ohne eigene
 Route. Neue Routen stehen davor.

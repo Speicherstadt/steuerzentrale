@@ -465,16 +465,6 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 Was eine Session offen hinterlassen hat und die nächste zuerst erledigt (Schritt 0). Erledigtes wird
 hier gestrichen.
 
-- **PR #21, Z-401 Pforte** (Branch `claude/z-401-pforte`): Die CI ist noch nicht geprüft; am
-  unsichersten ist `apps/agent/test/pforte.agent.test.ts` (rootless Podman für die Test-Nutzer
-  `sz-test-pa` und `sz-test-pb`, Caddy über den Unix-Socket). Das Review (`tdd-review`) brach ab;
-  ein Befund steht fest und ist noch nicht gefixt: `routeSetzen` (`apps/agent/src/pforte/admin.ts`)
-  muss eine Route ablehnen, deren Host oder Upstream (`127.0.0.1:<port>`) schon zur Route einer
-  anderen Installation gehört (Routen per `GET /id/sz_grund` lesen, die eigene `@id` ausnehmen), sonst
-  nimmt eine Installation der anderen die Anfragen weg oder bedient sie unter fremder Adresse. Erst
-  ein fehlschlagender Test in `apps/agent/src/pforte/admin.test.ts`, dann der Fix. Danach das Review
-  für #21 neu laufen lassen (sicherheitsrelevant) und mergen.
-
 ## Zurückgestellt
 
 ## Schritte für Menschen

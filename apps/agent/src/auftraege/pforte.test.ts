@@ -139,6 +139,32 @@ describe("a job of the Pforte", () => {
     expect(a.caddy.routen()).toEqual(["auftrag-k1", UNBEKANNT_ID]);
   });
 
+  it("runs jobs of the Pforte one after another, so two cannot both take one host", async () => {
+    const caddy = testCaddy();
+    // every answer comes a little later, so that jobs run side by side would interleave
+    const langsam: Admin = async (m, p, b, s) => {
+      await new Promise((r) => setTimeout(r, 5));
+      return caddy.admin(m, p, b, s);
+    };
+    const a = aufgebaut(langsam);
+    await Promise.all([
+      a.empfangen(),
+      a.empfangen(auftrag({ auftragId: "p2", installationId: "auftrag-k2" })),
+    ]);
+    const ergebnisse = a.gesendet.filter((n) => n.typ === "ergebnis");
+    expect(ergebnisse).toEqual([
+      expect.objectContaining({ auftragId: "p1", ergebnis: expect.objectContaining({ ok: true }) }),
+      expect.objectContaining({
+        auftragId: "p2",
+        ergebnis: {
+          ok: false,
+          fehler: "abgelehnt: Host auftrag.kunde.example gehört schon zur Route auftrag-k1",
+        },
+      }),
+    ]);
+    expect(caddy.routen()).toEqual(["auftrag-k1", UNBEKANNT_ID]);
+  });
+
   it("fails with the reason when the Pforte does not answer", async () => {
     const a = aufgebaut(async () => {
       throw new Error("ECONNREFUSED");
