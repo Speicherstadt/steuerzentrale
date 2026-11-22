@@ -9,6 +9,8 @@ import {
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { speicher, TEST_PUB } from "../beitritt/testhilfen.ts";
+import { installationenAuf } from "../einrichtung/testauftraege.ts";
+import { testSystem } from "../einrichtung/testsystem.ts";
 import type { Admin } from "../pforte/admin.ts";
 import { testCaddy } from "../pforte/testcaddy.ts";
 import { auftraegeAnnehmen } from "./auftraege.ts";
@@ -53,6 +55,7 @@ const aufgebaut = (admin?: Admin, fs = speicher()) => {
       return { code: 0 };
     },
     pforte: { admin: admin ?? caddy.admin, grund: pforteGrundkonfiguration() },
+    installationen: installationenAuf(testSystem()),
     planen: (_lauf, ms) => {
       plaene.push(ms);
       return () => {};

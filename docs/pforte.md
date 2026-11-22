@@ -27,8 +27,12 @@ Eine App mit eigenem Proxy (`proxy: eigen`, nur mit einem Server für sich) beko
   TCP-Port. Den Socket erreichen nur `sz-pforte` und der Agent (root); kein anderer Nutzer des
   Servers und kein Container einer Installation.
 
-Die Unit der Pforte schreibt und startet der Agent mit dem Punkt „Installieren“ (Z-402), auf dem
-gleichen Weg wie die Units einer Installation.
+Die Unit der Pforte schreibt und startet der Agent, bevor er die erste App hinter der Pforte
+einrichtet ([Apps installieren](installieren.md)), auf dem gleichen Weg wie die Units einer
+Installation: als Eigentum von `sz-pforte` unter `~/.config/containers/systemd/`, neu geschrieben
+nur, wenn sie sich geändert hat, und gestartet, falls sie noch nicht läuft. Fehlt `sz-pforte`,
+scheitert das Einrichten mit diesem Grund, bevor etwas angelegt ist; den Nutzer legt nur
+`install.sh` an.
 
 ## Adressen setzen und entfernen
 

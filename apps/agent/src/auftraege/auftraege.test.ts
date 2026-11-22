@@ -4,6 +4,8 @@ import { pforteGrundkonfiguration, schluesselLesen } from "@steuerzentrale/manif
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { speicher, TEST_PUB } from "../beitritt/testhilfen.ts";
+import { eingerichtet, INSTALLATIONEN, installationenAuf } from "../einrichtung/testauftraege.ts";
+import { testSystem } from "../einrichtung/testsystem.ts";
 import { testCaddy } from "../pforte/testcaddy.ts";
 import { type AuftraegeDeps, auftraegeAnnehmen, NEU_GESTARTET } from "./auftraege.ts";
 import type { Spawn } from "./ausfuehren.ts";
@@ -46,10 +48,35 @@ const testSpawn = () => {
   return { spawn, laeufe };
 };
 
+/**
+ * Since Z-402 a command runs as the installation's user (docs/plan.md, "Was ein Auftrag
+ * ausführt"), and only in an installation the agent set up: auftrag-k1 is one, as sz-auftrag-k1
+ */
+const ALS = [
+  "runuser",
+  "-u",
+  "sz-auftrag-k1",
+  "--",
+  "env",
+  "-i",
+  "HOME=/home/sz-auftrag-k1",
+  "USER=sz-auftrag-k1",
+  "LOGNAME=sz-auftrag-k1",
+  "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "XDG_RUNTIME_DIR=/run/user/1001",
+  "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus",
+];
+
 const aufgebaut = (teil: Partial<AuftraegeDeps> = {}, fs = speicher()) => {
   const schluessel = schluesselLesen(TEST_PUB);
   if (!schluessel) throw new Error("test key");
   const { spawn, laeufe } = testSpawn();
+  const server = testSystem({
+    nutzer: [{ name: "sz-auftrag-k1", uid: 1001, gid: 1001, home: "/home/sz-auftrag-k1" }],
+  });
+  const eingerichtete = eingerichtet({ "auftrag-k1": "fertig" })[INSTALLATIONEN] ?? "";
+  if (!fs.inhalt.has(INSTALLATIONEN))
+    fs.inhalt.set(INSTALLATIONEN, { text: eingerichtete, modus: 0o600 });
   const plaene: { ms: number; lauf: () => void }[] = [];
   const log: Record<string, unknown>[] = [];
   const agent = auftraegeAnnehmen({
@@ -58,6 +85,7 @@ const aufgebaut = (teil: Partial<AuftraegeDeps> = {}, fs = speicher()) => {
     vertrauen: { schluessel, zweck: "test" },
     spawn,
     pforte: { admin: testCaddy().admin, grund: pforteGrundkonfiguration() },
+    installationen: installationenAuf(server),
     planen: (lauf, ms) => {
       plaene.push({ ms, lauf });
       return () => {};
@@ -84,7 +112,7 @@ describe("a job with a signed manifest", () => {
     const fertig = a.empfangen();
     await weiter();
     expect(a.laeufe.map((l) => l.argv)).toEqual([
-      ["podman", "exec", "auftrag-k1-app", "bun", "/app/server.ts", "migrieren"],
+      [...ALS, "podman", "exec", "auftrag-k1-app", "bun", "/app/server.ts", "migrieren"],
     ]);
     expect(a.record().auftraege.a1).toMatchObject({ zustand: "laeuft" });
     a.laeufe[0]?.ende(0);
@@ -108,7 +136,7 @@ describe("a job with a signed manifest", () => {
       auftrag({ aktion: "wiederherstellen", argumente: { snapshot: "a1b2c3d4" } }),
     );
     await weiter();
-    expect(a.laeufe[0]?.argv.slice(3)).toEqual([
+    expect(a.laeufe[0]?.argv.slice(ALS.length + 3)).toEqual([
       "bun",
       "/app/server.ts",
       "wiederherstellen",

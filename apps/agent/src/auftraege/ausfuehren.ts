@@ -1,52 +1,42 @@
+import { alsNutzer, type Nutzer, PATH } from "../einrichtung/nutzer.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
 import type { Plan } from "./pruefen.ts";
 
 /*
  * Running a checked job (BAULISTE.md Z-305): the command's argv from the signed manifest as a fixed
  * argv in its installation's container, never through a shell, killed when its time limit runs
- * out. The process is started by a spawn passed in, so the logic is tested without one; Z-402
- * brings the installation's Linux user and its units, which the real spawn then runs as.
+ * out. Since Z-402 it runs as the installation's Linux user (docs/plan.md, "Was ein Auftrag
+ * ausführt"), whose rootless Podman runs the container. The process is started by a spawn passed
+ * in, so the logic is tested without one.
  */
 
-/** Runs a fixed argv; the signal kills it. Throws when it cannot start */
+/** Runs a fixed argv; the signal kills it; `eingabe` is its standard input. Throws when it cannot start */
 export type Spawn = (
   argv: readonly string[],
   signal: AbortSignal,
+  eingabe?: string,
 ) => Promise<{ code: number | null }>;
 
 export type Ergebnis = { ok: true; daten: Record<string, unknown> } | { ok: false; fehler: string };
 
 /** The container of an installation is named `<installation>-<container>` (its Quadlet unit) */
-export const befehlArgv = (plan: Plan): string[] => [
-  "podman",
-  "exec",
-  `${plan.installationId}-${plan.container}`,
-  ...plan.argv,
-];
-
-const PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
-
-/** The agent's own HOME and XDG_RUNTIME_DIR, where podman finds its storage and its socket */
-const umgebung = (): Record<string, string> =>
-  Object.fromEntries(
-    ["HOME", "XDG_RUNTIME_DIR"].flatMap((name) => {
-      const wert = process.env[name];
-      return wert === undefined ? [] : [[name, wert]];
-    }),
-  );
+export const befehlArgv = (plan: Plan, nutzer: Nutzer): string[] =>
+  alsNutzer(nutzer, ["podman", "exec", `${plan.installationId}-${plan.container}`, ...plan.argv]);
 
 /**
- * Bun's spawn: no shell, no input, output dropped (log excerpts come with Z-405), SIGKILL on abort,
- * and of the agent's environment only what podman needs
+ * Bun's spawn: no shell, input only when given (a Podman secret), output dropped (log excerpts come
+ * with Z-405), SIGKILL on abort, in / and with no environment of the agent's but PATH: what a
+ * process as another user needs, runuser and `env -i` set (einrichtung/nutzer.ts)
  */
-export const echtSpawn: Spawn = async (argv, signal) => {
+export const echtSpawn: Spawn = async (argv, signal, eingabe) => {
   const lauf = Bun.spawn([...argv], {
-    stdin: "ignore",
+    stdin: eingabe === undefined ? "ignore" : new TextEncoder().encode(eingabe),
     stdout: "ignore",
     stderr: "ignore",
+    cwd: "/",
     signal,
     killSignal: "SIGKILL",
-    env: { PATH, LC_ALL: "C", ...umgebung() },
+    env: { PATH, LC_ALL: "C" },
   });
   return { code: (await lauf.exited) ?? null };
 };
@@ -54,12 +44,13 @@ export const echtSpawn: Spawn = async (argv, signal) => {
 const kurz = (text: string) => text.slice(0, 500);
 
 /**
- * Runs the plan within its time limit; an argv still running then is killed and the job failed.
- * A non-zero exit fails it too; the exit code is the result's data.
+ * Runs the plan as the installation's user within its time limit; an argv still running then is
+ * killed and the job failed. A non-zero exit fails it too; the exit code is the result's data.
  */
 export const ausfuehren = async (
   deps: { spawn: Spawn; planen: Planer },
   plan: Plan,
+  nutzer: Nutzer,
 ): Promise<Ergebnis> => {
   const abbruch = new AbortController();
   let abgelaufen = false;
@@ -68,7 +59,7 @@ export const ausfuehren = async (
     abbruch.abort();
   }, plan.zeitlimitMs);
   try {
-    const { code } = await deps.spawn(befehlArgv(plan), abbruch.signal);
+    const { code } = await deps.spawn(befehlArgv(plan, nutzer), abbruch.signal);
     if (abgelaufen)
       return {
         ok: false,
