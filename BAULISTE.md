@@ -270,7 +270,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   und stellt bei einem Fehler den alten Stand wieder her (CI gegen Podman); kein Betreiber erreicht
   die Einstellungen eines anderen (Test je Endpunkt); Werte des Betreibers im Dialog und neu
   konfigurieren in Playwright.
-- [ ] **Z-405 Neustart, Logs, nur lesen** – Aktionen Neustart, Log-Auszug (letzte 500 Zeilen aus
+- [x] **Z-405 Neustart, Logs, nur lesen** – Aktionen Neustart, Log-Auszug (letzte 500 Zeilen aus
   journald, Werte der Secrets ersetzt), nur lesen, wenn das Manifest sie anbietet; jede mit Grund.
   Fertig, wenn: eine nicht angebotene Aktion in der Oberfläche fehlt und vom Agenten abgelehnt wird
   und der Wert eines Secrets im Log-Auszug ersetzt ist; dazu (Tests): auch ein erzeugter Wert der
