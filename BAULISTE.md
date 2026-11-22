@@ -12,6 +12,10 @@ Die Liste, die der Agenten-Loop abarbeitet, in der Reihenfolge der Bauphasen aus
 
 ## So arbeitet der Loop
 
+0. **Offene Pull Requests zuerst**: Gibt es einen offenen Pull Request des Loops (Titel `Z-xxx: …`),
+   auf den seit mehr als einem Tag niemand gepusht hat, übernimmt ihn die Session: Branch holen,
+   erledigen, was unter „Übergabe“ unten dazu steht, CI grün machen, mergen. Erst dann ein neuer
+   Punkt.
 1. Den **ersten offenen Punkt** nehmen, dessen Abhängigkeiten (`nach:`) abgehakt sind und für den es
    keinen offenen Pull Request gibt (Titel beginnt mit seiner Nummer). Ohne `nach:` hängt ein Punkt
    am vorigen Punkt seiner Phase.
@@ -24,8 +28,11 @@ Die Liste, die der Agenten-Loop abarbeitet, in der Reihenfolge der Bauphasen aus
 4. Tests zuerst, dann Code, Doku und Texte in `de` und `en`, `bun run check` grün. Was lokal nicht
    läuft (Podman, systemd, Incus), steht im Pull Request unter „Wie geprüft“ als „nur CI“; maßgeblich
    ist die CI.
-5. **Unabhängiges Review** durch einen eigenen Sub-Agenten (Skill `tdd-review`): ein Befund braucht
-   einen fehlschlagenden Test. Befunde fixen, bis keine mehr kommen.
+5. **Unabhängiges Review nur bei Sicherheit**: Berührt der Punkt, was der Agent ausführen darf,
+   Anmeldung, Rechte, Geheimnisse, die Trennung der Betreiber, das Audit-Log, die Verbindung des
+   Agenten, die Pforte oder `install.sh` (Liste in `CLAUDE.md`, „Pull requests“), prüft ihn ein eigener
+   Sub-Agent (Skill `tdd-review`): ein Befund braucht einen fehlschlagenden Test; Befunde fixen, bis
+   keine mehr kommen. Alles andere wird gemergt, sobald die CI grün ist.
 6. **CI grün → selbst mergen** (Squash), den Punkt hier im selben Pull Request abhaken. Der Loop
    wartet nie auf einen Menschen. Offene Fragen entscheidet er nach dem Projektplan
    („Entscheidungen“); eine neue Entscheidung schreibt er dort mit Grund hinein.
@@ -445,6 +452,21 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-605
   Fertig, wenn: in der CI zwei Installationen eines gelöschten Servers auf einem neuen wieder laufen
   und die Dauer als Ereignis gemessen wird.
+
+## Übergabe
+
+Was eine Session offen hinterlassen hat und die nächste zuerst erledigt (Schritt 0). Erledigtes wird
+hier gestrichen.
+
+- **PR #21, Z-401 Pforte** (Branch `claude/z-401-pforte`): Die CI ist noch nicht geprüft; am
+  unsichersten ist `apps/agent/test/pforte.agent.test.ts` (rootless Podman für die Test-Nutzer
+  `sz-test-pa` und `sz-test-pb`, Caddy über den Unix-Socket). Das Review (`tdd-review`) brach ab;
+  ein Befund steht fest und ist noch nicht gefixt: `routeSetzen` (`apps/agent/src/pforte/admin.ts`)
+  muss eine Route ablehnen, deren Host oder Upstream (`127.0.0.1:<port>`) schon zur Route einer
+  anderen Installation gehört (Routen per `GET /id/sz_grund` lesen, die eigene `@id` ausnehmen), sonst
+  nimmt eine Installation der anderen die Anfragen weg oder bedient sie unter fremder Adresse. Erst
+  ein fehlschlagender Test in `apps/agent/src/pforte/admin.test.ts`, dann der Fix. Danach das Review
+  für #21 neu laufen lassen (sicherheitsrelevant) und mergen.
 
 ## Zurückgestellt
 
