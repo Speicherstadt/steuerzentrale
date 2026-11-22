@@ -202,6 +202,21 @@ describe("configuring anew is refused", () => {
     expect(konfigurieren(u, i.installationId, { PROBE_TITEL: "A" }).ok).toBe(true);
   });
 
+  it("when the agent connects only in a freeze window after the job was made outside it", () => {
+    const u = installationsUmgebung();
+    u.uhr.ms = Date.UTC(2027, 0, 13, 12);
+    const { i } = laufend(u, signiert("gesperrt"));
+    u.deps.verbindungen.trennen("b1", "s1", 1001, "test");
+    u.uhr.ms = Date.UTC(2027, 1, 6, 12);
+    const r = konfigurieren(u, i.installationId, { PROBE_TITEL: "A" });
+    if (!r.ok) throw new Error(r.grund);
+    // the 8th, within the freeze window: the agent comes back and must not restart the app now
+    u.uhr.ms = Date.UTC(2027, 1, 8, 9);
+    const agent = u.verbinden("b1", "s1") as Nachricht[];
+    offeneZustellen(u.deps, "b1", "s1");
+    expect(agent.filter((n) => n.aktion === EINRICHTUNG_AKTIONEN.konfigurieren)).toEqual([]);
+  });
+
   it.each([
     ["an unknown name", { UNBEKANNT: "x" }, "UNBEKANNT: the manifest has no such setting"],
     ["a value of the operator", { PROBE_LIZENZ: "x" }, "PROBE_LIZENZ: a setting of another level"],
