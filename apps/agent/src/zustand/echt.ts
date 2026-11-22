@@ -11,14 +11,32 @@ import type { SpawnMitAusgabe, Verbinden } from "./pruefen.ts";
 /** systemctl show for a few units is far below this; more is cut off, never waited for */
 const MAX_AUSGABE = 64 * 1024;
 
-const ausgabeLesen = async (strom: ReadableStream<Uint8Array>): Promise<string> => {
+/**
+ * Reads until the end of the output or the signal: runuser forks, so the signal kills runuser
+ * while its child may keep the pipe open, and only stopping here keeps the time limit
+ */
+const ausgabeLesen = async (
+  strom: ReadableStream<Uint8Array>,
+  signal: AbortSignal,
+): Promise<string> => {
+  const leser = strom.getReader();
+  const aufhoeren = () => {
+    leser.cancel().catch(() => {});
+  };
+  signal.addEventListener("abort", aufhoeren, { once: true });
+  if (signal.aborted) aufhoeren();
   const text = new TextDecoder();
   let aus = "";
-  for await (const stueck of strom) {
-    aus += text.decode(stueck, { stream: true });
-    if (aus.length > MAX_AUSGABE) return aus.slice(0, MAX_AUSGABE);
+  try {
+    for (;;) {
+      const { done, value } = await leser.read();
+      if (done) return aus;
+      aus += text.decode(value, { stream: true });
+      if (aus.length > MAX_AUSGABE) return aus.slice(0, MAX_AUSGABE);
+    }
+  } finally {
+    signal.removeEventListener("abort", aufhoeren);
   }
-  return aus;
 };
 
 /** Bun's spawn as in auftraege/ausfuehren.ts (no shell, no input, only PATH), its output read */
@@ -32,7 +50,7 @@ export const echtLesen: SpawnMitAusgabe = async (argv, signal) => {
     killSignal: "SIGKILL",
     env: { PATH, LC_ALL: "C" },
   });
-  const aus = await ausgabeLesen(lauf.stdout);
+  const aus = await ausgabeLesen(lauf.stdout, signal);
   return { code: (await lauf.exited) ?? null, aus };
 };
 
