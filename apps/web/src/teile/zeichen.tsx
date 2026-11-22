@@ -4,17 +4,21 @@ import {
   Building2,
   CalendarX,
   CircleCheck,
+  CircleDashed,
   CircleHelp,
   CircleX,
   ClockAlert,
   HardDrive,
   type IconNode,
+  LoaderCircle,
   Power,
   Server as ServerIcon,
   TriangleAlert,
   Unplug,
   Users,
 } from "@steuerzentrale/ui/icons";
+import { Show } from "solid-js";
+import type { Anzeige } from "../daten/installation-ansicht.ts";
 import type { AgentZustand, Art, Health, Manifest } from "../daten/typen.ts";
 import type { ServerZustand } from "../daten/zustand.ts";
 import { appIcon } from "./app-icon.ts";
@@ -58,6 +62,46 @@ export const HealthZeichen = (props: { health: Health; gekuendigt: boolean }) =>
       ? { icon: CalendarX, farbe: "text-muted-foreground", text: m.health_gekuendigt }
       : HEALTH[props.health];
   return <Zustand icon={d().icon} farbe={d().farbe} text={d().text()} />;
+};
+
+const EINRICHTUNG: Record<Exclude<Anzeige, Health>, Darstellung> = {
+  wird_eingerichtet: {
+    icon: LoaderCircle,
+    farbe: "text-info",
+    text: () => m.inst_zustand_wird_eingerichtet(),
+  },
+  gescheitert: {
+    icon: CircleX,
+    farbe: "text-destructive",
+    text: () => m.inst_zustand_gescheitert(),
+  },
+  entfernt: {
+    icon: CircleDashed,
+    farbe: "text-muted-foreground",
+    text: () => m.inst_zustand_entfernt(),
+  },
+};
+
+/** An installation's state: of its setup until it runs, then its health (BAULISTE.md Z-402) */
+export const InstallationsZeichen = (props: { anzeige: Anzeige; gekuendigt: boolean }) => {
+  const einrichtung = () => {
+    const a = props.anzeige;
+    return a === "wird_eingerichtet" || a === "gescheitert" || a === "entfernt" ? a : undefined;
+  };
+  return (
+    <Show
+      when={einrichtung()}
+      fallback={<HealthZeichen health={props.anzeige as Health} gekuendigt={props.gekuendigt} />}
+    >
+      {(e) => (
+        <Zustand
+          icon={EINRICHTUNG[e()].icon}
+          farbe={EINRICHTUNG[e()].farbe}
+          text={EINRICHTUNG[e()].text()}
+        />
+      )}
+    </Show>
+  );
 };
 
 const SERVER: Record<ServerZustand, Darstellung> = {

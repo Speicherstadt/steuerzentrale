@@ -59,7 +59,11 @@ Betreiber, Mitgliedschaften und Einladungen schreibt die Zentrale über `schreib
 melden sich über `apps/zentrale/src/testhilfen/` an, mit einem Software-Passkey und TOTP nach RFC 6238.
 Die E2E-Tests richten zuerst den ersten Inhaber mit dem Einrichtungscode aus dem Log der Zentrale ein
 (Projekt `einrichtung`, `e2e/einrichtung.setup.ts`); dessen Sitzung nutzen alle anderen Tests, Passkeys
-laufen dort über den virtuellen Authenticator von Chromium.
+laufen dort über den virtuellen Authenticator von Chromium. Für das Installieren bekommt die Zentrale
+den öffentlichen Test-Schlüssel als `minisign.pub` (`playwright.config.ts`), die Tests signieren ihr
+Manifest zur Laufzeit mit dem Test-Schlüssel, und ein Stellvertreter des Agenten
+(`e2e/hilfen/agent.ts`) tritt mit dem Einmal-Token bei, verbindet sich und meldet Fakten; er führt
+keinen Auftrag aus, eine Einrichtung für einen Host `kaputt…` meldet er gescheitert.
 
 Die Zentrale legt ihre Datenbank `zentrale.db` (SQLite, WAL) in `STEUERZENTRALE_DATA` an (Vorgabe:
 `data`). Die Migrationen in `apps/zentrale/drizzle/` stecken im Binary (`migrationen.gen.ts`, erzeugt

@@ -1,15 +1,18 @@
-import { Icon, m, Tabs } from "@steuerzentrale/ui";
-import { createFileRoute, notFound } from "@tanstack/solid-router";
-import {
-  appVon,
-  istGekuendigt,
-  linuxNutzer,
-  serverVon,
-  suche,
-  titel,
-} from "../daten/ableitungen.ts";
+import { Icon, m, type Tab, Tabs } from "@steuerzentrale/ui";
+import { createFileRoute } from "@tanstack/solid-router";
+import { createMemo, Loading, Match, refresh, Show, Switch } from "solid-js";
+import type { Antwort } from "../anmeldung/api.ts";
+import { anzeige, linuxNutzerVon, titelVon } from "../daten/installation-ansicht.ts";
+import { type Einzelansicht, einzelansichtLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
-import type { Installation } from "../daten/typen.ts";
+import type { Bestand, Installation } from "../daten/typen.ts";
+import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
+import {
+  EinrichtungsAngaben,
+  EinrichtungsAuftraege,
+  Gescheitert,
+  InstallationsWerte,
+} from "../seiten/installation-einrichtung.tsx";
 import {
   InstallationBackups,
   InstallationEinstellungen,
@@ -17,71 +20,124 @@ import {
 } from "../seiten/installation-reiter.tsx";
 import { InstallationZustand } from "../seiten/installation-zustand.tsx";
 import { appIcon } from "../teile/app-icon.ts";
-import { HealthZeichen, Version } from "../teile/zeichen.tsx";
+import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
+import { InstallationsZeichen, Version } from "../teile/zeichen.tsx";
 
 /**
- * One installation: state, settings from the manifest, snapshots and events. The actions (restart,
- * backup now, log excerpt) come with their items, each with a reason (DESIGN.md)
+ * One installation (BAULISTE.md Z-402): from the Zentrale its place, ports, values and setup jobs,
+ * and after a failed setup the way to remove it. State, settings from the manifest, snapshots and
+ * events of the demo data stay for an installation the demo knows by id, until Z-403 and Z-406.
  */
-const Detail = (props: { i: Installation }) => {
+
+const Kopf = (props: { a: Einzelansicht }) => (
+  <div class="flex min-w-0 items-center gap-4">
+    <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent">
+      <Icon icon={appIcon(props.a.appIcon)} size={24} />
+    </span>
+    <div class="grid min-w-0 gap-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="text-2xl font-semibold tracking-tight">{titelVon(props.a)}</h1>
+        <InstallationsZeichen
+          anzeige={anzeige(props.a)}
+          gekuendigt={props.a.vertragsende !== null}
+        />
+        <Version version={props.a.version} />
+      </div>
+      <p class="font-mono text-xs break-all text-muted-foreground">
+        {props.a.host} · {linuxNutzerVon(props.a)}@{props.a.serverName}
+      </p>
+    </div>
+  </div>
+);
+
+/** The tabs: the demo's for an installation it knows, else what the Zentrale has */
+const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): Tab[] => {
+  const einrichtung = () => (
+    <div class="grid gap-4 lg:grid-cols-2">
+      <EinrichtungsAngaben a={a} />
+      <EinrichtungsAuftraege auftraege={a.auftraege} />
+    </div>
+  );
+  if (!demo)
+    return [
+      { id: "zustand", label: m.server_spalte_zustand(), content: einrichtung },
+      {
+        id: "einstellungen",
+        label: m.nav_einstellungen(),
+        content: () => <InstallationsWerte a={a} />,
+      },
+    ];
+  return [
+    {
+      id: "zustand",
+      label: m.server_spalte_zustand(),
+      content: () => (
+        <div class="grid gap-4">
+          <InstallationZustand b={b} i={demo} />
+          {einrichtung()}
+        </div>
+      ),
+    },
+    {
+      id: "einstellungen",
+      label: m.nav_einstellungen(),
+      content: () => <InstallationEinstellungen b={b} i={demo} />,
+    },
+    {
+      id: "backups",
+      label: m.nav_backups(),
+      content: () => <InstallationBackups b={b} i={demo} />,
+    },
+    {
+      id: "ereignisse",
+      label: m.nav_ereignisse(),
+      content: () => <InstallationEreignisse b={b} i={demo} />,
+    },
+  ];
+};
+
+const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
   const b = bestand();
-  const app = () => appVon(b, props.i.app);
   return (
     <div class="grid gap-6">
-      <div class="flex min-w-0 items-center gap-4">
-        <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent">
-          <Icon icon={appIcon(app().icon)} size={24} />
-        </span>
-        <div class="grid min-w-0 gap-1">
-          <div class="flex flex-wrap items-center gap-2">
-            <h1 class="text-2xl font-semibold tracking-tight">{titel(b, props.i)}</h1>
-            <HealthZeichen health={props.i.health} gekuendigt={istGekuendigt(b, props.i)} />
-            <Version version={props.i.version} />
-          </div>
-          <p class="font-mono text-xs break-all text-muted-foreground">
-            {props.i.adresse} · {linuxNutzer(props.i)}@{serverVon(b, props.i.server).host}
-          </p>
-        </div>
-      </div>
-      <Tabs
-        label={m.inst_reiter()}
-        tabs={[
-          {
-            id: "zustand",
-            label: m.server_spalte_zustand(),
-            content: () => <InstallationZustand b={b} i={props.i} />,
-          },
-          {
-            id: "einstellungen",
-            label: m.nav_einstellungen(),
-            content: () => <InstallationEinstellungen b={b} i={props.i} />,
-          },
-          {
-            id: "backups",
-            label: m.nav_backups(),
-            content: () => <InstallationBackups b={b} i={props.i} />,
-          },
-          {
-            id: "ereignisse",
-            label: m.nav_ereignisse(),
-            content: () => <InstallationEreignisse b={b} i={props.i} />,
-          },
-        ]}
-      />
+      <Kopf a={props.a} />
+      <Show when={props.a.zustand === "gescheitert"}>
+        <Gescheitert a={props.a} entfernt={() => props.neu()} />
+      </Show>
+      <Tabs label={m.inst_reiter()} tabs={reiter(b, props.a, props.a.demo)} />
     </div>
   );
 };
 
 const InstallationSeite = () => {
-  const i = Route.useLoaderData();
-  return <Detail i={i()} />;
+  const params = Route.useParams();
+  const antwort = createMemo(
+    (): Promise<Antwort<Einzelansicht>> => einzelansichtLaden(params().id),
+  );
+  const installation = () => {
+    const a = antwort();
+    return a.ok ? a.daten : undefined;
+  };
+  const fehlt = () => {
+    const a = antwort();
+    return !a.ok && a.status === 404;
+  };
+  const fehler = () => {
+    const a = antwort();
+    return a.ok ? "" : fehlerText(a);
+  };
+  return (
+    <Loading fallback={<p class="text-muted-foreground">{m.inst_laden_eine()}</p>}>
+      <Switch fallback={<Fehler text={fehler()} />}>
+        <Match when={installation()}>
+          {(a) => <Detail a={a()} neu={() => refresh(antwort)} />}
+        </Match>
+        <Match when={fehlt()}>
+          <NichtGefunden />
+        </Match>
+      </Switch>
+    </Loading>
+  );
 };
 
-export const Route = createFileRoute("/installationen/$id")({
-  loader: ({ params }) => {
-    const i = suche(bestand().installationen, params.id);
-    if (!i) throw notFound();
-    return i;
-  },
-  component: InstallationSeite,
-});
+export const Route = createFileRoute("/installationen/$id")({ component: InstallationSeite });

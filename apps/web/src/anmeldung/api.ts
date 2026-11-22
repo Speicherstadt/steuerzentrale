@@ -3,9 +3,31 @@
  * back as values (CLAUDE.md): status 0 means no answer at all. After Speicherstadt/soll,
  * apps/web/src/api.ts.
  */
-export type Antwort<T> =
-  | { ok: true; status: number; daten: T }
-  | { ok: false; status: number; fehler: string };
+
+/** A reason of the Zentrale as a code with its values, e.g. why an app does not fit a server */
+export type Grund = { code: string; werte: Record<string, string | number> };
+
+export type Fehlschlag = {
+  ok: false;
+  status: number;
+  fehler: string;
+  /** What the Zentrale adds to some codes: the finding of a manifest or a value that does not render */
+  detail?: string;
+  /** Every reason of a refusal such as `passt_nicht` */
+  gruende?: Grund[];
+};
+
+export type Antwort<T> = { ok: true; status: number; daten: T } | Fehlschlag;
+
+type Fehlerkoerper = { fehler?: string; code?: string; detail?: unknown; gruende?: unknown };
+
+const fehlschlag = (status: number, inhalt: Fehlerkoerper): Fehlschlag => ({
+  ok: false,
+  status,
+  fehler: inhalt.fehler ?? inhalt.code ?? "unbekannt",
+  ...(typeof inhalt.detail === "string" ? { detail: inhalt.detail } : {}),
+  ...(Array.isArray(inhalt.gruende) ? { gruende: inhalt.gruende as Grund[] } : {}),
+});
 
 export const api = async <T>(
   pfad: string,
@@ -30,6 +52,5 @@ export const api = async <T>(
     return { ok: false, status: antwort.ok ? 0 : antwort.status, fehler: "netz" };
   }
   if (antwort.ok) return { ok: true, status: antwort.status, daten: daten as T };
-  const inhalt = (daten as { fehler?: string; code?: string } | null) ?? {};
-  return { ok: false, status: antwort.status, fehler: inhalt.fehler ?? inhalt.code ?? "unbekannt" };
+  return fehlschlag(antwort.status, (daten as Fehlerkoerper | null) ?? {});
 };
