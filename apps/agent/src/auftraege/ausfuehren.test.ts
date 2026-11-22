@@ -33,6 +33,22 @@ describe("echtSpawn", () => {
     expect(readdirSync(tmpdir()).filter((n) => n.startsWith(EINGABE_PRAEFIX))).toEqual([]);
   });
 
+  // Review Z-402: the pipe's buffer holds 64 KiB; a longer input written before the process reads
+  // blocked writeSync, and with it the agent's whole event loop, for ever. In a child process, so
+  // that a hang fails this test instead of the test run
+  it("does not hang the agent on an input longer than a pipe's buffer", async () => {
+    const skript = [
+      `import { echtSpawn } from ${JSON.stringify(new URL("./ausfuehren.ts", import.meta.url).pathname)};`,
+      `try { await echtSpawn(["cat"], new AbortController().signal, "x".repeat(100_000)); } catch {}`,
+      "process.exit(0);",
+    ].join("\n");
+    const kind = Bun.spawn(["bun", "-e", skript], { stdout: "ignore", stderr: "ignore" });
+    const zeit = setTimeout(() => kind.kill("SIGKILL"), 10_000);
+    const code = await kind.exited;
+    clearTimeout(zeit);
+    expect(code).toBe(0);
+  }, 15_000);
+
   it("hands each word over as it is, with no shell to read it", async () => {
     const { code } = await echtSpawn(
       ["test", "$(false)", "=", "$(false)"],
