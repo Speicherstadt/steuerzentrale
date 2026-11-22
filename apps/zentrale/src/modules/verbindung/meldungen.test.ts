@@ -157,15 +157,15 @@ describe("the state of the installations", () => {
     expect(zentrale.db.select().from(auditLog).all()).toHaveLength(audit);
   });
 
-  it("is dropped when it comes closer than 10 s, so an agent cannot hammer the table", async () => {
+  it("is dropped when it comes closer than 5 s, so an agent cannot hammer the table", async () => {
     const { zentrale, s } = await mitInstallation();
     await s.nachricht(JSON.stringify(ZUSTAND));
     const erste = zentrale.jetzt();
-    zentrale.stelleUhr(erste + 9_999);
+    zentrale.stelleUhr(erste + 4_999);
     await s.nachricht(JSON.stringify(ZUSTAND));
     expect(bewertung(zentrale)?.gemeldetAm).toBe(erste);
-    zentrale.stelleUhr(erste + 10_000);
+    zentrale.stelleUhr(erste + 5_000);
     await s.nachricht(JSON.stringify(ZUSTAND));
-    expect(bewertung(zentrale)?.gemeldetAm).toBe(erste + 10_000);
+    expect(bewertung(zentrale)?.gemeldetAm).toBe(erste + 5_000);
   });
 });

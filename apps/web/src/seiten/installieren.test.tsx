@@ -229,10 +229,47 @@ describe("with the Zentrale's API", () => {
     optionen: [],
     einstellungen: { betreiber: {}, installation: { PROBE_TITEL: "Atelier" } },
     zustand: "wird_eingerichtet",
+    health: {
+      zustand: "unbekannt",
+      grund: { code: "noch_keine_meldung", werte: {} },
+      seit: null,
+      gemeldetAm: null,
+      units: [],
+    },
     angelegtVon: "u1",
     angelegtAm: demo.jetzt,
     geaendertAm: demo.jetzt,
   };
+  /** The same once it runs and its agent reports a failed unit and a red check (Z-403) */
+  const rot = {
+    ...probe,
+    zustand: "laeuft",
+    health: {
+      zustand: "rot",
+      grund: { code: "health", werte: { text: "HTTP 503" } },
+      seit: Date.now() - 6 * 60_000,
+      gemeldetAm: Date.now() - 12_000,
+      units: [{ name: "probe-app.service", aktiv: "failed" }],
+    },
+  };
+  const verlauf = [
+    {
+      zeitpunkt: Date.now() - 6 * 60_000,
+      bewertung: "rot",
+      grund: { code: "health", werte: { text: "HTTP 503" } },
+    },
+    {
+      zeitpunkt: Date.now() - 7 * 60_000,
+      bewertung: "gelb",
+      grund: { code: "unit", werte: { unit: "probe-app.service", aktiv: "failed" } },
+    },
+  ];
+  const antworten = (i: Record<string, unknown>) =>
+    vi.stubGlobal("fetch", async (pfad: string) =>
+      pfad.endsWith("/installationen")
+        ? Response.json({ installationen: [i] })
+        : Response.json({ ...i, auftraege, verlauf: i === probe ? [] : verlauf }),
+    );
   const auftraege = [
     {
       auftragId: "a1",
@@ -247,11 +284,7 @@ describe("with the Zentrale's API", () => {
 
   beforeEach(() => {
     installationenQuelleEinsetzen(apiInstallationen);
-    vi.stubGlobal("fetch", async (pfad: string) =>
-      pfad.endsWith("/installationen")
-        ? Response.json({ installationen: [probe] })
-        : Response.json({ ...probe, auftraege }),
-    );
+    antworten(probe);
   });
   afterEach(() => vi.unstubAllGlobals());
 
@@ -275,6 +308,42 @@ describe("with the Zentrale's API", () => {
     expect(root.textContent).toContain("Einrichten");
     expect(root.textContent).toContain("vom Agenten bestätigt");
     expect(root.textContent).toContain("image ziehen");
+  });
+
+  it("shows no state before the agent reported, and no history", async () => {
+    const { root } = await oeffne("/installationen/probe-abc123");
+    expect(root.querySelector("[data-testid=health]")?.textContent).toContain(
+      "Noch keine Meldung des Agenten",
+    );
+    expect(root.textContent).toContain("Noch kein Wechsel.");
+  });
+
+  it("lists a running installation with its state and reason (Z-403)", async () => {
+    antworten(rot);
+    const { root } = await oeffne("/installationen");
+    const zeile = [...root.querySelectorAll("tbody tr")].find((tr) =>
+      tr.querySelector("a[href^='/installationen/']"),
+    );
+    expect(zeile?.textContent).toContain("Rot");
+    expect(zeile?.textContent).toContain("Health: HTTP 503");
+  });
+
+  it("shows the state with reason, since, units and the history (Z-403)", async () => {
+    antworten(rot);
+    const { root } = await oeffne("/installationen/probe-abc123");
+    const health = root.querySelector("[data-testid=health]")?.textContent ?? "";
+    expect(health).toContain("Health: HTTP 503 · seit");
+    expect(health).toContain("Rot");
+    expect(root.textContent).toMatch(/zuletzt gemeldet vor \d+ s/);
+    expect(root.textContent).toContain("probe-app.service");
+    expect(root.textContent).toContain("systemd: failed");
+    const eintraege = [...root.querySelectorAll("[data-testid=verlauf] li")].map(
+      (li) => li.textContent,
+    );
+    expect(eintraege).toHaveLength(2);
+    expect(eintraege[0]).toContain("Rot");
+    expect(eintraege[1]).toContain("Gelb");
+    expect(eintraege[1]).toContain("Unit probe-app.service: failed");
   });
 
   it("shows the Zentrale's refusal", async () => {

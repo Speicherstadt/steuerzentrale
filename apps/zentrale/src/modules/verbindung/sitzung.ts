@@ -58,10 +58,10 @@ const HEARTBEAT_ABSTAND_MS = HEARTBEAT_MS / 2;
 const FAKTEN_ABSTAND_MS = 60_000;
 
 /**
- * States of the installations closer than this are dropped (Z-403): the agent sends them every
- * 30 seconds, and each is a write per installation
+ * States of the installations closer than this are dropped (Z-403), as steps of a job are: the
+ * agent sends them every 30 seconds, and each is a write per installation
  */
-const ZUSTAND_ABSTAND_MS = 10_000;
+const ZUSTAND_ABSTAND_MS = 5_000;
 
 /**
  * SSH logins become events and audit entries, which stay; an agent may send a backlog of this many

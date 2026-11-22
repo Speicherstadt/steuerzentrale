@@ -44,9 +44,21 @@ export const betreiberAnlegen = (
   betreiberId: string,
   serverIds: string[],
   jetzt = 1,
+) => {
+  schreiben(schreibDb, { betreiberId, akteur: "test", jetzt, grund: "Test" }, "test", (w) =>
+    w.einfuegen("betreiber", { betreiberId, name: betreiberId, angelegtAm: jetzt }),
+  );
+  kundeUndServer(schreibDb, betreiberId, serverIds, jetzt);
+};
+
+/** Customer `k1` and the given servers of an operator that exists */
+export const kundeUndServer = (
+  schreibDb: SchreibDb,
+  betreiberId: string,
+  serverIds: string[],
+  jetzt = 1,
 ) =>
   schreiben(schreibDb, { betreiberId, akteur: "test", jetzt, grund: "Test" }, "test", (w) => {
-    w.einfuegen("betreiber", { betreiberId, name: betreiberId, angelegtAm: jetzt });
     w.einfuegen("kunden", {
       betreiberId,
       kundeId: "k1",
@@ -98,7 +110,10 @@ export const installationEinfuegen = (
     }),
   );
 
-/** Two operators: b1 with servers s1 and s2, b2 with s1; installations i1 (b1, s1), i2 (b1, s2), i1 (b2, s1) */
+/**
+ * Two operators: b1 with servers s1 and s2, b2 with s1; installations i1 (b1, s1), i2 (b1, s2) and
+ * i1 (b2, s1), the same name with another operator
+ */
 export const bewertungsUmgebung = () => {
   const offen = testDatenbank();
   betreiberAnlegen(offen.schreibDb, "b1", ["s1", "s2"]);

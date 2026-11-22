@@ -16,6 +16,7 @@ import type {
 import type { ServerDerZentrale } from "../daten/server.ts";
 import type { Kunde } from "../daten/typen.ts";
 import { type Eintrag, nachAuftrag, startbestand } from "./installationen-bestand.ts";
+import { ohneMeldung } from "./installationen-health.ts";
 import { ausManifest, demoPlatzieren } from "./platz.ts";
 
 /*
@@ -42,8 +43,9 @@ const nein = (status: number, fehler: string, mehr: Partial<Fehlschlag> = {}): F
   ...mehr,
 });
 
+/** An installation as the list answers it: without its jobs and history */
 const ohneAuftraege = (e: Eintrag): InstallationDerZentrale => {
-  const { auftraege: _, ...i } = e.i;
+  const { auftraege: _, verlauf: __, ...i } = e.i;
   return i;
 };
 
@@ -88,6 +90,8 @@ const neuerEintrag = (neu: NeueInstallation, m: Manifest, httpPort: number | nul
       optionen,
       einstellungen: { betreiber: {}, installation: offen },
       zustand: "wird_eingerichtet",
+      health: ohneMeldung(),
+      verlauf: [],
       angelegtVon: "demo",
       angelegtAm: t,
       geaendertAm: t,

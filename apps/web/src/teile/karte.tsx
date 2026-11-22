@@ -3,7 +3,7 @@ import { For, Show } from "solid-js";
 
 /** Cards, page heads and description lists (DESIGN.md, "Bausteine"; design/mockup/) */
 
-export const Karte = (props: { class?: string; children: JSX.Element }) => (
+export const Karte = (props: { class?: string | undefined; children: JSX.Element }) => (
   <section class={["min-w-0 rounded-xl border bg-background", props.class]}>
     {props.children}
   </section>

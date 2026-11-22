@@ -34,6 +34,11 @@ Platzierung zeigt bei jeder Änderung, ob die App passt, mit jedem Grund. Die In
 zeigen die Installationen der Zentrale mit Zustand und Aufträgen; eine gescheiterte Einrichtung lässt
 sich mit Grund entfernen ([Apps installieren](docs/installieren.md)).
 
+**Health und Zustand:** der Agent meldet alle 30 Sekunden Units und Health jeder Installation; die
+Zentrale bewertet sie grün, gelb, rot oder unbekannt, immer mit Grund (ohne Meldung seit 90 Sekunden
+unbekannt, nie grün), hält jeden Wechsel im Verlauf und meldet nach 5 Minuten Rot eine Störung. Liste
+und Seite einer Installation zeigen Zustand, Grund und Verlauf ([Health und Zustand](docs/zustand.md)).
+
 **Stand:** in Planung. Plan und Bauliste: [`docs/plan.md`](docs/plan.md), [`BAULISTE.md`](BAULISTE.md).
 
 Lizenz: AGPL-3.0 ([`NOTICE`](NOTICE)). Beiträge mit Developer Certificate of Origin (`git commit -s`), kein CLA;
