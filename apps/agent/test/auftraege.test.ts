@@ -147,6 +147,8 @@ describe("a job through Pforte, Zentrale and agent", () => {
     expect(laeufe[1]?.slice(laeufe[1].indexOf("podman"))).toEqual([
       "podman",
       "exec",
+      "--env",
+      expect.stringMatching(/^STEUERZENTRALE_LAUF=/),
       "auftrag-k1-app",
       "bun",
       "/app/server.ts",

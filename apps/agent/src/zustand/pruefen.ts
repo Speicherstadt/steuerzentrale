@@ -1,5 +1,5 @@
 import type { NachrichtVomAgenten } from "@steuerzentrale/protokoll";
-import type { Spawn } from "../auftraege/ausfuehren.ts";
+import { imContainer, type Spawn } from "../auftraege/ausfuehren.ts";
 import { alsNutzer, type Nutzer } from "../einrichtung/nutzer.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
 import type { PruefZiel } from "./ziel.ts";
@@ -107,17 +107,13 @@ const befehlPruefen = async (
   nutzer: Nutzer | undefined,
 ): Promise<Health> => {
   if (!nutzer) return unbekannt("Nutzer der Installation fehlt");
-  // the container's name from its Quadlet unit, as for a command of a job
-  const argv = alsNutzer(nutzer, [
-    "podman",
-    "exec",
-    `${installation}-${ziel.container}`,
-    ...ziel.argv,
-  ]);
+  // the container's name from its Quadlet unit, as for a command of a job; marked, so that at
+  // its time limit the command under conmon is killed too (auftraege/beenden.ts)
+  const { argv, marke } = imContainer(nutzer, `${installation}-${ziel.container}`, ziel.argv);
   const r = await mitFrist(
     deps.planen,
     ziel.zeitlimitMs,
-    async (signal) => (await deps.spawn(argv, signal)).code,
+    async (signal) => (await deps.spawn(argv, signal, { marke })).code,
   );
   if (r.ok)
     return r.wert === 0

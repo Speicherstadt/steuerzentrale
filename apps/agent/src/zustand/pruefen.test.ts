@@ -115,8 +115,21 @@ describe("health befehl", () => {
       zustand: "gruen",
       grund: "Befehl endete mit Code 0",
     });
+    // marked, so that at its time limit the command under conmon is killed too (PR #24's review)
+    const marke = p.gerufen.marken[0];
+    expect(marke).toMatch(/^[0-9a-f-]{36}$/);
     expect(p.gerufen.spawn).toEqual([
-      [...RUNUSER, "podman", "exec", "test-x-app", "bun", "/app/server.ts", "export"],
+      [
+        ...RUNUSER,
+        "podman",
+        "exec",
+        "--env",
+        `STEUERZENTRALE_LAUF=${marke}`,
+        "test-x-app",
+        "bun",
+        "/app/server.ts",
+        "export",
+      ],
     ]);
   });
 
@@ -156,7 +169,7 @@ describe("health without a check", () => {
       zustand: "unbekannt",
       grund: "keine Prüfung",
     });
-    expect(p.gerufen).toEqual({ spawn: [], lesen: [], holen: [], verbinden: [] });
+    expect(p.gerufen).toEqual({ spawn: [], marken: [], lesen: [], holen: [], verbinden: [] });
   });
 
   it("a target the agent cannot check is unknown with its reason", async () => {

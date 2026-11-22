@@ -16,6 +16,23 @@ describe("echtLesen", () => {
     expect(performance.now() - start).toBeLessThan(2000);
   }, 10_000);
 
+  // no orphan either: the child of the killed process ends with it (as in auftraege/ausfuehren.ts)
+  it("kills the children of the process at its signal, not only the process", async () => {
+    const dauer = `299.${crypto.getRandomValues(new Uint32Array(1))[0]}`;
+    const lebt = () => Bun.spawnSync(["pgrep", "-f", "-x", `sleep ${dauer}`]).exitCode === 0;
+    const abbruch = new AbortController();
+    try {
+      const lauf = echtLesen(["timeout", "--foreground", "300", "sleep", dauer], abbruch.signal);
+      for (let i = 0; i < 100 && !lebt(); i++) await Bun.sleep(50);
+      abbruch.abort();
+      await lauf.catch(() => undefined);
+      for (let i = 0; i < 100 && lebt(); i++) await Bun.sleep(50);
+      expect(lebt()).toBe(false);
+    } finally {
+      Bun.spawnSync(["pkill", "-KILL", "-f", "-x", `sleep ${dauer}`]);
+    }
+  }, 15_000);
+
   it("reads the output of a process that ends", async () => {
     const r = await echtLesen(["sh", "-c", "echo Id=a.service"], new AbortController().signal);
     expect(r).toEqual({ code: 0, aus: "Id=a.service\n" });

@@ -1,4 +1,5 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: argv placeholders are ${arg:…} as plain text
+import { join } from "node:path";
 import { EINRICHTUNG_AKTIONEN } from "@steuerzentrale/manifest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AuftragNachricht } from "../src/auftraege/pruefen.ts";
@@ -6,6 +7,7 @@ import {
   type EchterAgent,
   EINRICHTUNG_BEREIT,
   echterAgent,
+  nutzerLesen,
   signiert,
   wegraeumen,
 } from "./einrichtung-hilfen.ts";
@@ -131,5 +133,43 @@ describe.skipIf(!bereit)("jobs with real Podman (Z-305)", () => {
       fehler: "Zeitlimit von 1 s überschritten, Befehl beendet",
     });
     expect(Date.now() - beginn).toBeLessThan(15_000);
+  });
+
+  // Review of PR #24: SIGKILL reached runuser only; podman exec and the command in the container
+  // (under conmon, outside the process group) ran on. As root, as the agent runs it
+  it("leave nothing running past the time limit: neither podman exec nor the command", async () => {
+    const nutzer = await nutzerLesen(`sz-${INSTALLATION}`);
+    if (!nutzer) throw new Error(`no user sz-${INSTALLATION}`);
+    const plan = {
+      art: "befehl",
+      aktion: "haengt",
+      installationId: INSTALLATION,
+      container: "app",
+      argv: ["sleep", "297"],
+      zeitlimitMs: 2000,
+      idempotent: false,
+    };
+    const skript = join(import.meta.dirname, "zeitlimit-als-root.ts");
+    const l = lauf(["sudo", "-n", process.execPath, "run", skript, JSON.stringify([plan, nutzer])]);
+    expect(l.fehler).toBe("");
+    expect(JSON.parse(l.aus)).toEqual({
+      ok: false,
+      fehler: "Zeitlimit von 2 s überschritten, Befehl beendet",
+    });
+    const execLaeuft = () =>
+      lauf(["pgrep", "-f", `podman exec .*${CONTAINER} sleep 297`]).code === 0;
+    const imContainerLaeuft = () =>
+      lauf(alsNutzer(`sz-${INSTALLATION}`)("podman", "top", CONTAINER, "args")).aus.includes(
+        "sleep 297",
+      );
+    let weg = false;
+    for (let i = 0; i < 20 && !weg; i++) {
+      weg = !execLaeuft() && !imContainerLaeuft();
+      if (!weg) await Bun.sleep(250);
+    }
+    expect({ podmanExec: execLaeuft(), imContainer: imContainerLaeuft() }).toEqual({
+      podmanExec: false,
+      imContainer: false,
+    });
   });
 });

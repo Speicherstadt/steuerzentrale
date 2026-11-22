@@ -1,4 +1,5 @@
 import { unitLesen } from "@steuerzentrale/manifest";
+import { imContainer } from "../auftraege/ausfuehren.ts";
 import { hausPlan, hausSchreiben } from "./haus.ts";
 import { bisJa, type Lauf } from "./lauf.ts";
 import { alsNutzer, busSocket, homeVon, type Nutzer, nutzerName } from "./nutzer.ts";
@@ -140,17 +141,13 @@ const unitsStarten = async (k: Kontext, n: Nutzer): Promise<Schrittergebnis> => 
   return aktiv ? gelungen : gescheitert(`units not active: ${k.a.units.join(", ")}`);
 };
 
-/** `podman exec <installation>-<container>`, the container's name from its unit */
+/** `podman exec <installation>-<container>`, the container's name from its unit, marked (imContainer) */
 const schritteAusfuehren = (k: Kontext, n: Nutzer) =>
   nacheinander(
-    k.a.schritte.map(
-      (s) => () =>
-        k.lauf(
-          `schritte.einrichten ${s.name}`,
-          alsNutzer(n, ["podman", "exec", `${k.a.name}-${s.container}`, ...s.argv]),
-          { zeitlimitMs: s.zeitlimitMs },
-        ),
-    ),
+    k.a.schritte.map((s) => () => {
+      const { argv, marke } = imContainer(n, `${k.a.name}-${s.container}`, s.argv);
+      return k.lauf(`schritte.einrichten ${s.name}`, argv, { zeitlimitMs: s.zeitlimitMs, marke });
+    }),
   );
 
 export const einrichten = async (

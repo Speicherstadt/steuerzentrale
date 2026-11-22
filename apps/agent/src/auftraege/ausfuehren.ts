@@ -3,28 +3,59 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { alsNutzer, type Nutzer, PATH } from "../einrichtung/nutzer.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
+import { markierteBeenden } from "./beenden.ts";
 import type { Plan } from "./pruefen.ts";
 
 /*
  * Running a checked job (BAULISTE.md Z-305): the command's argv from the signed manifest as a fixed
  * argv in its installation's container, never through a shell, killed when its time limit runs
  * out. Since Z-402 it runs as the installation's Linux user (docs/plan.md, "Was ein Auftrag
- * ausführt"), whose rootless Podman runs the container. The process is started by a spawn passed
- * in, so the logic is tested without one.
+ * ausführt"), whose rootless Podman runs the container. At the time limit nothing it started runs
+ * on: not runuser's children, not the command under conmon (echtSpawn, beenden.ts). The process
+ * is started by a spawn passed in, so the logic is tested without one.
  */
 
-/** Runs a fixed argv; the signal kills it; `eingabe` is its standard input. Throws when it cannot start */
+export type SpawnOptionen = {
+  /** Its standard input */
+  eingabe?: string;
+  /** The mark of a command in a container (imContainer): what carries it is killed with it */
+  marke?: string;
+};
+
+/**
+ * Runs a fixed argv; the signal kills it with all it started (its process group, and what carries
+ * its mark). Throws when it cannot start
+ */
 export type Spawn = (
   argv: readonly string[],
   signal: AbortSignal,
-  eingabe?: string,
+  o?: SpawnOptionen,
 ) => Promise<{ code: number | null }>;
 
 export type Ergebnis = { ok: true; daten: Record<string, unknown> } | { ok: false; fehler: string };
 
+/** The environment entry that marks a command in a container (beenden.ts) */
+export const MARKE = "STEUERZENTRALE_LAUF";
+
+/**
+ * `podman exec` of a fixed argv as the installation's user, marked with a value of its own for
+ * this run, so that after a time limit the command is found under conmon (beenden.ts)
+ */
+export const imContainer = (
+  nutzer: Nutzer,
+  container: string,
+  argv: readonly string[],
+): { argv: string[]; marke: string } => {
+  const marke = crypto.randomUUID();
+  return {
+    argv: alsNutzer(nutzer, ["podman", "exec", "--env", `${MARKE}=${marke}`, container, ...argv]),
+    marke,
+  };
+};
+
 /** The container of an installation is named `<installation>-<container>` (its Quadlet unit) */
-export const befehlArgv = (plan: Plan, nutzer: Nutzer): string[] =>
-  alsNutzer(nutzer, ["podman", "exec", `${plan.installationId}-${plan.container}`, ...plan.argv]);
+export const befehl = (plan: Plan, nutzer: Nutzer) =>
+  imContainer(nutzer, `${plan.installationId}-${plan.container}`, plan.argv);
 
 /** The folder of a named pipe for a process's input, under the agent's temporary folder */
 export const EINGABE_PRAEFIX = "sz-eingabe-";
@@ -79,12 +110,44 @@ export const eingabeRohr = (eingabe: string): number => {
 };
 
 /**
- * Bun's spawn: no shell, input only when given (a Podman secret, on a named pipe), output dropped (log excerpts come
- * with Z-405), SIGKILL on abort, in / and with no environment of the agent's but PATH: what a
- * process as another user needs, runuser and `env -i` set (einrichtung/nutzer.ts)
+ * SIGKILL to the process group the process leads, while the process is not known to have ended
+ * (so a reaped pid is never signalled). runuser forks without a group or session of its own and
+ * waits for its child (checked with util-linux 2.39), so its child `env`, then `podman exec`, is in
+ * the group
  */
-export const echtSpawn: Spawn = async (argv, signal, eingabe) => {
-  const rohr = eingabe === undefined ? undefined : eingabeRohr(eingabe);
+const gruppeToeten = (lauf: ReturnType<typeof Bun.spawn>): void => {
+  if (lauf.exitCode !== null || lauf.signalCode !== null) return;
+  try {
+    process.kill(-lauf.pid, "SIGKILL");
+  } catch {
+    // ended meanwhile
+  }
+};
+
+/**
+ * Kills the process group of a process started with Bun's `detached` (its own session) when the
+ * signal aborts; returns what takes the listener off again, once the process has ended
+ */
+export const gruppeBeiAbbruch = (
+  lauf: ReturnType<typeof Bun.spawn>,
+  signal: AbortSignal,
+): (() => void) => {
+  const abbrechen = () => gruppeToeten(lauf);
+  signal.addEventListener("abort", abbrechen, { once: true });
+  if (signal.aborted) abbrechen();
+  return () => signal.removeEventListener("abort", abbrechen);
+};
+
+/**
+ * Bun's spawn: no shell, input only when given (a Podman secret, on a named pipe), output dropped
+ * (log excerpts come with Z-405), in / and with no environment of the agent's but PATH: what a
+ * process as another user needs, runuser and `env -i` set (einrichtung/nutzer.ts). It starts in a
+ * session of its own (setsid, Bun's `detached`), so that on abort SIGKILL reaches its whole
+ * process group, runuser and all it forked, not runuser alone; then whatever carries its mark,
+ * the command `podman exec` left under conmon (beenden.ts)
+ */
+export const echtSpawn: Spawn = async (argv, signal, o = {}) => {
+  const rohr = o.eingabe === undefined ? undefined : eingabeRohr(o.eingabe);
   let lauf: ReturnType<typeof Bun.spawn>;
   try {
     lauf = Bun.spawn([...argv], {
@@ -92,14 +155,21 @@ export const echtSpawn: Spawn = async (argv, signal, eingabe) => {
       stdout: "ignore",
       stderr: "ignore",
       cwd: "/",
-      signal,
-      killSignal: "SIGKILL",
+      detached: true,
       env: { PATH, LC_ALL: "C" },
     });
   } finally {
     if (rohr !== undefined) closeSync(rohr);
   }
-  return { code: (await lauf.exited) ?? null };
+  const aufheben = gruppeBeiAbbruch(lauf, signal);
+  let code: number | null;
+  try {
+    code = (await lauf.exited) ?? null;
+  } finally {
+    aufheben();
+  }
+  if (signal.aborted && o.marke !== undefined) await markierteBeenden(`${MARKE}=${o.marke}`);
+  return { code };
 };
 
 const kurz = (text: string) => text.slice(0, 500);
@@ -120,7 +190,8 @@ export const ausfuehren = async (
     abbruch.abort();
   }, plan.zeitlimitMs);
   try {
-    const { code } = await deps.spawn(befehlArgv(plan, nutzer), abbruch.signal);
+    const { argv, marke } = befehl(plan, nutzer);
+    const { code } = await deps.spawn(argv, abbruch.signal, { marke });
     if (abgelaufen)
       return {
         ok: false,
