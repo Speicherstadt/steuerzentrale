@@ -1,6 +1,6 @@
 import { Button, Icon, m } from "@steuerzentrale/ui";
 import { CalendarX, Pencil, Undo2 } from "@steuerzentrale/ui/icons";
-import { createFileRoute } from "@tanstack/solid-router";
+import { createFileRoute, useNavigate } from "@tanstack/solid-router";
 import { createMemo, createSignal, Loading, Match, refresh, Show, Switch } from "solid-js";
 import {
   betrifft,
@@ -18,6 +18,7 @@ import { datum } from "../format/zeit.ts";
 import { slaName, slaText, welleName } from "../rahmen/texte.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { InstallationsListe } from "../seiten/installations-liste.tsx";
+import { Installieren } from "../seiten/installieren.tsx";
 import {
   KuendigungZuruecknehmen,
   KundeAendern,
@@ -63,31 +64,45 @@ const initialen = (name: string) =>
 
 type Offen = "aendern" | "kuendigen" | "zuruecknehmen" | undefined;
 
-/** Change, give notice, take the notice back: each opens its dialog with a reason */
-const Aktionen = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => (
-  <div class="flex flex-wrap gap-2">
-    <Button onClick={() => props.oeffne("aendern")}>
-      <Icon icon={Pencil} />
-      {m.kunde_aendern()}
-    </Button>
-    <Show
-      when={props.k.vertrag.ende === null}
-      fallback={
-        <Button onClick={() => props.oeffne("zuruecknehmen")}>
-          <Icon icon={Undo2} />
-          {m.kunde_zuruecknehmen()}
-        </Button>
-      }
-    >
-      <Show when={!props.k.intern}>
-        <Button onClick={() => props.oeffne("kuendigen")}>
-          <Icon icon={CalendarX} />
-          {m.kunde_kuendigen()}
-        </Button>
+/**
+ * Install an app for the customer (Z-402), change, give notice, take the notice back: each opens
+ * its dialog with a reason
+ */
+const Aktionen = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => {
+  const navigate = useNavigate();
+  return (
+    <div class="flex flex-wrap gap-2">
+      <Show when={props.k.vertrag.ende === null}>
+        <Installieren
+          kundeId={props.k.id}
+          onAngelegt={(i) =>
+            void navigate({ to: "/installationen/$id", params: { id: i.installationId } })
+          }
+        />
       </Show>
-    </Show>
-  </div>
-);
+      <Button onClick={() => props.oeffne("aendern")}>
+        <Icon icon={Pencil} />
+        {m.kunde_aendern()}
+      </Button>
+      <Show
+        when={props.k.vertrag.ende === null}
+        fallback={
+          <Button onClick={() => props.oeffne("zuruecknehmen")}>
+            <Icon icon={Undo2} />
+            {m.kunde_zuruecknehmen()}
+          </Button>
+        }
+      >
+        <Show when={!props.k.intern}>
+          <Button onClick={() => props.oeffne("kuendigen")}>
+            <Icon icon={CalendarX} />
+            {m.kunde_kuendigen()}
+          </Button>
+        </Show>
+      </Show>
+    </div>
+  );
+};
 
 const Kopf = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => (
   <div class="flex flex-wrap items-center justify-between gap-4">

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { installationAnlegen, neuerHost } from "./hilfen/installationen.ts";
 
 test.use({ locale: "de-DE" });
 
@@ -41,6 +42,8 @@ test.describe("the interface", { tag: "@phone" }, () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   });
 
+  // The overview shows the demo fixtures until Z-406, the installation page the Zentrale's
+  // installations since Z-402: the entry links to its cause, a page the Zentrale does not know
   test("leads from the overview to the cause of an entry", async ({ page }) => {
     await page.goto("/");
     await page
@@ -48,7 +51,7 @@ test.describe("the interface", { tag: "@phone" }, () => {
       .first()
       .click();
     await expect(page).toHaveURL("/installationen/berger-schreibzeug");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("IT Berger · Schreibzeug");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nicht gefunden");
   });
 });
 
@@ -67,16 +70,31 @@ test.describe("at phone width", () => {
   });
 });
 
+// The installations of the Zentrale (Z-402): a failed setup counts as red, one on its way not
 test.describe("filters", () => {
   test("narrow the installations to red ones and by search", async ({ page }) => {
-    await page.goto("/installationen");
-    await page.getByRole("button", { name: /^Rot/ }).click();
-    const tabelle = page.getByRole("region", { name: "Installationen" });
-    await expect(tabelle.getByRole("link", { name: /IT Berger/ })).toBeVisible();
-    await expect(tabelle.getByRole("link", { name: /Atelier Nord/ })).toHaveCount(0);
-    await page.getByRole("button", { name: /^Alle/ }).click();
-    await page.getByRole("button", { name: "Liste" }).click();
-    await page.getByRole("searchbox", { name: "Installationen suchen" }).fill("holm");
-    await expect(tabelle.locator("tbody tr")).toHaveCount(2);
+    const kaputt = await installationAnlegen(page.request, neuerHost("kaputt"));
+    const unterwegs = await installationAnlegen(page.request);
+    try {
+      await expect
+        .poll(async () => {
+          const a = await page.request.get(`/api/v1/installationen/${kaputt.installationId}`);
+          return ((await a.json()) as { zustand: string }).zustand;
+        })
+        .toBe("gescheitert");
+      await page.goto("/installationen");
+      await page.getByRole("button", { name: /^Rot/ }).click();
+      const tabelle = page.getByRole("region", { name: "Installationen" });
+      await expect(tabelle.getByRole("link", { name: new RegExp(kaputt.host) })).toBeVisible();
+      await expect(tabelle.getByRole("link", { name: new RegExp(unterwegs.host) })).toHaveCount(0);
+      await page.getByRole("button", { name: /^Alle/ }).click();
+      await page.getByRole("button", { name: "Liste" }).click();
+      await page.getByRole("searchbox", { name: "Installationen suchen" }).fill(unterwegs.host);
+      await expect(tabelle.locator("tbody tr")).toHaveCount(1);
+      await expect(tabelle.locator("tbody tr")).toContainText("wird eingerichtet");
+    } finally {
+      kaputt.agent.trennen();
+      unterwegs.agent.trennen();
+    }
   });
 });

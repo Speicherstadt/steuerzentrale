@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
@@ -18,6 +18,14 @@ process.env.SZ_E2E_DATEN ??= mkdtempSync(join(tmpdir(), "sz-test-e2e-"));
 const daten = process.env.SZ_E2E_DATEN;
 const testSchluessel = Buffer.alloc(32, 7).toString("base64");
 const inhaberSitzung = join(daten, "inhaber.json");
+// The public test key as the Zentrale's `minisign.pub` (beside install.sh): it checks an uploaded
+// manifest with it (Z-402), and e2e/hilfen/installationen.ts signs with the test key's secret half
+const agentDateien = join(daten, "agent-dateien");
+mkdirSync(agentDateien, { recursive: true });
+copyFileSync(
+  join(import.meta.dirname, "test/schluessel/test.pub"),
+  join(agentDateien, "minisign.pub"),
+);
 
 export default defineConfig({
   testDir: "e2e",
@@ -60,6 +68,7 @@ export default defineConfig({
         STEUERZENTRALE_URL: `http://localhost:${port}`,
         // where agents reach it: the install command of the dialog "Server hinzufügen" names it
         STEUERZENTRALE_AGENT_URL: `http://localhost:${zentralePort}`,
+        STEUERZENTRALE_AGENT_DATEIEN: agentDateien,
       },
     },
     {

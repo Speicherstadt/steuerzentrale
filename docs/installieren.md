@@ -89,6 +89,39 @@ Entfernt wird hier nur eine Installation im Zustand `gescheitert`. Scheitert das
 sie `gescheitert` und kann noch einmal entfernt werden. Eine eingerichtete Installation entfernt erst
 Z-604, nach einem Backup.
 
+## In der Oberfläche
+
+Den Knopf **App installieren** zeigen die Seite „Installationen“ und die Seite eines Kunden, dessen
+Vertrag nicht gekündigt ist, nur den Rollen Inhaber und Technik. Der Dialog fragt:
+
+- **Kunde** (von der Kundenseite aus schon gewählt) und **Server**; gesperrte Server und Kunden nach
+  Vertragsende stehen nicht zur Wahl;
+- **Manifest** (`manifest.yml`) und **Signatur** (`manifest.yml.minisig`) als Dateien. Die
+  Oberfläche liest das Manifest mit derselben Funktion wie die Zentrale (`manifestPruefen`) und nennt
+  App und Version oder, was am Manifest nicht stimmt; die Signatur prüft nur die Zentrale;
+- **Optionen** aus dem Manifest, je ein Kästchen;
+- **Einstellungen dieser Installation**: ein Feld je Einstellung der Ebene `installation`, die mit den
+  gewählten Optionen gilt und keine `vorlage` hat, nach ihrem Typ (Text, Zahl, Ja/Nein, geheim als
+  Passwortfeld). Eine Einstellung ohne Vorgabe muss ausgefüllt sein; ein leeres Feld mit Vorgabe
+  bleibt leer, dann gilt die Vorgabe des Manifests. Werte des Betreibers und `auto`-Werte setzt die
+  Zentrale. Kein App-Name steht im Code der Oberfläche;
+- **Adresse** (Host) und **Grund** fürs Audit-Log.
+
+Sobald Kunde, Server, Manifest und Signatur da sind, fragt der Dialog die **Platzierung** ab und
+wiederholt das bei jeder Änderung von Kunde, Server, Manifest, Signatur oder Optionen; nur dieses
+Feld wartet auf die Antwort. Es zeigt „Passt“, „Passt, mit Hinweis“ oder „Passt nicht“ und jeden
+Grund und Hinweis als Satz; die Codes der Zentrale übersetzt die Oberfläche selbst, einen
+unbekannten zeigt sie mit seinem Namen. Lehnt die Zentrale das Anlegen ab, bleibt der Dialog offen
+und nennt den Fehler, bei `passt_nicht` mit allen Gründen.
+
+Nach dem Anlegen steht die Installation in der Liste mit dem Zustand **wird eingerichtet**. Die
+Liste filtert nach Zustand: eine gescheiterte Einrichtung zählt zu „Rot“, eine laufende zu „Ohne
+Zustand“, eine entfernte steht nicht mehr darin. Die Seite einer Installation zeigt Kunde, Server,
+Linux-Nutzer, Adresse, HTTP-Port, weitere Ports, Optionen, die Werte dieser Installation (ohne
+Geheimnisse) und ihre Aufträge mit Zustand, letztem Schritt und Fehler. Nach einer gescheiterten
+Einrichtung bietet sie **Entfernen …** mit Grund an. Health, Backups und Daten zeigen die Seiten bis
+Z-403 und Z-406 nur für Installationen der Demodaten (`bun run dev:demo`).
+
 ## API
 
 Alle Rollen lesen, Inhaber und Technik schreiben. Jede schreibende Route verlangt einen `grund`, der
