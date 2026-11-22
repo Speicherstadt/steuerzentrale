@@ -104,14 +104,18 @@ export type BewertungJetzt =
  * The rating as it stands at `jetzt`: unknown without a report for 90 seconds, since the moment the
  * report was due; without any report unknown with no `seit`
  */
-export const bewertungJetzt = (stand: Bewertungsstand | null, jetzt: number): BewertungJetzt => {
-  if (stand === null)
-    return {
-      bewertung: "unbekannt",
-      grund: { code: "noch_keine_meldung", werte: {} },
-      seit: null,
-      gemeldetAm: null,
-    };
+export const bewertungJetzt = (stand: Bewertungsstand | null, jetzt: number): BewertungJetzt =>
+  stand === null
+    ? {
+        bewertung: "unbekannt",
+        grund: { code: "noch_keine_meldung", werte: {} },
+        seit: null,
+        gemeldetAm: null,
+      }
+    : nachFrist(stand, jetzt);
+
+/** A stored rating as it stands at `jetzt`: unknown once no report came for 90 seconds */
+export const nachFrist = (stand: Bewertungsstand, jetzt: number): Bewertungsstand => {
   const faellig = stand.gemeldetAm + MELDUNG_FRIST_MS;
   if (stand.bewertung === "unbekannt" || jetzt < faellig) return stand;
   return {
@@ -131,7 +135,7 @@ export const stoerungPruefen = (
   offen: boolean,
   jetzt: number,
 ): "stoerung" | "behoben" | undefined => {
-  const aktuell = bewertungJetzt(stand, jetzt);
+  const aktuell = nachFrist(stand, jetzt);
   if (aktuell.bewertung === "rot" && !offen && jetzt - aktuell.seit >= STOERUNG_NACH_MS)
     return "stoerung";
   if (aktuell.bewertung === "gruen" && offen) return "behoben";

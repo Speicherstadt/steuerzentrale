@@ -1,5 +1,5 @@
-// The rating of an installation, update waves, freeze windows, maintenance windows and server checks as pure functions
-// (docs/plan.md, "Projektstruktur").
+// The rating of an installation, update waves, freeze windows, maintenance windows and server
+// checks as pure functions (docs/plan.md, "Projektstruktur").
 
 export {
   type Aktiv,
@@ -15,6 +15,7 @@ export {
   installationBewerten,
   MELDUNG_FRIST_MS,
   type Meldung,
+  nachFrist,
   STOERUNG_NACH_MS,
   stoerungPruefen,
 } from "./bewertung.ts";

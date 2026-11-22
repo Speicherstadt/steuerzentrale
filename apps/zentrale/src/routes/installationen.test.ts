@@ -2,14 +2,17 @@ import { EINRICHTUNG_AKTIONEN } from "@steuerzentrale/manifest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { auditLog, installationen } from "../db/schema.ts";
 import { schreiben } from "../modules/audit/index.ts";
+import { zustandAnnehmen } from "../modules/bewertung/index.ts";
 import { spalteVerschluesseln } from "../modules/geheim/spalten.ts";
+import { eintrag, zustandNachricht } from "../testhilfen/bewertung.ts";
 import { FAKTEN, KENNWORT, LIZENZ, signiert } from "../testhilfen/installationen.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
  * BAULISTE.md Z-402 over HTTP: the placement as the dialog's preview, making, listing, reading and
- * removing installations. Every role reads, owner and technik write; no operator reaches another's
- * installations (a test per endpoint); no answer carries a secret.
+ * removing installations, and with Z-403 their state and its history. Every role reads, owner and
+ * technik write; no operator reaches another's installations (a test per endpoint); no answer
+ * carries a secret.
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 type Antwort = { status: number; daten: Record<string, unknown> };
@@ -188,6 +191,13 @@ describe("an installation over the API", () => {
       optionen: [],
       einstellungen: { betreiber: {}, installation: { PROBE_TITEL: "Kanzlei" } },
       zustand: "wird_eingerichtet",
+      health: {
+        zustand: "unbekannt",
+        grund: { code: "noch_keine_meldung", werte: {} },
+        seit: null,
+        gemeldetAm: null,
+        units: [],
+      },
       angelegtVon: technik.nutzerId,
       angelegtAm: server.jetzt(),
       geaendertAm: server.jetzt(),
@@ -201,6 +211,7 @@ describe("an installation over the API", () => {
         { aktion: EINRICHTUNG_AKTIONEN.einrichten, zustand: "zugestellt", fehler: null },
         { aktion: "pforte_route_setzen", zustand: "wartend", fehler: null },
       ],
+      verlauf: [],
     });
     const eintrag = server.db
       .select()
@@ -292,6 +303,59 @@ describe("an installation over the API", () => {
   });
 });
 
+/** The agent of Teufel IT's server reports `e` now */
+const melden = (betreiberId: string, ...e: ReturnType<typeof eintrag>[]) =>
+  zustandAnnehmen(server.deps, { betreiberId, serverId }, zustandNachricht(e), server.jetzt());
+
+describe("the state of an installation over the API", () => {
+  it("is in the list and on the page with reason and since, the page with its history", async () => {
+    const i = await anlegen(teufel, "zustand.kanzlei.example");
+    const start = server.jetzt();
+    melden(teufel.betreiberId, eintrag(i.installationId));
+    server.stelleUhr(start + 30_000);
+    melden(teufel.betreiberId, eintrag(i.installationId, "gruen", "failed"));
+    const health = {
+      zustand: "gelb",
+      grund: { code: "unit", werte: { unit: `${i.installationId}-app.service`, aktiv: "failed" } },
+      seit: start + 30_000,
+      gemeldetAm: start + 30_000,
+      units: [{ name: `${i.installationId}-app.service`, aktiv: "failed" }],
+    };
+    const { daten: liste } = await json(support, "/api/v1/installationen");
+    expect(
+      (liste.installationen as { installationId: string }[]).find(
+        (x) => x.installationId === i.installationId,
+      ),
+    ).toMatchObject({ health });
+    const { daten: eine } = await json(support, `/api/v1/installationen/${i.installationId}`);
+    expect(eine).toMatchObject({
+      health,
+      verlauf: [
+        { zeitpunkt: start + 30_000, bewertung: "gelb", grund: health.grund },
+        {
+          zeitpunkt: start,
+          bewertung: "gruen",
+          grund: { code: "health", werte: { text: "HTTP 200" } },
+        },
+      ],
+    });
+  });
+
+  it("is unknown 90 s after the last report, never green", async () => {
+    const i = await anlegen(teufel, "still.kanzlei.example");
+    const start = server.jetzt();
+    melden(teufel.betreiberId, eintrag(i.installationId));
+    server.stelleUhr(start + 90_000);
+    const { daten } = await json(teufel, `/api/v1/installationen/${i.installationId}`);
+    expect(daten.health).toMatchObject({
+      zustand: "unbekannt",
+      grund: { code: "keine_meldung", werte: {} },
+      seit: start + 90_000,
+      gemeldetAm: start,
+    });
+  });
+});
+
 describe("no operator reaches another's installations", () => {
   let fremd: { installationId: string };
 
@@ -319,15 +383,17 @@ describe("no operator reaches another's installations", () => {
     ).toEqual([]);
   };
 
-  it("GET /api/v1/installationen lists one's own only", async () => {
+  it("GET /api/v1/installationen lists one's own only, with their state", async () => {
+    melden(teufel.betreiberId, eintrag(fremd.installationId, "rot", "active", "geheimer-grund"));
     const { daten } = await json(partner, "/api/v1/installationen");
     expect(JSON.stringify(daten)).not.toContain(fremd.installationId);
+    expect(JSON.stringify(daten)).not.toContain("geheimer-grund");
     expect(JSON.stringify((await json(teufel, "/api/v1/installationen")).daten)).toContain(
       fremd.installationId,
     );
   });
 
-  it("GET /api/v1/installationen/:installationId does not show another's", async () => {
+  it("GET /api/v1/installationen/:installationId does not show another's, nor its history", async () => {
     expect(await json(partner, `/api/v1/installationen/${fremd.installationId}`)).toEqual({
       status: 404,
       daten: { fehler: "keine_installation" },

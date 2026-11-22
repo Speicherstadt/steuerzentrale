@@ -11,6 +11,7 @@ import {
 import type { LogSink } from "../../log.ts";
 import { heartbeatAnfuegen, schreiben } from "../audit/index.ts";
 import { offeneZustellen } from "../auftraege/index.ts";
+import { zustandAnnehmen } from "../bewertung/index.ts";
 import type { BeitrittDeps } from "../server/beitritt.ts";
 import {
   neuesZertifikatUebernehmen,
@@ -19,7 +20,7 @@ import {
   zertifikatRotieren,
 } from "../server/index.ts";
 import { auftragsEingang } from "./auftraege.ts";
-import { eimer } from "./eimer.ts";
+import { eimer, mindestabstand } from "./eimer.ts";
 import { faktenSpeichern, sshAnmeldungSchreiben } from "./meldungen.ts";
 import type { Sockel, Verbindungen } from "./verbindungen.ts";
 
@@ -28,7 +29,8 @@ import type { Sockel, Verbindungen } from "./verbindungen.ts";
  * the Zentrale answers `willkommen` with the end of the agent's certificate, and from then on
  * heartbeats arrive every 30 seconds and land in `heartbeats` as measurements. A message the
  * Zentrale cannot read, or anything before `hallo`, ends the connection. Facts and SSH logins
- * (Z-304) are kept (meldungen.ts). After `willkommen` the agent gets its open jobs, and its reports
+ * (Z-304) are kept (meldungen.ts), the state of the installations is rated (Z-403,
+ * src/modules/bewertung). After `willkommen` the agent gets its open jobs, and its reports
  * about them move them on (Z-305, src/modules/auftraege); log excerpts are left for Z-405.
  */
 export type SitzungDeps = BeitrittDeps & {
@@ -56,6 +58,12 @@ const HEARTBEAT_ABSTAND_MS = HEARTBEAT_MS / 2;
 const FAKTEN_ABSTAND_MS = 60_000;
 
 /**
+ * States of the installations closer than this are dropped (Z-403): the agent sends them every
+ * 30 seconds, and each is a write per installation
+ */
+const ZUSTAND_ABSTAND_MS = 10_000;
+
+/**
  * SSH logins become events and audit entries, which stay; an agent may send a backlog of this many
  * at once (logins while it was away), then one a minute more, the rest is dropped
  */
@@ -76,8 +84,10 @@ export const sitzung = (
   let server = angemeldet.server;
   let sockel: Sockel | undefined;
   let gegruesst = false;
-  let letzterHeartbeat = Number.NEGATIVE_INFINITY;
-  let letzteFakten = Number.NEGATIVE_INFINITY;
+  // a clock that jumped back does not silence the server
+  const heartbeatErlaubt = mindestabstand(HEARTBEAT_ABSTAND_MS);
+  const faktenErlaubt = mindestabstand(FAKTEN_ABSTAND_MS);
+  const zustandErlaubt = mindestabstand(ZUSTAND_ABSTAND_MS);
   // whether one more SSH login may become an event, as a bucket refilled one a minute
   const sshErlaubt = eimer(SSH_VORRAT, SSH_NACHSCHUB_MS);
 
@@ -143,10 +153,7 @@ export const sitzung = (
         return hallo(n, s, jetzt);
       }
       if (n.typ === "heartbeat") {
-        // a clock that jumped back does not silence the server
-        const abstand = jetzt - letzterHeartbeat;
-        if (abstand >= 0 && abstand < HEARTBEAT_ABSTAND_MS) return;
-        letzterHeartbeat = jetzt;
+        if (!heartbeatErlaubt(jetzt)) return;
         return heartbeatAnfuegen(deps.schreibDb, {
           betreiberId,
           serverId,
@@ -157,12 +164,10 @@ export const sitzung = (
       if (n.typ === "zertifikat_anfrage") return rotieren(n.csr, s);
       if (n.typ === "bestaetigt" || n.typ === "fortschritt" || n.typ === "ergebnis")
         return auftrag(n, jetzt);
-      if (n.typ === "fakten") {
-        const abstand = jetzt - letzteFakten;
-        if (abstand >= 0 && abstand < FAKTEN_ABSTAND_MS) return;
-        letzteFakten = jetzt;
-        return faktenSpeichern(deps.schreibDb, server, n, jetzt);
-      }
+      if (n.typ === "fakten")
+        return faktenErlaubt(jetzt) ? faktenSpeichern(deps.schreibDb, server, n, jetzt) : undefined;
+      if (n.typ === "zustand")
+        return zustandErlaubt(jetzt) ? zustandAnnehmen(deps, server, n, jetzt) : undefined;
       if (n.typ === "ssh_anmeldung") {
         if (!sshErlaubt(jetzt)) {
           deps.log(JSON.stringify({ msg: "ssh login dropped", serverId }));

@@ -1,4 +1,6 @@
 export {
+  type BewertungZeile,
+  bewertungSetzen,
   type FaktenZeile,
   type FortschrittZeile,
   faktenAnfuegen,

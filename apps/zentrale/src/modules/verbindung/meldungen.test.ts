@@ -1,10 +1,19 @@
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { VOM_AGENTEN_V1 } from "../../../../../packages/protokoll/src/beispiele-v1.ts";
-import { auditLog, ereignisse, fakten, server as serverTabelle } from "../../db/schema.ts";
+import {
+  auditLog,
+  ereignisse,
+  fakten,
+  installationen,
+  installationVerlauf,
+  server as serverTabelle,
+} from "../../db/schema.ts";
 import { serverHinzufuegen } from "../../testhilfen/agent.ts";
+import { installationEinfuegen } from "../../testhilfen/bewertung.ts";
 import { testServer } from "../../testhilfen/server.ts";
 import { agentBeitreten, fingerabdruckVon } from "../../testhilfen/tls.ts";
+import { schreiben } from "../audit/index.ts";
 import { serverZumFingerabdruck } from "../server/index.ts";
 import { sitzung } from "./sitzung.ts";
 
@@ -104,5 +113,59 @@ describe("an SSH login", () => {
     const { zentrale, s } = await verbunden();
     await s.nachricht(JSON.stringify({ ...ANMELDUNG, zeit: zentrale.jetzt() + 3600_000 }));
     expect(zentrale.db.select().from(ereignisse).get()?.zeitpunkt).toBe(zentrale.jetzt());
+  });
+});
+
+// BAULISTE.md Z-403: the state of the installations every 30 s, rated at the Zentrale's time
+describe("the state of the installations", () => {
+  const ZUSTAND = VOM_AGENTEN_V1.find((n) => n.typ === "zustand") ?? {};
+
+  const mitInstallation = async () => {
+    const v = await verbunden();
+    const { betreiberId, serverId } = v.server;
+    schreiben(
+      v.zentrale.schreibDb,
+      { betreiberId, akteur: "test", jetzt: 1, grund: "Test" },
+      "test",
+      (w) =>
+        w.einfuegen("kunden", {
+          betreiberId,
+          kundeId: "k1",
+          name: "Kanzlei",
+          kontaktName: "Kim",
+          kontaktEmail: "kim@kanzlei.test",
+          angelegtAm: 1,
+        }),
+    );
+    installationEinfuegen(v.zentrale.schreibDb, betreiberId, "haben-mueller", serverId);
+    return v;
+  };
+  const bewertung = (z: Awaited<ReturnType<typeof verbunden>>["zentrale"]) =>
+    z.db.select().from(installationen).get();
+
+  it("rates the installations of the server, without an audit entry", async () => {
+    const { zentrale, s, geschlossen } = await mitInstallation();
+    const audit = zentrale.db.select().from(auditLog).all().length;
+    await s.nachricht(JSON.stringify(ZUSTAND));
+    expect(geschlossen).toEqual([]);
+    expect(bewertung(zentrale)).toMatchObject({
+      bewertung: "gruen",
+      bewertungSeit: zentrale.jetzt(),
+      gemeldetAm: zentrale.jetzt(),
+    });
+    expect(zentrale.db.select().from(installationVerlauf).all()).toHaveLength(1);
+    expect(zentrale.db.select().from(auditLog).all()).toHaveLength(audit);
+  });
+
+  it("is dropped when it comes closer than 10 s, so an agent cannot hammer the table", async () => {
+    const { zentrale, s } = await mitInstallation();
+    await s.nachricht(JSON.stringify(ZUSTAND));
+    const erste = zentrale.jetzt();
+    zentrale.stelleUhr(erste + 9_999);
+    await s.nachricht(JSON.stringify(ZUSTAND));
+    expect(bewertung(zentrale)?.gemeldetAm).toBe(erste);
+    zentrale.stelleUhr(erste + 10_000);
+    await s.nachricht(JSON.stringify(ZUSTAND));
+    expect(bewertung(zentrale)?.gemeldetAm).toBe(erste + 10_000);
   });
 });

@@ -23,6 +23,9 @@ export const INSTALLATIONS_ZUSTAENDE = [
   "entfernt",
 ] as const;
 
+/** The rating of an installation (packages/planung, `installationBewerten`) */
+export const BEWERTUNGEN = ["gruen", "gelb", "rot", "unbekannt"] as const;
+
 /**
  * An installation of an app for a customer on a server (BAULISTE.md Z-402). `installation_id` is its
  * name (`<app>-<6 characters>`), the prefix of its units and its Linux user `sz-<name>`. Until
@@ -32,7 +35,10 @@ export const INSTALLATIONS_ZUSTAENDE = [
  * when it was made, `ipv4` the server's public IPv4 then. `geheim` is encrypted
  * (src/modules/geheim): JSON `{ betreiber, installation, auto }` of the secret values and the
  * generated `auto` values; it leaves the Zentrale only in the setup job to the agent. The host is
- * unique among the operator's installations not removed.
+ * unique among the operator's installations not removed. Its current rating (Z-403) is a
+ * measurement written only by modules/audit/messwerte.ts: `bewertung`, `bewertung_grund` (JSON
+ * `{ code, werte }`), `bewertung_seit`, `gemeldet_am` (the last report) and `meldung` (JSON units and
+ * health of that report); null until the agent first reports.
  */
 export const installationen = sqliteTable(
   "installationen",
@@ -54,6 +60,11 @@ export const installationen = sqliteTable(
     einstellungen: text("einstellungen").notNull(),
     geheim: text("geheim").notNull(),
     zustand: text("zustand", { enum: INSTALLATIONS_ZUSTAENDE }).notNull(),
+    bewertung: text("bewertung", { enum: BEWERTUNGEN }),
+    bewertungGrund: text("bewertung_grund"),
+    bewertungSeit: integer("bewertung_seit"),
+    gemeldetAm: integer("gemeldet_am"),
+    meldung: text("meldung"),
     angelegtVon: text("angelegt_von").notNull(),
     angelegtAm: integer("angelegt_am").notNull(),
     geaendertAm: integer("geaendert_am").notNull(),
@@ -69,6 +80,30 @@ export const installationen = sqliteTable(
     foreignKey({
       columns: [t.betreiberId, t.kundeId],
       foreignColumns: [kunden.betreiberId, kunden.kundeId],
+    }),
+  ],
+);
+
+/**
+ * Every change of an installation's rating (Z-403; docs/plan.md, "Zustand in der Zentrale"), with
+ * its reason as JSON `{ code, werte }`; a measurement like the rating itself, kept 90 days
+ * (src/modules/aufbewahrung).
+ */
+export const installationVerlauf = sqliteTable(
+  "installation_verlauf",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    installationId: text("installation_id").notNull(),
+    zeitpunkt: integer("zeitpunkt").notNull(),
+    bewertung: text("bewertung", { enum: BEWERTUNGEN }).notNull(),
+    grund: text("grund").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.betreiberId, t.installationId, t.zeitpunkt] }),
+    index("installation_verlauf_zeitpunkt").on(t.zeitpunkt),
+    foreignKey({
+      columns: [t.betreiberId, t.installationId],
+      foreignColumns: [installationen.betreiberId, installationen.installationId],
     }),
   ],
 );

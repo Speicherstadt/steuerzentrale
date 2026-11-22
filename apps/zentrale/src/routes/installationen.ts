@@ -1,7 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { HOST, type OeffentlicherSchluessel } from "@steuerzentrale/manifest";
+import { bewertungJetzt } from "@steuerzentrale/planung";
 import type { Context } from "hono";
 import { z } from "zod";
+import { standVon, verlaufLesen } from "../modules/bewertung/index.ts";
 import {
   auftraegeDerInstallation,
   hochgeladenesManifest,
@@ -20,7 +22,8 @@ import type { Anfrage, Registrar } from "./zugang.ts";
  * Installations (BAULISTE.md Z-402): every role reads, owner and technik make and remove
  * (src/auth/rollen.ts); every write names its reason in `grund`. The dialog asks for the placement
  * first (a preview that writes nothing), then makes the installation with the same input. No
- * answer carries a secret: the encrypted column stays in the Zentrale.
+ * answer carries a secret: the encrypted column stays in the Zentrale. Each installation comes with
+ * its state (Z-403), unknown 90 s after the last report, the page also with its history.
  */
 
 const id = z.string().min(1).max(200);
@@ -78,8 +81,17 @@ const fehler = (c: Context<Anfrage>, f: Fehler) =>
     STATUS[f.grund] ?? 500,
   );
 
+type Unit = { name: string; aktiv: string };
+
+/** The rating at `jetzt` with the units of the last report (packages/planung, bewertung.ts) */
+const healthAntwort = (i: Installation, jetzt: number) => {
+  const { bewertung, grund, seit, gemeldetAm } = bewertungJetzt(standVon(i), jetzt);
+  const meldung = JSON.parse(i.meldung ?? "{}") as { units?: Unit[] };
+  return { zustand: bewertung, grund, seit, gemeldetAm, units: meldung.units ?? [] };
+};
+
 /** An installation as the API shows it: never the encrypted column, manifest or signature */
-export const installationAntwort = (i: Installation) => ({
+export const installationAntwort = (i: Installation, jetzt: number) => ({
   installationId: i.installationId,
   kundeId: i.kundeId,
   serverId: i.serverId,
@@ -92,6 +104,7 @@ export const installationAntwort = (i: Installation) => ({
   optionen: JSON.parse(i.optionen) as string[],
   einstellungen: JSON.parse(i.einstellungen) as unknown,
   zustand: i.zustand,
+  health: healthAntwort(i, jetzt),
   angelegtVon: i.angelegtVon,
   angelegtAm: i.angelegtAm,
   geaendertAm: i.geaendertAm,
@@ -130,17 +143,25 @@ export const installationenRouten = (route: Registrar, deps: RoutenDeps): void =
   const schluessel = (): Promise<OeffentlicherSchluessel | undefined> =>
     deps.auslieferung.manifestSchluessel();
   const installationId = (c: Context<Anfrage>) => c.req.param("installationId") ?? "";
+  /** The page of an installation: with its jobs and the history of its state */
+  const seite = (i: Installation) => ({
+    ...installationAntwort(i, deps.now()),
+    auftraege: auftraegeAntwort(deps, i),
+    verlauf: verlaufLesen(deps.db, i.betreiberId, i.installationId),
+  });
 
   route("GET /api/v1/installationen", (c) =>
     c.json({
-      installationen: installationenListe(deps.db, c.get("betreiberId")).map(installationAntwort),
+      installationen: installationenListe(deps.db, c.get("betreiberId")).map((i) =>
+        installationAntwort(i, deps.now()),
+      ),
     }),
   );
 
   route("GET /api/v1/installationen/:installationId", (c) => {
     const i = installationLesen(deps.db, c.get("betreiberId"), installationId(c));
     if (!i) return c.json({ fehler: "keine_installation" }, 404);
-    return c.json({ ...installationAntwort(i), auftraege: auftraegeAntwort(deps, i) });
+    return c.json(seite(i));
   });
 
   route("POST /api/v1/installationen/platzierung", async (c) => {
@@ -166,7 +187,7 @@ export const installationenRouten = (route: Registrar, deps: RoutenDeps): void =
     const { grund: begruendung, ...neu } = angaben;
     const angelegt = installationAnlegen(modul, kontext(c, begruendung), key, neu);
     if (!angelegt.ok) return fehler(c, angelegt);
-    return c.json(installationAntwort(angelegt.installation), 201);
+    return c.json(installationAntwort(angelegt.installation, deps.now()), 201);
   });
 
   // Only an installation whose setup failed (Z-402); one that was set up goes with Z-604
@@ -177,6 +198,6 @@ export const installationenRouten = (route: Registrar, deps: RoutenDeps): void =
     const entfernt = installationEntfernen(modul, k, installationId(c));
     if (!entfernt.ok) return fehler(c, entfernt);
     const i = installationLesen(deps.db, k.betreiberId, installationId(c)) as Installation;
-    return c.json({ ...installationAntwort(i), auftraege: auftraegeAntwort(deps, i) });
+    return c.json(seite(i));
   });
 };
