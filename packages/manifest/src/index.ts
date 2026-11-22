@@ -62,6 +62,7 @@ export { PFORTE_ADMIN_VERZEICHNIS, PFORTE_UNIT, pforteUnit } from "./pforte/unit
 export {
   type Befund as PlatzBefund,
   festePorts,
+  istOeffentlich as istOeffentlicheIpv4,
   type PlatzAnfrage,
   type PlatzInstallation,
   type Platzierung,
@@ -71,7 +72,7 @@ export {
   ramBedarf,
   WARNSCHWELLE,
 } from "./platzierung.ts";
-export { INSTALLATIONS_NAME } from "./quadlet/eingabe.ts";
+export { HOST, INSTALLATIONS_NAME } from "./quadlet/eingabe.ts";
 export { type PforteRoute, STREAM_SCHLIESSEN_NACH } from "./quadlet/pforte.ts";
 export { quadletsRendern } from "./quadlet/rendern.ts";
 export { PODMAN_4_9_SCHLUESSEL } from "./quadlet/schluessel.ts";

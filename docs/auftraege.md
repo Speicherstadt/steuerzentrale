@@ -60,6 +60,19 @@ Agent statt 3. und 4. ihre feste Form (Hostname, Port von 1024 bis 65535, Name d
 ruft dann nur die Admin-API der Pforte auf, keinen Prozess. Ein Befehl eines Manifests kann nicht so
 heißen, weil sein Name keinen Unterstrich haben darf.
 
+Ebenso eingebaut sind die beiden Einrichtungsaufträge einer Installation
+([Apps installieren](installieren.md)): `installation_einrichten` und `installation_entfernen`, mit
+dem signierten Manifest und dem Namen der Installation, ohne Argumente, Zeitlimit 30 Minuten. Die
+Zentrale legt `installation_einrichten` mit der Installation an und dazu, wenn die App hinter der
+Pforte liegt, `pforte_route_setzen`, der darauf wartet: die Route kommt erst, wenn das Einrichten
+gelungen ist, und wird abgebrochen, wenn es scheitert. Nur `installation_einrichten` trägt das Feld
+`einrichtung` mit Installation (Kunde, Optionen, Ports, Host, IPv4) und Einstellungen nach Ebenen;
+die Zentrale setzt es erst beim Zustellen aus der Zeile der Installation ein, mit den entschlüsselten
+geheimen und erzeugten Werten, sodass der Auftrag in der Datenbank und das Audit-Log keine
+Geheimnisse enthalten. Der Agent rendert die Units daraus und aus dem Manifest selbst. Das Ergebnis
+setzt den Zustand der Installation in derselben Transaktion: erfolgreich `laeuft`, gescheitert
+`gescheitert`; ein erfolgreiches `installation_entfernen` setzt `entfernt` und gibt die Ports frei.
+
 Erst dann führt er `argv` aus dem Manifest aus, als feste Argumente ohne Shell, mit
 `podman exec <installation>-<container>`. Läuft der Befehl länger als sein Zeitlimit (aus dem
 Manifest, sonst 900 Sekunden; die Zentrale kann es nur kürzen), beendet ihn der Agent und meldet den

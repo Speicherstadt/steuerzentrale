@@ -1,0 +1,18 @@
+# Test manifest for installing (Z-402), signed with the public test key (test/schluessel/):
+# minisign -S -s test/schluessel/test.key -m stumm.yml -t "stumm 1.0.0 (test key)"
+# An app with a proxy of its own (on a server of its own): it gets no route in the Pforte.
+schema: 1
+id: stumm
+version: 1.0.0
+lizenz: AGPL-3.0-only
+quelle: https://example.org/stumm
+container:
+  - name: app
+    image: registry.example.org/stumm@sha256:2222222222222222222222222222222222222222222222222222222222222222
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 128, platte_gb: 1 }
+netz: { http: { dienst: app, port: 8080 }, server_fuer_sich: true }
+proxy: eigen
+anmeldung: eigen
+health: { art: keine, hinweis: Test-App ohne Dienst }
+aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }

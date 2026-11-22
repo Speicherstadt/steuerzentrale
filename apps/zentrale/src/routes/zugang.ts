@@ -66,6 +66,12 @@ export const ROUTEN = {
   "GET /api/v1/server/:serverId": recht("server:lesen"),
   "POST /api/v1/server": recht("server:anlegen"),
   "POST /api/v1/server/:serverId/sperren": recht("server:sperren"),
+  "GET /api/v1/installationen": recht("installationen:lesen"),
+  "GET /api/v1/installationen/:installationId": recht("installationen:lesen"),
+  // the dialog's preview: reads only, so it takes no reason
+  "POST /api/v1/installationen/platzierung": recht("installationen:lesen"),
+  "POST /api/v1/installationen": recht("installationen:schreiben"),
+  "DELETE /api/v1/installationen/:installationId": recht("installationen:schreiben"),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,

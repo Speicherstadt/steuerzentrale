@@ -1,3 +1,4 @@
+import { EINRICHTUNG_AKTIONEN, type Einrichtung } from "@steuerzentrale/manifest";
 import {
   Auftrag as AuftragNachricht,
   BEIM_AGENTEN,
@@ -5,8 +6,10 @@ import {
   PROTOKOLL_VERSION,
 } from "@steuerzentrale/protokoll";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
+import type { Schluesselbund } from "../../db/schluessel.ts";
 import type { LogSink } from "../../log.ts";
 import { schreiben } from "../audit/index.ts";
+import { einrichtungFuer } from "../installationen/einrichtung.ts";
 import type { Verbindungen } from "../verbindung/verbindungen.ts";
 import { type Auftrag, offeneAuftraege } from "./lesen.ts";
 
@@ -14,7 +17,9 @@ import { type Auftrag, offeneAuftraege } from "./lesen.ts";
  * Sending jobs to their agents (BAULISTE.md Z-305): a ready job goes out as soon as it is ready
  * and its server's agent is connected, and every job that is ready or with the agent goes out again
  * whenever the agent connects; the agent answers a job it knows from its own record (idempotent by
- * the id), so a job sent twice runs once.
+ * the id), so a job sent twice runs once. A setup job (`installation_einrichten`, Z-402) gets the
+ * installation's data only here, with its secrets decrypted from the installation's row: the job's
+ * row and the audit log never hold them.
  */
 
 export type AuftragDeps = {
@@ -23,10 +28,12 @@ export type AuftragDeps = {
   verbindungen: Verbindungen;
   now: () => number;
   log: LogSink;
+  /** For the secrets of an installation, decrypted when its setup job is sent */
+  schluessel: Schluesselbund;
 };
 
 /** The `auftrag` message: the manifest's exact text and signature, which the agent checks */
-export const auftragNachricht = (a: Auftrag): string =>
+export const auftragNachricht = (a: Auftrag, einrichtung?: Einrichtung): string =>
   nachrichtSchreiben(AuftragNachricht, {
     typ: "auftrag",
     protokoll: PROTOKOLL_VERSION,
@@ -37,7 +44,16 @@ export const auftragNachricht = (a: Auftrag): string =>
     manifest: a.manifest,
     signatur: a.signatur,
     zeitlimitS: a.zeitlimitS,
+    ...(einrichtung ? { einrichtung } : {}),
   });
+
+/** The message of a job; for a setup job with the installation's data, or why there is none */
+const nachrichtFuer = (deps: AuftragDeps, a: Auftrag): string => {
+  if (a.aktion !== EINRICHTUNG_AKTIONEN.einrichten) return auftragNachricht(a);
+  const einrichtung = einrichtungFuer(deps, a.betreiberId, a.installationId);
+  if (!einrichtung.ok) throw new Error(einrichtung.grund);
+  return auftragNachricht(a, einrichtung.einrichtung);
+};
 
 /**
  * Sends each job that is ready or with the agent to its server's agent, if connected; a ready one
@@ -48,7 +64,7 @@ export const zustellen = (deps: AuftragDeps, liste: readonly Auftrag[]): void =>
     if (a.zustand !== "bereit" && !BEIM_AGENTEN.has(a.zustand)) continue;
     let text: string;
     try {
-      text = auftragNachricht(a);
+      text = nachrichtFuer(deps, a);
     } catch (fehler) {
       deps.log(
         JSON.stringify({ msg: "job not sent", auftragId: a.auftragId, fehler: String(fehler) }),

@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { type OeffentlicherSchluessel, schluesselLesen } from "@steuerzentrale/manifest";
 
 /*
  * What `agent.<domain>` hands out before an agent has a certificate (BAULISTE.md Z-302): the install
@@ -47,19 +48,34 @@ export const skriptAusfuellen = (
 export type Auslieferung = {
   skript: () => Promise<string | undefined>;
   datei: (name: Datei) => Bun.BunFile | undefined;
+  /**
+   * The public key install.sh hands the agents (`minisign.pub`), which the Zentrale checks an
+   * uploaded manifest with (docs/plan.md, "Manifest beim Installieren"); undefined without one
+   */
+  manifestSchluessel: () => Promise<OeffentlicherSchluessel | undefined>;
 };
 
 /** Reads from `verzeichnis` on every request, so a new release there needs no restart */
-export const auslieferung = (verzeichnis: string | undefined, zentrale: string): Auslieferung => ({
-  skript: async () => {
+export const auslieferung = (verzeichnis: string | undefined, zentrale: string): Auslieferung => {
+  const zeileLesen = async (): Promise<string | undefined> => {
     if (!verzeichnis) return undefined;
-    const vorlage = Bun.file(join(verzeichnis, "install.sh"));
     const schluessel = Bun.file(join(verzeichnis, "minisign.pub"));
-    if (!(await vorlage.exists()) || !(await schluessel.exists())) return undefined;
-    const zeile = schluesselZeile(await schluessel.text());
-    return zeile
-      ? skriptAusfuellen(await vorlage.text(), { zentrale, schluessel: zeile })
-      : undefined;
-  },
-  datei: (name) => (verzeichnis ? Bun.file(join(verzeichnis, name)) : undefined),
-});
+    return (await schluessel.exists()) ? schluesselZeile(await schluessel.text()) : undefined;
+  };
+  return {
+    skript: async () => {
+      if (!verzeichnis) return undefined;
+      const vorlage = Bun.file(join(verzeichnis, "install.sh"));
+      if (!(await vorlage.exists())) return undefined;
+      const zeile = await zeileLesen();
+      return zeile
+        ? skriptAusfuellen(await vorlage.text(), { zentrale, schluessel: zeile })
+        : undefined;
+    },
+    datei: (name) => (verzeichnis ? Bun.file(join(verzeichnis, name)) : undefined),
+    manifestSchluessel: async () => {
+      const zeile = await zeileLesen();
+      return zeile ? schluesselLesen(zeile) : undefined;
+    },
+  };
+};

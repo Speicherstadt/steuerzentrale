@@ -98,7 +98,8 @@ const ueberschneiden = (
   b: { port: number; bis?: number; proto: string },
 ) => a.proto === b.proto && a.port <= (b.bis ?? b.port) && b.port <= (a.bis ?? a.port);
 
-const istOeffentlich = (ip: string): boolean => {
+/** Whether an IPv4 address is reachable from the internet: not private, loopback, CGNAT or link-local */
+export const istOeffentlich = (ip: string): boolean => {
   const [a = 0, b = 0] = ip.split(".").map(Number);
   return !(
     a === 10 ||

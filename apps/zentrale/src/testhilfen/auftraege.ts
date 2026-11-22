@@ -35,6 +35,7 @@ export const auftragsUmgebung = () => {
     verbindungen: verbindungen(TRENNUNG.ersetzt),
     now: () => uhr.ms,
     log: (zeile) => log.push(zeile),
+    schluessel: datenbank.schluessel,
   };
   const kontext = (betreiberId: string) => ({
     betreiberId,

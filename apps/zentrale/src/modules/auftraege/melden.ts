@@ -5,6 +5,7 @@ import {
   uebergang,
 } from "@steuerzentrale/protokoll";
 import { fortschrittSetzen, schreiben } from "../audit/index.ts";
+import { installationFortschreiben } from "../installationen/zustand.ts";
 import type { Server } from "../server/index.ts";
 import { nachfolgerFortschreiben } from "./abhaengigkeiten.ts";
 import { type Auftrag, auftragLesen } from "./lesen.ts";
@@ -15,7 +16,8 @@ import { type AuftragDeps, zustellen } from "./zustellen.ts";
  * and its result. An agent reports only jobs of its own server; a report the state of the job does
  * not allow is refused, and one that repeats what is known changes nothing. Each change of state
  * goes through `schreiben`; a step of a running job is a measurement (docs/plan.md, "Aufträge").
- * A job that ends moves its waiting jobs on, which go to their agents at once.
+ * A job that ends moves its waiting jobs on, which go to their agents at once; a setup job that
+ * ends sets its installation's state in the same transaction (Z-402).
  */
 
 export type AuftragsMeldung = Extract<
@@ -62,14 +64,14 @@ export const auftragMelden = (
       { auftragId: a.auftragId },
       { zustand: u.zustand, geaendertAm: jetzt, ...aenderungVon(n, jetzt) },
     );
-    return ENDZUSTAENDE.has(u.zustand)
-      ? nachfolgerFortschreiben(
-          w,
-          deps.db,
-          { betreiberId, auftragId: a.auftragId, zustand: u.zustand },
-          jetzt,
-        )
-      : [];
+    if (!ENDZUSTAENDE.has(u.zustand)) return [];
+    installationFortschreiben(w, deps.db, a, u.zustand, jetzt);
+    return nachfolgerFortschreiben(
+      w,
+      deps.db,
+      { betreiberId, auftragId: a.auftragId, zustand: u.zustand },
+      jetzt,
+    );
   });
   zustellen(deps, bereit);
   return { ok: true, geaendert: true };
