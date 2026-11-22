@@ -14,6 +14,7 @@ import {
   InstallationsWerte,
 } from "../seiten/installation-einrichtung.tsx";
 import { UnitsUndHealth, Verlauf } from "../seiten/installation-health.tsx";
+import { EinstellungenAendern } from "../seiten/installation-konfigurieren.tsx";
 import {
   InstallationBackups,
   InstallationEinstellungen,
@@ -26,7 +27,8 @@ import { InstallationsZeichen, Version } from "../teile/zeichen.tsx";
 
 /**
  * One installation (BAULISTE.md Z-402): from the Zentrale its place, ports, values and setup jobs,
- * its state with reason and history (Z-403), and after a failed setup the way to remove it.
+ * its state with reason and history (Z-403), after a failed setup the way to remove it, and once
+ * it runs "Einstellungen ändern" (Z-404).
  * Settings from the manifest, snapshots, events and the check from outside of the demo data stay
  * for an installation the demo knows by id, until Z-406.
  */
@@ -116,7 +118,12 @@ const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
   const b = bestand();
   return (
     <div class="grid gap-6">
-      <Kopf a={props.a} />
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <Kopf a={props.a} />
+        <Show when={props.a.zustand === "laeuft"}>
+          <EinstellungenAendern a={props.a} konfiguriert={() => props.neu()} />
+        </Show>
+      </div>
       <Show when={props.a.zustand === "gescheitert"}>
         <Gescheitert a={props.a} entfernt={() => props.neu()} />
       </Show>

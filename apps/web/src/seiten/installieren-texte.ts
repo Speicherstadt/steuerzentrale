@@ -21,6 +21,11 @@ const FEHLER: Record<string, () => string> = {
   keine_ports: m.inst_fehler_keine_ports,
   nicht_gescheitert: m.inst_fehler_nicht_gescheitert,
   entfernen_laeuft: m.inst_fehler_entfernen_laeuft,
+  laeuft_nicht: m.inst_fehler_laeuft_nicht,
+  sperrzeit: m.inst_fehler_sperrzeit,
+  auftrag_offen: m.inst_fehler_auftrag_offen,
+  kein_manifest: m.inst_fehler_kein_manifest,
+  werte_unlesbar: m.inst_fehler_werte_unlesbar,
   einstellung_ungueltig: m.inst_fehler_einstellung_ungueltig,
   ungueltig: m.inst_fehler_ungueltig,
   kein_schluessel: m.inst_fehler_kein_schluessel,
@@ -71,6 +76,7 @@ export const grundText = (g: Grund): string =>
 const AKTIONEN: Record<string, () => string> = {
   installation_einrichten: m.auftrag_installation_einrichten,
   installation_entfernen: m.auftrag_installation_entfernen,
+  installation_konfigurieren: m.auftrag_installation_konfigurieren,
   pforte_route_setzen: m.auftrag_pforte_route_setzen,
   pforte_route_entfernen: m.auftrag_pforte_route_entfernen,
 };

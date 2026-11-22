@@ -1,5 +1,6 @@
 import {
   EINRICHTUNG_AKTIONEN,
+  einstellungsFormular,
   HOST,
   type Manifest,
   manifestPruefen,
@@ -17,6 +18,7 @@ import type { ServerDerZentrale } from "../daten/server.ts";
 import type { Kunde } from "../daten/typen.ts";
 import { type Eintrag, nachAuftrag, startbestand } from "./installationen-bestand.ts";
 import { ohneMeldung } from "./installationen-health.ts";
+import { demoKonfigurieren } from "./installationen-konfigurieren.ts";
 import { ausManifest, demoPlatzieren } from "./platz.ts";
 
 /*
@@ -24,7 +26,8 @@ import { ausManifest, demoPlatzieren } from "./platz.ts";
  * (apps/zentrale, routes/installationen.ts): placement, making, reading and removing a failed one.
  * The demo has no public key, so it checks only that a signature came along; the manifest itself it
  * reads with the same function as the Zentrale. Without an agent a new installation stays
- * "wird_eingerichtet", as in the Zentrale; a change lasts until the page reloads.
+ * "wird_eingerichtet", and a job to configure one anew stays open, as in the Zentrale; a change
+ * lasts until the page reloads.
  */
 
 export type DemoQuellen = {
@@ -96,6 +99,10 @@ const neuerEintrag = (neu: NeueInstallation, m: Manifest, httpPort: number | nul
       angelegtAm: t,
       geaendertAm: t,
       auftraege: auftraegeFuer(id, m, httpPort !== null, t),
+      formular: {
+        felder: einstellungsFormular(m, "installation", optionen),
+        gesetzt: Object.keys(neu.einstellungen).filter((n) => geheim.has(n)),
+      },
     },
     platz: ausManifest(neu.kundeId, m, optionen),
     bietet: m.bietet,
@@ -111,11 +118,13 @@ const fremderWert = (m: Manifest, neu: NeueInstallation) =>
 
 export const demoInstallationenQuelle = (q: DemoQuellen): InstallationenQuelle => {
   let liste: Eintrag[] = startbestand(q.jetzt());
+  // the names of the operator's values; the dialog adds to them (Z-404)
+  let betreiberWerte = q.betreiberWerte;
   const aktiv = () => liste.filter((e) => e.i.zustand !== "entfernt");
 
   /** The checked manifest and the placement, or why the question has no answer */
   const pruefen = async (
-    w: PlatzWunsch,
+    w: PlatzWunsch & { betreiberWerte?: Record<string, unknown> },
   ): Promise<
     { ok: true; manifest: Manifest; platzierung: ReturnType<typeof demoPlatzieren> } | Fehlschlag
   > => {
@@ -139,7 +148,7 @@ export const demoInstallationenQuelle = (q: DemoQuellen): InstallationenQuelle =
       bietet: aktiv()
         .filter((e) => e.i.kundeId === w.kundeId && e.i.zustand !== "gescheitert")
         .flatMap((e) => e.bietet),
-      betreiberWerte: q.betreiberWerte,
+      betreiberWerte: [...betreiberWerte, ...Object.keys(w.betreiberWerte ?? {})],
     });
     return { ok: true, manifest: geprueft.manifest, platzierung };
   };
@@ -177,6 +186,7 @@ export const demoInstallationenQuelle = (q: DemoQuellen): InstallationenQuelle =
       const port = p.manifest.netz.http ? naechsterPort(neu.serverId) : null;
       const eintrag = neuerEintrag(neu, p.manifest, port, q.jetzt());
       liste = [...liste, eintrag];
+      betreiberWerte = [...new Set([...betreiberWerte, ...Object.keys(neu.betreiberWerte ?? {})])];
       return ok(ohneAuftraege(eintrag), 201);
     },
     entfernen: async (id) => {
@@ -188,6 +198,14 @@ export const demoInstallationenQuelle = (q: DemoQuellen): InstallationenQuelle =
       const neu: Eintrag = { ...e, i: { ...e.i, auftraege: [...e.i.auftraege, job] } };
       liste = liste.map((x) => (x === e ? neu : x));
       return ok(neu.i);
+    },
+    konfigurieren: async (id, einstellungen) => {
+      const e = liste.find((x) => x.i.installationId === id);
+      if (!e) return nein(404, "keine_installation");
+      const r = demoKonfigurieren(e, einstellungen, q.jetzt());
+      if (!r.ok) return r;
+      liste = liste.map((x) => (x === e ? r.eintrag : x));
+      return ok(r.eintrag.i);
     },
   };
 };

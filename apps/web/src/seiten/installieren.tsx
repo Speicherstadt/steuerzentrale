@@ -1,12 +1,13 @@
 import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
 import { Plus } from "@steuerzentrale/ui/icons";
 import { createSignal, For, Loading, Show } from "solid-js";
-import { einstellungenAus } from "../daten/einstellungs-formular.ts";
+import { eingetragen, einstellungenAus } from "../daten/einstellungs-formular.ts";
 import { type InstallationDerZentrale, installationenQuelle } from "../daten/installationen.ts";
 import { Fehler, felder } from "./anmeldung-teile.tsx";
+import { EinstellungsFelder } from "./einstellungs-felder.tsx";
 import { type Auswahl, auswahlZustand } from "./installieren-auswahl.ts";
 import { DateiFeld, ManifestBefund, ZielWahl } from "./installieren-felder.tsx";
-import { EinstellungsFelder, OptionenFelder, PlatzierungsBox } from "./installieren-teile.tsx";
+import { OptionenFelder, PlatzierungsBox } from "./installieren-teile.tsx";
 import { grundText, installationsFehler } from "./installieren-texte.ts";
 import { MitInstallationsRecht } from "./recht.tsx";
 
@@ -15,6 +16,8 @@ import { MitInstallationsRecht } from "./recht.tsx";
  * (manifest.yml and its .minisig, until manifests are imported with Z-501), its options and the
  * settings of the level `installation`, the host and the reason. The placement is asked anew on
  * every change of customer, server, manifest or options; making the installation decides the same.
+ * When it finds a required value of the operator missing, the dialog asks for it (Z-404) and the
+ * Zentrale stores it with the installation, for every installation of the app.
  */
 
 type Ablehnung = { text: string; gruende: string[] };
@@ -31,13 +34,22 @@ const AblehnungsText = (props: { ablehnung: Ablehnung | undefined }) => (
   </>
 );
 
-/** The placement, asked anew on every change of the choice; only this box waits for it */
+/**
+ * The placement, asked anew on every change of the choice; only this box waits for it, and the
+ * operator's missing values it names, which follow its answer
+ */
 const Platzierung = (props: { a: Auswahl }) => (
   <Loading
     on={props.a.wunsch()}
     fallback={<PlatzierungsBox antwort={undefined} titel="" pruefend />}
   >
     <PlatzierungsBox antwort={props.a.platzierung()} titel={props.a.titel()} pruefend={false} />
+    <EinstellungsFelder
+      felder={props.a.betreiberFelder()}
+      titel={m.installieren_betreiber()}
+      text={m.installieren_betreiber_text()}
+      praefix="betreiber"
+    />
   </Loading>
 );
 
@@ -64,7 +76,11 @@ const ManifestTeil = (props: { a: Auswahl }) => (
             gewaehlt={props.a.optionen()}
             onWahl={props.a.setOptionen}
           />
-          <EinstellungsFelder felder={props.a.einstellungen()} />
+          <EinstellungsFelder
+            felder={props.a.einstellungen()}
+            titel={m.installieren_einstellungen()}
+            text={m.installieren_einstellungen_text()}
+          />
         </>
       )}
     </Show>
@@ -88,6 +104,7 @@ const Formular = (props: {
       ...w,
       host: werte.host ?? "",
       einstellungen: einstellungenAus(a.einstellungen(), werte),
+      betreiberWerte: eingetragen(a.betreiberFormular(), werte, "betreiber"),
     };
     const antwort = await installationenQuelle().anlegen(neu, werte.grund ?? "");
     setLaeuft(false);

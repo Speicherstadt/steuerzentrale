@@ -4,9 +4,10 @@ import { darfInstallieren, rolleLesen } from "../daten/rolle.ts";
 
 /**
  * Shows its children only to a role that may make and remove installations (docs/plan.md, "Rollen
- * für Installationen"); a button without the right would only meet the Zentrale's refusal
+ * für Installationen"); a button without the right would only meet the Zentrale's refusal. `sonst`
+ * is what a role without it sees instead, such as the values read-only
  */
-export const MitInstallationsRecht = (props: { children: JSX.Element }) => {
+export const MitInstallationsRecht = (props: { children: JSX.Element; sonst?: JSX.Element }) => {
   const rolle = createMemo(() => rolleLesen());
   const darf = () => {
     const r = rolle();
@@ -14,7 +15,9 @@ export const MitInstallationsRecht = (props: { children: JSX.Element }) => {
   };
   return (
     <Loading fallback={null}>
-      <Show when={darf()}>{props.children}</Show>
+      <Show when={darf()} fallback={props.sonst}>
+        {props.children}
+      </Show>
     </Loading>
   );
 };

@@ -6,7 +6,11 @@ import {
   installationAnsicht,
   type Namen,
 } from "./installation-ansicht.ts";
-import { type AuftragDerInstallation, installationenQuelle } from "./installationen.ts";
+import {
+  type AuftragDerInstallation,
+  type InstallationsFormular,
+  installationenQuelle,
+} from "./installationen.ts";
 import { kundenQuelle } from "./kunden.ts";
 import { bestand } from "./quelle.ts";
 import { serverQuelle } from "./server.ts";
@@ -55,6 +59,7 @@ export const uebersichtLaden = async (): Promise<Antwort<Uebersicht>> => {
 export type Einzelansicht = InstallationAnsicht & {
   auftraege: AuftragDerInstallation[];
   verlauf: Verlaufseintrag[];
+  formular: InstallationsFormular;
 };
 
 export const einzelansichtLaden = async (id: string): Promise<Antwort<Einzelansicht>> => {
@@ -68,6 +73,7 @@ export const einzelansichtLaden = async (id: string): Promise<Antwort<Einzelansi
       ...installationAnsicht(eine.daten, namen.daten),
       auftraege: eine.daten.auftraege,
       verlauf: eine.daten.verlauf,
+      formular: eine.daten.formular,
     },
   };
 };
