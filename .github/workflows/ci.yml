@@ -94,6 +94,13 @@ jobs:
       # BAULISTE.md Z-401: two installations behind the Pforte, each as a Linux user of its own with
       # its own rootless network namespace, as sz-<installation> on a server; the test runs Podman
       # as them with sudo -u (apps/agent/test/pforte.agent.test.ts)
+      # The runner image sets XDG_CONFIG_HOME=/home/runner/.config in /etc/environment, which
+      # pam_env hands every user's systemd manager: Quadlet would look for the units of sz-pforte
+      # and sz-<installation> in the runner's home. A server has no such line.
+      - name: No runner config home for other users
+        run: |
+          sudo sed -i '/^XDG_CONFIG_HOME=/d' /etc/environment
+          ! grep -q XDG_CONFIG_HOME /etc/environment
       - name: Linux users for the Pforte's test
         run: |
           erste=1000000
