@@ -166,7 +166,9 @@ Jeder Schritt ist ein festes Programm mit festen Argumenten, ohne Shell:
    alles als Eigentum des Nutzers. Units 0600, Ordner 0700; eine Datei aus `dateien` 0644, damit
    der Prozess im Container sie lesen kann, geschützt durch das Home mit 0700.
 5. Jedes Geheimnis als Podman-Secret, über die Standardeingabe von `podman secret create`, nie als
-   Argument (das sähe jeder Nutzer in der Prozessliste) und nie in einer Datei.
+   Argument (das sähe jeder Nutzer in der Prozessliste) und nie in einer Datei. Die Standardeingabe
+   ist eine benannte Pipe, die Podman 4.9 dafür verlangt; ihr Knoten liegt in einem Ordner nur für
+   root und ist gelöscht, bevor Podman startet.
 6. `podman pull` jedes Images per Digest.
 7. `systemctl --user daemon-reload` und `start` der Units; der Agent wartet, bis sie aktiv sind.
 8. Die Befehle aus `schritte.einrichten` (etwa eine Migration) mit

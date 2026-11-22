@@ -1,5 +1,7 @@
+import { readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
-import { ausfuehren, echtSpawn } from "./ausfuehren.ts";
+import { ausfuehren, EINGABE_PRAEFIX, echtSpawn } from "./ausfuehren.ts";
 
 /*
  * BAULISTE.md Z-305: the real spawn starts a fixed argv without a shell and kills it when the time
@@ -19,6 +21,16 @@ describe("echtSpawn", () => {
     const { code } = await lauf;
     expect(code).not.toBe(0);
     expect(Date.now() - beginn).toBeLessThan(5000);
+  });
+
+  // Podman 4.9 reads `secret create … -` only from a named pipe (cmd/podman/secrets/create.go);
+  // Bun hands a buffer or "pipe" over as a socket, which it refuses
+  it("hands its input over on a named pipe, all of it, and leaves no file behind", async () => {
+    const signal = new AbortController().signal;
+    expect((await echtSpawn(["test", "-p", "/dev/stdin"], signal, "geheim")).code).toBe(0);
+    expect((await echtSpawn(["grep", "-qx", "geheim"], signal, "geheim")).code).toBe(0);
+    expect((await echtSpawn(["grep", "-qx", "anders"], signal, "geheim")).code).toBe(1);
+    expect(readdirSync(tmpdir()).filter((n) => n.startsWith(EINGABE_PRAEFIX))).toEqual([]);
   });
 
   it("hands each word over as it is, with no shell to read it", async () => {

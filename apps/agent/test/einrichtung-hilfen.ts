@@ -1,11 +1,11 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pforteGrundkonfiguration, schluesselLesen } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { geheimenSchluesselLesen, signieren } from "../../../scripts/minisign.ts";
 import { auftraegeAnnehmen } from "../src/auftraege/auftraege.ts";
-import type { Spawn } from "../src/auftraege/ausfuehren.ts";
+import { eingabeRohr, type Spawn } from "../src/auftraege/ausfuehren.ts";
 import type { AuftragNachricht } from "../src/auftraege/pruefen.ts";
 import { speicher, TEST_PUB } from "../src/beitritt/testhilfen.ts";
 import type { HausDateien } from "../src/einrichtung/haus.ts";
@@ -29,8 +29,9 @@ export const EINRICHTUNG_BEREIT = process.env.SZ_TEST_EINRICHTUNG === "1";
  * sudo keeps the pipe open
  */
 export const sudoSpawn: Spawn = async (argv, signal, eingabe) => {
+  const rohr = eingabe === undefined ? undefined : eingabeRohr(eingabe);
   const p = Bun.spawn(["sudo", "-n", ...argv], {
-    stdin: eingabe === undefined ? "ignore" : new TextEncoder().encode(eingabe),
+    stdin: rohr ?? "ignore",
     stdout: "ignore",
     stderr: "pipe",
     cwd: "/",
@@ -38,6 +39,7 @@ export const sudoSpawn: Spawn = async (argv, signal, eingabe) => {
     killSignal: "SIGKILL",
     env: { PATH, LC_ALL: "C" },
   });
+  if (rohr !== undefined) closeSync(rohr);
   let fehler = "";
   const text = new TextDecoder();
   const lesen = (async () => {
