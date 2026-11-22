@@ -32,11 +32,33 @@ export const EINGABE_PRAEFIX = "sz-eingabe-";
 /**
  * A process's input on a named pipe, the read end of it: Podman 4.9 takes `secret create … -` only
  * from one (cmd/podman/secrets/create.go), and Bun hands a buffer or "pipe" over as a socket. The
- * value is written into the pipe's buffer (a secret is far below its 64 KiB) and the write end
+ * value is written into the pipe's buffer (a secret is far below its 64 KiB; a longer input is
+ * refused, never waited for) and the write end
  * closed, so the process reads it and then the end; the pipe's node is gone before the process
  * starts, in a folder only its owner (root) can enter: the value is never on disk, in an argv or in
  * the environment. The caller closes the descriptor once the process has it
  */
+/**
+ * Writes the input into the pipe without ever blocking: nobody reads it before the process starts,
+ * so a blocking write longer than the buffer would stop the agent's event loop for good. An input
+ * the buffer cannot hold is refused instead (the error names no part of it)
+ */
+const rohrFuellen = (rohr: string, eingabe: string): void => {
+  const bytes = Buffer.from(eingabe, "utf8");
+  const schreiben = openSync(rohr, constants.O_WRONLY | constants.O_NONBLOCK);
+  try {
+    let geschrieben = 0;
+    while (geschrieben < bytes.length)
+      geschrieben += writeSync(schreiben, bytes, geschrieben, bytes.length - geschrieben);
+  } catch (fehler) {
+    if ((fehler as NodeJS.ErrnoException).code === "EAGAIN")
+      throw new Error(`the input of ${bytes.length} bytes is longer than a pipe's buffer`);
+    throw fehler;
+  } finally {
+    closeSync(schreiben);
+  }
+};
+
 export const eingabeRohr = (eingabe: string): number => {
   const ordner = mkdtempSync(join(tmpdir(), EINGABE_PRAEFIX));
   try {
@@ -44,11 +66,11 @@ export const eingabeRohr = (eingabe: string): number => {
     const mk = Bun.spawnSync(["mkfifo", "-m", "0600", rohr], { cwd: "/", env: { PATH } });
     if (mk.exitCode !== 0) throw new Error("mkfifo failed");
     const lesen = openSync(rohr, constants.O_RDONLY | constants.O_NONBLOCK);
-    const schreiben = openSync(rohr, constants.O_WRONLY);
     try {
-      writeSync(schreiben, eingabe);
-    } finally {
-      closeSync(schreiben);
+      rohrFuellen(rohr, eingabe);
+    } catch (fehler) {
+      closeSync(lesen);
+      throw fehler;
     }
     return lesen;
   } finally {
