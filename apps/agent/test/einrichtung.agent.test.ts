@@ -175,9 +175,12 @@ describe.skipIf(!bereit)("setting up the example app by a job (Z-402)", () => {
 
   it("hands a secret to Podman and no file, and mounts a file readable in its container", async () => {
     const manifest = mitSecretUndDatei(BEISPIEL());
-    expect(await einrichten(agent, B, 28621, manifest, signiert(manifest))).toMatchObject({
-      ok: true,
-    });
+    const r = (await einrichten(agent, B, 28621, manifest, signiert(manifest))) as {
+      ok: boolean;
+      fehler?: string;
+    };
+    // the reason, should it fail
+    expect(r.ok ? "ok" : r.fehler).toBe("ok");
     const alsB = alsNutzer(`sz-${B}`);
     expect(lauf(alsB("podman", "secret", "ls", "--format", "{{.Name}}")).aus).toContain(
       `${B}-beispiel-schluessel`,
