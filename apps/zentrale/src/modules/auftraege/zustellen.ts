@@ -1,4 +1,5 @@
-import { EINRICHTUNG_AKTIONEN, type Einrichtung } from "@steuerzentrale/manifest";
+import { EINRICHTUNG_AKTIONEN, type Einrichtung, manifestPruefen } from "@steuerzentrale/manifest";
+import { sperrzeitAm } from "@steuerzentrale/planung";
 import {
   Auftrag as AuftragNachricht,
   BEIM_AGENTEN,
@@ -67,12 +68,26 @@ const nachrichtFuer = (deps: AuftragDeps, a: Auftrag): string => {
 };
 
 /**
+ * A job `installation_konfigurieren` the agent may not have yet, in a freeze window of its
+ * manifest: it restarts the app, so it waits for a connection outside the window (docs/plan.md,
+ * "Neu konfigurieren"); one the agent acknowledged it knows from its own record
+ */
+const inSperrzeit = (a: Auftrag, jetzt: number): boolean => {
+  if (a.aktion !== EINRICHTUNG_AKTIONEN.konfigurieren) return false;
+  if (a.zustand !== "bereit" && a.zustand !== "zugestellt") return false;
+  const m = manifestPruefen(a.manifest);
+  return !m.ok || sperrzeitAm(m.manifest.sperrzeiten, jetzt) !== undefined;
+};
+
+/**
  * Sends each job that is ready or with the agent to its server's agent, if connected; a ready one
- * is `zugestellt` from then on. A waiting or finished job is not sent.
+ * is `zugestellt` from then on. A waiting or finished job is not sent, nor one that would restart
+ * an app in its freeze window.
  */
 export const zustellen = (deps: AuftragDeps, liste: readonly Auftrag[]): void => {
   for (const a of liste) {
     if (a.zustand !== "bereit" && !BEIM_AGENTEN.has(a.zustand)) continue;
+    if (inSperrzeit(a, deps.now())) continue;
     let text: string;
     try {
       text = nachrichtFuer(deps, a);

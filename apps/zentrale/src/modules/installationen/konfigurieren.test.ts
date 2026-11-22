@@ -215,6 +215,11 @@ describe("configuring anew is refused", () => {
     const agent = u.verbinden("b1", "s1") as Nachricht[];
     offeneZustellen(u.deps, "b1", "s1");
     expect(agent.filter((n) => n.aktion === EINRICHTUNG_AKTIONEN.konfigurieren)).toEqual([]);
+    // after the window, the next connection gets it
+    u.uhr.ms = Date.UTC(2027, 1, 13, 9);
+    const danach = u.verbinden("b1", "s1") as Nachricht[];
+    offeneZustellen(u.deps, "b1", "s1");
+    expect(danach.filter((n) => n.auftragId === r.auftrag.auftragId)).toHaveLength(1);
   });
 
   it.each([

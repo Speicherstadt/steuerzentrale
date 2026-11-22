@@ -86,6 +86,9 @@ dazu ein Grund. Die Zentrale
    hält die angefragten Werte in einer eigenen Zeile fest (Tabelle `installation_konfigurationen`,
    Geheimnisse verschlüsselt und an den Auftrag gebunden).
 
+Verbindet der Agent erst in einer Sperrzeit wieder, sendet die Zentrale ihm den Auftrag nicht,
+solange er ihn noch nicht bestätigt hat; er geht mit der nächsten Verbindung nach der Sperrzeit.
+
 ### Angefragt und gültig
 
 Die Spalten der Installation (`einstellungen`, `geheim`) halten immer die Werte, mit denen sie
