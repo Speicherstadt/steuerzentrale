@@ -125,7 +125,7 @@ describe("the secrets of an installation", () => {
     // the ciphertext copied into another row does not open there
     const zeile = nurNeu.db.select().from(installationen).get();
     nurNeu.sqlite.run(
-      "INSERT INTO installationen SELECT betreiber_id, 'probe-kopie1', kunde_id, server_id, app, version, manifest_hash, manifest, signatur, 'kopie.kunde.example', ipv4, http_port, ports, optionen, einstellungen, geheim, zustand, angelegt_von, angelegt_am, geaendert_am FROM installationen",
+      "INSERT INTO installationen SELECT betreiber_id, 'probe-kopie1', kunde_id, server_id, app, version, manifest_hash, manifest, signatur, 'kopie.kunde.example', ipv4, http_port, ports, optionen, einstellungen, geheim, zustand, angelegt_von, angelegt_am, geaendert_am, bewertung, bewertung_grund, bewertung_seit, gemeldet_am, meldung FROM installationen",
     );
     expect(zeile?.geheim.startsWith(`v1.${neu.id}.`)).toBe(true);
     expect(

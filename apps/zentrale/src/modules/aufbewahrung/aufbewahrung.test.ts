@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { auditLog, ereignisse, fakten, heartbeats, logAuszuege } from "../../db/schema.ts";
+import {
+  auditLog,
+  ereignisse,
+  fakten,
+  heartbeats,
+  installationVerlauf,
+  logAuszuege,
+} from "../../db/schema.ts";
 import { testDatenbank } from "../../db/test-db.ts";
 import { schreiben } from "../audit/index.ts";
 import {
@@ -24,11 +31,12 @@ describe("monateZurueck", () => {
 });
 
 describe("aufbewahrungsGrenzen", () => {
-  it("keeps heartbeats, facts and log excerpts 30 days, events 13 months", () => {
+  it("keeps heartbeats, facts and log excerpts 30 days, the rating's history 90, events 13 months", () => {
     expect(aufbewahrungsGrenzen(JETZT)).toEqual({
       heartbeats: JETZT - 30 * TAG,
       fakten: JETZT - 30 * TAG,
       logAuszuege: JETZT - 30 * TAG,
+      installationVerlauf: JETZT - 90 * TAG,
       ereignisse: Date.UTC(2025, 9, 20, 12, 0, 0),
     });
   });
@@ -79,23 +87,34 @@ const befuellt = () => {
         betreiberId,
         JETZT - alter * TAG,
       ]);
+    // the history of ratings (Z-403), a measurement too; its installation does not matter here
+    offen.sqlite.run("PRAGMA foreign_keys = OFF");
+    for (const alter of [91, 89])
+      offen.sqlite.run("INSERT INTO installation_verlauf VALUES (?, 'i1', ?, 'rot', '{}')", [
+        betreiberId,
+        JETZT - alter * TAG,
+      ]);
+    offen.sqlite.run("PRAGMA foreign_keys = ON");
   }
   return offen;
 };
 
+const alterIn = (zeilen: { zeitpunkt: number }[]) =>
+  zeilen.map((z) => (JETZT - z.zeitpunkt) / TAG).sort();
+
 describe("aufbewahren", () => {
-  it("deletes old heartbeats, facts, log excerpts and events of every operator and keeps the young", () => {
+  it("deletes old heartbeats, facts, log excerpts, history and events of every operator and keeps the young", () => {
     const { db, schreibDb } = befuellt();
     expect(aufbewahren(db, schreibDb, JETZT)).toEqual({
       heartbeats: 2,
       fakten: 2,
       logAuszuege: 2,
+      installationVerlauf: 2,
       ereignisse: 2,
     });
-    const alter = (zeilen: { zeitpunkt: number }[]) =>
-      zeilen.map((z) => (JETZT - z.zeitpunkt) / TAG).sort();
-    expect(alter(db.select().from(heartbeats).all())).toEqual([1, 1, 30, 30]);
-    expect(alter(db.select().from(fakten).all())).toEqual([1, 1]);
+    expect(alterIn(db.select().from(installationVerlauf).all())).toEqual([89, 89]);
+    expect(alterIn(db.select().from(heartbeats).all())).toEqual([1, 1, 30, 30]);
+    expect(alterIn(db.select().from(fakten).all())).toEqual([1, 1]);
     expect(
       db
         .select()

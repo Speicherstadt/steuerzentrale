@@ -11,6 +11,7 @@ export { type Entfernt, installationEntfernen } from "./entfernen.ts";
 export {
   auftraegeDerInstallation,
   type Installation,
+  installationenAufServer,
   installationenListe,
   installationLesen,
 } from "./lesen.ts";

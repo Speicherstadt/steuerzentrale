@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { eimer } from "./eimer.ts";
+import { eimer, mindestabstand } from "./eimer.ts";
+
+describe("mindestabstand", () => {
+  it("lets one pass, then the next only after the distance", () => {
+    const erlaubt = mindestabstand(1000);
+    expect([erlaubt(0), erlaubt(999), erlaubt(1000), erlaubt(1500)]).toEqual([
+      true,
+      false,
+      true,
+      false,
+    ]);
+  });
+
+  it("lets one pass when the clock jumps back", () => {
+    const erlaubt = mindestabstand(1000);
+    expect(erlaubt(10_000)).toBe(true);
+    expect(erlaubt(0)).toBe(true);
+  });
+});
 
 describe("eimer", () => {
   it("lets the stock pass at once, then one per refill", () => {

@@ -1,16 +1,14 @@
 import { Icon, m } from "@steuerzentrale/ui";
 import {
   Archive,
-  Box,
   CalendarX,
   ChartNoAxesColumn,
   Globe,
-  HeartPulse,
   LifeBuoy,
   Lock,
   Radar,
 } from "@steuerzentrale/ui/icons";
-import { For, Show } from "solid-js";
+import { Show } from "solid-js";
 import {
   appVon,
   istAktuell,
@@ -20,78 +18,22 @@ import {
   monatVon,
   serverVon,
 } from "../daten/ableitungen.ts";
+import type { HealthDerZentrale } from "../daten/bewertung.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { welleVon } from "../daten/wellen.ts";
 import { ZERTIFIKAT_TAGE } from "../daten/zustand.ts";
 import { gb, prozent } from "../format/zahl.ts";
-import { datum, vor, zeitpunkt } from "../format/zeit.ts";
+import { datum, zeitpunkt } from "../format/zeit.ts";
 import { welleName } from "../rahmen/texte.ts";
 import { Angaben, Hinweisbox, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { Pruefzeile } from "../teile/listen.tsx";
 import { ZuKunde, ZuServer } from "../teile/verweise.tsx";
-import { agentText } from "./server-texte.ts";
+import { UnitsUndHealth } from "./installation-health.tsx";
 
-/** The tab "Zustand" of an installation: units and health, facts, the check from outside */
-
-/** The containers of the manifest; an option's own containers are not in the demo manifests */
-const UnitsUndHealth = (props: { b: Bestand; i: Installation }) => {
-  const app = () => appVon(props.b, props.i.app);
-  const sv = () => serverVon(props.b, props.i.server);
-  const still = () => sv().agent.zustand !== "verbunden";
-  const unitDetail = (name: string) => {
-    if (props.i.health === "rot" && name === props.i.roteUnit) return m.inst_unit_beendet();
-    if (still()) return m.health_unbekannt();
-    return m.inst_unit_laeuft({ seit: vor(props.i.laeuftSeit, props.b.jetzt) });
-  };
-  const health = () => {
-    const h = app().health;
-    if ("keine" in h) return { detail: m.inst_health_keine({ grund: h.keine }), ok: null };
-    if (still())
-      return {
-        detail: m.inst_health_get({ pfad: h.pfad, antwort: m.health_unbekannt() }),
-        ok: null,
-      };
-    const rot = props.i.health === "rot";
-    return {
-      detail: m.inst_health_get({ pfad: h.pfad, antwort: rot ? "503" : "200" }),
-      ok: !rot,
-    };
-  };
-  return (
-    <Karte class="lg:col-span-2">
-      <KartenKopf
-        titel={m.inst_units()}
-        text={
-          still() ? m.inst_units_still() : m.inst_units_text({ agent: agentText(props.b, sv()) })
-        }
-      />
-      <KartenInhalt class="grid gap-3">
-        <For each={app().container}>
-          {(name) => (
-            <Pruefzeile
-              icon={Box}
-              name={`${name}.service`}
-              detail={unitDetail(name)}
-              ok={still() ? null : !(props.i.health === "rot" && name === props.i.roteUnit)}
-            />
-          )}
-        </For>
-        <Pruefzeile
-          icon={HeartPulse}
-          name={m.inst_health()}
-          detail={health().detail}
-          ok={health().ok}
-        />
-        <Pruefzeile
-          icon={Archive}
-          name={m.inst_spalte_backup()}
-          detail={`${app().backup} · ${zeitpunkt(props.i.backup.zeitpunkt, props.b.jetzt)}`}
-          ok={props.i.backup.ok}
-        />
-      </KartenInhalt>
-    </Karte>
-  );
-};
+/**
+ * The tab "Zustand" of an installation the demo knows: units and health from the Zentrale (Z-403)
+ * with the demo's backup, facts, the check from outside
+ */
 
 const Fakten = (props: { b: Bestand; i: Installation }) => {
   const app = () => appVon(props.b, props.i.app);
@@ -178,12 +120,27 @@ const VonAussen = (props: { b: Bestand; i: Installation }) => {
   );
 };
 
-export const InstallationZustand = (props: { b: Bestand; i: Installation }) => {
+const Backup = (props: { b: Bestand; i: Installation }) => (
+  <Pruefzeile
+    icon={Archive}
+    name={m.inst_spalte_backup()}
+    detail={`${appVon(props.b, props.i.app).backup} · ${zeitpunkt(props.i.backup.zeitpunkt, props.b.jetzt)}`}
+    ok={props.i.backup.ok}
+  />
+);
+
+export const InstallationZustand = (props: {
+  b: Bestand;
+  i: Installation;
+  health: HealthDerZentrale;
+}) => {
   const k = () => kundeVon(props.b, props.i.kunde);
   return (
     <div class="grid gap-4">
       <div class="grid gap-4 lg:grid-cols-3">
-        <UnitsUndHealth b={props.b} i={props.i} />
+        <UnitsUndHealth health={props.health} class="lg:col-span-2">
+          <Backup b={props.b} i={props.i} />
+        </UnitsUndHealth>
         <Fakten b={props.b} i={props.i} />
       </div>
       <Show when={k().vertrag.ende}>
