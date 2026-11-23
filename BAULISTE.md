@@ -443,7 +443,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   nach: Z-704
   Fertig, wenn: die Summen aus den Ereignissen berechnet werden (Test) und der Export gültiges CSV
   nach RFC 4180 ist.
-- [ ] **Z-1001 Sicherheitsprüfung** – `docs/sicherheit.md`: Bedrohungsmodell, Notzugang per SSH,
+- [x] **Z-1001 Sicherheitsprüfung** – `docs/sicherheit.md`: Bedrohungsmodell, Notzugang per SSH,
   TOMs nach Art. 32 DSGVO als Anlage zum Auftragsverarbeitungsvertrag.
   nach: Z-804
   Fertig, wenn: jede Bedrohung einen Test oder eine begründete Annahme hat, darunter: eine Zentrale

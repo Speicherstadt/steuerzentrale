@@ -74,6 +74,30 @@ describe.each(MIT_RECHT)("%s", (name) => {
   });
 });
 
+/*
+ * docs/sicherheit.md B-28: a page of another origin in the member's browser, e.g. an app under the
+ * same domain, sends the session cookie along (SameSite=Lax only stops other sites) and can POST
+ * text/plain without a preflight; a write needs the interface's own Origin
+ */
+const SCHREIBEND = NAMEN.filter((name) => ROUTEN[name].art === "recht" && !name.startsWith("GET "));
+
+describe("a write from a page of another origin", () => {
+  it.each(SCHREIBEND)("%s is refused, with the member's session", async (name) => {
+    const { pfad, init } = anfrage(name);
+    for (const origin of ["https://app.kunde.example", "null"]) {
+      const { status, daten } = await personen.inhaber.json(pfad, {
+        ...init,
+        headers: { origin, "content-type": "text/plain;charset=UTF-8" },
+      });
+      expect({ origin, status, daten }).toEqual({
+        origin,
+        status: 403,
+        daten: { fehler: "fremder_ursprung" },
+      });
+    }
+  });
+});
+
 describe("the public routes", () => {
   it.each(NAMEN.filter((name) => ROUTEN[name].art === "oeffentlich"))(
     "%s answers without a session",

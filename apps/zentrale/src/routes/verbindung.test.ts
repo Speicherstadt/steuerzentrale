@@ -1,6 +1,6 @@
 import { PROTOKOLL_VERSION, TRENNUNG, VERBINDUNG_PFAD } from "@steuerzentrale/protokoll";
 import { afterEach, describe, expect, it } from "vitest";
-import { auditLog, heartbeats, server as serverTabelle } from "../db/schema.ts";
+import { auditLog, auftraege, heartbeats, server as serverTabelle } from "../db/schema.ts";
 import { FINGERABDRUCK_HEADER } from "../modules/verbindung/herkunft.ts";
 import { serverHinzufuegen } from "../testhilfen/agent.ts";
 import { zentraleStarten } from "../testhilfen/bun-server.ts";
@@ -174,6 +174,47 @@ describe("a revoked certificate", () => {
     client.senden({ typ: "heartbeat", protokoll: PROTOKOLL_VERSION, zeit: 9 });
     await client.zu;
     expect(server.db.select().from(heartbeats).all()).toEqual([]);
+  });
+});
+
+// docs/sicherheit.md: a stolen certificate speaks only as its server, and a server makes no jobs
+describe("a stolen certificate", () => {
+  it("creates no jobs: not over the connection, not through the API behind the Pforte", async () => {
+    const { server, agent, verbinden } = await aufgebaut();
+    const client = verbinden();
+    await client.offen;
+    client.senden(hallo);
+    await client.naechste();
+    const vorher = server.db.select().from(auftraege).all();
+    const fremd = "auftrag-0000-0000";
+    client.senden({
+      typ: "ergebnis",
+      protokoll: PROTOKOLL_VERSION,
+      auftragId: fremd,
+      zeit: 1,
+      ergebnis: { ok: true, daten: {} },
+    });
+    const fingerabdruck = await fingerabdruckVon(agent.zertifikat);
+    const pforte = server.browser("127.0.0.1");
+    for (const pfad of [
+      `/api/v1/server/${agent.serverId}/neustart`,
+      "/api/v1/installationen/beispiel-k1/neustart",
+      "/api/v1/installationen",
+    ])
+      expect(
+        (
+          await pforte.anfrage(pfad, {
+            body: { grund: "x" },
+            headers: { [FINGERABDRUCK_HEADER]: fingerabdruck },
+          })
+        ).status,
+      ).toBe(401);
+    client.senden({ typ: "heartbeat", protokoll: PROTOKOLL_VERSION, zeit: 2 });
+    // the heartbeat comes after the report: once it is in, the report was handled
+    await expect.poll(() => server.db.select().from(heartbeats).all().length).toBe(1);
+    expect(server.log.some((z) => z.includes("job report refused"))).toBe(true);
+    expect(server.db.select().from(auftraege).all()).toEqual(vorher);
+    expect(vorher.some((a) => a.auftragId === fremd)).toBe(false);
   });
 });
 

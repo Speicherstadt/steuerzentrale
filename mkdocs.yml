@@ -81,6 +81,7 @@ nav:
       - Betriebssystem und Neustarts: betriebssystem.md
       - Backups: backups.md
       - Zentrale sichern: zentrale-sichern.md
+      - Sicherheit und TOMs: sicherheit.md
   - Für App-Entwickler:
       - Manifest: manifest.md
   - Entwicklung:
