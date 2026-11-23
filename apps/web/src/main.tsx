@@ -3,6 +3,7 @@ import { render } from "@solidjs/web";
 import { getLocale } from "@steuerzentrale/ui";
 import { createRouter, RouterProvider } from "@tanstack/solid-router";
 import { sitzungsZustand, waechterEinsetzen } from "./anmeldung/sitzung.ts";
+import { abwicklungQuelleEinsetzen, apiAbwicklung } from "./daten/abwicklung.ts";
 import { apiApps, appsQuelleEinsetzen } from "./daten/apps.ts";
 import { apiAussen, aussenQuelleEinsetzen } from "./daten/aussen.ts";
 import { apiBackups, backupQuelleEinsetzen } from "./daten/backups.ts";
@@ -37,6 +38,7 @@ if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
   einstellungenQuelleEinsetzen(apiEinstellungen);
   dnsQuelleEinsetzen(apiDns);
   backupQuelleEinsetzen(apiBackups);
+  abwicklungQuelleEinsetzen(apiAbwicklung);
   benachrichtigungsQuelleEinsetzen(apiBenachrichtigungen);
   aussenQuelleEinsetzen(apiAussen);
   appsQuelleEinsetzen(apiApps);

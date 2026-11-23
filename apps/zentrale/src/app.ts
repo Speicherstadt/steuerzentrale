@@ -9,6 +9,7 @@ import type { Versand } from "./modules/benachrichtigung/index.ts";
 import type { Auslieferung } from "./modules/server/index.ts";
 import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
 import type { Versionen } from "./modules/versionen/index.ts";
+import { abwicklungRouten } from "./routes/abwicklung.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { aktionenRouten } from "./routes/aktionen.ts";
 import { aussenRouten } from "./routes/aussen.ts";
@@ -62,6 +63,8 @@ export type AppDeps = {
   dnsAnstossen?: () => void;
   /** Starts making or deleting the S3 accesses that are due (modules/backups, Z-601) */
   backupAnstossen?: () => void;
+  /** Takes the next steps after contracts ended (modules/abwicklung, Z-604) */
+  abwicklungAnstossen?: () => void;
   /** How notifications go out, for the test message (modules/benachrichtigung, Z-703) */
   versand?: Versand;
 };
@@ -127,6 +130,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   betriebRouten(route, deps);
   dnsRouten(route, deps);
   backupRouten(route, deps);
+  abwicklungRouten(route, deps);
   manifesteRouten(route, deps);
   updateRouten(route, deps);
   benachrichtigungRouten(route, deps);

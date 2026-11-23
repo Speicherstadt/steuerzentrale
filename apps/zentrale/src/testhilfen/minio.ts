@@ -1,5 +1,6 @@
+import { sha256Hex } from "@steuerzentrale/manifest";
 import { madminEntschluesseln } from "../modules/backups/madmin-daten.ts";
-import { sha256Hex, signieren } from "../modules/backups/sigv4.ts";
+import { kopfSignatur, type S3Lage, s3Behandeln } from "./minio-s3.ts";
 
 /*
  * A stand-in for MinIO's admin API, service accounts only (docs/plan.md, "Was sich in der CI nicht
@@ -9,7 +10,8 @@ import { sha256Hex, signieren } from "../modules/backups/sigv4.ts";
  * does (madmin.DecryptData), and answers as minio/minio's cmd/admin-handlers-users.go: 200 for a
  * new account, 204 for a deleted one, 404 `XMinioInvalidIAMCredentials` for one that is not there,
  * 403 `SignatureDoesNotMatch` for a wrong signature. `scheitern(n)` makes the next n requests fail
- * with 500; `anfragen` keeps every request for the tests to search. Started by tests and by the e2e
+ * with 500; `anfragen` keeps every request for the tests to search. Objects (Z-604) are
+ * minio-s3.ts. Started by tests and by the e2e
  * run (`bun apps/zentrale/src/testhilfen/minio.ts <port>`). The real MinIO runs in CI with the agent.
  */
 
@@ -38,45 +40,39 @@ export type MinioAnfrage = {
 const fehler = (status: number, code: string, message: string) =>
   Response.json({ Code: code, Message: message, Resource: "", RequestId: "" }, { status });
 
-const zeitAus = (amz: string): number => {
-  const t = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(amz);
-  if (!t) return Number.NaN;
-  const [, j, mo, d, h, mi, s] = t.map(Number) as number[];
-  return Date.UTC(j as number, (mo as number) - 1, d, h, mi, s);
-};
-
 /** Whether the request carries the admin's valid signature over exactly this body */
-const signiertVomAdmin = async (
-  anfrage: Request,
-  body: Uint8Array<ArrayBuffer>,
-  region: string,
-) => {
-  const autorisierung = anfrage.headers.get("authorization") ?? "";
-  const hash = anfrage.headers.get("x-amz-content-sha256") ?? "";
-  if (hash !== (await sha256Hex(body))) return false;
-  const m =
-    /^AWS4-HMAC-SHA256 Credential=([^/]+)\/\d{8}\/([^/]+)\/s3\/aws4_request, SignedHeaders=([a-z0-9;-]+), Signature=[0-9a-f]{64}$/.exec(
-      autorisierung,
-    );
-  if (!m || m[1] !== TEST_ADMIN.accessKey || m[2] !== region) return false;
-  const weitere = (m[3] ?? "")
-    .split(";")
-    .filter((k) => !["host", "x-amz-content-sha256", "x-amz-date"].includes(k));
-  const erwartet = await signieren({
-    methode: anfrage.method,
-    url: new URL(anfrage.url),
-    kopf: Object.fromEntries(weitere.map((k) => [k, anfrage.headers.get(k) ?? ""])),
-    inhaltHash: hash,
-    zugang: TEST_ADMIN,
-    region,
-    jetzt: zeitAus(anfrage.headers.get("x-amz-date") ?? ""),
-  });
-  return erwartet.authorization === autorisierung;
+const signiertVomAdmin = async (anfrage: Request, body: Uint8Array<ArrayBuffer>, region: string) =>
+  anfrage.headers.get("x-amz-content-sha256") === (await sha256Hex(body)) &&
+  (await kopfSignatur(anfrage, body, region, (k) =>
+    k === TEST_ADMIN.accessKey ? TEST_ADMIN.secretKey : undefined,
+  )) === TEST_ADMIN.accessKey;
+
+/** The prefix a service account's policy grants (backupPolicy), as the stand-in reads it */
+const praefixDerPolicy = (policy: unknown): string | undefined => {
+  const p = policy as { Statement?: { Resource?: string[] }[] } | undefined;
+  for (const s of p?.Statement ?? [])
+    for (const r of s.Resource ?? []) {
+      const m = /^arn:aws:s3:::[^/]+\/(.+)\*$/.exec(r);
+      if (m) return m[1];
+    }
+  return undefined;
 };
 
-export const minioNachbau = (optionen: { port?: number; region?: string } = {}) => {
+export const minioNachbau = (
+  optionen: { port?: number; region?: string; jetzt?: () => number } = {},
+) => {
   const region = optionen.region ?? TEST_REGION;
   const konten = new Map<string, Dienstkonto>();
+  const objekte = new Map<string, Uint8Array<ArrayBuffer>>();
+  const s3: S3Lage = {
+    region,
+    objekte,
+    jetzt: optionen.jetzt ?? Date.now,
+    geheimVon: (k) =>
+      k === TEST_ADMIN.accessKey ? TEST_ADMIN.secretKey : konten.get(k)?.secretKey,
+    praefixVon: (k) =>
+      k === TEST_ADMIN.accessKey ? null : praefixDerPolicy(konten.get(k)?.policy),
+  };
   const anfragen: MinioAnfrage[] = [];
   let scheitert = 0;
 
@@ -115,6 +111,7 @@ export const minioNachbau = (optionen: { port?: number; region?: string } = {}) 
       scheitert -= 1;
       return fehler(500, "InternalError", "We encountered an internal error, please try again.");
     }
+    if (!url.pathname.startsWith("/minio/admin/")) return s3Behandeln(s3, anfrage, body);
     if (!(await signiertVomAdmin(anfrage, body, region)))
       return fehler(
         403,
@@ -142,6 +139,8 @@ export const minioNachbau = (optionen: { port?: number; region?: string } = {}) 
     region,
     anfragen,
     konten: () => [...konten.values()],
+    /** The objects as `<bucket>/<key>` */
+    objekte,
     scheitern: (n: number) => {
       scheitert = n;
     },

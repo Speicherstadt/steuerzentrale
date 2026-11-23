@@ -1,6 +1,6 @@
 import type { BackupPolicy } from "@steuerzentrale/manifest";
+import { sha256Hex, signieren } from "@steuerzentrale/manifest";
 import { madminVerschluesseln } from "./madmin-daten.ts";
-import { sha256Hex, signieren } from "./sigv4.ts";
 
 /*
  * The two calls of MinIO's admin API the Zentrale makes (BAULISTE.md Z-601; docs/plan.md, "S3-Ziel

@@ -59,6 +59,18 @@ export {
   nurLesenBefehl,
 } from "./aktionen.ts";
 export {
+  ABWICKLUNG_AKTIONEN,
+  type AbwicklungAuftrag,
+  type AbwicklungGeprueft,
+  ARCHIV_ORDNER,
+  ARCHIV_ZEITLIMIT_S,
+  abwicklungAuftragPruefen,
+  archivDatei,
+  istAbwicklungAktion,
+  LOESCHEN_BACKUP_MS,
+  LOESCHEN_ZEITLIMIT_S,
+} from "./backup/abwicklung.ts";
+export {
   BACKUP_AKTIONEN,
   BACKUP_AUFBEWAHRUNG,
   BACKUP_EINRICHTEN_ZEITLIMIT_S,
@@ -210,6 +222,16 @@ export {
   repositoryAusImage,
   tokenUrl,
 } from "./registry.ts";
+export {
+  amzZeit,
+  OHNE_HASH,
+  type Signieren,
+  sha256Hex,
+  signieren,
+  VORSIGNIERT_MAX_S,
+  type Vorsignieren,
+  vorsignieren,
+} from "./s3/sigv4.ts";
 export {
   BOOT_ID,
   KEIN_MANIFEST,

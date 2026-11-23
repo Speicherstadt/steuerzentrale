@@ -59,6 +59,7 @@ const STATUS = {
   ende_vor_beginn: 409,
   kuerzel_vergeben: 409,
   kuerzel_fest: 409,
+  loeschung_laeuft: 409,
 } as const;
 
 const antwort = (c: Context<Anfrage>, ergebnis: Ergebnis, status: 200 | 201 = 200) =>
@@ -106,7 +107,9 @@ export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
     const angaben = await eingabe(c, kuendigenSchema);
     if (!angaben) return ungueltig(c);
     const k = kontext(c, angaben.grund);
-    return antwort(c, vertragsendeSetzen(deps.db, deps.schreibDb, k, kundeId(c), angaben.ende));
+    const r = vertragsendeSetzen(deps.db, deps.schreibDb, k, kundeId(c), angaben.ende);
+    deps.abwicklungAnstossen?.();
+    return antwort(c, r);
   });
 
   // Z-501: our own customer, whose installations alone are offered pre-releases; only the owner
@@ -121,6 +124,8 @@ export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
     const angaben = await eingabe(c, grundSchema);
     if (!angaben) return ungueltig(c);
     const k = kontext(c, angaben.grund);
-    return antwort(c, vertragsendeSetzen(deps.db, deps.schreibDb, k, kundeId(c), null));
+    const r = vertragsendeSetzen(deps.db, deps.schreibDb, k, kundeId(c), null);
+    deps.abwicklungAnstossen?.();
+    return antwort(c, r);
   });
 };

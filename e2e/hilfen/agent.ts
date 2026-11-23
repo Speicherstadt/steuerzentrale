@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
 import { type APIRequestContext, expect } from "@playwright/test";
 import { testAnfrage } from "../../apps/zentrale/src/testhilfen/agent.ts";
+import { OHNE_HASH, signieren } from "../../packages/manifest/src/s3/sigv4.ts";
 import { serverAnlegen } from "./server.ts";
 
 /*
@@ -22,6 +23,8 @@ import { serverAnlegen } from "./server.ts";
  * state of installations and an SSH login when a test tells it to (Z-403, Z-406). A reboot of the
  * server (Z-701) of its current boot it answers as the real agent does: the connection ends, it
  * comes back on a new boot id, and the job the Zentrale sends again it reports done with that id.
+ * After a contract (Z-604) it uploads the archive as the real agent does, with the access of the
+ * installation's backup to the stand-in of MinIO, and reports a deletion done.
  * No Podman, no server.
  */
 
@@ -203,6 +206,39 @@ const konfiguriert = (n: Nachricht) => ({
   daten: { installation: n.installationId, geaendert: "konfiguriert", units: [] },
 });
 
+/** What `installation_backup_einrichten` gave each installation: repository and S3 access */
+type Zugang = { repository: string; zugang: { schluesselId: string; geheim: string } };
+const zugaenge = new Map<string, Zugang>();
+
+/** The archive as `archivieren` uploads it (apps/agent, abwicklung/archivieren.ts), one file */
+const archivieren = async (ws: WebSocket, n: Nachricht) => {
+  const z = zugaenge.get(n.installationId as string);
+  const m = z && /^s3:(https?:\/\/[^/]+)\/(.+)$/.exec(z.repository);
+  if (!z || !m)
+    return ws.send(ergebnis(n.auftragId as string, { ok: false, fehler: "kein Backup" }));
+  const datei = "volume-daten.tar";
+  const url = new URL(`${m[1]}/${m[2]}/archiv/${datei}`);
+  const inhalt = `Archiv von ${n.installationId as string}`;
+  const koepfe = await signieren({
+    methode: "PUT",
+    url,
+    inhaltHash: OHNE_HASH,
+    zugang: { accessKey: z.zugang.schluesselId, secretKey: z.zugang.geheim },
+    region: (n.argumente as { region: string }).region,
+    jetzt: Date.now(),
+  });
+  const a = await fetch(url, { method: "PUT", headers: koepfe, body: inhalt });
+  const objekte = [{ tag: "volume:daten", datei, bytes: inhalt.length }];
+  ws.send(
+    ergebnis(
+      n.auftragId as string,
+      a.status === 200
+        ? { ok: true, daten: { installation: n.installationId, objekte } }
+        : { ok: false, fehler: `upload HTTP ${a.status}` },
+    ),
+  );
+};
+
 /**
  * Takes a job; a setup of a `kaputt…` host it reports failed, of a `laeuft…` host done, with its
  * route; configuring anew and a restart done, a log excerpt with its lines
@@ -218,8 +254,18 @@ const auftragNehmen = (lage: Lage, n: Nachricht) => {
     return ws.send(ergebnis(auftragId, konfiguriert(n)));
   if (n.aktion === "installation_neustart")
     return ws.send(ergebnis(auftragId, { ok: true, daten: { installation: n.installationId } }));
-  if (n.aktion === "installation_backup_einrichten")
+  if (n.aktion === "installation_backup_einrichten") {
+    if (n.backup) zugaenge.set(n.installationId as string, n.backup as Zugang);
     return ws.send(ergebnis(auftragId, backupEingerichtet(n)));
+  }
+  if (n.aktion === "installation_archiv") return void archivieren(ws, n);
+  if (n.aktion === "installation_loeschen")
+    return ws.send(
+      ergebnis(auftragId, {
+        ok: true,
+        daten: { installation: n.installationId, geaendert: "geloescht" },
+      }),
+    );
   if (n.aktion === "installation_backup") return backupJetzt(ws, n);
   if (n.aktion === "installation_pruef_restore")
     return ws.send(ergebnis(auftragId, pruefRestoreGelungen(n)));

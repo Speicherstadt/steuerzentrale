@@ -6,10 +6,11 @@ import {
   type Einrichtung,
   PRUEF_RESTORE_AKTION,
   pruefRestoreDatenLesen,
+  sha256Hex,
+  signieren,
 } from "@steuerzentrale/manifest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AUSGABE } from "../../../scripts/beispiel-images.ts";
-import { sha256Hex, signieren } from "../../zentrale/src/modules/backups/sigv4.ts";
 import { ADMIN, agentInstallieren, BUCKET, type Minio, minioStarten } from "./backup-hilfen.ts";
 import {
   type EchterAgent,

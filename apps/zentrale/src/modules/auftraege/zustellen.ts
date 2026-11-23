@@ -57,6 +57,8 @@ export type AuftragDeps = {
   dnsAnstossen?: () => void;
   /** Starts making or deleting S3 accesses of installations that are due (modules/backups, Z-601) */
   backupAnstossen?: () => void;
+  /** Takes the next step after a contract's end now that a job ended (modules/abwicklung, Z-604) */
+  abwicklungAnstossen?: () => void;
 };
 
 /** What only some jobs carry: the installation's data, its backup access (both added when sent) */

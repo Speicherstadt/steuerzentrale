@@ -2,6 +2,8 @@ import {
   AGENT_UPDATE_AKTION,
   AGENT_UPDATE_ZEITLIMIT_S,
   AKTION_ZEITLIMIT_S,
+  ARCHIV_ZEITLIMIT_S,
+  abwicklungAuftragPruefen,
   agentUpdateAuftragPruefen,
   aktionsAuftragPruefen,
   BACKUP_AKTIONEN,
@@ -14,10 +16,12 @@ import {
   einrichtungAuftragPruefen,
   geheimeEinstellungen,
   INSTALLATIONS_NAME,
+  istAbwicklungAktion,
   istAktionsAuftrag,
   istBackupAktion,
   istEinrichtungAktion,
   istPforteAktion,
+  LOESCHEN_ZEITLIMIT_S,
   type Manifest,
   PFORTE_ZEITLIMIT_S,
   PRUEF_RESTORE_AKTION,
@@ -45,6 +49,7 @@ import { pruefZiel } from "../zustand/ziel.ts";
 import type { AuftragNachricht, Geprueft, Vertrauen } from "./plaene.ts";
 
 export type {
+  AbwicklungPlan,
   AgentUpdatePlan,
   AktionPlan,
   AuftragNachricht,
@@ -82,7 +87,9 @@ export type {
  * like a restore's. The update of the agent itself (Z-504) carries SHA256SUMS in the place of a
  * manifest: its signature with the same key, then its fixed shape (agentUpdateAuftragPruefen).
  * The reboot of the server (Z-701) carries no manifest and nothing signed: after the key, its fixed
- * shape with the boot it is meant for (serverNeustartAuftragPruefen). Pure, no I/O.
+ * shape with the boot it is meant for (serverNeustartAuftragPruefen). The jobs after a contract
+ * (Z-604) pass abwicklungAuftragPruefen: the archive's parts from the signed manifest, nothing but
+ * the region from the job. Pure, no I/O.
  */
 
 const pfortePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
@@ -136,6 +143,23 @@ const backupPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
       art: "backup",
       aktion: n.aktion,
       auftrag,
+      zeitlimitMs: Math.min(n.zeitlimitS, grenze) * 1000,
+      idempotent: true,
+    },
+  };
+};
+
+const abwicklungPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
+  const geprueft = abwicklungAuftragPruefen(m, n);
+  if (!geprueft.ok) return geprueft;
+  const grenze =
+    geprueft.auftrag.art === "archiv" ? ARCHIV_ZEITLIMIT_S + 120 : LOESCHEN_ZEITLIMIT_S;
+  return {
+    ok: true,
+    plan: {
+      art: "abwicklung",
+      aktion: n.aktion,
+      auftrag: geprueft.auftrag,
       zeitlimitMs: Math.min(n.zeitlimitS, grenze) * 1000,
       idempotent: true,
     },
@@ -333,6 +357,8 @@ export const auftragPruefen = (n: AuftragNachricht, vertrauen: Vertrauen): Gepru
   if (n.backup !== undefined && n.aktion !== BACKUP_AKTIONEN.einrichten)
     return { ok: false, grund: "only installation_backup_einrichten carries backup data (backup)" };
   if (istBackupAktion(n.aktion)) return backupPlan(geladen.manifest, n);
+  // after a contract (Z-604): the archive with the user's own access, the deletion after a backup
+  if (istAbwicklungAktion(n.aktion)) return abwicklungPlan(geladen.manifest, n);
   if (n.aktion === PRUEF_RESTORE_AKTION) return pruefRestorePlan(geladen.manifest, n);
   if (n.aktion === WIEDERHERSTELLEN_AKTION) return wiederherstellenPlan(geladen.manifest, n);
   if (n.aktion === UPDATE_AKTION) return updatePlan(geladen.manifest, n);

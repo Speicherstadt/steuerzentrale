@@ -424,7 +424,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   von außen sind eine Störung, die erst grün innen und außen beendet; Monate in `Europe/Berlin` über
   Monatsende und Zeitumstellung; kein Betreiber sieht die Prüfungen eines anderen; `/health` antwortet
   503, wenn die Datenbank nicht antwortet; kein Test fragt einen echten Nameserver.
-- [ ] **Z-604 Kündigung und Löschung** – Vertragsende, 30 Tage nur lesen (wenn angeboten) und Export
+- [x] **Z-604 Kündigung und Löschung** – Vertragsende, 30 Tage nur lesen (wenn angeboten) und Export
   bzw. letztes Backup für den Kunden als zeitlich begrenzter, vorsignierter S3-Link, den die
   Oberfläche dem Betreiber zeigt; Löschung von Installation, Repository, S3-Zugang und
   DNS-Einträgen 90 Tage nach Vertragsende, vorher ein letztes Backup; Löschprotokoll als Ereignis und

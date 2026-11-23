@@ -122,6 +122,23 @@ export const dumpArgv = (r: Repo, snapshot: string, datei: string, tar: boolean)
   ...(tar ? ["--archive", "tar", `${snapshot}:${datei}`, "/"] : [snapshot, datei]),
 ];
 
+/**
+ * The newest snapshot of a part as it was saved, for the archive after a contract (Z-604): a
+ * volume's folder as tar, a dump or a command's output as the file it was saved as
+ * (doc/050_restore.rst, "dump"; `latest` with `--host` and `--tag` picks the part's newest)
+ */
+export const archivArgv = (r: Repo, t: BackupTeil): string[] => [
+  ...podmanRun(r),
+  "dump",
+  "--host",
+  r.installation,
+  "--tag",
+  t.tag,
+  ...(t.art === "volume"
+    ? ["--archive", "tar", `latest:${t.pfad}`, "/"]
+    : ["latest", `/${t.dateiname}`]),
+];
+
 /** The AWS credentials file of the S3 access; its form is checked by backupAuftragPruefen */
 export const zugangIni = (z: { schluesselId: string; geheim: string }): string =>
   `[default]\naws_access_key_id = ${z.schluesselId}\naws_secret_access_key = ${z.geheim}\n`;

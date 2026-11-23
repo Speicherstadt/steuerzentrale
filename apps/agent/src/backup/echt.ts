@@ -15,7 +15,8 @@ import type { ResticLauf } from "./sichern.ts";
  * or a file anyone could open by name. (A named pipe on descriptor 3 made Bun's spawn hang in a
  * test with Bun 1.4.4; a regular file does not.) A source's standard output is restic's standard
  * input, and for playing a snapshot back (Z-602) restic's standard output is a target's standard
- * input; what any of them writes to standard error is dropped. Killing `podman run` leaves its
+ * input, or for the archive after a contract (Z-604) a file; what any of them writes to standard
+ * error is dropped. Killing `podman run` leaves its
  * container running under conmon (restic retries an unreachable S3 for 15 minutes), so each
  * container gets a name of its own, and an aborted run removes it.
  */
@@ -103,7 +104,13 @@ export const echtRestic =
           env,
         });
       restic = Bun.spawn(benannt(a.argv, name), {
-        stdio: [quelle?.stdout ?? "ignore", "pipe", "ignore", passwort, zugang],
+        stdio: [
+          quelle?.stdout ?? "ignore",
+          a.datei === undefined ? "pipe" : Bun.file(a.datei),
+          "ignore",
+          passwort,
+          zugang,
+        ],
         cwd: "/",
         detached: true,
         env,
@@ -134,7 +141,10 @@ export const echtRestic =
       gruppeBeiAbbruch(p, signal),
     );
     try {
-      const aus = ziel ? "" : await endeLesen(restic.stdout as ReadableStream<Uint8Array>, signal);
+      const aus =
+        ziel || a.datei !== undefined
+          ? ""
+          : await endeLesen(restic.stdout as ReadableStream<Uint8Array>, signal);
       const code = (await restic.exited) ?? null;
       if (signal.aborted) await entfernen(name, env);
       if (ziel) return { code, aus, zielCode: (await ziel.exited) ?? null };

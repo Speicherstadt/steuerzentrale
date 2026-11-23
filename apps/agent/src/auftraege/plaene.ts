@@ -1,4 +1,5 @@
 import type {
+  AbwicklungAuftrag,
   AgentUpdateAuftrag,
   OeffentlicherSchluessel,
   PforteAuftrag,
@@ -72,6 +73,16 @@ export type AktionPlan = {
    * a restart of the agent it may come later than the Zentrale allowed (a freeze window)
    */
   idempotent: boolean;
+};
+
+/** What a job after a contract does: the archive for the customer, or the deletion (Z-604) */
+export type AbwicklungPlan = {
+  art: "abwicklung";
+  aktion: string;
+  auftrag: AbwicklungAuftrag;
+  zeitlimitMs: number;
+  /** Archiving uploads the same files again; deleting what is gone deletes nothing */
+  idempotent: true;
 };
 
 /** What a backup job does: set up the installation's backup, or back it up now (src/backup) */
@@ -161,6 +172,7 @@ export type JederPlan =
   | EinrichtungPlan
   | AktionPlan
   | BackupPlan
+  | AbwicklungPlan
   | PruefRestorePlan
   | WiederherstellenPlan
   | UpdatePlan;

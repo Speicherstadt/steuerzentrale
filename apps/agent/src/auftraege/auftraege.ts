@@ -7,6 +7,7 @@ import {
   PROTOKOLL_VERSION,
   schreiben,
 } from "@steuerzentrale/protokoll";
+import { abwicklungAusfuehren } from "../abwicklung/auftrag.ts";
 import { type AgentUpdateDeps, agentAktualisieren } from "../agent-update/aktualisieren.ts";
 import { type AktionsDeps, aktionAusfuehren } from "../aktionen/auftrag.ts";
 import type { ZeilenLesen } from "../aktionen/journal.ts";
@@ -234,6 +235,9 @@ const ausfuehrer = (
     // an update likewise, and it may roll back with a restore (Z-503)
     if (plan.art === "update") return einrichtungReihe(() => updateAusfuehren(pruef, plan));
     // setting up a backup writes into the home like a setup; a run may take hours and waits for none
+    // the archive and the deletion after a contract (Z-604) change an installation: in that line
+    if (plan.art === "abwicklung")
+      return einrichtungReihe(() => abwicklungAusfuehren(backup, plan));
     if (plan.art === "backup")
       return plan.auftrag.art === "einrichten"
         ? einrichtungReihe(() => backupAusfuehren(backup, plan))

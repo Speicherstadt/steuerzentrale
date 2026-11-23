@@ -1,10 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
+  ABWICKLUNG_AKTIONEN,
   AGENT_APP,
   AGENT_UPDATE_AKTION,
   AGENT_UPDATE_ZEITLIMIT_S,
   AKTION_ZEITLIMIT_S,
+  ARCHIV_ZEITLIMIT_S,
   type ArgumentWert,
+  abwicklungAuftragPruefen,
   agentUpdateAuftragPruefen,
   aktionsAuftragPruefen,
   BACKUP_AKTIONEN,
@@ -18,10 +21,12 @@ import {
   type Einrichtung,
   einrichtungAuftragPruefen,
   INSTALLATIONS_NAME,
+  istAbwicklungAktion,
   istAktionsAuftrag,
   istBackupAktion,
   istEinrichtungAktion,
   istPforteAktion,
+  LOESCHEN_ZEITLIMIT_S,
   type Manifest,
   manifestPruefen,
   PFORTE_ZEITLIMIT_S,
@@ -211,6 +216,14 @@ const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
     return backup.ok
       ? { ok: true, manifest: geprueft.manifest, zeitlimitS }
       : { ok: false, grund: "argumente_ungueltig", detail: backup.grund };
+  }
+  if (istAbwicklungAktion(neu.aktion)) {
+    const abwicklung = abwicklungAuftragPruefen(geprueft.manifest, neu);
+    const zeitlimitS =
+      neu.aktion === ABWICKLUNG_AKTIONEN.archiv ? ARCHIV_ZEITLIMIT_S + 120 : LOESCHEN_ZEITLIMIT_S;
+    return abwicklung.ok
+      ? { ok: true, manifest: geprueft.manifest, zeitlimitS }
+      : { ok: false, grund: "argumente_ungueltig", detail: abwicklung.grund };
   }
   if (istAktionsAuftrag(neu.aktion)) {
     const aktion = aktionsAuftragPruefen(geprueft.manifest, neu);

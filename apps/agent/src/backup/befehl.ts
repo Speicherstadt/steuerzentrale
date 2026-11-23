@@ -44,8 +44,9 @@ export const standAnhaengen = async (dateien: Dateien, pfad: string, lauf: Lauf)
   await dateien.schreiben(pfad, JSON.stringify({ laeufe }), 0o600);
 };
 
-const dateiLesen = async (
-  deps: SichernBefehlDeps,
+/** backup.json of the installation in the user's home, or why there is none (also Z-604) */
+export const dateiLesen = async (
+  deps: Pick<SichernBefehlDeps, "home" | "dateien">,
   installation: string,
 ): Promise<BackupDatei | string> => {
   const pfad = backupDateiPfad(deps.home());

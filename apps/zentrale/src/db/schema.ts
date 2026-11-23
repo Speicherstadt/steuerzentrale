@@ -317,6 +317,8 @@ export const auftraege = sqliteTable(
   ],
 );
 
+// What follows the end of a contract for each installation (Z-604)
+export * from "./schema-abwicklung.ts";
 // The check from outside and the availability per hour (Z-704)
 export * from "./schema-aussen.ts";
 // The S3 target, the installations' own accesses and the runs of their backups (Z-601)

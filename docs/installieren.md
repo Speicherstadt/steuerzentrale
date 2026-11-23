@@ -92,8 +92,9 @@ lassen sie sich mit „neu konfigurieren“ (Z-404).
 | entfernt | nach einem gescheiterten Einrichten mit `installation_entfernen` entfernt |
 
 Entfernt wird hier nur eine Installation im Zustand `gescheitert`. Scheitert das Entfernen, bleibt
-sie `gescheitert` und kann noch einmal entfernt werden. Eine eingerichtete Installation entfernt erst
-Z-604, nach einem Backup.
+sie `gescheitert` und kann noch einmal entfernt werden. Eine eingerichtete Installation entfernt nur
+die Löschung 90 Tage nach dem Vertragsende (`installation_loeschen`, nach einem Backup; siehe
+[Kunden](kunden.md)), danach ist sie ebenfalls `entfernt`.
 
 ## In der Oberfläche
 

@@ -9,7 +9,10 @@ braucht, Server, Installationen, Updates in Wellen, Backups, Aufträge, Kunden, 
 Leistungen, die Apps mit ihren Manifesten, Ereignisse, Audit-Log und Einstellungen; hell und dunkel, auf
 Deutsch und Englisch, auch auf dem Handy. Kunden mit Ansprechperson und Vertrag (SLA, Vertragsende)
 legt der Betreiber an, ändert und kündigt sie, jedes Mal mit Grund im Audit-Log
-([Kunden und Verträge](docs/kunden.md)). Angemeldet kommt alles aus der Zentrale: die Übersicht
+([Kunden und Verträge](docs/kunden.md)); nach dem Vertragsende macht die Zentrale ein letztes Backup
+und ein Archiv, zu dem die Installationsseite 30 Tage lang einen zeitlich begrenzten Link für den
+Kunden erzeugt, und löscht 90 Tage danach Installation, Repository, S3-Zugang und DNS-Einträge mit
+einem Löschprotokoll als Ereignis und Webhook. Angemeldet kommt alles aus der Zentrale: die Übersicht
 ordnet nach Schwere, was Aufmerksamkeit braucht (Störungen, rote, gelbe und unbekannte Installationen,
 getrennte oder stille Agenten, rote und gelbe Prüfungen der Server, gescheiterte Aufträge, Warnungen
 des letzten Tages), und jeder Eintrag
