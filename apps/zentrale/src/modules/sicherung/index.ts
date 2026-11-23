@@ -3,6 +3,8 @@ import {
   constants,
   copyFileSync,
   existsSync,
+  linkSync,
+  lstatSync,
   mkdirSync,
   renameSync,
   rmSync,
@@ -25,6 +27,11 @@ export const DATEI = "zentrale.db";
 export type Ergebnis = { ok: true } | { ok: false; grund: string };
 
 const fehler = (grund: string): Ergebnis => ({ ok: false, grund });
+const belegt = (daten: string) =>
+  fehler(`${daten} already holds a database: restore only into an empty data directory`);
+
+/** Whether anything is at `pfad`, a link pointing nowhere included (existsSync follows links) */
+const vorhanden = (pfad: string) => lstatSync(pfad, { throwIfNoEntry: false }) !== undefined;
 const grundAus = (e: unknown) => String((e as Error)?.message ?? e);
 
 /** The file and what SQLite may have left beside it */
@@ -61,7 +68,8 @@ export const sichern = (
  * Puts the backup `quelle` into the data directory `daten`, which must not hold a database yet
  * (a new server, or the old directory moved aside): copied to `<datei>.wiederherstellen`, checked
  * for damage, opened with the key (`oeffnen` applies newer migrations and refuses a key that does
- * not open it), then renamed to the database's name; on any failure nothing stays behind
+ * not open it), then linked under the database's name, which fails if anything got there meanwhile
+ * (a rename would replace it); on any failure nothing stays behind
  */
 export const wiederherstellen = (
   quelle: string,
@@ -69,8 +77,7 @@ export const wiederherstellen = (
   oeffnen: (pfad: string) => Pick<Datenbank, "schliessen">,
 ): Ergebnis => {
   const ziel = join(daten, DATEI);
-  if (existsSync(ziel) || existsSync(`${ziel}-wal`))
-    return fehler(`${daten} already holds a database: restore only into an empty data directory`);
+  if (vorhanden(ziel) || vorhanden(`${ziel}-wal`)) return belegt(daten);
   if (!existsSync(quelle)) return fehler(`no backup at ${quelle}`);
   const zwischen = `${ziel}.wiederherstellen`;
   try {
@@ -80,10 +87,12 @@ export const wiederherstellen = (
     chmodSync(zwischen, 0o600);
     if (!unversehrt(zwischen)) throw new Error(`${quelle} is not an undamaged database`);
     oeffnen(zwischen).schliessen();
-    renameSync(zwischen, ziel);
+    linkSync(zwischen, ziel);
+    rmSync(zwischen);
     return { ok: true };
   } catch (e) {
     wegraeumen(zwischen);
+    if ((e as NodeJS.ErrnoException)?.code === "EEXIST") return belegt(daten);
     return fehler(`restore failed: ${grundAus(e)}`);
   }
 };
