@@ -44,7 +44,11 @@ describe("encrypted values", () => {
     const wert = verschluesseln(k1, "z", "streng geheim");
     expect(entschluesseln([k2], "z", wert)).toEqual({ ok: false, grund: "unbekannter_schluessel" });
     expect(entschluesseln([k1], "y", wert).ok).toBe(false);
-    const geaendert = `${wert.slice(0, -2)}${wert.endsWith("A") ? "B" : "A"}A`;
+    // one bit of the cipher text flipped: always a change, whatever the random nonce made
+    const teile = wert.split(".");
+    const roh = Buffer.from(teile[2] ?? "", "base64url");
+    roh[roh.length - 1] = (roh[roh.length - 1] ?? 0) ^ 1;
+    const geaendert = [teile[0], teile[1], roh.toString("base64url")].join(".");
     expect(entschluesseln([k1], "z", geaendert).ok).toBe(false);
     expect(entschluesseln([k1, k2], "z", wert.replace(k1.id, k2.id)).ok).toBe(false);
     expect(entschluesseln([k1], "z", "klartext").ok).toBe(false);
