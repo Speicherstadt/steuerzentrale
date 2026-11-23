@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app.ts";
 import { createAuth } from "./auth/auth.ts";
+import type { Db } from "./db/oeffnen.ts";
 import { testDatenbank } from "./db/test-db.ts";
 import { auslieferung } from "./modules/server/index.ts";
 import { verbindungen } from "./modules/verbindung/verbindungen.ts";
 import { versionen } from "./modules/versionen/index.ts";
 
-const setup = () => {
+const setup = (teil: { db?: Db } = {}) => {
   const lines: string[] = [];
-  const { db, schreibDb, anmeldeGeheimnis, schluessel } = testDatenbank();
+  const offen = testDatenbank();
+  const { schreibDb, anmeldeGeheimnis, schluessel } = offen;
+  const db = teil.db ?? offen.db;
   const url = "http://localhost:28300";
   const app = createApp({
     log: (line) => lines.push(line),
@@ -34,6 +37,19 @@ describe("GET /health", () => {
     const res = await app.request("/health");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "ok", version: "1.2.3" });
+  });
+
+  // Z-704: an external monitor sees a Zentrale that runs but cannot read its database
+  it("answers 503 without a reason when the database does not answer", async () => {
+    const kaputt = {
+      select: () => {
+        throw new Error("database is locked");
+      },
+    } as unknown as Db;
+    const { app } = setup({ db: kaputt });
+    const res = await app.request("/health");
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ status: "fehler", version: "1.2.3" });
   });
 });
 

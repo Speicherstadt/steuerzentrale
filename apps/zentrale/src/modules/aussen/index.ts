@@ -1,4 +1,5 @@
 export { aussenMelden } from "./ereignisse.ts";
+export { datenbankAntwortet } from "./health.ts";
 export {
   AUSSEN_GRUEN_ART,
   AUSSEN_ROT_ART,

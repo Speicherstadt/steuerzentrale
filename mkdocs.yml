@@ -68,6 +68,7 @@ nav:
       - Adressen und DNS: dns.md
       - Einstellungen: einstellungen.md
       - Health und Zustand: zustand.md
+      - Prüfung von außen und Verfügbarkeit: aussen.md
       - Neustart, Log-Auszug, nur lesen: aktionen.md
       - Pforte: pforte.md
       - Manifeste und Versionen: manifeste.md

@@ -101,6 +101,14 @@ Zentrale bewertet sie grün, gelb, rot oder unbekannt, immer mit Grund (ohne Mel
 unbekannt, nie grün), hält jeden Wechsel im Verlauf und meldet nach 5 Minuten Rot eine Störung. Liste
 und Seite einer Installation zeigen Zustand, Grund und Verlauf ([Health und Zustand](docs/zustand.md)).
 
+**Prüfung von außen und Verfügbarkeit:** die Zentrale prüft jede Minute jede öffentliche Adresse
+selbst, ohne den Agenten: DNS (zeigt der Name dorthin, wo sie ihn gesetzt hat), Zertifikat, Pforte
+und Health über den öffentlichen Host. „Agent grün, außen rot“ wird ein Ereignis, 5 Minuten rot von
+außen eine Störung. Die Seite einer Installation zeigt das Ergebnis und die Verfügbarkeit je Monat
+(Kalendermonat in Berlin, Anteil der grünen Prüfungen); `/health` der Zentrale sagt einem externen
+Prüfdienst, ob sie und ihre Datenbank antworten
+([Prüfung von außen und Verfügbarkeit](docs/aussen.md)).
+
 **Stand:** in Planung. Plan und Bauliste: [`docs/plan.md`](docs/plan.md), [`BAULISTE.md`](BAULISTE.md).
 
 Lizenz: AGPL-3.0 ([`NOTICE`](NOTICE)). Beiträge mit Developer Certificate of Origin (`git commit -s`), kein CLA;
