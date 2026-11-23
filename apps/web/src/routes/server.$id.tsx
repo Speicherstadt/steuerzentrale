@@ -9,11 +9,11 @@ import { bestand } from "../daten/quelle.ts";
 import { serverQuelle } from "../daten/server.ts";
 import { ansichtZustand, type ServerAnsicht, serverAnsicht } from "../daten/server-ansicht.ts";
 import type { Bestand, Server } from "../daten/typen.ts";
-import { PLATTE_STOERUNG, pruefungen } from "../daten/zustand.ts";
+import { auffaellig, PLATTE_STOERUNG, pruefungen } from "../daten/zustand.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { InstallationsListe } from "../seiten/installations-liste.tsx";
-import { agentText, pruefText } from "../seiten/server-texte.ts";
+import { agentText, pruefText, serverPruefungText } from "../seiten/server-texte.ts";
 import { Wartung } from "../seiten/server-wartung.tsx";
 import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { Messer } from "../teile/balken.tsx";
@@ -25,9 +25,9 @@ import { ArtZeichen, artIcon, ServerZeichen, Zustand } from "../teile/zeichen.ts
 
 /**
  * One server: its facts from the agent (BAULISTE.md Z-304), its operating system, maintenance and
- * reboot (Z-701, seiten/server-wartung.tsx), and its installations and events from the Zentrale
- * (Z-406). Load and the checks come with Z-702; until then only the demo shows them, and the
- * pending packages by name.
+ * reboot (Z-701, seiten/server-wartung.tsx), its checks (Z-702), and its installations and events
+ * from the Zentrale (Z-406). Load, the pending packages by name and the demo's checks of the
+ * operating system only the demo shows.
  */
 
 const Kopf = (props: { b: Bestand; a: ServerAnsicht }) => (
@@ -210,16 +210,29 @@ const Neustart = (props: { sv: Server }) => (
   </Show>
 );
 
-/** The agent's checks; they come from the demo data until Z-702 */
-const Pruefungen = (props: { b: Bestand; sv: Server; still: boolean }) => (
+/**
+ * The checks of the server: those of Z-702 from the Zentrale (disk, certificates, backups, open
+ * ports, clock), those of the operating system from the demo data (the API's operating system
+ * stands in the card "Wartung", Z-701). A silent agent's
+ * last values are no check: no OK and no warning; an unknown check neither
+ */
+const Pruefungen = (props: { b: Bestand; a: ServerAnsicht; still: boolean }) => (
   <Karte>
     <KartenKopf
       titel={m.server_pruefungen()}
       text={props.still ? m.inst_units_still() : m.server_pruefungen_text()}
     />
     <KartenInhalt class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      <For each={pruefungen(props.b, props.sv)}>
-        {(p) => <Pruefzeile {...pruefText(props.b, p)} ok={props.still ? null : p.ok} />}
+      <For each={props.a.pruefungen ?? []}>
+        {(p) => (
+          <Pruefzeile
+            {...serverPruefungText(p, props.b.jetzt)}
+            ok={props.still || p.ergebnis === "unbekannt" ? null : !auffaellig(p)}
+          />
+        )}
+      </For>
+      <For each={props.a.demo ? pruefungen(props.a.demo) : []}>
+        {(p) => <Pruefzeile {...pruefText(p)} ok={props.still ? null : p.ok} />}
       </For>
     </KartenInhalt>
   </Karte>
@@ -252,7 +265,9 @@ const Detail = (props: { a: ServerAnsicht; neu: () => void }) => {
             neu={() => props.neu()}
           />
         </div>
-        <Show when={props.a.demo}>{(d) => <Pruefungen b={b} sv={d()} still={still()} />}</Show>
+        <Show when={props.a.pruefungen || props.a.demo}>
+          <Pruefungen b={b} a={props.a} still={still()} />
+        </Show>
         <div class="grid gap-4 lg:grid-cols-2">
           <Karte>
             <KartenKopf

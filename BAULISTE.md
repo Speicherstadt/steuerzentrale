@@ -403,10 +403,12 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Agent, und der Agent startet für einen Auftrag nie zweimal neu (Boot-ID); erfolgreich erst, wenn
   sich der Agent mit einer neuen Boot-ID meldet; ein Neustart von Hand mit Grund (Playwright), nie in
   einer Sperrzeit; kein Betreiber erreicht Neustarts eines anderen (Test je Endpunkt).
-- [ ] **Z-702 Prüfungen** – Platte über 80/90 %, Zertifikat in 14 Tagen, Backup älter als 26 h,
+- [x] **Z-702 Prüfungen** – Platte über 80/90 %, Zertifikat in 14 Tagen, Backup älter als 26 h,
   Port offen, der in keinem Manifest steht, Uhrzeit.
   nach: Z-601, Z-401
-  Fertig, wenn: jede Prüfung einen Test mit Grenzfall hat und ihr Ergebnis in der Übersicht steht.
+  Fertig, wenn: jede Prüfung einen Test mit Grenzfall hat und ihr Ergebnis in der Übersicht steht;
+  ein Befund ein Ereignis bei Beginn und Behebung erzeugt, nicht bei jedem Lauf, und kein Betreiber
+  die Prüfungen eines anderen sieht (Test).
 - [ ] **Z-703 Benachrichtigungen und Webhooks** – Ereignisse nach Schwere per Mail (SMTP) und
   Webhook; Webhooks signiert (HMAC) und mit Wiederholung, dieselbe Zustellung nutzt später das
   Portal (Z-903); Ruhezeiten; eine Meldung je Störung, nicht je Prüfung.

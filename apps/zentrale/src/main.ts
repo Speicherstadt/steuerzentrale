@@ -19,6 +19,7 @@ import { rotieren } from "./modules/geheim/index.ts";
 import { befehlImportieren, manifesteUebernehmen } from "./modules/manifeste/index.ts";
 import { neustartSchleife } from "./modules/neustart/index.ts";
 import { pruefRestoreSchleife } from "./modules/pruef-restore/index.ts";
+import { pruefungsSchleife } from "./modules/pruefungen/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
 import { updateSchleife } from "./modules/updates/index.ts";
 import { stilleSchleife } from "./modules/verbindung/stille.ts";
@@ -106,6 +107,8 @@ const planen = (lauf: () => void, ms: number) => {
 aufbewahrungsSchleife(db, schreibDb, Date.now, planen, log);
 stilleSchleife(db, schreibDb, Date.now, planen, log);
 bewertungsSchleife(db, schreibDb, Date.now, planen, log);
+// The checks of every server (Z-702): an event when a finding begins, gets worse and ends
+pruefungsSchleife(db, schreibDb, Date.now, planen, log);
 // DNS records of installations at Cloudflare (Z-407): every 30 s and at once when some are due
 const dns = dnsSchleife(
   {

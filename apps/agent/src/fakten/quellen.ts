@@ -1,5 +1,6 @@
 import { promises as dns } from "node:dns";
-import { access, readdir, readFile, stat, statfs } from "node:fs/promises";
+import { constants } from "node:fs";
+import { access, type FileHandle, open, readdir, readFile, stat, statfs } from "node:fs/promises";
 import { connect } from "node:net";
 import { machine, type NetworkInterfaceInfo, networkInterfaces } from "node:os";
 
@@ -23,6 +24,11 @@ export type Verbinden = (host: string, port: number, timeoutMs: number) => Promi
 export type FaktenQuellen = {
   /** A file's text, undefined when it is missing or unreadable */
   lesen: (pfad: string) => Promise<string | undefined>;
+  /**
+   * A file in storage another user controls (the Pforte's certificates): only a regular file, not
+   * through a symbolic link at its end and no larger than `hoechstens` bytes; else undefined
+   */
+  lesenFremd: (pfad: string, hoechstens: number) => Promise<string | undefined>;
   /** The names in a directory, undefined when it is missing or unreadable */
   liste: (ordner: string) => Promise<string[] | undefined>;
   gibtEs: (pfad: string) => Promise<boolean>;
@@ -75,8 +81,30 @@ export const echtVerbinden: Verbinden = (host, port, timeoutMs) =>
     );
   });
 
+/**
+ * open(2) with O_NOFOLLOW, so a link at the end is refused, and O_NONBLOCK, so a FIFO does not wait
+ * for a writer (Bun's read would block the event loop); then only a regular file within the limit,
+ * read once to the size it had: a file that grows meanwhile cannot make it more
+ */
+const fremdLesen = async (pfad: string, hoechstens: number): Promise<string | undefined> => {
+  let datei: FileHandle | undefined;
+  try {
+    datei = await open(pfad, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    const info = await datei.stat();
+    if (!info.isFile() || info.size > hoechstens) return undefined;
+    const puffer = Buffer.alloc(info.size);
+    const { bytesRead } = await datei.read(puffer, 0, info.size, 0);
+    return puffer.subarray(0, bytesRead).toString("utf8");
+  } catch {
+    return undefined;
+  } finally {
+    await datei?.close().catch(() => undefined);
+  }
+};
+
 export const echteQuellen = (): FaktenQuellen => ({
   lesen: (pfad) => readFile(pfad, "utf8").catch(() => undefined),
+  lesenFremd: fremdLesen,
   liste: (ordner) => readdir(ordner).catch(() => undefined),
   gibtEs: (pfad) =>
     access(pfad).then(

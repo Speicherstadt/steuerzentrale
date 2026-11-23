@@ -102,10 +102,24 @@ const fakten = (zeit: number, bootId: string) => ({
   bootId,
   gestartetAm: zeit - 3 * 86_400_000,
   unattendedUpgrades: { installiert: true, aktiv: true, letzterLauf: zeit - 3600_000 },
+  portsOffen: [
+    { port: 22, proto: "tcp" },
+    { port: 443, proto: "tcp" },
+  ],
+  zertifikate: [],
+  uhrSynchron: true,
 });
 
-/** The stand-in's connection and boot, both replaced by a reboot */
-type Lage = { ws: WebSocket; bootId: string; zertifikat: string };
+/**
+ * The stand-in's connection and boot, both replaced by a reboot, and the facts it reports other
+ * than the default ones (`anders`)
+ */
+type Lage = {
+  ws: WebSocket;
+  bootId: string;
+  zertifikat: string;
+  anders: Record<string, unknown>;
+};
 
 /** What the stand-in agent reads from the journal of every installation */
 export const LOG_ZEILEN = [
@@ -264,7 +278,7 @@ const verbinden = (lage: Lage): Promise<WebSocket> =>
     ws.onmessage = (event) => {
       const n = JSON.parse(String(event.data)) as Nachricht;
       if (n.typ === "willkommen") {
-        ws.send(JSON.stringify(fakten(Date.now(), lage.bootId)));
+        ws.send(JSON.stringify({ ...fakten(Date.now(), lage.bootId), ...lage.anders }));
         bereit(ws);
       }
       if (n.typ === "auftrag") auftragNehmen(lage, n);
@@ -272,14 +286,18 @@ const verbinden = (lage: Lage): Promise<WebSocket> =>
     ws.onerror = () => fehler(new Error("the agent's connection failed"));
   });
 
-/** A shared server of the first owner's operator whose agent is connected and reported its facts */
+/**
+ * A shared server of the first owner's operator whose agent is connected and reported its facts;
+ * `anders` replaces some of them (Z-702: a full disk, a port no manifest names)
+ */
 export const agentVerbinden = async (
   request: APIRequestContext,
   name: string,
+  anders: Record<string, unknown> = {},
 ): Promise<TestAgent> => {
   const server = await serverAnlegen(request, name);
   const zertifikat = await beitreten(server.befehl);
-  const lage = { bootId: randomUUID(), zertifikat } as Lage;
+  const lage = { bootId: randomUUID(), zertifikat, anders } as Lage;
   await verbinden(lage);
   await expect
     .poll(async () => {

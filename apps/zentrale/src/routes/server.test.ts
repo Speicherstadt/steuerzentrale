@@ -140,9 +140,23 @@ describe("the servers of the operator", () => {
         },
       ],
     });
-    expect((await inhaber.json(`/api/v1/server/${serverId}`)).daten).toEqual(
-      (daten as { server: unknown[] }).server[0],
-    );
+    // its own page has its checks besides (Z-702): unknown without facts, the backups green
+    expect((await inhaber.json(`/api/v1/server/${serverId}`)).daten).toEqual({
+      ...(daten as { server: object[] }).server[0],
+      pruefungen: [
+        { pruefung: "platte", ergebnis: "unbekannt", platten: null, seit: null },
+        { pruefung: "zertifikate", ergebnis: "unbekannt", zertifikate: null, seit: null },
+        { pruefung: "backups", ergebnis: "gruen", alt: [], seit: null },
+        { pruefung: "ports", ergebnis: "unbekannt", fremd: null, seit: null },
+        {
+          pruefung: "uhrzeit",
+          ergebnis: "unbekannt",
+          abweichungMs: null,
+          synchron: null,
+          seit: null,
+        },
+      ],
+    });
     expect((await inhaber.json("/api/v1/server/gibt-es-nicht")).status).toBe(404);
   });
 
@@ -163,6 +177,46 @@ describe("the servers of the operator", () => {
     expect(daten).toMatchObject({ fakten: werte, faktenAm: server.jetzt() });
     const liste = (await inhaber.json("/api/v1/server")).daten as { server: unknown[] };
     expect(liste.server[0]).toMatchObject({ fakten: werte });
+  });
+
+  // Z-702: the checks of the server from its facts, only for its own operator
+  it("show the checks of a server on its page, to its operator only", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
+    const { serverId, token } = await serverHinzufuegen(inhaber);
+    const beitritt = await server
+      .browser()
+      .json("/api/v1/agent/beitreten", { body: await testAnfrage(token) });
+    expect(beitritt.status).toBe(201);
+    const nachricht = VOM_AGENTEN_V1.find((n) => n.typ === "fakten") as Record<string, unknown>;
+    faktenAnfuegen(server.deps.schreibDb, {
+      betreiberId: inhaber.betreiberId,
+      serverId,
+      zeitpunkt: server.jetzt(),
+      daten: JSON.stringify({
+        ...nachricht,
+        platten: [{ mount: "/", gesamtMb: 1000, freiMb: 100 }],
+        portsOffen: [{ port: 8080, proto: "tcp" }],
+      }),
+    });
+    const { daten } = await inhaber.json(`/api/v1/server/${serverId}`);
+    expect((daten as { pruefungen: unknown[] }).pruefungen).toEqual([
+      { pruefung: "platte", ergebnis: "gelb", platten: [{ mount: "/", prozent: 90 }], seit: null },
+      { pruefung: "zertifikate", ergebnis: "gruen", zertifikate: [], seit: null },
+      { pruefung: "backups", ergebnis: "gruen", alt: [], seit: null },
+      { pruefung: "ports", ergebnis: "gelb", fremd: [{ port: 8080, proto: "tcp" }], seit: null },
+      { pruefung: "uhrzeit", ergebnis: "gruen", abweichungMs: 12, synchron: true, seit: null },
+    ]);
+    expect((await partner.json(`/api/v1/server/${serverId}`)).status).toBe(404);
+    const fremd = (await partner.json("/api/v1/uebersicht")).daten as { eintraege: unknown[] };
+    expect(JSON.stringify(fremd)).not.toContain(serverId);
+    const eigen = (await inhaber.json("/api/v1/uebersicht")).daten as { eintraege: unknown[] };
+    expect(eigen.eintraege).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ art: "pruefung", verweis: { art: "server", id: serverId } }),
+      ]),
+    );
   });
 
   it("are revoked once, with a reason, and a revoked server cannot join with its token", async () => {

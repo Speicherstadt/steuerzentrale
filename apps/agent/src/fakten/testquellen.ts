@@ -18,6 +18,7 @@ export const testQuellen = (
   return {
     aufrufe,
     lesen: async (pfad) => dateien[pfad],
+    lesenFremd: async (pfad) => dateien[pfad],
     liste: async (pfad) => ordner[pfad],
     gibtEs: async (pfad) => pfad in dateien || pfad in ordner,
     geaendertAm: async (pfad) => zeiten[pfad],

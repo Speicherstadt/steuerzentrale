@@ -3,13 +3,16 @@ import { bootIdLesen, gestartetAm, unattendedUpgrades } from "./betriebssystem.t
 import { adressen, port25Ausgehend, ptrLesen } from "./netz.ts";
 import { podmanVersion, updatesAusstehend } from "./pakete.ts";
 import { platten } from "./platten.ts";
-import { belegtePorts } from "./ports.ts";
+import { belegtePorts, offenePorts } from "./ports.ts";
 import type { FaktenQuellen } from "./quellen.ts";
 import { architektur, cpuKerne, kernel, neustartNoetig, osLesen, ramMb } from "./system.ts";
+import { uhrSynchron } from "./uhr.ts";
+import { zertifikateLesen } from "./zertifikate.ts";
 
 /*
- * All facts of the server as one `fakten` message (BAULISTE.md Z-304). Each fact is read on its own
- * and is null when it cannot be read; one that fails never keeps the others from being sent.
+ * All facts of the server as one `fakten` message (BAULISTE.md Z-304; open ports, certificates and
+ * the time service for the checks of Z-702). Each fact is read on its own and is null when it
+ * cannot be read; one that fails never keeps the others from being sent.
  */
 
 export type FaktenNachricht = typeof Fakten._output;
@@ -30,6 +33,11 @@ export const faktenLesen = async (
 ): Promise<FaktenNachricht> => {
   const netz = adressen(q);
   const k = await kernel(q);
+  const [offen, zertifikate, synchron] = await Promise.all([
+    offenePorts(q),
+    zertifikateLesen(q),
+    uhrSynchron(q),
+  ]);
   const [kerne, ram, plattenListe, os, neustart, updates, podman, ptr, ports, port25, boot] =
     await Promise.all([
       cpuKerne(q),
@@ -64,6 +72,9 @@ export const faktenLesen = async (
     port25Ausgehend: port25,
     uhrzeitAbweichungMs: angaben.uhrzeitAbweichungMs,
     ...boot,
+    portsOffen: offen,
+    zertifikate,
+    uhrSynchron: synchron,
   };
 };
 

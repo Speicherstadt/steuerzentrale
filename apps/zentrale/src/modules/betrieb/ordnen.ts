@@ -1,4 +1,4 @@
-import type { Grund } from "@steuerzentrale/planung";
+import type { Grund, Serverpruefung } from "@steuerzentrale/planung";
 
 /*
  * What needs attention, as data (BAULISTE.md Z-406; docs/plan.md, "Übersicht"): each entry with its
@@ -47,6 +47,14 @@ export type Eintrag =
       seit: number | null;
     }
   | {
+      /** A check of the server is red or yellow (Z-702); `seit` its open finding's event */
+      art: "pruefung";
+      schwere: Schwere;
+      server: ServerVerweis;
+      pruefung: Serverpruefung;
+      seit: number | null;
+    }
+  | {
       /** The newest test restore failed, or there was none for 8 days (Z-602) */
       art: "pruef_restore";
       schwere: Schwere;
@@ -79,14 +87,15 @@ export type MitVerweis = Eintrag & { verweis: Verweis };
 
 const RANG: Record<Schwere, number> = { stoerung: 0, warnung: 1, hinweis: 2 };
 
-/** Within one severity: faults, installations, agents, test restores, jobs, events */
+/** Within one severity: faults, installations, agents, checks, test restores, jobs, events */
 const FOLGE: Record<Eintrag["art"], number> = {
   stoerung: 0,
   installation: 1,
   agent: 2,
-  pruef_restore: 3,
-  auftrag: 4,
-  ereignis: 5,
+  pruefung: 3,
+  pruef_restore: 4,
+  auftrag: 5,
+  ereignis: 6,
 };
 
 /** An event's target as `art:id` (modules/bewertung/lesen.ts, `zielVon`) leads to its page */
@@ -105,6 +114,7 @@ export const verweisVon = (e: Eintrag): Verweis => {
     case "pruef_restore":
       return { art: "installation", id: e.installation.installationId };
     case "agent":
+    case "pruefung":
       return { art: "server", id: e.server.serverId };
     case "auftrag":
       return { art: "auftrag", id: e.auftragId };
