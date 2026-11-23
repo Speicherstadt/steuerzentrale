@@ -35,7 +35,7 @@ export const ereignisse: Ereignis[] = [
     zeit: heute("04:02"),
     schwere: "warn",
     ziel: inst("holm-belegt"),
-    text: "Prüf-Restore gescheitert: Health im Wegwerf-Projekt blieb rot",
+    text: "Prüf-Restore von holm-belegt gescheitert: Health der Kopie blieb rot",
   },
   {
     zeit: heute("03:52"),
@@ -113,7 +113,7 @@ export const auftraege: Auftrag[] = [
     ziel: inst("holm-belegt"),
     zustand: "gescheitert",
     start: heute("04:00"),
-    schritt: "Health im Wegwerf-Projekt rot",
+    schritt: "Health der Kopie rot",
   },
   {
     id: "A-2315",

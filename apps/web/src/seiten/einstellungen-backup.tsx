@@ -31,7 +31,7 @@ const mono = (text: string | null) => <span class="font-mono text-xs">{text ?? "
 const ablauf = () => [
   { name: m.einst_zeitplan(), wert: m.einst_zeitplan_wert() },
   { name: m.einst_aufbewahrung(), wert: m.einst_aufbewahrung_wert() },
-  { name: m.inst_pruef(), wert: m.bak_pruef_spaeter() },
+  { name: m.inst_pruef(), wert: m.einst_pruef_wert() },
 ];
 
 const NurLesen = (props: { z: BackupZiel }) => (

@@ -3,7 +3,8 @@ title: Backups
 description: >-
   Wie jede Installation täglich in ihr eigenes restic-Repository auf dem S3-Ziel des Betreibers
   gesichert wird: was der Agent auf dem Server einrichtet, wie ein Lauf abläuft, wie die Zentrale
-  davon erfährt, und in der Zentrale S3-Ziel, eigene Zugänge je Installation und „Backup jetzt“.
+  davon erfährt, und in der Zentrale S3-Ziel, eigene Zugänge je Installation, „Backup jetzt“ und der
+  wöchentliche Prüf-Restore.
 ---
 
 # Backups
@@ -216,18 +217,76 @@ Backup-Auftrag der Installation offen ist (`409 backup_laeuft`) oder bevor die B
 (`409 nicht_eingerichtet`). Ein Backup startet die App nicht neu und läuft darum auch in einer
 Sperrzeit.
 
+### Prüf-Restore
+
+Einmal je Woche zeigt ein Prüf-Restore, dass sich das Backup einer Installation zurückspielen lässt,
+ohne die Installation selbst anzufassen. Der Agent richtet dazu auf ihrem Server eine Kopie unter
+eigenem Namen `restore-<6 Zeichen>` (Nutzer `sz-restore-…`) mit eigenen Ports und denselben
+Einstellungen ein, spielt den neuesten Snapshot jedes Teils zurück, prüft ihre Health und entfernt
+sie danach wieder, auch nach einem Fehler.
+
+**Zeitplan.** Die Zentrale prüft jede Stunde jede laufende Installation aller Betreiber. Einen
+Prüf-Restore bekommt eine Installation, deren Backups eingerichtet sind, die mindestens einen
+gelungenen Lauf hat und deren letzter Prüf-Restore (nach Zeitplan oder „jetzt“, wie er auch ausging)
+mindestens 7 Tage zurückliegt. Keinen bekommt sie, solange ein anderer Auftrag der Installation offen
+ist oder auf ihrem Server schon ein Prüf-Restore läuft; dann kommt sie in einer der nächsten Stunden
+dran.
+
+**Nur der eigene Server.** Die Kopie läuft immer auf dem Server der Installation: kein anderer Server
+bekommt je ihren Backup-Zugang. Die Zentrale fragt dafür die Platzierung wie für eine zusätzliche
+Installation mit Manifest und Optionen der Installation. Passt sie nicht (zu wenig RAM oder Platte,
+feste Ports schon belegt, ein Server für sich, fehlende Fakten), legt die Zentrale keinen Auftrag an
+und schreibt das Ereignis `pruef_restore_kein_platz` (Schwere `warn`) mit den Gründen, höchstens
+einmal je Woche und Installation.
+
+**Auftrag.** Der eingebaute Auftrag `installation_pruef_restore` nennt die Installation, trägt den
+Namen der Kopie im Argument `kopie` und die Daten der Kopie im Feld `einrichtung`: die Einstellungen
+der Installation mit den Ports der Kopie. Dieses Feld setzt die Zentrale erst beim Zustellen ein, mit
+den Geheimnissen aus der verschlüsselten Spalte, und nur für den Server, auf dem die Installation
+steht; in der Datenbank und im Audit-Log steht es nicht. Ein Feld `backup` trägt der Auftrag nicht:
+Den Zugang liest der Agent aus der `backup.json` der Installation auf dem Server. Die Ports der Kopie
+vergibt die Zentrale aus 20000–29999 wie für eine Installation und hält sie in `installations_ports`
+(Zweck `restore-…:http` usw.) fest, bis der Auftrag endet; danach sind sie frei. Die Kopie bekommt
+keine Route der Pforte und keinen DNS-Eintrag. Zeitlimit: 30 Minuten Einrichten und so lange wie ein
+Backup (vier Stunden).
+
+**Ergebnis.** Endet der Auftrag, schreibt die Zentrale in derselben Transaktion eine Zeile in
+`pruef_restores` (13 Monate aufbewahrt): Zeitpunkt, Name der Kopie, gelungen oder Grund, je Teil den
+Snapshot, aus dem er zurückgespielt wurde (ein `befehl` wird nicht zurückgespielt und steht mit Grund
+da), und die Dauer, wie der Agent sie misst. Ein gescheiterter oder abgebrochener Prüf-Restore
+schreibt das Ereignis `pruef_restore_gescheitert` (Schwere `fehler`) mit dem Grund.
+
+**In der Oberfläche.** Die Seite **Backups** zeigt je Installation den letzten Prüf-Restore und als
+Kennzahl, bei wie vielen er gelang; der Reiter **Backups** einer Installation zeigt ihn mit den
+zurückgespielten Snapshots und der Dauer. In der **Übersicht** steht eine Installation, deren letzter
+Prüf-Restore gescheitert ist (Warnung) oder die seit über 8 Tagen keinen hatte (Hinweis; ohne jeden
+Prüf-Restore gezählt ab ihrem ersten gelungenen Backup). Der gescheiterte Auftrag selbst steht dort
+nicht noch einmal.
+
+**Prüf-Restore jetzt** startet auf der Seite der Installation einen Prüf-Restore mit Grund (Inhaber und
+Technik), unabhängig vom Wochenrhythmus. Dieselben Bedingungen gelten: `409 nicht_eingerichtet`,
+`409 kein_backup` (noch kein gelungener Lauf), `409 auftrag_offen`, `409 server_belegt` (ein anderer
+Prüf-Restore auf dem Server), `409 kein_platz` (mit den Gründen der Platzierung in `gruende`),
+`409 keine_ports`.
+
 ### API
 
 | Route | Wer | Körper | Antwort |
 | --- | --- | --- | --- |
 | `GET /api/v1/backup-ziel` | alle Rollen | – | `{ endpunkt, region, bucket, zugangGesetzt }` |
 | `PUT /api/v1/backup-ziel` | Inhaber, Technik | `endpunkt`, `region`, `bucket`, `accessKey`?, `secretKey`?, `grund` | wie `GET` |
-| `GET /api/v1/backups` | alle Rollen | – | `{ installationen: [{ installationId, app, kundeName, serverName, teile, zugang, eingerichtet, letzter, letzterErfolg, … }] }` |
-| `GET /api/v1/installationen/:id/backups` | alle Rollen | – | `{ installationId, teile, zugang, eingerichtet, laeufe }` |
+| `GET /api/v1/backups` | alle Rollen | – | `{ installationen: [{ installationId, app, kundeName, serverName, teile, zugang, eingerichtet, letzter, letzterErfolg, pruefRestore, … }] }` |
+| `GET /api/v1/installationen/:id/backups` | alle Rollen | – | `{ installationId, teile, zugang, eingerichtet, laeufe, pruefRestore }` |
 | `POST /api/v1/installationen/:id/backup` | Inhaber, Technik | `grund` | `201 { auftrag }` |
+| `POST /api/v1/installationen/:id/pruef-restore` | Inhaber, Technik | `grund` | `201 { auftrag }` |
+
+`pruefRestore` ist `{ letzter, laeuft }`: `letzter` der neueste Prüf-Restore als `{ zeitpunkt, ok,
+grund, kopie, teile: [{ tag, snapshot, zurueckgespielt, grund }], dauerMs }` oder `null`, `laeuft`, ob
+gerade einer offen ist.
 
 Fehler: `400 ungueltig`, `404 keine_installation`, `409 laeuft_nicht`, `409 nicht_eingerichtet`,
-`409 backup_laeuft`, `409 ziel_in_benutzung`, `422 zugang_fehlt`. Keine Antwort enthält einen Zugang,
+`409 backup_laeuft`, `409 kein_backup`, `409 auftrag_offen`, `409 server_belegt`, `409 kein_platz`,
+`409 keine_ports`, `409 ziel_in_benutzung`, `422 zugang_fehlt`. Keine Antwort enthält einen Zugang,
 ein Passwort oder ein Repository. Jeder Betreiber sieht und ändert nur seine eigenen Backups und sein
 eigenes S3-Ziel.
 
@@ -241,6 +300,8 @@ Audit-Log:
 | `backup.zugang-fehler` | ein Versuch gescheitert, mit dem nächsten Zeitpunkt |
 | `backup.stand` | ein Lauf gemeldet (Akteur `server:<id>`) |
 | `installation.backup` | „Backup jetzt“, mit Grund |
+| `installation.pruef-restore` | Prüf-Restore angelegt, mit den Ports der Kopie (Akteur `system` nach Zeitplan, sonst wer „jetzt“ wählte, mit Grund) |
+| `ereignis.pruef-restore-kein-platz` | kein Platz auf dem Server (Akteur `system`) |
 
 ### Tests
 
@@ -253,3 +314,10 @@ zwei Zugänge A und B mit der Policy aus `packages/manifest` an. A legt mit rest
 und sichert dorthin; `snapshots` und `forget` auf B's Repository, ein `DELETE` auf jedes Objekt von
 B und das Auflisten von B's Präfix, des übergeordneten Präfixes und des ganzen Buckets werden
 verweigert, und B's Objekte stehen danach unverändert da.
+
+Den Zeitplan des Prüf-Restores prüfen die Tests der Zentrale (`modules/pruef-restore/`): ein Server
+ohne Platz wird nicht gewählt (Ereignis, kein Auftrag), höchstens einer je Woche, keiner neben einem
+offenen Auftrag, einer je Server zugleich, das Feld `einrichtung` geht nur an den eigenen Server und nie
+ein Zugang, die Ports sind nach dem Ende frei, ein gescheiterter schreibt sein Ereignis; je Endpunkt
+die Trennung der Betreiber und die Rollen (`routes/pruef-restore.test.ts`). Playwright lässt den
+Stellvertreter des Agenten einen Prüf-Restore melden, den die Seite dann zeigt.

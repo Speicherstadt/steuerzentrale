@@ -92,6 +92,13 @@ Neustart meldet `{ installation, units }`; der Log-Auszug schickt zuerst die Nac
 mit den Zeilen und der Auftrags-ID und meldet dann `{ zeilen: n }`. Nach einem Neustart des Agenten
 wird ein laufender Log-Auszug wiederholt, ein Neustart nicht.
 
+Der Prüf-Restore (`installation_pruef_restore`, siehe [Backups](backups.md)) ist
+eingebaut wie ein Einrichtungsauftrag: Er nennt die Installation, trägt den Namen der Kopie im Argument
+`kopie` (`restore-<6 Zeichen>`) und ihre Daten im Feld `einrichtung`, das die Zentrale erst beim
+Zustellen einsetzt; Units, Secrets und Dateien der Kopie rendert der Agent aus dem signierten Manifest.
+Ein Feld `backup` trägt er nie. Beide Seiten prüfen ihn mit `pruefRestoreAuftragPruefen` in
+`packages/manifest`.
+
 Die beiden Aufträge der [Backups](backups.md) sind ebenfalls eingebaut:
 `installation_backup_einrichten` (Zeitlimit höchstens 30 Minuten) und `installation_backup`
 („Backup jetzt“, höchstens vier Stunden und zwei Minuten), mit dem signierten Manifest und dem Namen

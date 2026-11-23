@@ -5,6 +5,7 @@ import type {
   BackupTeil,
   BackupZeile,
   BackupZiel,
+  PruefRestoreStand,
 } from "../daten/backups.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { demo } from "./index.ts";
@@ -13,8 +14,10 @@ import { demo } from "./index.ts";
  * The backups of the demo operator in memory, answering as the Zentrale's API does
  * (apps/zentrale, routes/backups.ts): the S3 target with its admin access only as set, and for each
  * installation of the demo its runs from the demo's snapshots, each part with a tag and a snapshot
- * id. "Backup jetzt" makes a job that stays with the agent, as without an agent in the Zentrale. A
- * change lasts until the page reloads.
+ * id, and its newest test restore (Z-602) from the demo's `pruefRestore`: done the night after the
+ * last but one snapshot, failed last night with the mockup's reason, or `offen`, done 9 days ago
+ * and so due. "Backup jetzt" and "Prüf-Restore jetzt" make a job that stays with the agent, as without
+ * an agent in the Zentrale. A change lasts until the page reloads.
  */
 
 /** What each app's manifest backs up (manifeste/<app>/<version>/manifest.yml, `backup`) */
@@ -73,6 +76,35 @@ const laeufeVon = (i: Installation): BackupLauf[] =>
     };
   });
 
+const TAG = 86_400_000;
+
+/** The reason the mockup gives a failed test restore (design/mockup/, holm-belegt) */
+const PRUEF_GRUND = "Health der Kopie blieb rot";
+
+export const pruefRestoreVon = (i: Installation): PruefRestoreStand => {
+  const ok = i.pruefRestore !== "gescheitert";
+  // a failed one tried the night's snapshot, a good one the night's before
+  const basis = i.snapshots[ok ? 1 : 0]?.zeitpunkt ?? i.backup.zeitpunkt;
+  const zeitpunkt = i.pruefRestore === "offen" ? basis - 8 * TAG : basis + 45 * 60_000;
+  const teile = (BACKUP_TEILE[i.app] ?? []).map((t) => ({
+    tag: tagVon(i.app, t),
+    snapshot: ok ? snapshot(`${i.id}:${t.name}:${basis}`) : null,
+    zurueckgespielt: ok,
+    grund: null,
+  }));
+  return {
+    letzter: {
+      zeitpunkt,
+      ok,
+      grund: ok ? null : PRUEF_GRUND,
+      kopie: `restore-${fnv(i.id).slice(0, 6)}`,
+      teile: ok ? teile : [],
+      dauerMs: ok ? Math.round(60_000 + i.datenGb * 20_000) : null,
+    },
+    laeuft: false,
+  };
+};
+
 const derInstallation = (b: Bestand, id: string): BackupsDerInstallation => {
   const i = b.installationen.find((x) => x.id === id);
   return {
@@ -81,6 +113,7 @@ const derInstallation = (b: Bestand, id: string): BackupsDerInstallation => {
     zugang: i ? "angelegt" : null,
     eingerichtet: i !== undefined,
     laeufe: i ? laeufeVon(i) : [],
+    pruefRestore: i ? pruefRestoreVon(i) : { letzter: null, laeuft: false },
   };
 };
 
@@ -111,6 +144,12 @@ const ok = <T>(daten: T, status = 200) => ({ ok: true, status, daten }) as const
 export const demoBackups = (b: Bestand = demo, start: BackupZiel = ZIEL): BackupQuelle => {
   let ziel = { ...start };
   let nummer = 0;
+  const auftrag = (id: string, aktion: string) => {
+    if (!derInstallation(b, id).eingerichtet)
+      return { ok: false, status: 409, fehler: "nicht_eingerichtet" } as const;
+    nummer += 1;
+    return ok({ auftragId: `demo-${aktion}-${nummer}`, aktion, zustand: "zugestellt" }, 201);
+  };
   return {
     ziel: async () => ok({ ...ziel }),
     zielSetzen: async (neu) => {
@@ -126,18 +165,7 @@ export const demoBackups = (b: Bestand = demo, start: BackupZiel = ZIEL): Backup
     },
     uebersicht: async () => ok(b.installationen.map((i) => zeile(b, i))),
     derInstallation: async (id) => ok(derInstallation(b, id)),
-    jetzt: async (id) => {
-      if (!derInstallation(b, id).eingerichtet)
-        return { ok: false, status: 409, fehler: "nicht_eingerichtet" };
-      nummer += 1;
-      return ok(
-        {
-          auftragId: `demo-backup-${nummer}`,
-          aktion: "installation_backup",
-          zustand: "zugestellt",
-        },
-        201,
-      );
-    },
+    jetzt: async (id) => auftrag(id, "installation_backup"),
+    pruefRestore: async (id) => auftrag(id, "installation_pruef_restore"),
   };
 };

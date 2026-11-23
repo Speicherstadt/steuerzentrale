@@ -1,5 +1,6 @@
 import { Icon, m } from "@steuerzentrale/ui";
 import {
+  ArchiveX,
   Bell,
   ChevronRight,
   CircleHelp,
@@ -63,6 +64,16 @@ export const hinweisText = (e: UebersichtEintrag): Text => {
           zustand: e.zustand === "still" ? m.agent_still() : m.agent_getrennt(),
           seit: e.seit === null ? "–" : vor(e.seit, bestand().jetzt),
         }),
+      };
+    case "pruef_restore":
+      return {
+        icon: ArchiveX,
+        titel: installationTitel(e.installation),
+        text: e.gescheitert
+          ? m.hinweis_pruef_gescheitert({ grund: e.grund ?? "–" }) + seit(e.seit)
+          : m.hinweis_pruef_alt({
+              seit: e.seit === null ? m.pruef_nie() : vor(e.seit, bestand().jetzt),
+            }),
       };
     case "auftrag":
       return {

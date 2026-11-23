@@ -1,21 +1,30 @@
 import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
-import { Archive } from "@steuerzentrale/ui/icons";
+import { Archive, ArchiveRestore } from "@steuerzentrale/ui/icons";
 import { createMemo, createSignal, For, Loading, Show } from "solid-js";
-import type { Fehlschlag } from "../anmeldung/api.ts";
-import { type BackupsDerInstallation, backupQuelle } from "../daten/backups.ts";
+import type { Antwort, Fehlschlag } from "../anmeldung/api.ts";
+import { type BackupAuftrag, type BackupsDerInstallation, backupQuelle } from "../daten/backups.ts";
 import { type InstallationAnsicht, titelVon } from "../daten/installation-ansicht.ts";
 import { bestand } from "../daten/quelle.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { Fehler, fehlerText, felder } from "./anmeldung-teile.tsx";
-import { Ergebnis, laufTeilText, teileText, zugangText } from "./backup-teile.tsx";
+import {
+  Ergebnis,
+  laufTeilText,
+  PruefZustand,
+  pruefTeilText,
+  teileText,
+  zugangText,
+} from "./backup-teile.tsx";
 
 /*
  * The backups of one installation (BAULISTE.md Z-601; mockup, installation page, tab "Backups" and
  * "Backup jetzt"): the parts of its manifest, where its own S3 access stands and the runs its agent
- * reported, newest first, each part with its snapshot; "Backup jetzt" with a reason for owner and
- * technik once its backups are set up. Read anew whenever the page is (`a` changes).
+ * reported, newest first, each part with its snapshot, and its newest test restore (Z-602) with the
+ * snapshot each part was restored from; "Backup jetzt" with a reason for owner and technik once its
+ * backups are set up, "Prüf-Restore jetzt" once a run succeeded. Read anew whenever the page is
+ * (`a` changes).
  */
 
 const FEHLER: Record<string, () => string> = {
@@ -23,6 +32,11 @@ const FEHLER: Record<string, () => string> = {
   backup_laeuft: m.aktion_fehler_backup_laeuft,
   laeuft_nicht: m.aktion_fehler_laeuft_nicht,
   nicht_ausfuehrbar: m.aktion_fehler_nicht_ausfuehrbar,
+  kein_backup: m.aktion_fehler_kein_backup,
+  auftrag_offen: m.inst_fehler_auftrag_offen,
+  server_belegt: m.aktion_fehler_server_belegt,
+  kein_platz: m.aktion_fehler_kein_platz,
+  keine_ports: m.aktion_fehler_keine_ports,
 };
 
 const fehlerVon = (f: Fehlschlag) => (FEHLER[f.fehler] ?? (() => fehlerText(f)))();
@@ -58,6 +72,33 @@ const Laeufe = (props: { b: BackupsDerInstallation }) => (
   </Tabelle>
 );
 
+/** Where the backups stand and the newest test restore with what it restored and how long it took */
+const angaben = (b: BackupsDerInstallation) => {
+  const letzter = b.pruefRestore.letzter;
+  return [
+    { name: m.inst_backup_stand(), wert: zugangText(b) },
+    { name: m.inst_pruef(), wert: <PruefZustand p={b.pruefRestore} jetzt={bestand().jetzt} /> },
+    ...(letzter && letzter.teile.length > 0
+      ? [
+          {
+            name: m.pruef_zurueckgespielt(),
+            wert: (
+              <span class="font-mono text-xs">{letzter.teile.map(pruefTeilText).join(", ")}</span>
+            ),
+          },
+        ]
+      : []),
+    ...(letzter?.dauerMs != null
+      ? [
+          {
+            name: m.pruef_dauer_name(),
+            wert: m.pruef_dauer({ dauer: Math.round(letzter.dauerMs / 1000) }),
+          },
+        ]
+      : []),
+  ];
+};
+
 export const InstallationBackups = (props: { a: InstallationAnsicht }) => {
   const antwort = backupsLaden(() => props.a);
   const gelesen = () => {
@@ -84,7 +125,7 @@ export const InstallationBackups = (props: { a: InstallationAnsicht }) => {
               />
               <Show when={b().teile.length > 0}>
                 <KartenInhalt>
-                  <Angaben zeilen={[{ name: m.inst_backup_stand(), wert: zugangText(b()) }]} />
+                  <Angaben zeilen={angaben(b())} />
                 </KartenInhalt>
                 <div class="border-t">
                   <Laeufe b={b()} />
@@ -98,8 +139,41 @@ export const InstallationBackups = (props: { a: InstallationAnsicht }) => {
   );
 };
 
+/** What "Backup jetzt" and "Prüf-Restore jetzt" each say, send, and when they are offered */
+type Art = {
+  knopf: () => string;
+  text: (name: string) => string;
+  platzhalter: () => string;
+  angefordert: () => string;
+  icon: typeof Archive;
+  senden: (id: string, grund: string) => Promise<Antwort<BackupAuftrag>>;
+  angeboten: (b: BackupsDerInstallation) => boolean;
+};
+
+const BACKUP: Art = {
+  knopf: m.aktion_backup,
+  text: (name) => m.aktion_backup_text({ name }),
+  platzhalter: m.aktion_backup_grund_platzhalter,
+  angefordert: m.aktion_backup_angefordert,
+  icon: Archive,
+  senden: (id, grund) => backupQuelle().jetzt(id, grund),
+  angeboten: (b) => b.eingerichtet,
+};
+
+/** Only once a run succeeded, and not while one runs (the Zentrale refuses both) */
+const PRUEF: Art = {
+  knopf: m.aktion_pruef,
+  text: (name) => m.aktion_pruef_text({ name }),
+  platzhalter: m.aktion_pruef_grund_platzhalter,
+  angefordert: m.aktion_pruef_angefordert,
+  icon: ArchiveRestore,
+  senden: (id, grund) => backupQuelle().pruefRestore(id, grund),
+  angeboten: (b) => b.eingerichtet && !b.pruefRestore.laeuft && b.laeufe.some((l) => l.ok),
+};
+
 const JetztDialog = (props: {
   a: InstallationAnsicht;
+  art: Art;
   open: boolean;
   onClose: () => void;
   angefordert: () => void;
@@ -109,7 +183,7 @@ const JetztDialog = (props: {
   const senden = async (event: SubmitEvent) => {
     const werte = felder(event);
     setLaeuft(true);
-    const antwort = await backupQuelle().jetzt(props.a.id, werte.grund ?? "");
+    const antwort = await props.art.senden(props.a.id, werte.grund ?? "");
     setLaeuft(false);
     if (!antwort.ok) return setFehler(fehlerVon(antwort));
     setFehler("");
@@ -119,8 +193,8 @@ const JetztDialog = (props: {
     <Dialog
       open={props.open}
       onClose={() => props.onClose()}
-      title={m.aktion_backup()}
-      description={m.aktion_backup_text({ name: titelVon(props.a) })}
+      title={props.art.knopf()}
+      description={props.art.text(titelVon(props.a))}
     >
       <Show when={props.open}>
         <form class="grid gap-4" onSubmit={senden}>
@@ -129,7 +203,7 @@ const JetztDialog = (props: {
             name="grund"
             required
             maxlength={500}
-            placeholder={m.aktion_backup_grund_platzhalter()}
+            placeholder={props.art.platzhalter()}
             hint={m.feld_grund_hinweis()}
           />
           <Fehler text={fehler()} />
@@ -145,32 +219,30 @@ const JetztDialog = (props: {
   );
 };
 
-/**
- * "Backup jetzt" for an installation whose backups are set up; `neu` once the job is made, so the
- * page reads it again
- */
-export const BackupJetzt = (props: { a: InstallationAnsicht; neu: () => void }) => {
+/** The button and dialog of one kind, once the installation's backups offer it */
+const Jetzt = (props: { a: InstallationAnsicht; art: Art; neu: () => void }) => {
   const antwort = backupsLaden(() => props.a);
   const [offen, setOffen] = createSignal(false);
   const [hinweis, setHinweis] = createSignal("");
-  const eingerichtet = () => {
+  const angeboten = () => {
     const r = antwort();
-    return r.ok && r.daten.eingerichtet;
+    return r.ok && props.art.angeboten(r.daten);
   };
   return (
     <Loading fallback={null}>
-      <Show when={eingerichtet()}>
+      <Show when={angeboten()}>
         <Button onClick={() => setOffen(true)}>
-          <Icon icon={Archive} />
-          {m.aktion_backup()}
+          <Icon icon={props.art.icon} />
+          {props.art.knopf()}
         </Button>
         <JetztDialog
           a={props.a}
+          art={props.art}
           open={offen()}
           onClose={() => setOffen(false)}
           angefordert={() => {
             setOffen(false);
-            setHinweis(m.aktion_backup_angefordert());
+            setHinweis(props.art.angefordert());
             props.neu();
           }}
         />
@@ -181,3 +253,16 @@ export const BackupJetzt = (props: { a: InstallationAnsicht; neu: () => void }) 
     </Loading>
   );
 };
+
+/**
+ * "Backup jetzt" for an installation whose backups are set up; `neu` once the job is made, so the
+ * page reads it again
+ */
+export const BackupJetzt = (props: { a: InstallationAnsicht; neu: () => void }) => (
+  <Jetzt a={props.a} art={BACKUP} neu={() => props.neu()} />
+);
+
+/** "Prüf-Restore jetzt" (Z-602) for an installation with a successful backup run */
+export const PruefRestoreJetzt = (props: { a: InstallationAnsicht; neu: () => void }) => (
+  <Jetzt a={props.a} art={PRUEF} neu={() => props.neu()} />
+);
