@@ -933,7 +933,7 @@
   "melden_benutzer": "Benutzer",
   "melden_benutzer_hinweis": "leer lassen, wenn der Server keine Anmeldung will",
   "melden_passwort": "Passwort",
-  "melden_passwort_gesetzt": "gesetzt; leer lassen behält das Passwort",
+  "melden_passwort_gesetzt": "gesetzt; leer lassen behält das Passwort, solange Host und Benutzer bleiben",
   "melden_passwort_neu": "liegt verschlüsselt in der Zentrale und geht nur über TLS an den Server",
   "melden_ruhe_von": "Ruhezeit von",
   "melden_ruhe_bis": "Ruhezeit bis",

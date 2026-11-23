@@ -154,7 +154,7 @@ Dieselbe Zustellung nutzt später das Portal (Z-903): es ist ein Webhook-Empfän
 | Route | Rolle | Wirkung |
 | --- | --- | --- |
 | `GET /api/v1/benachrichtigungen` | alle | SMTP-Server (Passwort nur als `passwortGesetzt`), Ruhezeit, Empfänger (Webhook nur als Host), die 20 neuesten Zustellungen |
-| `PUT /api/v1/benachrichtigungen` | Inhaber, Technik | `smtp` (oder `null`) und `ruhezeit` (oder `null`) mit `grund`; ein fehlendes `passwort` behält das alte |
+| `PUT /api/v1/benachrichtigungen` | Inhaber, Technik | `smtp` (oder `null`) und `ruhezeit` (oder `null`) mit `grund`; ein fehlendes `passwort` behält das alte, solange Host und Benutzer gleich bleiben; mit einem anderen Host oder Benutzer ist es weg |
 | `POST /api/v1/benachrichtigungen/empfaenger` | Inhaber, Technik | `art` `mail` mit `adresse` oder `webhook` mit `url` und `schluessel` (32 bis 200 Zeichen), `abSchwere`, `grund` |
 | `DELETE /api/v1/benachrichtigungen/empfaenger/:id` | Inhaber, Technik | mit `grund`; wartende Zustellungen enden |
 | `POST /api/v1/benachrichtigungen/empfaenger/:id/test` | Inhaber, Technik | sendet sofort eine Testnachricht; `502` mit dem Grund, wenn sie nicht ankam |

@@ -933,7 +933,7 @@
   "melden_benutzer": "User",
   "melden_benutzer_hinweis": "leave empty if the server wants no sign-in",
   "melden_passwort": "Password",
-  "melden_passwort_gesetzt": "set; leave empty to keep the password",
+  "melden_passwort_gesetzt": "set; leave empty to keep the password while host and user stay the same",
   "melden_passwort_neu": "kept encrypted in the Zentrale and sent to the server only over TLS",
   "melden_ruhe_von": "Quiet hours from",
   "melden_ruhe_bis": "Quiet hours until",

@@ -88,13 +88,23 @@ export const einstellungenLesen = (db: Db, betreiberId: string): Benachrichtigun
   return { smtp, ruhezeit: ruhezeitVon(db, betreiberId) };
 };
 
-/** Sets mail server and quiet hours; the password only when given, gone with the user */
+/**
+ * Whether a password left out may stay: only for the same host and user, else whoever may change
+ * the settings could send it to a server of their own and read it there
+ */
+const passwortBleibt = (db: Db, betreiberId: string, neu: NeueEinstellungen["smtp"]): boolean => {
+  const alt = zeileVon(db, betreiberId);
+  return Boolean(neu?.benutzer && alt?.smtpHost === neu.host && alt?.smtpBenutzer === neu.benutzer);
+};
+
+/** Sets mail server and quiet hours; the password only when given, gone with host or user */
 export const einstellungenSetzen = (
   deps: { db: Db; schreibDb: SchreibDb; schluessel: Schluesselbund },
   kontext: Kontext,
   neu: NeueEinstellungen,
 ): Benachrichtigungseinstellungen => {
   const { betreiberId, jetzt } = kontext;
+  const bleibt = neu.smtp?.passwort === undefined && passwortBleibt(deps.db, betreiberId, neu.smtp);
   const zeile = {
     smtpHost: neu.smtp?.host ?? null,
     smtpPort: neu.smtp?.port ?? null,
@@ -118,7 +128,8 @@ export const einstellungenSetzen = (
         klartext: neu.smtp.passwort,
         jetzt,
       });
-    if (!mitBenutzer && w.vorhanden("geheimnisse", { geheimnisId: SMTP_PASSWORT }))
+    const ersetzt = mitBenutzer && neu.smtp?.passwort !== undefined;
+    if (!ersetzt && !bleibt && w.vorhanden("geheimnisse", { geheimnisId: SMTP_PASSWORT }))
       w.loeschen("geheimnisse", { geheimnisId: SMTP_PASSWORT });
   });
   return einstellungenLesen(deps.db, betreiberId);
