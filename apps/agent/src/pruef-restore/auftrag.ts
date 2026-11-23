@@ -13,7 +13,7 @@ import { type EinrichtungsDeps, fremd, mitZeitlimit } from "../einrichtung/auftr
 import { unitsStarten, vorbereiten } from "../einrichtung/einrichten.ts";
 import { laeufer } from "../einrichtung/lauf.ts";
 import type { Nutzer } from "../einrichtung/nutzer.ts";
-import type { Einrichten } from "../einrichtung/typen.ts";
+import type { Einrichten, SystemDeps } from "../einrichtung/typen.ts";
 import { type Health, healthPruefen, type PruefDeps } from "../zustand/pruefen.ts";
 import type { PruefZiel } from "../zustand/ziel.ts";
 import { quelleLesen } from "./quelle.ts";
@@ -106,10 +106,13 @@ const vorabPruefen = async (
   return (await fremd(deps, a.kopie.name))?.replace(/^abgelehnt: /, "");
 };
 
-/** The copy's health until it is no longer red, five minutes at most */
-const healthAbwarten = async (
-  deps: PruefRestoreDeps,
-  e: Einrichten,
+/**
+ * The health of the copy, or of a restored installation (Z-603), until it is no longer red, five
+ * minutes at most
+ */
+export const healthAbwarten = async (
+  deps: PruefDeps & Pick<SystemDeps, "warten">,
+  e: Pick<Einrichten, "ziel" | "name">,
   n: Nutzer,
   auftrag: AbortSignal,
 ): Promise<Health> => {
@@ -153,8 +156,11 @@ const kopieLaufen = async (
   return { teile: z.teile, health };
 };
 
-/** A part as the Zentrale reads it (pruefRestoreDatenLesen): its snapshot, played back or why not */
-const gemeldet = (t: TeilErgebnis): PruefRestoreTeil => ({
+/**
+ * A part as the Zentrale reads it (pruefRestoreDatenLesen, also for a restore): its snapshot,
+ * played back or why not
+ */
+export const gemeldet = (t: TeilErgebnis): PruefRestoreTeil => ({
   tag: t.tag,
   snapshot: t.snapshot ?? null,
   zurueckgespielt: t.ergebnis === "zurueckgespielt",

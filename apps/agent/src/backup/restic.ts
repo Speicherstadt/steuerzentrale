@@ -14,9 +14,13 @@ import { BACKUP_AUFBEWAHRUNG, type BackupTeil, RESTIC_IMAGE } from "@steuerzentr
 
 /**
  * `installation` is the host of the snapshots; `netz` the network restic runs in, the
- * installation's own unless a Prüf-Restore plays its snapshots back into a copy (Z-602)
+ * installation's own unless a Prüf-Restore plays its snapshots back into a copy (Z-602);
+ * `inUnit` when restic runs within a transient unit of its own (restoring, Z-603): its container
+ * then stays in that unit's cgroup (`--cgroups split`, as Quadlet runs a container: podman v4.9.3,
+ * pkg/systemd/quadlet/quadlet.go), so stopping the unit ends conmon and restic too; without it,
+ * conmon and the container run in a scope of their own and outlive whoever started them
  */
-export type Repo = { installation: string; repository: string; netz?: string };
+export type Repo = { installation: string; repository: string; netz?: string; inUnit?: boolean };
 
 /** What restic reads on descriptors 3 and 4 */
 export const PASSWORT_FD = "/dev/fd/3";
@@ -26,6 +30,7 @@ const podmanRun = (r: Repo, o: { eingabe?: boolean; volume?: string } = {}): str
   "podman",
   "run",
   "--rm",
+  ...(r.inUnit ? ["--cgroups", "split"] : []),
   ...(o.eingabe ? ["-i"] : []),
   "--network",
   r.netz ?? r.installation,
@@ -93,18 +98,17 @@ export const verwerfenArgv = (r: Repo, snapshot: string): string[] => [
 ];
 
 /**
- * The newest snapshot of a part and the entries of one folder in it (Z-602): `ls --json` prints the
- * snapshot first, then the folder and what is directly in it (not recursive, cmd/restic/cmd_ls.go)
+ * The newest snapshot of a part, or the one given (Z-603), and the entries of one folder in it
+ * (Z-602): `ls --json` prints the snapshot first, then the folder and what is directly in it (not
+ * recursive, cmd/restic/cmd_ls.go). A snapshot given by its ID is found without `--host` and
+ * `--tag` (internal/data/snapshot_find.go, FindLatest), so its host and tags are checked from that
+ * first line (pruef-restore/spielen.ts, lsLesen)
  */
-export const lsArgv = (r: Repo, tag: string, ordner: string): string[] => [
+export const lsArgv = (r: Repo, tag: string, ordner: string, snapshot?: string): string[] => [
   ...podmanRun(r),
   "ls",
   "--json",
-  "latest",
-  "--host",
-  r.installation,
-  "--tag",
-  tag,
+  ...(snapshot === undefined ? ["latest", "--host", r.installation, "--tag", tag] : [snapshot]),
   ordner,
 ];
 

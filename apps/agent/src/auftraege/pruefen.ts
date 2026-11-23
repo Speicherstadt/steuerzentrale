@@ -28,6 +28,9 @@ import {
   STANDARD_ZEITLIMIT_S,
   schluesselVertrauen,
   signiertesManifestLaden,
+  WIEDERHERSTELLEN_AKTION,
+  WIEDERHERSTELLEN_ZEITLIMIT_S,
+  wiederherstellenAuftragPruefen,
   type Zweck,
 } from "@steuerzentrale/manifest";
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
@@ -35,6 +38,7 @@ import type { Aktion } from "../aktionen/auftrag.ts";
 import type { Backup } from "../backup/auftrag.ts";
 import type { Einrichten, Entfernen, Konfigurieren, Schritt } from "../einrichtung/typen.ts";
 import type { PruefRestore } from "../pruef-restore/auftrag.ts";
+import type { Wiederherstellen } from "../wiederherstellen/auftrag.ts";
 import { pruefZiel } from "../zustand/ziel.ts";
 
 /*
@@ -51,7 +55,9 @@ import { pruefZiel } from "../zustand/ziel.ts";
  * backup job (Z-601) passes backupAuftragPruefen; only `installation_backup_einrichten` may carry
  * the field `backup`, with the installation's repository, S3 access and restic password. A
  * Prüf-Restore (Z-602) passes pruefRestoreAuftragPruefen: its copy's units are rendered from the
- * signed manifest like a setup's, under the copy's name and ports. Pure, no I/O.
+ * signed manifest like a setup's, under the copy's name and ports. A restore (Z-603) passes
+ * wiederherstellenAuftragPruefen: the parts from the signed manifest, the snapshots from the job.
+ * Pure, no I/O.
  */
 
 export type AuftragNachricht = Extract<NachrichtVonDerZentrale, { typ: "auftrag" }>;
@@ -135,13 +141,27 @@ export type PruefRestorePlan = {
   idempotent: true;
 };
 
+/** What a restore does: the installation's data back from a run of its backup (src/wiederherstellen) */
+export type WiederherstellenPlan = {
+  art: "wiederherstellen";
+  aktion: string;
+  auftrag: Wiederherstellen;
+  zeitlimitMs: number;
+  /**
+   * Not run again after a restart of the agent: it stops the app and replaces its data, which
+   * after a restart may come at a time nobody chose; the Zentrale sends it anew
+   */
+  idempotent: false;
+};
+
 export type JederPlan =
   | Plan
   | PfortePlan
   | EinrichtungPlan
   | AktionPlan
   | BackupPlan
-  | PruefRestorePlan;
+  | PruefRestorePlan
+  | WiederherstellenPlan;
 
 export type Geprueft = { ok: true; plan: JederPlan } | { ok: false; grund: string };
 
@@ -240,6 +260,23 @@ const pruefRestorePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
   };
 };
 
+const wiederherstellenPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
+  const geprueft = wiederherstellenAuftragPruefen(m, n);
+  if (!geprueft.ok) return geprueft;
+  const { name, teile, netz, snapshots } = geprueft.auftrag;
+  const manifest = { id: m.id, version: m.version, geheim: geheimeEinstellungen(m) };
+  return {
+    ok: true,
+    plan: {
+      art: "wiederherstellen",
+      aktion: n.aktion,
+      auftrag: { art: "wiederherstellen", name, teile, netz, snapshots, manifest },
+      zeitlimitMs: Math.min(n.zeitlimitS, WIEDERHERSTELLEN_ZEITLIMIT_S) * 1000,
+      idempotent: false,
+    },
+  };
+};
+
 /** A command of `schritte.einrichten` as it runs: no arguments, its own time limit */
 const schrittFuellen = (m: Manifest, name: string): Schritt | string => {
   const befehl = befehlZurAktion(m, name);
@@ -308,6 +345,7 @@ export const auftragPruefen = (n: AuftragNachricht, vertrauen: Vertrauen): Gepru
     return { ok: false, grund: "only installation_backup_einrichten carries backup data (backup)" };
   if (istBackupAktion(n.aktion)) return backupPlan(geladen.manifest, n);
   if (n.aktion === PRUEF_RESTORE_AKTION) return pruefRestorePlan(geladen.manifest, n);
+  if (n.aktion === WIEDERHERSTELLEN_AKTION) return wiederherstellenPlan(geladen.manifest, n);
   if (istEinrichtungAktion(n.aktion)) return einrichtungPlan(geladen.manifest, n);
   // the installation's data and its secrets belong to a setup job (and a copy's), and only there
   if (n.einrichtung !== undefined)

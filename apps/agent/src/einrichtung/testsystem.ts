@@ -239,6 +239,10 @@ const secretAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string }
   return { code: 0, aus: `${JSON.stringify(berichte, null, 4)}\n` };
 };
 
+/** The argv a transient unit runs (`systemd-run … -- <argv>`, Z-603), or the argv itself */
+export const imBinary = (argv: readonly string[]): readonly string[] =>
+  argv[0] === "systemd-run" ? argv.slice(argv.indexOf("--") + 1) : argv;
+
 /**
  * What a user reads besides Podman's secrets: a file of its own (`cat`, the backup's stand, Z-601),
  * the answer of `steuerzentrale-agent sichern … --repository-anlegen`, a new repository, and that of
@@ -254,9 +258,15 @@ const nutzerAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string }
   }
   if (a.argv[1] === "sichern")
     return { code: 0, aus: '{"msg":"repository","ok":true,"repository":"angelegt"}\n' };
-  // a part played back by the agent's binary as the target's user (Z-602), from a snapshot
-  if (a.argv[1] === "zurueckspielen")
-    return { code: 0, aus: `${JSON.stringify({ ok: true, snapshot: TEST_SNAPSHOT })}\n` };
+  // a part played back by the agent's binary as the target's user (Z-602), from a snapshot: the
+  // newest, or the one asked for when restoring, in a transient unit of the user (Z-603)
+  if (imBinary(a.argv)[1] === "zurueckspielen") {
+    const gefragt = (JSON.parse(a.eingabe ?? "{}") as { snapshot?: string }).snapshot;
+    return {
+      code: 0,
+      aus: `${JSON.stringify({ ok: true, snapshot: gefragt ?? TEST_SNAPSHOT })}\n`,
+    };
+  }
   return secretAusgabe(z, a);
 };
 
@@ -272,9 +282,13 @@ export const testSystem = (o: TestSystemOptionen = {}) => {
     const code = o.scheitern?.(a) ?? (a.als === "root" ? alsRoot(z, o, a.argv) : alsNutzer(z, a));
     return Promise.resolve({ code });
   };
-  const lesen: SpawnMitAusgabe = async (argv, _signal, mit) => {
+  const lesen: SpawnMitAusgabe = async (argv, signal, mit) => {
     const a: Aufgerufen = { ...ohnePraefix(argv, mit), gelesen: true };
     z.laeufe.push(a);
+    if (o.haengt?.(a))
+      return new Promise((fertig) =>
+        signal.addEventListener("abort", () => fertig({ code: null, aus: "" })),
+      );
     const code = o.scheitern?.(a);
     if (code !== undefined) return { code, aus: o.ausgabe?.(a) ?? "" };
     const r = a.als === "root" ? { code: 127, aus: "" } : nutzerAusgabe(z, a);

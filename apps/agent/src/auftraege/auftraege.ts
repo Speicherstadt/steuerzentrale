@@ -22,6 +22,7 @@ import {
   resteAbbauen,
 } from "../pruef-restore/auftrag.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
+import { wiederherstellenAusfuehren } from "../wiederherstellen/auftrag.ts";
 import type { PruefDeps, SpawnMitAusgabe } from "../zustand/pruefen.ts";
 import { ausfuehren as befehlAusfuehren, type Ergebnis, type Spawn } from "./ausfuehren.ts";
 import {
@@ -36,8 +37,8 @@ import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.
  * The agent's side of jobs (BAULISTE.md Z-305): it acknowledges a job, checks it (pruefen.ts),
  * reports that it runs, runs it (ausfuehren.ts as the installation's user; a job of the Pforte
  * through its admin API, src/pforte; a setup job by src/einrichtung; a restart or log excerpt by
- * src/aktionen, whose lines go out as `log_auszug` before the result; a backup job by src/backup)
- * and reports the result.
+ * src/aktionen, whose lines go out as `log_auszug` before the result; a backup job by src/backup;
+ * a restore by src/wiederherstellen) and reports the result.
  * Idempotent by the job's
  * id through its record (zustand.ts): a finished job sent again gets its stored result, a running
  * one only an acknowledgement. A job that was running when the agent stopped is reported failed
@@ -164,6 +165,9 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
       return einrichtungReihe(() => einrichtungAusfuehren(system, plan));
     if (plan.art === "aktion")
       return einrichtungReihe(() => aktionAusfuehren(system, plan, auszugSenden));
+    // a restore stops and starts the installation's units: never beside a setup or an action
+    if (plan.art === "wiederherstellen")
+      return einrichtungReihe(() => wiederherstellenAusfuehren(pruef, plan));
     // setting up a backup writes into the home like a setup; a run may take hours and waits for none
     if (plan.art === "backup")
       return plan.auftrag.art === "einrichten"
