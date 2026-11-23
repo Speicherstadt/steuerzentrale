@@ -3,7 +3,7 @@ import { type EinrichtungsDeps, mitZeitlimit } from "../einrichtung/auftrag.ts";
 import { laeufer } from "../einrichtung/lauf.ts";
 import { neustarten } from "../einrichtung/neustarten.ts";
 import { nutzerName } from "../einrichtung/nutzer.ts";
-import type { ManifestAngaben } from "./geheimnisse.ts";
+import { installationVomManifest, type ManifestAngaben } from "./geheimnisse.ts";
 import type { ZeilenLesen } from "./journal.ts";
 import { logAuszugLesen } from "./log-auszug.ts";
 
@@ -11,7 +11,8 @@ import { logAuszugLesen } from "./log-auszug.ts";
  * The actions restart and log excerpt on the agent (BAULISTE.md Z-405; docs/plan.md, "Neustart",
  * "Log-Auszug"), after the job passed key, signature and aktionAngeboten (auftraege/pruefen.ts).
  * Only for an installation this agent set up and finished, whose units its record knows (Z-403),
- * as its user. Both run in the line of the setup jobs (auftraege.ts): a restart never meets a
+ * as its user, and only when its units were rendered from the job's manifest (app and version in
+ * their labels), whose `aktionen` decided the action is offered. Both run in the line of the setup jobs (auftraege.ts): a restart never meets a
  * setup or reconfiguring of the same installation, and a log excerpt never reads the secrets while
  * reconfiguring has replaced some of them. The lines of an excerpt go to `auszugSenden` before the
  * result, which tells only their number; nothing of them reaches a log or a reason.
@@ -47,6 +48,9 @@ export const aktionAusfuehren = async (
   const n = await deps.nutzer(nutzerName(a.name));
   if (!n) return fehler(`abgelehnt: ${nutzerName(a.name)} fehlt`);
   if (a.art === "neustart") {
+    // the log excerpt checks the same while it reads the units (geheimnisse.ts)
+    const passt = await installationVomManifest(deps, n, units, a.manifest);
+    if (!passt.ok) return fehler(`abgelehnt: ${passt.grund}`);
     const r = await mitZeitlimit(deps, plan.zeitlimitMs, (signal) =>
       neustarten(deps, laeufer(deps, signal), n, units, signal),
     );

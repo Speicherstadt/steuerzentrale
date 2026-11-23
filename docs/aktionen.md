@@ -66,8 +66,11 @@ was ihr Manifest anbietet.
 Der Agent führt `installation_neustart` und `installation_log_auszug` nur aus, wenn das signierte
 Manifest die Aktion anbietet (`aktionen.neustart` bzw. `aktionen.log_auszug`, Vorgabe
 `angeboten`); sonst lehnt er ab („abgelehnt: the manifest does not offer neustart“), ohne etwas
-zu starten. Beide nimmt er nur für eine Installation an, die er selbst fertig eingerichtet hat, und
-beide laufen nacheinander mit den Einrichtungsaufträgen: ein Neustart trifft nie ein halbes
+zu starten. Beide nimmt er nur für eine Installation an, die er selbst fertig eingerichtet hat und
+deren Units in ihren Labels genau App und Version dieses Manifests nennen (sonst „abgelehnt: die
+Units sind nicht aus … dem Manifest des Auftrags“): ein anderes signiertes Manifest kann einer
+Installation keine Aktion leihen, die ihr eigenes nicht anbietet. Beide
+laufen nacheinander mit den Einrichtungsaufträgen: ein Neustart trifft nie ein halbes
 Einrichten oder Neukonfigurieren. „Nur lesen“ ist ein gewöhnlicher Befehl des Manifests
 ([Aufträge](auftraege.md)).
 

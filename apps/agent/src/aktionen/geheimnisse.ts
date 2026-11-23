@@ -64,6 +64,39 @@ const unitsLesen = async (
   return { ok: true, units: gelesen };
 };
 
+/** Every unit names the manifest's app and version in its labels: it was rendered from it */
+const vonDiesemManifest = (units: readonly UnitAngaben[], m: ManifestAngaben): boolean =>
+  units.length > 0 &&
+  units.every(
+    (u) =>
+      u.labels.get(`${QUADLET_LABEL}.app`) === m.id &&
+      u.labels.get(`${QUADLET_LABEL}.version`) === m.version,
+  );
+
+const nichtVon = (m: ManifestAngaben) =>
+  `die Units sind nicht aus ${m.id} ${m.version}, dem Manifest des Auftrags`;
+
+/**
+ * Whether the installation runs the app and version of the job's manifest (review of Z-405): only
+ * then does that manifest's `aktionen` say what the installation offers; another signed manifest
+ * must not lend it an action its own does not offer
+ */
+export const installationVomManifest = async (
+  deps: GeheimDeps,
+  n: Nutzer,
+  units: readonly string[],
+  m: ManifestAngaben,
+): Promise<{ ok: true } | { ok: false; grund: string }> => {
+  let gelesen: Awaited<ReturnType<typeof unitsLesen>>;
+  try {
+    gelesen = await unitsLesen(deps, n, units);
+  } catch (fehler) {
+    return { ok: false, grund: String(fehler).slice(0, 500) };
+  }
+  if (!gelesen.ok) return gelesen;
+  return vonDiesemManifest(gelesen.units, m) ? { ok: true } : { ok: false, grund: nichtVon(m) };
+};
+
 /** The names from the record, or from the manifest the units were rendered from */
 const namenVon = (
   eintrag: InstallationsEintrag,
@@ -71,12 +104,7 @@ const namenVon = (
   m: ManifestAngaben,
 ): readonly string[] | undefined => {
   if (eintrag.geheim) return eintrag.geheim;
-  const vonDiesem = units.every(
-    (u) =>
-      u.labels.get(`${QUADLET_LABEL}.app`) === m.id &&
-      u.labels.get(`${QUADLET_LABEL}.version`) === m.version,
-  );
-  return units.length > 0 && vonDiesem ? m.geheim : undefined;
+  return vonDiesemManifest(units, m) ? m.geheim : undefined;
 };
 
 export const geheimeWerte = async (
@@ -101,6 +129,7 @@ export const geheimeWerte = async (
       grund:
         "das Gedächtnis kennt die geheimen Einstellungen nicht (vor Z-405), und die Units sind nicht aus dem Manifest des Auftrags",
     };
+  if (!vonDiesemManifest(gelesen.units, m)) return { ok: false, grund: nichtVon(m) };
   const secrets = await secretsLesen(deps.lesen, n, signal);
   if (!secrets.ok) return { ok: false, grund: `die Secrets sind nicht lesbar (${secrets.grund})` };
   const umgebung = gelesen.units.flatMap((u) =>
