@@ -289,7 +289,13 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   über die Cloudflare-API und entfernt sie mit der Installation.
   nach: Z-402
   Fertig, wenn: in der CI gegen eine nachgebaute Cloudflare-API eine Installation ihren Eintrag
-  bekommt und beim Entfernen verliert und kein Server einen DNS-Token erhält (Test).
+  bekommt und beim Entfernen verliert und kein Server einen DNS-Token erhält (Test); dazu (Tests):
+  der Token steht nur verschlüsselt in der Datenbank und in keiner API-Antwort, keinem Log und
+  keiner Nachricht an einen Agenten; ein Eintrag ohne den Kommentar der Zentrale wird nie geändert
+  oder gelöscht; ein Fehler der API erzeugt `dns_fehler` und einen späteren erfolgreichen Versuch;
+  ein Host außerhalb der Domain bekommt keinen Eintrag; ein Kürzel ist je Betreiber eindeutig und
+  unter einer laufenden Installation nicht änderbar; kein Betreiber erreicht Kürzel oder
+  DNS-Einstellungen eines anderen (Test je Endpunkt).
 
 ## Phase 5 – Backups und Wiederherstellen
 
