@@ -1,8 +1,13 @@
 import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
 import { Archive, ArchiveRestore } from "@steuerzentrale/ui/icons";
-import { createMemo, createSignal, For, Loading, Show } from "solid-js";
+import { createMemo, createSignal, For, Loading, refresh, Show } from "solid-js";
 import type { Antwort, Fehlschlag } from "../anmeldung/api.ts";
-import { type BackupAuftrag, type BackupsDerInstallation, backupQuelle } from "../daten/backups.ts";
+import {
+  type BackupAuftrag,
+  type BackupLauf,
+  type BackupsDerInstallation,
+  backupQuelle,
+} from "../daten/backups.ts";
 import { type InstallationAnsicht, titelVon } from "../daten/installation-ansicht.ts";
 import { bestand } from "../daten/quelle.ts";
 import { zeitpunkt } from "../format/zeit.ts";
@@ -17,14 +22,22 @@ import {
   teileText,
   zugangText,
 } from "./backup-teile.tsx";
+import {
+  WiederherstellenDialog,
+  WiederherstellenKnopf,
+  WiederherstellenZustand,
+  wiederherstellbar,
+} from "./installation-wiederherstellen.tsx";
+import { installationsRecht } from "./recht.tsx";
 
 /*
  * The backups of one installation (BAULISTE.md Z-601; mockup, installation page, tab "Backups" and
  * "Backup jetzt"): the parts of its manifest, where its own S3 access stands and the runs its agent
  * reported, newest first, each part with its snapshot, and its newest test restore (Z-602) with the
- * snapshot each part was restored from; "Backup jetzt" with a reason for owner and technik once its
- * backups are set up, "Prüf-Restore jetzt" once a run succeeded. Read anew whenever the page is
- * (`a` changes).
+ * snapshot each part was restored from, and its newest restore (Z-603); "Backup jetzt" with a reason
+ * for owner and technik once its backups are set up, "Prüf-Restore jetzt" once a run succeeded, and
+ * beside each successful run its restore (installation-wiederherstellen.tsx). Read anew whenever
+ * the page is (`a` changes) and once a restore is asked for.
  */
 
 const FEHLER: Record<string, () => string> = {
@@ -45,7 +58,13 @@ const fehlerVon = (f: Fehlschlag) => (FEHLER[f.fehler] ?? (() => fehlerText(f)))
 const backupsLaden = (a: () => InstallationAnsicht) =>
   createMemo(() => backupQuelle().derInstallation(a().id));
 
-const Laeufe = (props: { b: BackupsDerInstallation }) => (
+/** The runs; with the right to restore, a column with the button of each run that can be */
+const Laeufe = (props: {
+  a: InstallationAnsicht;
+  b: BackupsDerInstallation;
+  darf: boolean;
+  waehlen: (lauf: BackupLauf) => void;
+}) => (
   <Tabelle
     name={m.inst_backup_laeufe()}
     rahmen={false}
@@ -56,6 +75,7 @@ const Laeufe = (props: { b: BackupsDerInstallation }) => (
       { name: m.inst_zeitpunkt() },
       { name: m.inst_backup_ergebnis() },
       { name: m.bak_spalte_snapshots() },
+      ...(props.darf ? [{ name: m.wh_spalte(), class: "sr-only" }] : []),
     ]}
   >
     <For each={props.b.laeufe}>
@@ -66,6 +86,15 @@ const Laeufe = (props: { b: BackupsDerInstallation }) => (
             <Ergebnis lauf={lauf} />
           </td>
           <td class="font-mono text-xs">{lauf.teile.map(laufTeilText).join(", ") || "–"}</td>
+          <Show when={props.darf}>
+            <td class="text-right">
+              <WiederherstellenKnopf
+                lauf={lauf}
+                angeboten={wiederherstellbar(props.a, props.b, lauf)}
+                waehlen={(l) => props.waehlen(l)}
+              />
+            </td>
+          </Show>
         </Reihe>
       )}
     </For>
@@ -88,6 +117,9 @@ const angaben = (b: BackupsDerInstallation) => {
           },
         ]
       : []),
+    ...(b.wiederherstellen.letzter
+      ? [{ name: m.wh_name(), wert: <WiederherstellenZustand w={b.wiederherstellen} /> }]
+      : []),
     ...(letzter?.dauerMs != null
       ? [
           {
@@ -101,6 +133,9 @@ const angaben = (b: BackupsDerInstallation) => {
 
 export const InstallationBackups = (props: { a: InstallationAnsicht }) => {
   const antwort = backupsLaden(() => props.a);
+  const darf = installationsRecht();
+  const [gewaehlt, setGewaehlt] = createSignal<BackupLauf | undefined>();
+  const [hinweis, setHinweis] = createSignal("");
   const gelesen = () => {
     const r = antwort();
     return r.ok ? r.daten : undefined;
@@ -128,8 +163,27 @@ export const InstallationBackups = (props: { a: InstallationAnsicht }) => {
                   <Angaben zeilen={angaben(b())} />
                 </KartenInhalt>
                 <div class="border-t">
-                  <Laeufe b={b()} />
+                  <Laeufe a={props.a} b={b()} darf={darf()} waehlen={(l) => setGewaehlt(l)} />
                 </div>
+                <p
+                  role="status"
+                  class={[
+                    "border-t px-5 py-3 text-xs text-muted-foreground",
+                    { hidden: !hinweis() },
+                  ]}
+                >
+                  {hinweis()}
+                </p>
+                <WiederherstellenDialog
+                  a={props.a}
+                  lauf={gewaehlt()}
+                  onClose={() => setGewaehlt(undefined)}
+                  angefordert={() => {
+                    setGewaehlt(undefined);
+                    setHinweis(m.wh_angefordert());
+                    refresh(antwort);
+                  }}
+                />
               </Show>
             </>
           )}

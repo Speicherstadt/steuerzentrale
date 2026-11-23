@@ -26,8 +26,9 @@ const zielSetzen = async (request: APIRequestContext) => {
 
 type Backups = {
   eingerichtet: boolean;
-  laeufe: { ok: boolean }[];
+  laeufe: { id: string; ok: boolean }[];
   pruefRestore: { letzter: { ok: boolean } | null; laeuft: boolean };
+  wiederherstellen: { letzter: { phase: string } | null; laeuft: boolean };
 };
 
 const backups = async (request: APIRequestContext, id: string) =>
@@ -37,8 +38,9 @@ const backups = async (request: APIRequestContext, id: string) =>
 // its admin access only as set; an installation with a volume to back up gets its own access at the
 // stand-in of MinIO and its backups set up by the stand-in agent (e2e/hilfen/agent.ts), then "Backup
 // jetzt" with a reason, after which the agent reports a run; then "Prüf-Restore jetzt" (Z-602), whose
-// result the agent reports and the page shows. The agent's own side (restic, the timer, the copy,
-// MinIO itself) runs in CI against Podman and MinIO (apps/agent).
+// result the agent reports and the page shows; then restoring a chosen run (Z-603): the backup of
+// the current state and the restore, both reported done by the agent. The agent's own side (restic,
+// the timer, the copy, playing back, MinIO itself) runs in CI against Podman and MinIO (apps/agent).
 test.describe("backups", { tag: "@phone" }, () => {
   test("the S3 target takes the admin access and shows it only as set", async ({ page }) => {
     await page.goto("/einstellungen?tab=backup");
@@ -133,6 +135,54 @@ test.describe("backups", { tag: "@phone" }, () => {
           .getByRole("row")
           .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) }),
       ).toContainText(", gelungen");
+      await ohneBefund(page);
+    } finally {
+      i.agent.trennen();
+    }
+  });
+
+  test("a run is chosen and restored, after a backup of the current state", async ({ page }) => {
+    await zielSetzen(page.request);
+    const i = await installationAnlegen(page.request, neuerHost("laeuft"), mitBackup());
+    try {
+      const id = i.installationId;
+      await expect
+        .poll(async () => (await backups(page.request, id)).eingerichtet, { timeout: 15_000 })
+        .toBe(true);
+      const jetzt = await page.request.post(`/api/v1/installationen/${id}/backup`, {
+        data: { grund: "erster Lauf" },
+      });
+      expect(jetzt.status()).toBe(201);
+      await expect.poll(async () => (await backups(page.request, id)).laeufe).toHaveLength(1);
+      // no job of the installation open any more: its backup's result arrived after the run
+      await expect
+        .poll(async () => {
+          const seite = await page.request.get(`/api/v1/installationen/${id}`);
+          const { auftraege } = (await seite.json()) as { auftraege: { zustand: string }[] };
+          return auftraege.every((a) => ["erfolgreich", "gescheitert"].includes(a.zustand));
+        })
+        .toBe(true);
+
+      await page.goto(`/installationen/${id}`);
+      await page.getByRole("tab", { name: "Backups" }).click();
+      const laeufe = page.getByRole("region", { name: "Läufe" });
+      await laeufe.getByRole("button", { name: /^Lauf vom .+ wiederherstellen$/ }).click();
+      const dialog = page.getByRole("dialog", { name: "Lauf wiederherstellen?" });
+      await expect(dialog.getByRole("note")).toContainText("Vorher wird der Ist-Zustand gesichert");
+      await dialog.getByLabel("Grund").fill("Auftrag des Kunden vom 20.11.");
+      await ohneBefund(page);
+      await dialog.getByRole("button", { name: "Wiederherstellen" }).click();
+      await expect(dialog).toBeHidden();
+      await expect(page.getByText("Wiederherstellen angefordert")).toBeVisible();
+      await expect
+        .poll(async () => (await backups(page.request, id)).wiederherstellen.letzter?.phase)
+        .toBe("gelungen");
+      // the backup of the current state is a run of its own
+      expect((await backups(page.request, id)).laeufe).toHaveLength(2);
+
+      await page.reload();
+      await page.getByRole("tab", { name: "Backups" }).click();
+      await expect(page.getByText(/, gelungen: Stand /)).toBeVisible();
       await ohneBefund(page);
     } finally {
       i.agent.trennen();

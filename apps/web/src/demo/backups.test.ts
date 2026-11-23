@@ -62,4 +62,39 @@ describe("the demo's backups", () => {
     const gesetzt = await q.zielSetzen({ ...ort, accessKey: "admin", secretKey: "geheim-1" }, "T");
     expect(gesetzt).toEqual({ ok: true, status: 200, daten: { ...ort, zugangGesetzt: true } });
   });
+
+  it("restore a successful run only, one at a time, like the Zentrale (Z-603)", async () => {
+    const q = demoBackups();
+    const vorher = await q.derInstallation("lind-haben");
+    if (!vorher.ok) throw new Error(vorher.fehler);
+    const gut = vorher.daten.laeufe.find((l) => l.ok);
+    const kaputt = vorher.daten.laeufe.find((l) => !l.ok);
+    expect(vorher.daten.wiederherstellen).toEqual({ letzter: null, laeuft: false });
+    expect(await q.wiederherstellen("lind-haben", kaputt?.id ?? "", "x")).toMatchObject({
+      ok: false,
+      fehler: "lauf_gescheitert",
+    });
+    expect(await q.wiederherstellen("lind-haben", "backup-fremd", "x")).toMatchObject({
+      ok: false,
+      fehler: "lauf_unbekannt",
+    });
+    const r = await q.wiederherstellen("lind-haben", gut?.id ?? "", "Auftrag des Kunden");
+    expect(r).toMatchObject({
+      ok: true,
+      status: 201,
+      daten: {
+        backup: { aktion: "installation_backup" },
+        wiederherstellen: { aktion: "installation_wiederherstellen", zustand: "wartend" },
+      },
+    });
+    const nachher = await q.derInstallation("lind-haben");
+    expect(nachher.ok && nachher.daten.wiederherstellen).toMatchObject({
+      laeuft: true,
+      letzter: { phase: "sichern", laufZeitpunkt: gut?.zeitpunkt },
+    });
+    expect(await q.wiederherstellen("lind-haben", gut?.id ?? "", "x")).toMatchObject({
+      ok: false,
+      fehler: "auftrag_offen",
+    });
+  });
 });

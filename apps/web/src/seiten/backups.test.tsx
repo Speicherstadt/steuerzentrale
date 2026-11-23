@@ -14,13 +14,13 @@ import { demoKunden } from "../demo/kunden-quelle.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
 import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
 
-// BAULISTE.md Z-601, Z-602: the page "Backups", the settings' tab with the S3 target, "Backup jetzt",
-// the newest test restore and "Prüf-Restore jetzt" on an installation's page, against the demo
-// sources, which answer as the API does
+// BAULISTE.md Z-601, Z-602, Z-603: the page "Backups", the settings' tab with the S3 target, "Backup
+// jetzt", the newest test restore, "Prüf-Restore jetzt" and restoring a run on an installation's
+// page, against the demo sources, which answer as the API does
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
 
-let gesendet: { id: string; grund: string; was?: string }[] = [];
+let gesendet: { id: string; grund: string; was?: string; lauf?: string }[] = [];
 
 beforeEach(() => {
   setLocale("de", { reload: false });
@@ -47,6 +47,10 @@ beforeEach(() => {
     pruefRestore: (id, grund) => {
       gesendet.push({ id, grund, was: "pruef" });
       return q.pruefRestore(id, grund);
+    },
+    wiederherstellen: (id, lauf, grund) => {
+      gesendet.push({ id, grund, was: "wiederherstellen", lauf });
+      return q.wiederherstellen(id, lauf, grund);
     },
   };
   backupQuelleEinsetzen(mitProtokoll);
@@ -180,5 +184,64 @@ describe("Prüf-Restore jetzt", () => {
     expect(text).toContain("Zurückgespielt");
     expect(text).toMatch(/pg_dump:db:haben: [0-9a-f]{8}/);
     expect(text).toMatch(/Dauer\d+ s/);
+  });
+});
+
+describe("restoring a run", () => {
+  const reiter = async (id: string) => {
+    const { root } = await oeffne(`/installationen/${id}`);
+    await warten();
+    [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+      .find((t) => t.textContent?.trim() === "Backups")
+      ?.click();
+    await warten();
+    return root;
+  };
+  const wiederherstellenKnoepfe = (root: HTMLElement) =>
+    [...root.querySelectorAll<HTMLButtonElement>("button")].filter((b) =>
+      /^Lauf vom .+ wiederherstellen$/.test(b.getAttribute("aria-label") ?? ""),
+    );
+
+  it("asks for a reason, says the current state is backed up first, then shows the restore", async () => {
+    const root = await reiter("atelier-haben");
+    const knoepfe = wiederherstellenKnoepfe(root);
+    expect(knoepfe).toHaveLength(5);
+    knoepfe[1]?.click();
+    await warten();
+    expect(dialog().textContent).toContain("Lauf wiederherstellen?");
+    expect(dialog().querySelector('[role="note"]')?.textContent).toContain(
+      "Vorher wird der Ist-Zustand gesichert",
+    );
+    eintragen("Grund", "Auftrag des Kunden vom 20.11.");
+    flush();
+    dialog().querySelector("form")?.requestSubmit();
+    await warten();
+    expect(gesendet).toEqual([
+      {
+        id: "atelier-haben",
+        grund: "Auftrag des Kunden vom 20.11.",
+        was: "wiederherstellen",
+        lauf: expect.stringMatching(/^backup-[0-9a-f]{32}$/),
+      },
+    ]);
+    expect(document.querySelector("dialog[open]")).toBeNull();
+    const text = root.textContent ?? "";
+    expect(text).toContain("Wiederherstellen angefordert; zuerst wird der Ist-Zustand gesichert.");
+    expect(text).toContain("läuft: Backup vom Ist-Zustand, dann Stand");
+    // one restore at a time: no button while it is under way
+    expect(wiederherstellenKnoepfe(root)).toEqual([]);
+  });
+
+  it("offers no failed run", async () => {
+    const root = await reiter("lind-haben");
+    // the newest of its five runs failed
+    expect(wiederherstellenKnoepfe(root)).toHaveLength(4);
+  });
+
+  it("is not offered to support", async () => {
+    rolle("support");
+    const root = await reiter("atelier-haben");
+    expect(wiederherstellenKnoepfe(root)).toEqual([]);
+    expect(root.textContent).not.toContain("Wiederherstellen");
   });
 });

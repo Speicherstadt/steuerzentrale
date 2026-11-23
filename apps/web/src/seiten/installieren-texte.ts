@@ -82,6 +82,7 @@ const AKTIONEN: Record<string, () => string> = {
   installation_backup_einrichten: m.auftrag_installation_backup_einrichten,
   installation_backup: m.auftrag_installation_backup,
   installation_pruef_restore: m.auftrag_installation_pruef_restore,
+  installation_wiederherstellen: m.auftrag_installation_wiederherstellen,
   pforte_route_setzen: m.auftrag_pforte_route_setzen,
   pforte_route_entfernen: m.auftrag_pforte_route_entfernen,
 };
