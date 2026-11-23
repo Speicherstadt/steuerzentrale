@@ -599,7 +599,7 @@ jobs:
           test -n "$code"
           kekse="$RUNNER_TEMP/kekse.json"
           neu="$(bun apps/zentrale/src/testhilfen/erster-server.ts "https://$UI_HOST" "$kekse" einrichten "$code")"
-          echo "SERVER_ID=$(jq -r .serverId <<< "$neu")" >> "$GITHUB_ENV"
+          server_id="$(jq -r .serverId <<< "$neu")"
           # 7. with an operator there is a CA: the Pforte again, now with agent.<domain>
           vm bash -c "$PFORTE_LADEN"
           for i in $(seq 1 30); do curl -fsS --cacert "$ca" "https://$AGENT_HOST/health" && break; sleep 2; done
@@ -615,7 +615,7 @@ jobs:
           sudo incus exec "$VM" --env NODE_EXTRA_CA_CERTS="$crt" -- sh -c "$befehl"
           vm systemctl is-active steuerzentrale-agent
           # the agent joined and is connected, as the interface shows it
-          stand() { bun apps/zentrale/src/testhilfen/erster-server.ts "https://$UI_HOST" "$kekse" server "$SERVER_ID"; }
+          stand() { bun apps/zentrale/src/testhilfen/erster-server.ts "https://$UI_HOST" "$kekse" server "$server_id"; }
           for i in $(seq 1 30); do test "$(stand | jq -r .agent.zustand)" = verbunden && break; sleep 2; done
           stand | tee "$RUNNER_TEMP/server.json"
           test "$(jq -r .agent.zustand "$RUNNER_TEMP/server.json")" = verbunden
