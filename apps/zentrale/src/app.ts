@@ -8,6 +8,7 @@ import type { Auslieferung } from "./modules/server/index.ts";
 import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { aktionenRouten } from "./routes/aktionen.ts";
+import { betriebRouten } from "./routes/betrieb.ts";
 import { einladungRouten } from "./routes/einladungen.ts";
 import { einstellungenRouten } from "./routes/einstellungen.ts";
 import { ersterInhaberRouten } from "./routes/erster-inhaber.ts";
@@ -95,6 +96,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   installationenRouten(route, deps);
   aktionenRouten(route, deps);
   einstellungenRouten(route, deps);
+  betriebRouten(route, deps);
   agentRouten(route, deps);
   verbindungRouten(route, deps);
 

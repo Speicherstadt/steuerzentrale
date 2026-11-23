@@ -83,6 +83,12 @@ export const ROUTEN = {
   // the operator's values of an app (Z-404): rights as for installations, which they serve
   "GET /api/v1/apps/:app/einstellungen": recht("installationen:lesen"),
   "PUT /api/v1/apps/:app/einstellungen": recht("installationen:schreiben"),
+  // reading the operations (Z-406): every role sees overview, jobs and events; the audit log only
+  // owner and technik
+  "GET /api/v1/uebersicht": recht("betreiber:lesen"),
+  "GET /api/v1/auftraege": recht("betreiber:lesen"),
+  "GET /api/v1/ereignisse": recht("betreiber:lesen"),
+  "GET /api/v1/audit": recht("audit:lesen"),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,
