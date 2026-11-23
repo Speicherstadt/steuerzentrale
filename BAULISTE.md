@@ -449,7 +449,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: jede Bedrohung einen Test oder eine begründete Annahme hat, darunter: eine Zentrale
   mit fremdem Manifest bringt keinen Code auf einen Server (Test), ein gestohlenes Agent-Zertifikat
   erzeugt keine Aufträge (Test), Rate-Limits an Anmeldung und Token-Tausch greifen (Test).
-- [ ] **Z-1002 Zentrale sichern** – Backup der Zentrale (Datenbank und Schlüssel getrennt),
+- [x] **Z-1002 Zentrale sichern** – Backup der Zentrale (Datenbank und Schlüssel getrennt),
   Wiederherstellung auf einem neuen Server, Agenten verbinden sich wieder.
   Fertig, wenn: der Ablauf in der CI durchläuft.
 - [x] **Z-1003 Echte Apps** – Schreibzeug und Haben aus `manifeste/` in der CI installieren, sichern

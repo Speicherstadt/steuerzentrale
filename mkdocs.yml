@@ -79,6 +79,7 @@ nav:
       - Updates des Agenten: agent-updates.md
       - Betriebssystem und Neustarts: betriebssystem.md
       - Backups: backups.md
+      - Zentrale sichern: zentrale-sichern.md
   - Für App-Entwickler:
       - Manifest: manifest.md
   - Entwicklung:
