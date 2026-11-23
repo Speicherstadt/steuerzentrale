@@ -18,8 +18,9 @@ import type { Installation } from "../installationen/lesen.ts";
  * cancels the rest:
  * - at the end: "nur lesen" if the manifest offers it, then the last backup and the archive for
  *   the customer, if the installation's backups are set up;
- * - at the deletion: the last backup, if set up, then `installation_loeschen`, which the agent
- *   refuses without a successful backup in the last two hours.
+ * - at the deletion: the last backup, then `installation_loeschen`, which the agent refuses
+ *   without a successful backup in the last two hours; without a backup set up only for a
+ *   manifest that names nothing to back up.
  */
 
 export type Kette =
@@ -85,9 +86,18 @@ export const archivKette = (
   return kette.ok && !sichern ? { ...kette, letzter: null } : kette;
 };
 
-/** At the deletion: the last backup if set up, then taking the installation down */
-export const loeschKette = (deps: AuftragDeps, kontext: Kontext, i: Installation): Kette =>
-  verketten(deps, kontext, i, [
-    ...(gesichert(deps, i) ? [{ aktion: BACKUP_AKTIONEN.jetzt, argumente: {} }] : []),
+/**
+ * At the deletion: the last backup, then taking the installation down; without a backup set up
+ * only when the manifest names nothing to back up (CLAUDE.md, "Never": no deletion without one)
+ */
+export const loeschKette = (deps: AuftragDeps, kontext: Kontext, i: Installation): Kette => {
+  const m = manifestPruefen(i.manifest);
+  if (!m.ok) return { ok: false, detail: "the installation's manifest does not check" };
+  const sichern = gesichert(deps, i);
+  if (!sichern && m.manifest.backup.length > 0)
+    return { ok: false, detail: "das Backup ist nicht eingerichtet; gelöscht wird erst danach" };
+  return verketten(deps, kontext, i, [
+    ...(sichern ? [{ aktion: BACKUP_AKTIONEN.jetzt, argumente: {} }] : []),
     { aktion: ABWICKLUNG_AKTIONEN.loeschen, argumente: {} },
   ]);
+};

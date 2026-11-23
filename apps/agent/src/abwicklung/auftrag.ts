@@ -14,8 +14,9 @@ import { alsNutzer, homeVon } from "../einrichtung/nutzer.ts";
  * - `installation_archiv` runs the agent's binary as the installation's user (`archivieren`), which
  *   writes and uploads the newest snapshot of each part with the user's own S3 access;
  * - `installation_loeschen` takes the installation down as a failed setup is (abbauen: units,
- *   linger, user and home), but only when its backup is not set up or a run of it went through in
- *   the last two hours: nothing is deleted without a backup first, whatever the Zentrale sends.
+ *   linger, user and home), but only when a run of its backup went through in the last two hours,
+ *   or its manifest names nothing to back up: nothing is deleted without a backup first, whatever
+ *   the Zentrale sends.
  */
 
 export type AbwicklungPlan = { auftrag: AbwicklungAuftrag; zeitlimitMs: number };
@@ -57,7 +58,13 @@ const loeschen = async (
 ): Promise<Ergebnis> => {
   const inst = await fertigeInstallation(deps, a.name);
   if (!inst.ok) return fehler(inst.grund);
-  if (await deps.haus.existiert(backupDateiPfad(homeVon(a.name)))) {
+  const eingerichtet = await deps.haus.existiert(backupDateiPfad(homeVon(a.name)));
+  // parts to back up and no backup set up: deleting would lose the customer's data (CLAUDE.md)
+  if (!eingerichtet && a.mitBackup)
+    return fehler(
+      `abgelehnt: das Backup von ${a.name} ist nicht eingerichtet; gelöscht wird erst nach einem Backup`,
+    );
+  if (eingerichtet) {
     const lauf = await neuesterLauf(deps, inst.n, a.name, deps.jetzt() - LOESCHEN_BACKUP_MS);
     if (!lauf?.ok)
       return fehler(

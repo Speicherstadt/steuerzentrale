@@ -53,7 +53,12 @@ describe("the jobs after a contract ended", () => {
       beispiel,
       anfrage({ aktion: ABWICKLUNG_AKTIONEN.loeschen, argumente: {} }),
     );
-    expect(r).toEqual({ ok: true, auftrag: { art: "loeschen", name: NAME } });
+    expect(r).toEqual({ ok: true, auftrag: { art: "loeschen", name: NAME, mitBackup: true } });
+    const ohne = abwicklungAuftragPruefen(
+      { ...beispiel, backup: [] },
+      anfrage({ aktion: ABWICKLUNG_AKTIONEN.loeschen, argumente: {} }),
+    );
+    expect(ohne).toEqual({ ok: true, auftrag: { art: "loeschen", name: NAME, mitBackup: false } });
   });
 
   it("refuses anything else", () => {

@@ -197,10 +197,12 @@ const loeschenPruefen = (deps: AbwicklungDeps, a: Abwicklung, jetzt: number): vo
     );
     return;
   }
-  // failed, cancelled (the backup before it failed) or never written: a new chain later
+  // cancelled (the backup before it failed) or never written: nothing was taken down, it waits;
+  // failed on the server: part of it may be gone, so it stays in `loeschen` and the notice can no
+  // longer be taken back (kunden.ts); either way a new chain later
   const text = `Löschen von ${a.installationId} gescheitert: ${job?.zustand ?? "kein Auftrag"}`;
   fehlschlag(deps, a, jetzt, LOESCHUNG_GESCHEITERT_ART, text, {
-    schritt: "warten",
+    schritt: job?.zustand === "gescheitert" ? "loeschen" : "warten",
     loeschAuftragId: null,
   });
 };
@@ -226,7 +228,10 @@ export const schrittAusfuehren = async (
     return;
   }
   if (!loeschen) return;
-  if (a.schritt === "loeschen") return loeschenPruefen(deps, a, jetzt);
+  if (a.schritt === "loeschen")
+    return a.loeschAuftragId === null
+      ? loeschenBeginnen(deps, a, jetzt)
+      : loeschenPruefen(deps, a, jetzt);
   if (a.schritt === "repository") return repositoryLoeschen(deps, a, jetzt);
   if (a.schritt === "zugang") return zugangPruefen(deps, a, jetzt);
   if (a.schritt === "dns") return dnsPruefen(deps, a, jetzt);

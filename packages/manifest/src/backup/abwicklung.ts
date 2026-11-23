@@ -11,7 +11,8 @@ import { type BackupAnfrage, type BackupTeil, backupTeile } from "./auftraege.ts
  *   `<prefix>archiv/<file>`, where the Zentrale's pre-signed link finds it;
  * - `installation_loeschen`: the agent takes down an installation it set up and finished, but only
  *   after a successful backup run of it in the last two hours (the Zentrale sends `installation_backup`
- *   right before), so nothing is deleted without a backup first.
+ *   right before), so nothing is deleted without a backup first; with parts to back up in the
+ *   manifest and its backup not set up, it deletes nothing (CLAUDE.md, "Never").
  * Pure: the Zentrale checks a job with it when it makes one, the agent again after key and signature.
  */
 
@@ -38,7 +39,8 @@ const REGION = /^[a-z0-9-]{1,32}$/;
 
 export type AbwicklungAuftrag =
   | { art: "archiv"; name: string; region: string; teile: BackupTeil[] }
-  | { art: "loeschen"; name: string };
+  /** `mitBackup`: the manifest names parts to back up, so the agent deletes only after a backup */
+  | { art: "loeschen"; name: string; mitBackup: boolean };
 
 export type AbwicklungGeprueft =
   | { ok: true; auftrag: AbwicklungAuftrag }
@@ -67,7 +69,7 @@ export const abwicklungAuftragPruefen = (m: Manifest, a: BackupAnfrage): Abwickl
     return nein(`unknown argument ${Object.keys(fremd).join(", ")}`);
   if (a.aktion === ABWICKLUNG_AKTIONEN.loeschen)
     return region === undefined
-      ? { ok: true, auftrag: { art: "loeschen", name } }
+      ? { ok: true, auftrag: { art: "loeschen", name, mitBackup: m.backup.length > 0 } }
       : nein("unknown argument region");
   if (typeof region !== "string" || !REGION.test(region))
     return nein("region: an S3 region of a-z, 0-9 and -");

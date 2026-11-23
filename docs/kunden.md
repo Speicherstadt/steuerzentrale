@@ -82,8 +82,10 @@ gekündigten Kunden:
    ab.
 3. **90 Tage nach dem Vertragsende** schickt sie ein letztes Backup und danach
    `installation_loeschen`. Der Agent baut die Installation ab wie ein gescheitertes Einrichten
-   (Units, Linger, Linux-Nutzer mit Home), aber nur, wenn ihr Backup nicht eingerichtet ist oder in
-   den letzten zwei Stunden ein Lauf gelang. Danach löscht die Zentrale jedes Objekt unter dem Präfix
+   (Units, Linger, Linux-Nutzer mit Home), aber nur, wenn in den letzten zwei Stunden ein Lauf
+   ihres Backups gelang oder ihr Manifest nichts zu sichern nennt. Nennt es Teile und ist das Backup
+   nicht eingerichtet, löscht weder Zentrale noch Agent etwas; die Zentrale meldet
+   `loeschung_gescheitert`, bis das Backup eingerichtet ist. Danach löscht die Zentrale jedes Objekt unter dem Präfix
    der Installation (Repository und Archiv) mit deren eigenem Zugang, dann den S3-Zugang samt
    restic-Passwort, dann die DNS-Einträge. Scheitert ein Schritt, wartet sie (1, 2, 4 … Minuten,
    höchstens stündlich) und meldet `loeschung_gescheitert` (Schwere `fehler`).
@@ -93,7 +95,8 @@ gekündigten Kunden:
 
 Vor Ablauf der 90 Tage löscht die Zentrale nichts; jeder Schritt der Löschung prüft die Frist
 erneut. Eine Kündigung lässt sich zurücknehmen oder in die Zukunft verschieben, solange die Löschung
-nicht begonnen hat; dann verwirft die Zentrale, was nach dem Vertragsende entstand. „Nur lesen“
+nicht begonnen hat; dann verwirft die Zentrale, was nach dem Vertragsende entstand. Als begonnen
+gilt sie auch, wenn `installation_loeschen` auf dem Server gescheitert ist (ein Teil kann schon fehlen). „Nur lesen“
 bleibt, wie die App es gesetzt hat. Hat die Löschung begonnen, antwortet die API mit
 `409 loeschung_laeuft`.
 

@@ -169,7 +169,8 @@ der Agent fertig eingerichtet hat: `installation_archiv` mit dem einzigen Argume
 (Zeitlimit höchstens vier Stunden und zwei Minuten) startet als Nutzer der Installation
 `steuerzentrale-agent archivieren <installation> <region>` und meldet `{ installation, objekte }`;
 `installation_loeschen` ohne Argumente (höchstens 30 Minuten) baut die Installation ab, aber nur
-nach einem gelungenen Backup-Lauf der letzten zwei Stunden, und meldet `{ installation, geaendert:
+nach einem gelungenen Backup-Lauf der letzten zwei Stunden (ohne eingerichtetes Backup nur, wenn das
+Manifest keinen Teil zu sichern nennt), und meldet `{ installation, geaendert:
 "geloescht" }`. Beide laufen nacheinander mit den Einrichtungsaufträgen.
 
 Das Update des Agenten selbst (`agent_update`, siehe [Updates des Agenten](agent-updates.md)) ist
