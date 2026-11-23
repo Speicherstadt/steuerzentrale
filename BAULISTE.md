@@ -312,7 +312,12 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: in der CI ein Backup aus zwei Teilen in MinIO landet, der S3-Zugang einer Installation
   das Präfix einer anderen weder lesen noch löschen kann (MinIO-Policy, Test), die Aufbewahrung alte
   Snapshots löscht, ein Backup bei getrennter Zentrale trotzdem läuft und ein gescheitertes Backup
-  ein Ereignis erzeugt.
+  ein Ereignis erzeugt; dazu (Tests): der Admin-Zugang des S3-Ziels und das restic-Passwort stehen
+  nur verschlüsselt in der Datenbank und in keiner API-Antwort oder keinem Log, ein Server bekommt
+  nur Zugang und Passwort seiner eigenen Installationen; ein Teil `pg_dump` und ein Teil `befehl`
+  landen als eigene Snapshots im Repository (CI gegen MinIO und Podman); `backup.json` gehört dem
+  Nutzer mit 0600; der Zugang einer entfernten Installation ist gelöscht; „Backup jetzt“ in
+  Playwright; kein Betreiber erreicht Backups oder S3-Ziel eines anderen (Test je Endpunkt).
 - [ ] **Z-602 Prüf-Restore** – wöchentlich je Installation unter einem Wegwerf-Nutzer
   `sz-restore-*` auf einem Server, den die Platzierung als passend meldet; Health prüfen, entfernen.
   Fertig, wenn: ein absichtlich beschädigtes Backup als „Prüf-Restore gescheitert“ erscheint und ein
