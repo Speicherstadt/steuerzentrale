@@ -10,12 +10,15 @@
  * formed from [geheim] and the text next to it. A line cut off while it was read (zeilen.ts) may
  * end in the first part of a value: from the earliest place where the rest of the line is the start
  * of a value, its end is replaced too. Cutting to 2000 characters comes after replacing, so it
- * never leaves a part of a value behind.
+ * never leaves a part of a value behind. The rest of a value at the start of an entry that
+ * continues a split line is replaced too (fortsetzung.ts).
  *
  * A control character (tabs aside) and a lone half of a surrogate pair become U+FFFD: JSON writes
  * them as six bytes (\u0001), anything else takes at most three bytes per UTF-16 unit, so 500 lines
  * of 2000 units stay below 3 MB and always fit into one message (MAX_NACHRICHT_BYTES, 4 MiB).
  */
+
+import { type Fortsetzung, fortgesetzt, fortsetzungen } from "./fortsetzung.ts";
 
 export const ERSATZ = "[geheim]";
 export const MAX_ZEILEN = 500;
@@ -71,10 +74,18 @@ const zusammenfassen = (bereiche: Bereich[]): Bereich[] => {
   return zusammen;
 };
 
-/** The line with every value of `werte` (suchwerte) replaced by ERSATZ */
-export const zeileSchwaerzen = (zeile: GeleseneZeile, werte: readonly string[]): string => {
+/**
+ * The line with every value of `werte` (suchwerte) replaced by ERSATZ; with `fortsetzung`, where
+ * its message starts when it may continue a split entry (fortsetzung.ts)
+ */
+export const zeileSchwaerzen = (
+  zeile: GeleseneZeile,
+  werte: readonly string[],
+  fortsetzung?: Fortsetzung,
+): string => {
   const bereiche = werte.flatMap((w) => vorkommen(zeile.text, w));
   if (zeile.abgeschnitten) bereiche.push(...angeschnitten(zeile.text, werte));
+  if (fortsetzung !== undefined) bereiche.push(...fortgesetzt(zeile.text, fortsetzung, werte));
   let aus = "";
   let bei = 0;
   for (const [von, bis] of zusammenfassen(bereiche)) {
@@ -107,5 +118,9 @@ const saeubern = (text: string): string => {
 export const zeilenSchwaerzen = (
   zeilen: readonly GeleseneZeile[],
   werte: readonly string[],
-): string[] =>
-  zeilen.slice(-MAX_ZEILEN).map((z) => saeubern(zeileSchwaerzen(z, werte).slice(0, MAX_ZEICHEN)));
+): string[] => {
+  const anfaenge = fortsetzungen(zeilen);
+  return zeilen
+    .map((z, i) => saeubern(zeileSchwaerzen(z, werte, anfaenge[i]).slice(0, MAX_ZEICHEN)))
+    .slice(-MAX_ZEILEN);
+};

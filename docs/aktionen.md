@@ -103,7 +103,11 @@ Bevor eine Zeile den Server verlässt, ersetzt er jeden Wert eines Geheimnisses 
 Die Namen dieser Einstellungen merkt sich der Agent beim Einrichten und beim Neukonfigurieren,
 nur die Namen; die Werte liest er bei jedem Auszug neu aus den Units und aus Podman. Er sucht jedes
 Vorkommen in der Zeile, auch wenn sich zwei Werte überlappen oder einer im anderen steht, und
-ersetzt den ganzen bedeckten Bereich. Erst danach kürzt er jede Zeile auf 2000 Zeichen. Kann er die
+ersetzt den ganzen bedeckten Bereich. Eine lange Zeile schreibt conmon als mehrere Einträge
+(ab 8192 Bytes), journald ab `LineMax`; ein Wert kann dabei in zwei Teile fallen. Folgt ein Eintrag
+auf einen langen derselben Quelle, ersetzt der Agent deshalb auch den Rest eines Werts am Anfang
+seiner Nachricht, beim ersten Eintrag einer Quelle im Auszug ab vier Zeichen. Erst danach kürzt er
+jede Zeile auf 2000 Zeichen. Kann er die
 Secrets oder Units nicht lesen, liest er das Journal gar nicht und lehnt ab.
 
 Die Zeilen gehen als Nachricht `log_auszug` mit der Auftrags-ID an die Zentrale, unmittelbar vor
