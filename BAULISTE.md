@@ -304,7 +304,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 5 – Backups und Wiederherstellen
 
-- [ ] **Z-601 Backups** – Teile aus dem Manifest (`pg_dump`, `volume`, `befehl`); ein
+- [x] **Z-601 Backups** – Teile aus dem Manifest (`pg_dump`, `volume`, `befehl`); ein
   restic-Repository mit eigenem Passwort je Installation auf dem S3-Ziel des Betreibers, mit einem
   S3-Zugang, der nur das Präfix dieser Installation erreicht; Zeitplan als systemd-Timer des Nutzers;
   Aufbewahrung nach plan.md.
