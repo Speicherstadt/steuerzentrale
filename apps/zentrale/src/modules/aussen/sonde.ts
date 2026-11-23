@@ -1,8 +1,7 @@
-import { isIPv4, isIPv6 } from "node:net";
+import { isIPv6 } from "node:net";
 import { connect } from "node:tls";
-import { istOeffentlicheIpv4 } from "@steuerzentrale/manifest";
 import type { DnsAntwort, HttpAntwort, Probe, TlsAntwort } from "@steuerzentrale/planung";
-import { istOeffentlicheIpv6 } from "../dns/plan.ts";
+import { istOeffentlicheAdresse } from "../dns/plan.ts";
 
 /*
  * The steps of a check from outside, on the network (BAULISTE.md Z-704; docs/plan.md, "Prüfung von
@@ -79,13 +78,6 @@ export const dnsFragen = async (
     (fehler: unknown): DnsAntwort => ({ ok: false, fehler: codeVon(fehler) }),
   );
   return mitZeitlimit(frage, ms, { ok: false, fehler: "Zeitlimit" });
-};
-
-/** A public unicast address: IPv4 outside the private, loopback, CGNAT, link-local, 0/8 and class D/E ranges, IPv6 in 2000::/3 */
-export const istOeffentlicheAdresse = (ip: string): boolean => {
-  if (isIPv6(ip)) return istOeffentlicheIpv6(ip);
-  const erster = Number(ip.split(".")[0]);
-  return isIPv4(ip) && erster !== 0 && erster < 224 && istOeffentlicheIpv4(ip);
 };
 
 export const tlsFragen = (

@@ -22,7 +22,6 @@ export const ohneDemo: Bestand = {
     werte: {},
     geheimGesetzt: [],
     s3: "",
-    benachrichtigung: { smtp: "", an: "", webhook: "", ruhezeit: "" },
   },
   konto: { name: "", rolle: "support", faktor: "passkey", zuletzt: 0 },
   apps,

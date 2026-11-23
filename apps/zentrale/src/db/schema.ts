@@ -321,6 +321,8 @@ export const auftraege = sqliteTable(
 export * from "./schema-aussen.ts";
 // The S3 target, the installations' own accesses and the runs of their backups (Z-601)
 export * from "./schema-backups.ts";
+// Notifications: mail server, recipients and the outbox of deliveries (Z-703)
+export * from "./schema-benachrichtigungen.ts";
 // Installations, their ports and the operator's app settings (Z-402), in a file of their own
 export * from "./schema-installationen.ts";
 // The imported manifests, for every operator (Z-501)

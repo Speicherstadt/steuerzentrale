@@ -6,6 +6,10 @@ import { sitzungsZustand, waechterEinsetzen } from "./anmeldung/sitzung.ts";
 import { apiApps, appsQuelleEinsetzen } from "./daten/apps.ts";
 import { apiAussen, aussenQuelleEinsetzen } from "./daten/aussen.ts";
 import { apiBackups, backupQuelleEinsetzen } from "./daten/backups.ts";
+import {
+  apiBenachrichtigungen,
+  benachrichtigungsQuelleEinsetzen,
+} from "./daten/benachrichtigungen.ts";
 import { apiBetrieb, betriebQuelleEinsetzen } from "./daten/betrieb.ts";
 import { apiDns, dnsQuelleEinsetzen } from "./daten/dns.ts";
 import { apiEinstellungen, einstellungenQuelleEinsetzen } from "./daten/einstellungen.ts";
@@ -21,7 +25,7 @@ import { aktuellesThema, wendeThemaAn } from "./rahmen/theme.ts";
 import { routeTree } from "./routeTree.gen.ts";
 
 // The shell needs a signed-in account with its second factor, and everything the pages show comes
-// from the Zentrale (Z-801, Z-304, Z-402, Z-406, Z-601, Z-802), no datum of the demo beside it; only
+// from the Zentrale (Z-801, Z-304, Z-402, Z-406, Z-601, Z-802, Z-703), no datum of the demo beside it; only
 // `bun run dev:demo`, the fixtures without any Zentrale, sets VITE_OHNE_ANMELDUNG, skips the check
 // (the server checks anyway) and keeps the demo sources
 if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
@@ -32,6 +36,7 @@ if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
   einstellungenQuelleEinsetzen(apiEinstellungen);
   dnsQuelleEinsetzen(apiDns);
   backupQuelleEinsetzen(apiBackups);
+  benachrichtigungsQuelleEinsetzen(apiBenachrichtigungen);
   aussenQuelleEinsetzen(apiAussen);
   appsQuelleEinsetzen(apiApps);
   rollenQuelleEinsetzen(apiRolle);

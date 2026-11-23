@@ -41,6 +41,13 @@ Was nicht frisch gemessen ist, ist unbekannt, nie grün. Rote und gelbe Prüfung
 Übersicht, alle auf der Server-Seite; Beginn, Verschlechterung und Behebung eines Befunds sind je ein
 Ereignis, nicht jeder Lauf ([Prüfungen der Server](docs/pruefungen.md)).
 
+**Benachrichtigungen:** die Ereignisse gehen nach Schwere per Mail (SMTP des Betreibers) und als
+Webhook raus, eine Nachricht je Störung und eine zu ihrer Behebung, nicht je Prüfung. Ein Webhook ist
+mit HMAC-SHA256 signiert, geht nur an öffentliche `https`-Adressen und wird nach einem Fehlschlag
+nach 1, 2, 4 … Minuten wiederholt; in der Ruhezeit gehen nur Störungen raus. SMTP-Passwort,
+Webhook-Adresse und Signierschlüssel liegen verschlüsselt in der Zentrale und erscheinen nie wieder
+([Benachrichtigungen und Webhooks](docs/benachrichtigungen.md)).
+
 **Manifeste und Versionen:** ein signiertes Manifest kommt per Import in die Zentrale, auf der Seite
 „Apps“ (Inhaber und Technik, mit Grund) oder mit `steuerzentrale manifest importieren <pfad>`; die
 Zentrale prüft Signatur, Schema und Regeln, und eine importierte Version ändert sich nie. Alle 6

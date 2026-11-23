@@ -8,6 +8,7 @@ import {
   installationVerlauf,
   logAuszuege,
   verfuegbarkeit,
+  zustellungen,
 } from "../../db/schema.ts";
 import { schreiben } from "../audit/index.ts";
 import type { AufbewahrteTabelle } from "../audit/tabellen.ts";
@@ -26,6 +27,7 @@ const betreiberMitDaten = (db: Db): Set<string> =>
       installationVerlauf,
       ereignisse,
       backups,
+      zustellungen,
       verfuegbarkeit,
     ].flatMap((tabelle) =>
       db
@@ -43,6 +45,7 @@ export const aufbewahren = (db: Db, schreibDb: SchreibDb, jetzt: number): Geloes
     heartbeats: 0,
     fakten: 0,
     logAuszuege: 0,
+    zustellungen: 0,
     installationVerlauf: 0,
     ereignisse: 0,
     backups: 0,
