@@ -317,6 +317,39 @@ Installation wird nur gelesen. Prüf-Restores laufen auf einem Server nacheinand
 Einrichtungsaufträgen, denn einer kann Stunden dauern. Einen Einrichtungsauftrag für einen Namen
 `restore-<6>` lehnt der Agent ab.
 
+### Wiederherstellen
+
+Im Reiter **Backups** einer Installation steht neben jedem gelungenen Lauf **Wiederherstellen**
+(Inhaber und Technik). Der Dialog „Lauf wiederherstellen?“ nennt Installation und Stand des Laufs,
+sagt deutlich, dass vorher der Ist-Zustand gesichert wird, und verlangt einen Grund. Angeboten wird es
+nur für eine laufende Installation mit eingerichteten Backups und nur, solange weder ein
+Wiederherstellen noch ein Prüf-Restore läuft. Auch in einer Sperrzeit ist es erlaubt: Es ist eine
+Reparatur auf Anfrage, kein Update.
+
+**Ablauf.** Die Zentrale prüft, dass der Lauf zu dieser Installation und diesem Betreiber gehört und
+gelungen ist, und dass kein anderer Auftrag der Installation offen ist. Dann legt sie in einer Änderung
+des Audit-Logs (`installation.wiederherstellen`, mit Grund) zwei Aufträge an:
+
+1. `installation_backup`, ein Backup vom Ist-Zustand wie „Backup jetzt“; es geht sofort an den Agenten;
+2. `installation_wiederherstellen` mit dem Snapshot jedes zurückgespielten Teils aus dem gewählten
+   Lauf (`snapshot:<tag>`, 64 Hex; ein `befehl` wird nicht zurückgespielt), der auf das Backup
+   wartet.
+
+Dazu kommt eine Zeile in `wiederherstellungen` mit beiden Aufträgen und dem gewählten Lauf. Scheitert
+das Backup vom Ist-Zustand, bricht die Zentrale das Wiederherstellen ab, bevor es den Agenten
+erreicht: Es wird nichts zurückgespielt. So lässt sich auch ein falsch gewählter Lauf mit dem Backup
+davor rückgängig machen.
+
+**Ergebnis.** Endet das Wiederherstellen (oder scheitert das Backup davor), schreibt die Zentrale in
+derselben Transaktion das Ergebnis in die Zeile: gelungen oder Grund, je Teil den Snapshot, aus dem er
+zurückgespielt wurde, und die Dauer, wie der Agent sie misst. Ein gescheitertes oder abgebrochenes
+Wiederherstellen schreibt das Ereignis `wiederherstellen_gescheitert` (Schwere `fehler`), ein
+gelungenes `wiederherstellen_gelungen` (Schwere `info`); beide stehen bei den Ereignissen der
+Installation. Die Zeilen in `wiederherstellungen` bleiben dauerhaft wie das Audit-Log.
+
+**Stand.** Unter „Wiederherstellen“ zeigt der Reiter den neuesten Vorgang: „läuft: Backup vom
+Ist-Zustand“, „läuft: Stand … wird zurückgespielt“, „gelungen: Stand …“ oder „gescheitert: Grund“.
+
 ### API
 
 | Route | Wer | Körper | Antwort |
@@ -324,17 +357,23 @@ Einrichtungsaufträgen, denn einer kann Stunden dauern. Einen Einrichtungsauftra
 | `GET /api/v1/backup-ziel` | alle Rollen | – | `{ endpunkt, region, bucket, zugangGesetzt }` |
 | `PUT /api/v1/backup-ziel` | Inhaber, Technik | `endpunkt`, `region`, `bucket`, `accessKey`?, `secretKey`?, `grund` | wie `GET` |
 | `GET /api/v1/backups` | alle Rollen | – | `{ installationen: [{ installationId, app, kundeName, serverName, teile, zugang, eingerichtet, letzter, letzterErfolg, pruefRestore, … }] }` |
-| `GET /api/v1/installationen/:id/backups` | alle Rollen | – | `{ installationId, teile, zugang, eingerichtet, laeufe, pruefRestore }` |
+| `GET /api/v1/installationen/:id/backups` | alle Rollen | – | `{ installationId, teile, zugang, eingerichtet, laeufe, pruefRestore, wiederherstellen }` |
 | `POST /api/v1/installationen/:id/backup` | Inhaber, Technik | `grund` | `201 { auftrag }` |
 | `POST /api/v1/installationen/:id/pruef-restore` | Inhaber, Technik | `grund` | `201 { auftrag }` |
+| `POST /api/v1/installationen/:id/wiederherstellen` | Inhaber, Technik | `lauf`, `grund` | `201 { backup, wiederherstellen }` |
 
 `pruefRestore` ist `{ letzter, laeuft }`: `letzter` der neueste Prüf-Restore als `{ zeitpunkt, ok,
 grund, kopie, teile: [{ tag, snapshot, zurueckgespielt, grund }], dauerMs }` oder `null`, `laeuft`, ob
-gerade einer offen ist.
+gerade einer offen ist. Jeder Lauf in `laeufe` trägt seine Kennung `id`, die `lauf` beim
+Wiederherstellen nennt. `wiederherstellen` ist `{ letzter, laeuft }`: `letzter` das neueste
+Wiederherstellen als `{ angefordertAm, laufZeitpunkt, phase, endeAm, fehler, teile, dauerMs }` mit
+`phase` `sichern`, `zurueckspielen`, `gelungen` oder `gescheitert`, oder `null`.
 
 Fehler: `400 ungueltig`, `404 keine_installation`, `409 laeuft_nicht`, `409 nicht_eingerichtet`,
 `409 backup_laeuft`, `409 kein_backup`, `409 auftrag_offen`, `409 server_belegt`, `409 kein_platz`,
-`409 keine_ports`, `409 ziel_in_benutzung`, `422 zugang_fehlt`. Keine Antwort enthält einen Zugang,
+`409 keine_ports`, `409 ziel_in_benutzung`, `422 zugang_fehlt`, `422 lauf_unbekannt` (ein Lauf
+einer anderen Installation oder eines anderen Betreibers ist so unbekannt wie einer, den es nicht
+gibt), `422 lauf_gescheitert`, `422 nicht_ausfuehrbar`. Keine Antwort enthält einen Zugang,
 ein Passwort oder ein Repository. Jeder Betreiber sieht und ändert nur seine eigenen Backups und sein
 eigenes S3-Ziel.
 
@@ -350,6 +389,7 @@ Audit-Log:
 | `installation.backup` | „Backup jetzt“, mit Grund |
 | `installation.pruef-restore` | Prüf-Restore angelegt, mit den Ports der Kopie (Akteur `system` nach Zeitplan, sonst wer „jetzt“ wählte, mit Grund) |
 | `ereignis.pruef-restore-kein-platz` | kein Platz auf dem Server (Akteur `system`) |
+| `installation.wiederherstellen` | Wiederherstellen angelegt: Backup vom Ist-Zustand, Wiederherstellen und die Zeile in `wiederherstellungen`, mit Grund |
 
 ### Tests
 
@@ -367,7 +407,15 @@ Den Zeitplan des Prüf-Restores prüfen die Tests der Zentrale (`modules/pruef-r
 ohne Platz wird nicht gewählt (Ereignis, kein Auftrag), höchstens einer je Woche, keiner neben einem
 offenen Auftrag, einer je Server zugleich, das Feld `einrichtung` geht nur an den eigenen Server und nie
 ein Zugang, die Ports sind nach dem Ende frei, ein gescheiterter schreibt sein Ereignis; je Endpunkt
-die Trennung der Betreiber und die Rollen (`routes/pruef-restore.test.ts`). Playwright lässt den
+die Trennung der Betreiber und die Rollen (`routes/pruef-restore.test.ts`).
+
+Das Wiederherstellen in der Zentrale prüfen `modules/wiederherstellen/` und
+`routes/wiederherstellen.test.ts`: ein Lauf einer anderen Installation, eines anderen Betreibers und
+ein gescheiterter werden abgelehnt, ohne dass ein Auftrag entsteht; das Backup kommt zuerst, und
+scheitert es, wird das Wiederherstellen abgebrochen und nie zugestellt; der Audit-Eintrag trägt den
+Grund; ein gescheitertes schreibt sein Ereignis; es ist auch in einer Sperrzeit erlaubt; je Endpunkt
+die Trennung der Betreiber und die Rollen. Playwright wählt einen Lauf und stellt ihn wieder her; der
+Stellvertreter-Agent meldet Backup und Wiederherstellen als gelungen. Playwright lässt den
 Stellvertreter des Agenten einen Prüf-Restore melden, den die Seite dann zeigt.
 
 Die Seite des Agenten prüft die CI gegen Podman, systemd und MinIO

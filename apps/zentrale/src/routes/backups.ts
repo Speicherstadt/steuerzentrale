@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { BUCKET } from "@steuerzentrale/manifest";
 import type { Context } from "hono";
 import { z } from "zod";
+import type { Auftrag } from "../modules/auftraege/index.ts";
 import {
   backupJetzt,
   backupsDerInstallation,
@@ -11,6 +12,7 @@ import {
 } from "../modules/backups/index.ts";
 import { installationLesen } from "../modules/installationen/index.ts";
 import { type PruefDeps, pruefRestoreAnlegen } from "../modules/pruef-restore/index.ts";
+import { wiederherstellenAnlegen } from "../modules/wiederherstellen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
@@ -19,8 +21,9 @@ import type { Anfrage, Registrar } from "./zugang.ts";
  * auf dem Server (Z-601)"): every role reads the runs of the installations and the S3 target, whose
  * admin access comes back only as `zugangGesetzt`; owner and technik set the target and start
  * "Backup jetzt", each with a reason, and "Prüf-Restore jetzt" (Z-602), which the schedule's
- * weekly limit does not hold back. No answer carries an access, a password or a repository. An
- * installation of another operator is unknown.
+ * weekly limit does not hold back, and restoring a successful run (Z-603), which backs up the
+ * current state first. No answer carries an access, a password or a repository. An installation or
+ * a run of another operator is unknown.
  */
 
 const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -59,7 +62,9 @@ const zielSchema = z
     message: "access key and secret key go together",
   });
 
-const grundSchema = z.object({ grund: z.string().trim().min(1).max(500) }).strict();
+const grund = z.string().trim().min(1).max(500);
+const grundSchema = z.object({ grund }).strict();
+const wiederherstellenSchema = z.object({ lauf: z.string().min(1).max(200), grund }).strict();
 
 const STATUS: Record<string, 404 | 409 | 422> = {
   keine_installation: 404,
@@ -73,6 +78,8 @@ const STATUS: Record<string, 404 | 409 | 422> = {
   keine_ports: 409,
   ziel_in_benutzung: 409,
   zugang_fehlt: 422,
+  lauf_unbekannt: 422,
+  lauf_gescheitert: 422,
   nicht_ausfuehrbar: 422,
 };
 
@@ -87,6 +94,14 @@ const fehler = (c: Context<Anfrage>, f: Fehler) =>
     },
     STATUS[f.grund] ?? 400,
   );
+
+/** A job as an answer names it */
+const kurz = ({ auftragId, aktion, zustand, angelegtAm }: Auftrag) => ({
+  auftragId,
+  aktion,
+  zustand,
+  angelegtAm,
+});
 
 export const backupRouten = (route: Registrar, deps: RoutenDeps): void => {
   const kontext = (c: Context<Anfrage>, grund: string) => ({
@@ -131,8 +146,7 @@ export const backupRouten = (route: Registrar, deps: RoutenDeps): void => {
     if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
     const r = backupJetzt(deps, kontext(c, angaben.grund), installationId(c));
     if (!r.ok) return fehler(c, r);
-    const { auftragId, aktion, zustand, angelegtAm } = r.auftrag;
-    return c.json({ auftrag: { auftragId, aktion, zustand, angelegtAm } }, 201);
+    return c.json({ auftrag: kurz(r.auftrag) }, 201);
   });
 
   route("POST /api/v1/installationen/:installationId/pruef-restore", async (c) => {
@@ -140,7 +154,16 @@ export const backupRouten = (route: Registrar, deps: RoutenDeps): void => {
     if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
     const r = pruefRestoreAnlegen(pruefDeps, kontext(c, angaben.grund), installationId(c));
     if (!r.ok) return fehler(c, r);
-    const { auftragId, aktion, zustand, angelegtAm } = r.auftrag;
-    return c.json({ auftrag: { auftragId, aktion, zustand, angelegtAm } }, 201);
+    return c.json({ auftrag: kurz(r.auftrag) }, 201);
+  });
+
+  // Z-603: the backup of the current state, then the restore of the chosen run after it
+  route("POST /api/v1/installationen/:installationId/wiederherstellen", async (c) => {
+    const angaben = await eingabe(c, wiederherstellenSchema);
+    if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
+    const k = kontext(c, angaben.grund);
+    const r = wiederherstellenAnlegen(deps, k, installationId(c), angaben.lauf);
+    if (!r.ok) return fehler(c, r);
+    return c.json({ backup: kurz(r.backup), wiederherstellen: kurz(r.wiederherstellen) }, 201);
   });
 };

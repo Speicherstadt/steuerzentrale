@@ -1,4 +1,4 @@
-import { PRUEF_RESTORE_AKTION } from "@steuerzentrale/manifest";
+import { PRUEF_RESTORE_AKTION, WIEDERHERSTELLEN_AKTION } from "@steuerzentrale/manifest";
 import { bewertungJetzt } from "@steuerzentrale/planung";
 import { and, eq, ne } from "drizzle-orm";
 import type { Db } from "../../db/oeffnen.ts";
@@ -16,7 +16,8 @@ import { type Eintrag, type MitVerweis, ordnen, type Schwere } from "./ordnen.ts
 /*
  * The overview (BAULISTE.md Z-406; docs/plan.md, "Echte Daten (Z-406)"): open faults, installations
  * red, yellow or unknown, agents disconnected or silent, test restores failed or older than 8 days
- * (Z-602), failed jobs of the last 7 days (a test restore's own job aside: its entry stands for it),
+ * (Z-602), failed jobs of the last 7 days (a test restore's own job aside: its entry stands for it;
+ * a restore's too, Z-603: its event `wiederherstellen_gescheitert` does),
  * events of severity `fehler` and `warn` of the last 24 h; each within the operator, ordered by
  * ordnen.ts.
  */
@@ -116,10 +117,13 @@ const agentEintraege = (deps: UebersichtDeps, betreiberId: string): Eintrag[] =>
   });
 };
 
+/** Jobs whose failure has an entry of its own: a test restore's, a restore's event */
+const EIGENER_EINTRAG: readonly string[] = [PRUEF_RESTORE_AKTION, WIEDERHERSTELLEN_AKTION];
+
 const auftragsEintraege = (deps: UebersichtDeps, betreiberId: string): Eintrag[] => {
   const grenze = deps.jetzt - AUFTRAEGE_TAGE * 86_400_000;
   return auftraegeSeite(deps.db, betreiberId, { zustand: ["gescheitert"] }, undefined, HOECHSTENS)
-    .eintraege.filter((a) => a.geaendertAm >= grenze && a.aktion !== PRUEF_RESTORE_AKTION)
+    .eintraege.filter((a) => a.geaendertAm >= grenze && !EIGENER_EINTRAG.includes(a.aktion))
     .map((a) => ({
       art: "auftrag",
       schwere: "warnung",

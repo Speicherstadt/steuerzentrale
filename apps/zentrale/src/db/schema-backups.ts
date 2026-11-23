@@ -115,3 +115,40 @@ export const pruefRestores = sqliteTable(
     }),
   ],
 );
+
+/**
+ * One restore of an installation from a run of its backup (Z-603; docs/plan.md, "Wiederherstellen
+ * (Z-603)"), written with its two jobs: `backup_auftrag_id` backs up the current state first,
+ * `auftrag_id` (installation_wiederherstellen) waits for it. `backup_id` and `lauf_zeitpunkt` name
+ * the chosen run. Once either job ends without success or the restore ends, the row gets its end:
+ * succeeded or why not (`fehler`), the parts as the agent restored them (JSON `[{ tag, snapshot,
+ * zurueckgespielt, grund }]`) and how long it took. Who asked and why stands in the audit log. Kept
+ * for good, like the audit log: a restore is rare and changes a customer's data.
+ */
+export const wiederherstellungen = sqliteTable(
+  "wiederherstellungen",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    auftragId: text("auftrag_id").notNull(),
+    backupAuftragId: text("backup_auftrag_id").notNull(),
+    installationId: text("installation_id").notNull(),
+    serverId: text("server_id").notNull(),
+    backupId: text("backup_id").notNull(),
+    laufZeitpunkt: integer("lauf_zeitpunkt").notNull(),
+    angefordertAm: integer("angefordert_am").notNull(),
+    endeAm: integer("ende_am"),
+    ok: integer("ok", { mode: "boolean" }),
+    fehler: text("fehler"),
+    teile: text("teile").notNull(),
+    dauerMs: integer("dauer_ms"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.betreiberId, t.auftragId] }),
+    index("wiederherstellungen_installation").on(t.betreiberId, t.installationId, t.angefordertAm),
+    index("wiederherstellungen_backup_auftrag").on(t.betreiberId, t.backupAuftragId),
+    foreignKey({
+      columns: [t.betreiberId, t.installationId],
+      foreignColumns: [installationen.betreiberId, installationen.installationId],
+    }),
+  ],
+);

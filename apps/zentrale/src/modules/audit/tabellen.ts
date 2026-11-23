@@ -23,6 +23,7 @@ import {
   server,
   tokens,
   vertraege,
+  wiederherstellungen,
 } from "../../db/schema.ts";
 
 /**
@@ -73,6 +74,11 @@ export const tabellen = {
     tabelle: pruefRestores,
     schluessel: ["auftragId"],
     zeit: pruefRestores.zeitpunkt,
+  },
+  wiederherstellungen: {
+    tabelle: wiederherstellungen,
+    schluessel: ["auftragId"],
+    zeit: undefined,
   },
 } satisfies Record<
   string,
