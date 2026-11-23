@@ -2,6 +2,7 @@ import { RESTIC_IMAGE } from "@steuerzentrale/manifest";
 import { describe, expect, it } from "vitest";
 import {
   anlegenArgv,
+  bytesAus,
   forgetArgv,
   resticGrund,
   snapshotAus,
@@ -167,6 +168,23 @@ describe("snapshotAus", () => {
   it("finds none in other output", () => {
     expect(snapshotAus("kein json\n{}")).toBeUndefined();
     expect(snapshotAus('{"message_type":"summary","snapshot_id":"kurz"}')).toBeUndefined();
+  });
+});
+
+describe("bytesAus", () => {
+  it("takes the bytes restic read from its summary", () => {
+    const aus = [
+      '{"message_type":"status","total_bytes":5}',
+      `{"message_type":"summary","total_bytes_processed":1048576,"snapshot_id":"${"c".repeat(64)}"}`,
+    ].join("\n");
+    expect(bytesAus(aus)).toBe(1_048_576);
+  });
+
+  it("finds none in other output or a value that is no size", () => {
+    expect(bytesAus("kein json\n{}")).toBeUndefined();
+    expect(bytesAus('{"message_type":"summary","total_bytes_processed":-1}')).toBeUndefined();
+    expect(bytesAus('{"message_type":"summary","total_bytes_processed":"12"}')).toBeUndefined();
+    expect(bytesAus('{"message_type":"status","total_bytes_processed":12}')).toBeUndefined();
   });
 });
 

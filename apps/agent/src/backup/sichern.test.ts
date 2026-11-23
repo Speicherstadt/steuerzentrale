@@ -106,6 +106,25 @@ describe("sichern", () => {
     });
   });
 
+  it("reports the bytes restic read for a part (Z-804), none where its summary names none", async () => {
+    const f = fake((a) =>
+      tagDer(a) === "volume:daten"
+        ? {
+            code: 0,
+            aus: `{"message_type":"summary","total_bytes_processed":4096,"snapshot_id":"${"9".repeat(64)}"}\n`,
+          }
+        : undefined,
+    );
+    const lauf = await sichern(f.deps, DATEI);
+    expect(lauf.teile[0]).toEqual({
+      tag: "volume:daten",
+      ok: true,
+      snapshot: "9".repeat(64),
+      bytes: 4096,
+    });
+    expect(lauf.teile[1]).not.toHaveProperty("bytes");
+  });
+
   it("hands password and access beside the argv, never in it", async () => {
     const f = fake();
     await sichern(f.deps, DATEI);

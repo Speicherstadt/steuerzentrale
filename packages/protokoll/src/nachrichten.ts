@@ -166,7 +166,11 @@ export const ZertifikatAnfrage = z.object({
   csr: pem("CERTIFICATE REQUEST"),
 });
 
-/** One part of a backup run (Z-601): its tag, and restic's snapshot ID when it made one */
+/**
+ * One part of a backup run (Z-601): its tag, and restic's snapshot ID when it made one; `bytes`
+ * (Z-804, still protocol 1: an agent before it leaves it out) is what restic read for the part,
+ * its summary's `total_bytes_processed`, the storage of the Leistungen
+ */
 const backupTeil = z.object({
   tag: z.string().min(1).max(300),
   ok: z.boolean(),
@@ -174,6 +178,7 @@ const backupTeil = z.object({
     .string()
     .regex(/^[0-9a-f]{64}$/)
     .optional(),
+  bytes: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
   fehler: z.string().min(1).max(500).optional(),
 });
 

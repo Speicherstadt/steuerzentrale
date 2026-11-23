@@ -1,6 +1,6 @@
 // The rating of an installation, the check from outside and availability, update waves, freeze
-// windows, maintenance windows, server checks and the quiet hours of notifications as pure
-// functions (docs/plan.md, "Projektstruktur").
+// windows, maintenance windows, server checks, the quiet hours of notifications and the services
+// of a month with their CSV as pure functions (docs/plan.md, "Projektstruktur").
 
 export {
   type AgentServer,
@@ -44,7 +44,7 @@ export {
   nachFrist,
   STOERUNG_NACH_MS,
 } from "./bewertung.ts";
-
+export { type CsvWert, csvFeld, csvText } from "./csv.ts";
 export {
   nachSperrzeit,
   naechsterTermin,
@@ -52,6 +52,26 @@ export {
   sperrzeitAm,
   type Wartungsfenster,
 } from "./fenster.ts";
+export {
+  type InstallationsLeistung,
+  type KundenLeistung,
+  type LeistungsBackup,
+  type LeistungsEingaben,
+  type LeistungsInstallation,
+  type LeistungsKunde,
+  type LeistungsZugang,
+  leistungenImMonat,
+  monatAusText,
+  monatText,
+  speicherImMonat,
+  supportMinutenImMonat,
+} from "./leistungen.ts";
+export {
+  LEISTUNGEN_KOPF,
+  type Leistungen,
+  leistungenCsv,
+  leistungenDatei,
+} from "./leistungen-csv.ts";
 export {
   NEUSTART_PAUSE_MS,
   type NeustartEntscheid,
