@@ -41,6 +41,12 @@ describe("darf", () => {
     expect(darf("support", "installationen:schreiben")).toBe(false);
   });
 
+  it("lets owner and technik read the audit log, not support (Z-406)", () => {
+    expect(darf("inhaber", "audit:lesen")).toBe(true);
+    expect(darf("technik", "audit:lesen")).toBe(true);
+    expect(darf("support", "audit:lesen")).toBe(false);
+  });
+
   it("gives a member with several roles the rights of each", () => {
     expect(rollenVon("support, inhaber")).toEqual(["support", "inhaber"]);
     expect(darf("support,inhaber", "mitglieder:einladen")).toBe(true);

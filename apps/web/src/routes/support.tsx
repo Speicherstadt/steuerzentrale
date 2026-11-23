@@ -1,15 +1,16 @@
 import { Icon, m } from "@steuerzentrale/ui";
 import { Timer } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { installationVon, titel } from "../daten/ableitungen.ts";
-import { bestand } from "../daten/quelle.ts";
+import { bestand, mitDemo } from "../daten/quelle.ts";
 import type { Bestand, Zugang } from "../daten/typen.ts";
 import { minuten } from "../format/zahl.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { rolleName } from "../rahmen/texte.ts";
 import { Balken } from "../teile/balken.tsx";
 import { Karte, KartenInhalt, KartenKopf, Seitenkopf } from "../teile/karte.tsx";
+import { NochNicht } from "../teile/kommt-noch.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZielVerweis } from "../teile/verweise.tsx";
 import { Marke } from "../teile/zeichen.tsx";
@@ -50,7 +51,7 @@ const Aktiv = (props: { b: Bestand; z: Zugang }) => {
   );
 };
 
-const Support = () => {
+const SupportDemo = () => {
   const b = bestand();
   const aktiv = b.zugaenge.filter((z) => z.restMinuten !== undefined);
   const beendet = b.zugaenge.filter((z) => z.restMinuten === undefined);
@@ -109,5 +110,24 @@ const Support = () => {
     </div>
   );
 };
+
+/**
+ * Signed in, nothing of the demo: the page waits for Z-802 (docs/plan.md, "Echte Daten (Z-406)")
+ */
+const Support = () => (
+  <Show
+    when={mitDemo()}
+    fallback={
+      <NochNicht
+        titel={m.nav_support()}
+        text={m.sup_text()}
+        punkt="Z-802"
+        hinweis={m.support_spaeter()}
+      />
+    }
+  >
+    <SupportDemo />
+  </Show>
+);
 
 export const Route = createFileRoute("/support")({ component: Support });

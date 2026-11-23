@@ -73,6 +73,8 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 | Installationen anlegen, gescheiterte entfernen | ja | ja | – |
 | Neustart und „nur lesen“ einer Installation | ja | ja | – |
 | Log-Auszug einer Installation anfordern und lesen | ja | ja | ja |
+| Übersicht, Aufträge und Ereignisse sehen | ja | ja | ja |
+| Audit-Log lesen | ja | ja | – |
 
 Die Rollen sind die Zugriffssteuerung des Organization-Plugins von Better Auth; jeder Betreiber ist
 dort eine Organisation mit derselben ID. Ein Betreiber behält immer einen Inhaber: der letzte kann

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { installationAnlegen, neuerHost } from "./hilfen/installationen.ts";
+import { rotGemeldet } from "./hilfen/zustand.ts";
 
 test.use({ locale: "de-DE" });
 
@@ -42,16 +43,24 @@ test.describe("the interface", { tag: "@phone" }, () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   });
 
-  // The overview shows the demo fixtures until Z-406, the installation page the Zentrale's
-  // installations since Z-402: the entry links to its cause, a page the Zentrale does not know
+  // Z-406: the overview reads GET /api/v1/uebersicht; an installation the stand-in agent reports
+  // red stands there as a fault and leads to its page
   test("leads from the overview to the cause of an entry", async ({ page }) => {
-    await page.goto("/");
-    await page
-      .getByRole("link", { name: /IT Berger · Schreibzeug/ })
-      .first()
-      .click();
-    await expect(page).toHaveURL("/installationen/berger-schreibzeug");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nicht gefunden");
+    const i = await installationAnlegen(page.request, neuerHost("laeuft"));
+    try {
+      await rotGemeldet(page.request, i);
+      await page.goto("/");
+      const eintrag = page
+        .locator("section", { has: page.getByRole("heading", { name: "Braucht Aufmerksamkeit" }) })
+        .getByRole("link", { name: new RegExp(`${i.kunde.name} · probe`) });
+      await expect(eintrag).toContainText("Health: HTTP 503");
+      await expect(eintrag.getByRole("img", { name: "Störung" })).toBeVisible();
+      await eintrag.click();
+      await expect(page).toHaveURL(`/installationen/${i.installationId}`);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`${i.kunde.name} · probe`);
+    } finally {
+      i.agent.trennen();
+    }
   });
 });
 

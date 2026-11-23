@@ -1,5 +1,5 @@
 import { berlinTag, tageSpaeter } from "../format/zeit.ts";
-import type { Bestand, Installation, Kunde, Manifest, Server, Sperrzeit, Ziel } from "./typen.ts";
+import type { Bestand, Installation, Kunde, Manifest, Server, Sperrzeit } from "./typen.ts";
 
 /*
  * Lookups and facts derived from the data, pure: data in, data out. The pages call these instead of
@@ -31,16 +31,6 @@ export const installationenVon = (b: Bestand, kunde: string) =>
 export const installationenDer = (b: Bestand, app: string) =>
   b.installationen.filter((i) => i.app === app);
 
-/** The customers with an installation on a server, each once, in the order of the installations */
-export const kundenAuf = (b: Bestand, server: string): Kunde[] => [
-  ...new Set(installationenAuf(b, server).map((i) => kundeVon(b, i.kunde))),
-];
-
-/** The servers a customer's installations run on, each once */
-export const serverVonKunde = (b: Bestand, kunde: string): Server[] => [
-  ...new Set(installationenVon(b, kunde).map((i) => serverVon(b, i.server))),
-];
-
 /** On the newest version with a signed manifest (an app without image has none to reach) */
 export const istAktuell = (b: Bestand, i: Installation) => {
   const neu = appVon(b, i.app).version;
@@ -70,25 +60,21 @@ export type SperrzeitEinerApp = Sperrzeit & { app: string; appName: string };
 export const alleSperrzeiten = (b: Bestand): SperrzeitEinerApp[] =>
   b.apps.flatMap((a) => a.sperrzeiten.map((z) => ({ ...z, app: a.id, appName: a.name })));
 
-/** The freeze windows of the apps installed on a server: they block its reboots too */
-export const sperrzeitenAuf = (b: Bestand, server: string): SperrzeitEinerApp[] => {
-  const apps = new Set(installationenAuf(b, server).map((i) => i.app));
-  return alleSperrzeiten(b).filter((z) => apps.has(z.app));
+/** The freeze windows of these apps, from their descriptions (until manifests are imported, Z-501) */
+export const sperrzeitenDer = (b: Bestand, apps: string[]): SperrzeitEinerApp[] => {
+  const da = new Set(apps);
+  return alleSperrzeiten(b).filter((z) => da.has(z.app));
 };
+
+/** RAM the manifests of these installed apps may use, in MB; an app the descriptions lack counts 0 */
+export const ramDerMb = (b: Bestand, apps: string[]) =>
+  apps.reduce((summe, app) => summe + (suche(b.apps, app)?.ramMb ?? 0), 0);
 
 /** A monthly window holds on the days `von` to `bis` of the month in Berlin */
 export const sperrzeitAktiv = (z: Sperrzeit, jetzt: number) => {
   const tag = berlinTag(jetzt);
   return tag >= z.von && tag <= z.bis;
 };
-
-/** RAM the manifests of a server's installations may use, in MB (limits, docs/plan.md "Ressourcen") */
-export const ramVergebenMb = (b: Bestand, server: string) =>
-  installationenAuf(b, server).reduce((summe, i) => summe + appVon(b, i.app).ramMb, 0);
-
-/** The installations of a server or customer an event, job or entry is about */
-export const betrifft = (ziel: Ziel, ids: Set<string>) =>
-  (ziel.art === "installation" || ziel.art === "server") && ids.has(ziel.id);
 
 /** Minutes of support a customer got in a month ("2026-11"), from the support accesses */
 export const supportMinuten = (b: Bestand, kunde: string, monat: string) => {

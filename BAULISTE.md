@@ -279,12 +279,17 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   zugestellt; jede Aktion ohne Grund wird abgelehnt und steht mit Grund im Audit-Log; kein
   Betreiber erreicht Aktionen oder Log-Auszüge eines anderen (Test je Endpunkt); Neustart und
   Log-Auszug in Playwright.
-- [ ] **Z-406 Übersicht und echte Daten** – Übersicht, Server, Server-Detail, Installationen,
+- [x] **Z-406 Übersicht und echte Daten** – Übersicht, Server, Server-Detail, Installationen,
   Installation, Aufträge, Ereignisse, Audit-Log und Einstellungen mit echten Daten statt Demodaten;
   die Kundenseite zeigt ihre Installationen; Übersicht mit allem, was Aufmerksamkeit braucht, nach
   Schwere. Spätere Punkte stellen ihre Seite (Backups, Updates, Support-Zugänge, Leistungen) selbst
   auf echte Daten um.
-  Fertig, wenn: die E2E-Fälle dieser Seiten gegen Zentrale und Agent laufen.
+  Fertig, wenn: die E2E-Fälle dieser Seiten gegen Zentrale und Agent laufen; dazu (Tests): jede
+  neue lesende Route zeigt keinem Betreiber Daten eines anderen und prüft die Rollen (Audit-Log nur
+  Inhaber und Technik); die Übersicht ordnet nach Schwere und verweist auf die Ursache (auch der
+  E2E-Fall „von der Übersicht zur Ursache“ wieder mit einer echten Installation statt „Nicht
+  gefunden“); seitenweises Lesen liefert jede Zeile genau einmal; angemeldet erscheint nirgends
+  ein Demodatum.
 - [x] **Z-407 Adressen und DNS** – Adresse `<app>.<kunde>.<domain>`; die Zentrale setzt A und AAAA
   über die Cloudflare-API und entfernt sie mit der Installation.
   nach: Z-402

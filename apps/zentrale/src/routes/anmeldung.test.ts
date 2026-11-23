@@ -18,7 +18,7 @@ describe("sign-in with a passkey", () => {
     expect(an.status).toBe(200);
     const { status, daten } = await neu.json("/api/v1/ich");
     expect(status).toBe(200);
-    expect(daten).toMatchObject({ email: inhaber.email, rolle: "inhaber" });
+    expect(daten).toMatchObject({ email: inhaber.email, rolle: "inhaber", faktor: "passkey" });
   });
 
   it("refuses a passkey that was never registered", async () => {
@@ -52,7 +52,10 @@ describe("sign-in with password and TOTP", () => {
       body: { code: totpCode(inhaber.totp) },
     });
     expect(code.status).toBe(200);
-    expect((await neu.json("/api/v1/ich")).daten).toMatchObject({ rolle: "inhaber" });
+    expect((await neu.json("/api/v1/ich")).daten).toMatchObject({
+      rolle: "inhaber",
+      faktor: "totp",
+    });
   });
 
   it("refuses a wrong code", async () => {

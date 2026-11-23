@@ -1,12 +1,13 @@
 import { m, Tabs } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { appVon, installationenVon, monatVon, supportMinuten } from "../daten/ableitungen.ts";
-import { bestand } from "../daten/quelle.ts";
+import { bestand, mitDemo } from "../daten/quelle.ts";
 import type { Bestand } from "../daten/typen.ts";
 import { gb, minuten, prozent } from "../format/zahl.ts";
 import { monatName, monatUndVormonat } from "../format/zeit.ts";
 import { Seitenkopf } from "../teile/karte.tsx";
+import { NochNicht } from "../teile/kommt-noch.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuKunde } from "../teile/verweise.tsx";
 import { AppZeichen } from "../teile/zeichen.tsx";
@@ -70,7 +71,7 @@ const Monat = (props: { b: Bestand; monat: string }) => {
   );
 };
 
-const Leistungen = () => {
+const LeistungenDemo = () => {
   const b = bestand();
   const [vorher, jetzt] = monatUndVormonat(b.jetzt);
   return (
@@ -88,5 +89,24 @@ const Leistungen = () => {
     </div>
   );
 };
+
+/**
+ * Signed in, nothing of the demo: the page waits for Z-804 (docs/plan.md, "Echte Daten (Z-406)")
+ */
+const Leistungen = () => (
+  <Show
+    when={mitDemo()}
+    fallback={
+      <NochNicht
+        titel={m.nav_leistungen()}
+        text={m.leist_text()}
+        punkt="Z-804"
+        hinweis={m.leistungen_spaeter()}
+      />
+    }
+  >
+    <LeistungenDemo />
+  </Show>
+);
 
 export const Route = createFileRoute("/leistungen")({ component: Leistungen });

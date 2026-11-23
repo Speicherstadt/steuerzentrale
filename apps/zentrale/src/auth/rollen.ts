@@ -22,6 +22,8 @@ const ANWEISUNGEN = {
   // log_auszug: the lines of an installation's journal (Z-405), customer data; Z-802 limits it to
   // support access later
   installationen: ["lesen", "schreiben", "log_auszug"],
+  // the audit log (Z-406): who changed what, with the content of each change
+  audit: ["lesen"],
   // the operator's domain, zone and Cloudflare token (Z-407); the token itself is never read back
   dns: ["lesen", "schreiben"],
 } as const;
@@ -45,6 +47,7 @@ export const ROLLEN_ZUGRIFF = {
     kunden: ["lesen", "schreiben"],
     server: ["anlegen", "lesen", "sperren"],
     installationen: ["lesen", "schreiben", "log_auszug"],
+    audit: ["lesen"],
     dns: ["lesen", "schreiben"],
   }),
   // servers, installations and updates (later items); sees who else works on the operator; takes
@@ -56,11 +59,13 @@ export const ROLLEN_ZUGRIFF = {
     kunden: ["lesen", "schreiben"],
     server: ["anlegen", "lesen", "sperren"],
     installationen: ["lesen", "schreiben", "log_auszug"],
+    audit: ["lesen"],
     dns: ["lesen", "schreiben"],
   }),
   // support access to customers (later items); sees who else works on the operator, whom it
   // helps, the servers and installations they run on, but changes no customer, contract, server
-  // or installation; takes a log excerpt (docs/plan.md, "Aktionen einer Installation")
+  // or installation; takes a log excerpt (docs/plan.md, "Aktionen einer Installation"); reads
+  // jobs and events, not the audit log (docs/plan.md, "Echte Daten (Z-406)")
   support: zugriff.newRole({
     ...KEINE_RECHTE_IN_BETTER_AUTH,
     betreiber: ["lesen"],
@@ -68,6 +73,7 @@ export const ROLLEN_ZUGRIFF = {
     kunden: ["lesen"],
     server: ["lesen"],
     installationen: ["lesen", "log_auszug"],
+    audit: [],
     dns: ["lesen"],
   }),
 } as const;

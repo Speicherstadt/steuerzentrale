@@ -16,13 +16,12 @@ import {
 } from "../seiten/installation-einrichtung.tsx";
 import { UnitsUndHealth, Verlauf } from "../seiten/installation-health.tsx";
 import { EinstellungenAendern } from "../seiten/installation-konfigurieren.tsx";
-import {
-  InstallationBackups,
-  InstallationEinstellungen,
-  InstallationEreignisse,
-} from "../seiten/installation-reiter.tsx";
+import { InstallationBackups, InstallationEinstellungen } from "../seiten/installation-reiter.tsx";
 import { InstallationZustand } from "../seiten/installation-zustand.tsx";
+import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { appIcon } from "../teile/app-icon.ts";
+import { Karte, KartenInhalt } from "../teile/karte.tsx";
+import { KommtNoch } from "../teile/kommt-noch.tsx";
 import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
 import { InstallationsZeichen, Version } from "../teile/zeichen.tsx";
 
@@ -30,8 +29,9 @@ import { InstallationsZeichen, Version } from "../teile/zeichen.tsx";
  * One installation (BAULISTE.md Z-402): from the Zentrale its place, ports, values and setup jobs,
  * its state with reason and history (Z-403), after a failed setup the way to remove it, and once
  * it runs "Einstellungen ändern" (Z-404) and the actions its manifest offers (Z-405).
- * Settings from the manifest, snapshots, events and the check from outside of the demo data stay
- * for an installation the demo knows by id, until Z-406.
+ * Its events come from the Zentrale (Z-406); snapshots come with Z-601, so signed in the tab says
+ * so. Settings from the manifest, snapshots and the check from outside of the demo data show only
+ * in `dev:demo`, for an installation the demo knows by id.
  */
 
 const Kopf = (props: { a: Einzelansicht }) => (
@@ -64,6 +64,17 @@ const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): T
     </div>
   );
   const verlauf = () => <Verlauf verlauf={a.verlauf} />;
+  const ereignisse: Tab = {
+    id: "ereignisse",
+    label: m.nav_ereignisse(),
+    content: () => (
+      <Karte>
+        <KartenInhalt class="grid gap-4 pt-5">
+          <ZielEreignisse ziele={[`installation:${a.id}`]} />
+        </KartenInhalt>
+      </Karte>
+    ),
+  };
   if (!demo)
     return [
       {
@@ -84,6 +95,12 @@ const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): T
         label: m.nav_einstellungen(),
         content: () => <InstallationsWerte a={a} />,
       },
+      {
+        id: "backups",
+        label: m.nav_backups(),
+        content: () => <KommtNoch punkt="Z-601" text={m.backups_spaeter()} />,
+      },
+      ereignisse,
     ];
   return [
     {
@@ -107,11 +124,7 @@ const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): T
       label: m.nav_backups(),
       content: () => <InstallationBackups b={b} i={demo} />,
     },
-    {
-      id: "ereignisse",
-      label: m.nav_ereignisse(),
-      content: () => <InstallationEreignisse b={b} i={demo} />,
-    },
+    ereignisse,
   ];
 };
 

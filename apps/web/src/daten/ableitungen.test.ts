@@ -5,11 +5,10 @@ import {
   installationVon,
   istAktuell,
   istGekuendigt,
-  kundenAuf,
   monatVon,
-  ramVergebenMb,
+  ramDerMb,
   sperrzeitAktiv,
-  sperrzeitenAuf,
+  sperrzeitenDer,
   supportMinuten,
   titel,
 } from "./ableitungen.ts";
@@ -38,20 +37,14 @@ describe("derived facts", () => {
     expect(sperrzeitAktiv(haben, berlin("2026-12-13", "00:00"))).toBe(false);
   });
 
-  it("counts the freeze windows of the apps on a server only", () => {
-    expect(sperrzeitenAuf(demo, "shared-1").map((z) => z.app)).toEqual(["haben"]);
-    expect(sperrzeitenAuf(demo, "kraft")).toEqual([]);
+  it("counts the freeze windows of the installed apps only (Z-406)", () => {
+    expect(sperrzeitenDer(demo, ["haben", "belegt", "haben"]).map((z) => z.app)).toEqual(["haben"]);
+    expect(sperrzeitenDer(demo, ["fixpunkt"])).toEqual([]);
   });
 
-  it("lists each customer of a server once", () => {
-    const namen = kundenAuf(demo, "shared-1").map((k) => k.id);
-    expect(namen).toEqual([...new Set(namen)]);
-    expect(namen).toContain("atelier-nord");
-  });
-
-  it("sums the RAM limits of a server's manifests", () => {
-    // Haben 2048 + Belegt 2048 on the customer's own server
-    expect(ramVergebenMb(demo, "holm")).toBe(4096);
+  it("sums the RAM limits of the installed apps' manifests, an unknown app as none", () => {
+    // Haben 2048 + Belegt 2048, as on the customer's own server
+    expect(ramDerMb(demo, ["haben", "belegt", "probe"])).toBe(4096);
   });
 
   it("sums support minutes per customer and Berlin month", () => {

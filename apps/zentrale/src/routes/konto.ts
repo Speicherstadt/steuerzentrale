@@ -22,11 +22,14 @@ export const kontoRouten = (route: Registrar, deps: RoutenDeps): void => {
       .where(eq(user.id, c.get("nutzerId")))
       .get();
     const betreiber = betreiberLesen(deps.db, c.get("betreiberId"));
+    // the sidebar names how one signs in: a passkey where there is one, else TOTP (Z-406)
+    const faktoren = faktorenVon(deps.db, c.get("nutzerId"));
     return c.json({
       nutzerId: c.get("nutzerId"),
       name: konto?.name ?? "",
       email: konto?.email ?? "",
       rolle: c.get("rolle"),
+      faktor: faktoren.passkeys > 0 ? "passkey" : "totp",
       betreiber: { betreiberId: c.get("betreiberId"), name: betreiber?.name ?? "" },
     });
   });

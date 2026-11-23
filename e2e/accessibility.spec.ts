@@ -5,9 +5,9 @@ import { kundeAnlegen } from "./hilfen/kunden.ts";
 import { serverAnlegen } from "./hilfen/server.ts";
 
 // Every page of the route tree, in light and dark, on the desktop and a phone, checked with axe; the
-// `pages` check (checks.json) reads the paths in this file. The data are the demo fixtures
-// (apps/web/src/demo/), the detail pages open one object of each kind; customers, servers and
-// installations come from the Zentrale, so their detail pages open one made over the API (ECHT).
+// `pages` check (checks.json) reads the paths in this file. Signed in, every page reads the
+// Zentrale (Z-406), with whatever the other tests made there; the detail pages open one object of
+// each kind made over the API (ECHT), the demo ids in the list only name them.
 // The session is the first owner's (e2e/einrichtung.setup.ts).
 const pages = [
   "/",

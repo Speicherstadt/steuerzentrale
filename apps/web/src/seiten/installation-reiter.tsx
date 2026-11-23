@@ -6,11 +6,10 @@ import type { Bestand, Ebene, Installation, Variable } from "../daten/typen.ts";
 import { gb } from "../format/zahl.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
-import { Ereignisliste } from "../teile/listen.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { Zustand } from "../teile/zeichen.tsx";
 
-/** The tabs "Einstellungen", "Backups" and "Ereignisse" of an installation */
+/** The tabs "Einstellungen" and "Backups" of an installation the demo knows */
 
 const EBENEN: Ebene[] = ["installation", "betreiber", "auto"];
 
@@ -176,18 +175,6 @@ export const InstallationBackups = (props: { b: Bestand; i: Installation }) => {
           </For>
         </Tabelle>
       </div>
-    </Karte>
-  );
-};
-
-export const InstallationEreignisse = (props: { b: Bestand; i: Installation }) => {
-  const ereignisse = () =>
-    props.b.ereignisse.filter((e) => e.ziel.art === "installation" && e.ziel.id === props.i.id);
-  return (
-    <Karte>
-      <KartenInhalt class="pt-5">
-        <Ereignisliste ereignisse={ereignisse()} />
-      </KartenInhalt>
     </Karte>
   );
 };

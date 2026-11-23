@@ -1,5 +1,5 @@
 import { m } from "@steuerzentrale/ui";
-import type { Auftrag, Manifest, Rolle, Sla } from "../daten/typen.ts";
+import type { Manifest, Rolle, Sla } from "../daten/typen.ts";
 import type { Welle } from "../daten/wellen.ts";
 
 /** Names of the values the data carries as codes, in the interface language */
@@ -11,22 +11,6 @@ const ROLLEN: Record<Rolle, () => string> = {
 };
 
 export const rolleName = (rolle: Rolle): string => ROLLEN[rolle]();
-
-/** The action of a job: "Update auf Haben 1.9.0", "Neustart", "Prüf-Restore" */
-export const auftragName = (a: Auftrag, app: Manifest | undefined): string => {
-  switch (a.aktion) {
-    case "update":
-      return m.auftrag_update({ app: app?.name ?? "", version: a.version ?? "" });
-    case "neustart":
-      return m.auftrag_neustart();
-    case "neustart_server":
-      return m.auftrag_neustart_server();
-    case "pruef_restore":
-      return m.auftrag_pruef_restore();
-    case "backup":
-      return m.auftrag_backup();
-  }
-};
 
 const STAND: Record<Manifest["stand"], () => string> = {
   stabil: () => m.app_stand_stabil(),

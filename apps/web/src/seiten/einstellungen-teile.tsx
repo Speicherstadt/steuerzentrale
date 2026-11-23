@@ -1,91 +1,115 @@
+import type { JSX } from "@solidjs/web";
 import { getLocale, type Locale, locales, m, setLocale } from "@steuerzentrale/ui";
-import { createUniqueId, For } from "solid-js";
+import { createMemo, createUniqueId, For, Loading, Show } from "solid-js";
+import { mitgliederLesen } from "../daten/mitglieder.ts";
+import { mitDemo } from "../daten/quelle.ts";
 import type { Bestand } from "../daten/typen.ts";
-import { zeitpunkt } from "../format/zeit.ts";
+import { datum } from "../format/zeit.ts";
 import { rolleName } from "../rahmen/texte.ts";
 import { aktuellesThema, THEMEN, type Thema, waehleThema } from "../rahmen/theme.ts";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
+import { KommtNoch } from "../teile/kommt-noch.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 
 /**
  * The tabs of the settings, read-only until their items let them be changed (each change with a
  * reason, DESIGN.md); the operator's values per app are in einstellungen-apps.tsx (Z-404), DNS in
- * einstellungen-dns.tsx (Z-407);
- * "Darstellung" is the viewer's own and takes effect at once
+ * einstellungen-dns.tsx (Z-407); "Darstellung" is the viewer's own and takes effect at once. The
+ * accounts are the operator's members from the Zentrale (Z-406); backup target and notifications
+ * come with Z-601 and Z-703, so signed in their tabs say so and only the demo shows values.
  */
+
+/** A tab of the demo, or signed in the item that brings it */
+const ErstMit = (props: { punkt: string; text: string; children: JSX.Element }) => (
+  <Show when={mitDemo()} fallback={<KommtNoch punkt={props.punkt} text={props.text} />}>
+    {props.children}
+  </Show>
+);
 
 const mono = (text: string) => <span class="font-mono text-xs">{text}</span>;
 
 export const Backup = (props: { b: Bestand }) => (
-  <Karte>
-    <KartenKopf titel={m.einst_backup()} text={m.einst_backup_text()} />
-    <KartenInhalt>
-      <Angaben
-        zeilen={[
-          { name: m.einst_s3(), wert: mono(props.b.betreiber.s3) },
-          { name: m.einst_zugang(), wert: m.inst_wert_gesetzt() },
-          { name: m.einst_zeitplan(), wert: m.einst_zeitplan_wert() },
-          { name: m.einst_aufbewahrung(), wert: m.einst_aufbewahrung_wert() },
-          { name: m.inst_pruef(), wert: m.einst_pruef_wert() },
-        ]}
-      />
-    </KartenInhalt>
-  </Karte>
+  <ErstMit punkt="Z-601" text={m.einst_backup_text()}>
+    <Karte>
+      <KartenKopf titel={m.einst_backup()} text={m.einst_backup_text()} />
+      <KartenInhalt>
+        <Angaben
+          zeilen={[
+            { name: m.einst_s3(), wert: mono(props.b.betreiber.s3) },
+            { name: m.einst_zugang(), wert: m.inst_wert_gesetzt() },
+            { name: m.einst_zeitplan(), wert: m.einst_zeitplan_wert() },
+            { name: m.einst_aufbewahrung(), wert: m.einst_aufbewahrung_wert() },
+            { name: m.inst_pruef(), wert: m.einst_pruef_wert() },
+          ]}
+        />
+      </KartenInhalt>
+    </Karte>
+  </ErstMit>
 );
 
 export const Benachrichtigungen = (props: { b: Bestand }) => (
-  <Karte>
-    <KartenKopf titel={m.einst_melden()} text={m.einst_melden_text()} />
-    <KartenInhalt>
-      <Angaben
-        zeilen={[
-          { name: m.einst_smtp(), wert: mono(props.b.betreiber.benachrichtigung.smtp) },
-          { name: m.einst_an(), wert: mono(props.b.betreiber.benachrichtigung.an) },
-          { name: m.einst_webhook(), wert: mono(props.b.betreiber.benachrichtigung.webhook) },
-          {
-            name: m.einst_ruhezeit(),
-            wert: m.einst_ruhezeit_wert({ zeit: props.b.betreiber.benachrichtigung.ruhezeit }),
-          },
-        ]}
-      />
-    </KartenInhalt>
-  </Karte>
+  <ErstMit punkt="Z-703" text={m.einst_melden_text()}>
+    <Karte>
+      <KartenKopf titel={m.einst_melden()} text={m.einst_melden_text()} />
+      <KartenInhalt>
+        <Angaben
+          zeilen={[
+            { name: m.einst_smtp(), wert: mono(props.b.betreiber.benachrichtigung.smtp) },
+            { name: m.einst_an(), wert: mono(props.b.betreiber.benachrichtigung.an) },
+            { name: m.einst_webhook(), wert: mono(props.b.betreiber.benachrichtigung.webhook) },
+            {
+              name: m.einst_ruhezeit(),
+              wert: m.einst_ruhezeit_wert({ zeit: props.b.betreiber.benachrichtigung.ruhezeit }),
+            },
+          ]}
+        />
+      </KartenInhalt>
+    </Karte>
+  </ErstMit>
 );
 
-export const Konten = (props: { b: Bestand }) => (
-  <Karte class="overflow-hidden">
-    <KartenKopf titel={m.einst_konten()} text={m.einst_konten_text()} />
-    <div class="border-t">
-      <Tabelle
-        name={m.einst_konten()}
-        rahmen={false}
-        minBreite={560}
-        leer=""
-        anzahl={props.b.konten.length}
-        spalten={[
-          { name: m.einst_name() },
-          { name: m.einst_rolle() },
-          { name: m.einst_faktor() },
-          { name: m.einst_zuletzt() },
-        ]}
-      >
-        <For each={props.b.konten}>
-          {(k) => (
-            <Reihe>
-              <td class="font-medium">{k.name}</td>
-              <td class="text-xs">{rolleName(k.rolle)}</td>
-              <td class="text-xs">
-                {k.faktor === "passkey" ? m.faktor_passkey() : m.faktor_totp()}
-              </td>
-              <td class="text-xs text-muted-foreground">{zeitpunkt(k.zuletzt, props.b.jetzt)}</td>
-            </Reihe>
-          )}
-        </For>
-      </Tabelle>
-    </div>
-    <p class="p-5 pt-4 text-xs text-muted-foreground">{m.einst_rollen()}</p>
-  </Karte>
-);
+/** The operator's members with their roles, from the Zentrale (GET /api/v1/mitglieder) */
+export const Konten = () => {
+  const antwort = createMemo(() => mitgliederLesen());
+  const liste = () => {
+    const a = antwort();
+    return a.ok ? a.daten : [];
+  };
+  return (
+    <Karte class="overflow-hidden">
+      <KartenKopf titel={m.einst_konten()} text={m.einst_konten_text()} />
+      <div class="border-t">
+        <Loading fallback={<p class="p-5 text-muted-foreground">{m.einst_konten_laden()}</p>}>
+          <Tabelle
+            name={m.einst_konten()}
+            rahmen={false}
+            minBreite={560}
+            leer={m.einst_konten_keine()}
+            anzahl={liste().length}
+            spalten={[
+              { name: m.einst_name() },
+              { name: m.anm_email() },
+              { name: m.einst_rolle() },
+              { name: m.einst_mitglied_seit() },
+            ]}
+          >
+            <For each={liste()}>
+              {(k) => (
+                <Reihe>
+                  <td class="font-medium">{k.name}</td>
+                  <td class="font-mono text-xs">{k.email}</td>
+                  <td class="text-xs">{rolleName(k.rolle)}</td>
+                  <td class="text-xs text-muted-foreground">{datum(k.angelegtAm)}</td>
+                </Reihe>
+              )}
+            </For>
+          </Tabelle>
+        </Loading>
+      </div>
+      <p class="p-5 pt-4 text-xs text-muted-foreground">{m.einst_rollen()}</p>
+    </Karte>
+  );
+};
 
 export const Zentrale = (props: { b: Bestand }) => (
   <Karte>
@@ -94,7 +118,9 @@ export const Zentrale = (props: { b: Bestand }) => (
       <Angaben
         zeilen={[
           { name: m.einst_oberflaeche(), wert: m.einst_oberflaeche_wert() },
-          { name: m.einst_agenten(), wert: mono(`wss://agent.${props.b.betreiber.domain}`) },
+          ...(mitDemo()
+            ? [{ name: m.einst_agenten(), wert: mono(`wss://agent.${props.b.betreiber.domain}`) }]
+            : []),
           { name: m.einst_signatur(), wert: m.einst_signatur_wert() },
           { name: m.einst_aufbewahrung_daten(), wert: m.einst_aufbewahrung_daten_wert() },
           { name: m.einst_schluessel(), wert: m.inst_wert_gesetzt() },

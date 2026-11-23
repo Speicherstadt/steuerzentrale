@@ -2,7 +2,9 @@ import { Button, Icon, m, SearchInput } from "@steuerzentrale/ui";
 import { UserPlus } from "@steuerzentrale/ui/icons";
 import { createFileRoute, useNavigate } from "@tanstack/solid-router";
 import { createMemo, createSignal, For, Loading, Match, refresh, Show, Switch } from "solid-js";
-import { appVon, installationenVon, serverVonKunde } from "../daten/ableitungen.ts";
+import { suche } from "../daten/ableitungen.ts";
+import { desKunden, type InstallationAnsicht } from "../daten/installation-ansicht.ts";
+import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { kundenQuelle } from "../daten/kunden.ts";
 import { bestand } from "../daten/quelle.ts";
 import type { Kunde } from "../daten/typen.ts";
@@ -16,9 +18,8 @@ import { ZuKunde, ZuServer } from "../teile/verweise.tsx";
 import { AppZeichen, Marke } from "../teile/zeichen.tsx";
 
 /**
- * Customers with contract, apps and servers (BAULISTE.md, Z-801); they never sign in here. The
- * customers come from the Zentrale (src/daten/kunden.ts), the installations still from the demo
- * data until Z-406, so a customer of the Zentrale shows none yet.
+ * Customers with contract, apps and servers (BAULISTE.md, Z-801); they never sign in here.
+ * Customers and their installations come from the Zentrale (Z-406).
  */
 
 const passt = (k: Kunde, frage: string) => {
@@ -37,8 +38,21 @@ const Vertrag = (props: { k: Kunde }) => (
   </Switch>
 );
 
-const Zeilen = (props: { kunden: Kunde[] }) => {
-  const b = bestand();
+/** The servers a customer's installations run on, each once */
+const serverDer = (liste: InstallationAnsicht[]) => [
+  ...new Map(liste.map((i) => [i.serverId, i.serverName])).entries(),
+];
+
+const App = (props: { i: InstallationAnsicht }) => (
+  <Show
+    when={suche(bestand().apps, props.i.app)}
+    fallback={<Marke class="font-mono">{props.i.appName}</Marke>}
+  >
+    {(a) => <AppZeichen app={a()} />}
+  </Show>
+);
+
+const Zeilen = (props: { kunden: Kunde[]; installationen: InstallationAnsicht[] }) => {
   return (
     <For each={props.kunden}>
       {(k) => (
@@ -54,17 +68,15 @@ const Zeilen = (props: { kunden: Kunde[] }) => {
           </td>
           <td>
             <div class="flex flex-wrap gap-1">
-              <For each={installationenVon(b, k.id)}>
-                {(i) => <AppZeichen app={appVon(b, i.app)} />}
-              </For>
+              <For each={desKunden(props.installationen, k.id)}>{(i) => <App i={i} />}</For>
             </div>
           </td>
           <td class="text-xs">
             <ul>
-              <For each={serverVonKunde(b, k.id)}>
-                {(s) => (
+              <For each={serverDer(desKunden(props.installationen, k.id))}>
+                {([id, name]) => (
                   <li>
-                    <ZuServer id={s.id}>{s.name}</ZuServer>
+                    <ZuServer id={id}>{name}</ZuServer>
                   </li>
                 )}
               </For>
@@ -84,13 +96,19 @@ const Kunden = () => {
   const [frage, setFrage] = createSignal("");
   const [anlegen, setAnlegen] = createSignal(false);
   const antwort = createMemo(() => kundenQuelle().liste());
+  const installationen = createMemo(() => uebersichtLaden());
   const treffer = createMemo(() => {
     const a = antwort();
     return a.ok ? a.daten.filter((k) => passt(k, frage())) : [];
   });
+  const liste = () => {
+    const a = installationen();
+    return a.ok ? a.daten.installationen : [];
+  };
   const fehler = () => {
     const a = antwort();
-    return a.ok ? "" : fehlerText(a);
+    const i = installationen();
+    return a.ok ? (i.ok ? "" : fehlerText(i)) : fehlerText(a);
   };
   const angelegt = (k: Kunde) => {
     setAnlegen(false);
@@ -132,7 +150,7 @@ const Kunden = () => {
               { name: m.kunden_spalte_vertrag() },
             ]}
           >
-            <Zeilen kunden={treffer()} />
+            <Zeilen kunden={treffer()} installationen={liste()} />
           </Tabelle>
         </Show>
       </Loading>
