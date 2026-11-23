@@ -1,6 +1,6 @@
 import { render } from "@solidjs/web";
 import { setLocale } from "@steuerzentrale/ui";
-import { For, flush } from "solid-js";
+import { createSignal, For, flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Antwort } from "../anmeldung/api.ts";
 import type { Seite } from "../daten/betrieb.ts";
@@ -65,5 +65,50 @@ describe("Seitenweise", () => {
     expect([...root.querySelectorAll("li")].map((li) => li.textContent)).toEqual(ZEILEN);
     expect(knopf(root)).toBeUndefined();
     expect(laden.mock.calls.map((c) => c[0])).toEqual([undefined, "2", "4"]);
+  });
+
+  it("starts over when what it reads changes, without the pages of the list before", async () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    // two lists of five rows each, as a server's events and then another server's
+    const [liste, setListe] = createSignal("x");
+    const lesen = async (weiter?: string): Promise<Antwort<Seite<string>>> => {
+      const ab = Number(weiter ?? 0);
+      const zeilen = ZEILEN.map((z) => `${liste()}${z}`);
+      return {
+        ok: true,
+        status: 200,
+        daten: {
+          eintraege: zeilen.slice(ab, ab + 2),
+          weiter: ab + 2 < zeilen.length ? String(ab + 2) : null,
+        },
+      };
+    };
+    dispose = render(
+      () => (
+        <Seitenweise
+          laden={(weiter) => lesen(weiter)}
+          ladenText="lädt"
+          zeigen={(eintraege) => (
+            <ul>
+              <For each={eintraege()}>{(z) => <li>{z}</li>}</For>
+            </ul>
+          )}
+        />
+      ),
+      root,
+    );
+    await warten();
+    knopf(root)?.click();
+    await warten();
+    expect([...root.querySelectorAll("li")].map((li) => li.textContent)).toEqual([
+      "xa",
+      "xb",
+      "xc",
+      "xd",
+    ]);
+    setListe("y");
+    await warten();
+    expect([...root.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["ya", "yb"]);
   });
 });
