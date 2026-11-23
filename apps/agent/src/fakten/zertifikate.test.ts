@@ -75,9 +75,8 @@ describe("certificates of the Pforte", () => {
       return Object.fromEntries(
         Object.entries(echteQuellen()).map(([name, f]) => [
           name,
-          typeof f === "function"
-            ? (erstes: unknown, ...rest: unknown[]) => f(pfad(erstes), ...rest)
-            : f,
+          (erstes: unknown, ...rest: unknown[]) =>
+            (f as (...argumente: unknown[]) => unknown)(pfad(erstes), ...rest),
         ]),
       ) as FaktenQuellen;
     };
@@ -88,6 +87,12 @@ describe("certificates of the Pforte", () => {
       mkdirSync(ordner, { recursive: true });
       return { daten: join(wurzel, "daten"), datei: join(ordner, `${HOST}.crt`) };
     };
+
+    it("reads a certificate Caddy wrote as a regular file", async () => {
+      const { daten, datei } = ablage();
+      writeFileSync(datei, PEM);
+      expect(await zertifikateLesen(umgeleitet(daten))).toEqual([{ host: HOST, gueltigBis: BIS }]);
+    });
 
     it("does not wait on a FIFO in place of a certificate", async () => {
       const { daten, datei } = ablage();

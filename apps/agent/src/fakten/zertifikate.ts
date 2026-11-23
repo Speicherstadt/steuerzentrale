@@ -8,7 +8,10 @@ import type { FaktenQuellen } from "./quellen.ts";
  * (packages/manifest, pforte/unit.ts), which Podman keeps under that user's storage
  * (containers-storage.conf(5): $XDG_DATA_HOME/containers/storage; volumes/<name>/_data). Each
  * certificate lies at certificates/<issuer>/<host>/<host>.crt (certmagic, StorageKeys.SiteCert),
- * the leaf first. The agent runs as root and reads them; it changes nothing there.
+ * the leaf first. The agent runs as root and reads them; it changes nothing there. Caddy may write
+ * anything into its volume, so each file is read only as a regular file of a certificate's size,
+ * never through a link at its end (`lesenFremd`): a FIFO, a device or a huge file there neither
+ * stalls nor floods the agent.
  */
 
 const DATEN = "/home/sz-pforte/.local/share/containers/storage/volumes/sz-pforte-daten/_data";
@@ -16,6 +19,8 @@ export const ZERTIFIKATE = `${DATEN}/caddy/certificates`;
 
 /** No more than the message takes (packages/protokoll, `fakten`) */
 const HOECHSTENS = 1000;
+/** Caddy's file is the chain, a few KiB; anything larger is no certificate of it */
+const HOECHSTENS_BYTES = 64 * 1024;
 
 /** The end of the first certificate in a PEM file, undefined when it is none */
 const gueltigBis = (pem: string): number | undefined => {
@@ -43,7 +48,7 @@ export const zertifikateLesen = async (
   const dateien = (await Promise.all(aussteller.map((a) => hostsDes(q, a)))).flat();
   const gelesen = await Promise.all(
     dateien.slice(0, HOECHSTENS).map(async ({ host, pfad }) => {
-      const pem = await q.lesen(pfad);
+      const pem = await q.lesenFremd(pfad, HOECHSTENS_BYTES);
       const bis = pem === undefined ? undefined : gueltigBis(pem);
       return bis === undefined ? [] : [{ host, gueltigBis: bis }];
     }),
