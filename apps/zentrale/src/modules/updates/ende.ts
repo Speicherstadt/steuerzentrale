@@ -1,9 +1,11 @@
 import {
+  type Manifest,
   manifestPruefen,
   type UpdateDaten,
   updateArgumente,
   updateDatenLesen,
 } from "@steuerzentrale/manifest";
+import { sperrzeitAm } from "@steuerzentrale/planung";
 import {
   type AuftragZustand,
   ENDZUSTAENDE,
@@ -183,9 +185,21 @@ const laufTeile = (ergebnis: Ergebnis | undefined): { tag: string; snapshot: str
 };
 
 /**
+ * The freeze window of the old or the new manifest the update would start in now, unless the owner
+ * passed over it when making it: a backup run may take hours, and a window may begin meanwhile
+ */
+const sperrzeitJetzt = (deps: Deps, z: UpdateZeile, neu: Manifest, jetzt: number) => {
+  if (z.sperrzeitUebergangen) return undefined;
+  const i = installationLesen(deps.db, z.betreiberId, z.installationId);
+  const alt = i ? manifestPruefen(i.manifest) : undefined;
+  return sperrzeitAm([...(alt?.ok ? alt.manifest.sperrzeiten : []), ...neu.sperrzeiten], jetzt);
+};
+
+/**
  * After the backup `a` succeeded, among the jobs that became ready: an update waiting for it gets
- * the run's snapshots as its arguments, or is cancelled with its reason when the run lacks one; it
- * never left the Zentrale. Returns the ready jobs as they are now, to be sent.
+ * the run's snapshots as its arguments, or is cancelled with its reason when the run lacks one or
+ * a freeze window of the app began meanwhile (the plan makes it again after the window, with a
+ * backup of then); it never left the Zentrale. Returns the ready jobs as they are now, to be sent.
  */
 export const updateSnapshotsSetzen = (
   w: Schreiber,
@@ -201,10 +215,11 @@ export const updateSnapshotsSetzen = (
   return bereit.flatMap((b) => {
     if (b.auftragId !== update.auftragId) return [b];
     const m = manifestPruefen(b.manifest);
+    const sperre = m.ok ? sperrzeitJetzt(deps, update, m.manifest, jetzt) : undefined;
     const argumente = m.ok
       ? updateArgumente(m.manifest, update.installationId, laufTeile(ergebnis))
       : { ok: false as const, grund: "manifest_ungueltig" };
-    if (argumente.ok)
+    if (argumente.ok && !sperre)
       return [
         w.aendern(
           "auftraege",
@@ -212,7 +227,9 @@ export const updateSnapshotsSetzen = (
           { argumente: JSON.stringify(argumente.argumente), geaendertAm: jetzt },
         ),
       ];
-    const fehler = `Backup vor dem Update ohne Snapshot: ${argumente.grund}`;
+    const fehler = sperre
+      ? `Sperrzeit nach dem Backup vor dem Update: ${sperre.grund}`
+      : `Backup vor dem Update ohne Snapshot: ${argumente.ok ? "" : argumente.grund}`;
     w.aendern(
       "auftraege",
       { auftragId: b.auftragId },

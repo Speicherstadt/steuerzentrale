@@ -41,7 +41,10 @@ Ein Update besteht aus zwei Aufträgen. Zuerst sichert der Agent den Ist-Zustand
 (`installation_backup`, wie „Backup jetzt“). Erst wenn dieses Backup gelingt, bekommt der Auftrag
 `installation_update` die Snapshots dieses Laufs und geht zum Agenten, mit dem signierten Manifest
 der neuen Version und den Werten der Installation dafür. Scheitert das Backup, wird das Update
-abgebrochen und auf dem Server ändert sich nichts.
+abgebrochen und auf dem Server ändert sich nichts. Ebenso, wenn das Backup erst in einer Sperrzeit
+der App endet, außer der Inhaber hat sie für dieses Update übergangen; die Planung versucht es
+danach mit einem neuen Backup wieder. Nennt die neue Version einen Backup-Teil, den es vorher nicht
+gab, hat er keinen Snapshot: Er hielt noch keine Daten der alten Version.
 
 Der Agent zieht die neuen Images per Digest, schreibt die neuen Units, startet neu, führt die
 Schritte nach dem Update aus dem Manifest aus (`schritte.nach_update`) und wartet höchstens 5 Minuten
