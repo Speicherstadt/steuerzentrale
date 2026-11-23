@@ -1,6 +1,7 @@
 import type { EinstellungsFeld, Platzierung } from "@steuerzentrale/manifest";
 import { type Antwort, api } from "../anmeldung/api.ts";
 import { demo } from "../demo/index.ts";
+import { appsQuelle } from "./apps.ts";
 import type { HealthDerZentrale, Verlaufseintrag } from "./bewertung.ts";
 import { kundenQuelle } from "./kunden.ts";
 import { serverQuelle } from "./server.ts";
@@ -97,12 +98,12 @@ export type InstallationMitAuftraegen = InstallationDerZentrale & {
   aktionen: Record<InstallationsAktion, boolean>;
 };
 
-/** What the dialog asks the placement about: the signed manifest's exact text and signature */
+/** What the dialog asks the placement about: app and version of an imported manifest (Z-501) */
 export type PlatzWunsch = {
   kundeId: string;
   serverId: string;
-  manifest: string;
-  signatur: string;
+  app: string;
+  version: string;
   optionen: string[];
 };
 
@@ -190,6 +191,7 @@ const spaeterDemo = (): InstallationenQuelle => {
         jetzt: Date.now,
         kunden: () => kundenQuelle().liste(),
         server: () => serverQuelle().liste(),
+        manifest: (app, version) => appsQuelle().manifest(app, version),
         betreiberWerte: [...Object.keys(demo.betreiber.werte), ...demo.betreiber.geheimGesetzt],
       }),
     );

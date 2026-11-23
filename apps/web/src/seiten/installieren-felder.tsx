@@ -2,12 +2,16 @@ import type { Geprueft } from "@steuerzentrale/manifest";
 import { Input, m } from "@steuerzentrale/ui";
 import { For, Loading, Show } from "solid-js";
 import type { Antwort } from "../anmeldung/api.ts";
+import type { AppVersion } from "../daten/apps.ts";
 import type { ServerDerZentrale } from "../daten/server.ts";
 import type { Kunde } from "../daten/typen.ts";
 import { ART } from "../teile/zeichen.tsx";
 import type { Auswahl } from "./installieren-auswahl.ts";
 
-/** The fields of the dialog "Installieren" that do not come from the manifest: customer, server, files */
+/**
+ * The fields of the dialog "Installieren" that do not come from the manifest: customer, server, app
+ * and version among the imported manifests (Z-501); and a file field, which the import uses
+ */
 
 const feldKlasse =
   "h-8 w-full rounded-lg border border-border bg-background px-2.5 text-[13px] disabled:opacity-50";
@@ -83,6 +87,39 @@ export const ZielWahl = (props: { a: Auswahl }) => (
       aktuell={props.a.serverId()}
       onWahl={props.a.setServerId}
     />
+  </Loading>
+);
+
+/** A version with its marks: urgent, pre-release */
+const versionText = (v: AppVersion) =>
+  [
+    v.version,
+    v.dringend ? m.version_dringend() : undefined,
+    v.vorabversion ? m.version_vorab() : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+/** App and version among the imported manifests; the versions follow the customer and the app */
+export const AppWahl = (props: { a: Auswahl }) => (
+  <Loading fallback={<p class="text-xs text-muted-foreground">{m.installieren_laden()}</p>}>
+    <Liste
+      id="installieren-app"
+      label={m.installieren_app()}
+      leer={m.installieren_app_waehlen()}
+      wahl={props.a.angeboteneApps().map((app) => ({ wert: app, text: app }))}
+      aktuell={props.a.app()}
+      onWahl={props.a.appSetzen}
+    />
+    <Liste
+      id="installieren-version"
+      label={m.installieren_version()}
+      leer={m.installieren_version_waehlen()}
+      wahl={props.a.versionen().map((v) => ({ wert: v.version, text: versionText(v) }))}
+      aktuell={props.a.version()}
+      onWahl={props.a.versionSetzen}
+    />
+    <p class="text-xs text-muted-foreground">{m.installieren_version_hinweis()}</p>
   </Loading>
 );
 

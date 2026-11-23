@@ -13,7 +13,8 @@ import { kundeAnlegen } from "./kunden.ts";
  * manifest (apps/zentrale/src/testhilfen/manifeste/probe.yml), without a required value of the
  * operator; `mitBetreiberwert` gives it one under an app id of its own (Z-404), so the dialog asks
  * for it in each run of the test, on desktop and phone alike; `mitBackup` a volume to back up
- * (Z-601).
+ * (Z-601). An installation is made from an imported manifest (Z-501), and an imported version never
+ * changes: every variant has a version of its own, and all tests share one Zentrale.
  */
 const PROBE = `schema: 1
 id: probe
@@ -48,19 +49,22 @@ export const mitBetreiberwert = (app: string) =>
     "env:\n  - { name: PROBE_LIZENZ, ebene: betreiber, typ: geheim, pflicht: true }\n",
   );
 
-/** The probe manifest with a volume to back up (Z-601) */
+/** The probe manifest with a volume to back up (Z-601), as version 1.0.1 */
 export const mitBackup = () =>
-  `${PROBE.replace(
+  `${PROBE.replace("version: 1.0.0", "version: 1.0.1").replace(
     "    env: [PROBE_TITEL",
     "    volumes: [{ name: daten, pfad: /daten }]\n    env: [PROBE_TITEL",
   )}backup:\n  - { art: volume, volume: daten }\n`;
 
-/** The probe manifest without the restart (Z-405): the page must not offer it */
+/** The probe manifest without the restart (Z-405): the page must not offer it; version 1.0.2 */
 export const ohneNeustart = () =>
-  PROBE.replace(
+  PROBE.replace("version: 1.0.0", "version: 1.0.2").replace(
     "aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }",
     "aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt, neustart: nicht_unterstuetzt }",
   );
+
+/** A probe manifest under an app id of its own, which no other test imports */
+export const eigeneApp = (app: string) => PROBE.replace("id: probe", `id: ${app}`);
 
 /** The manifest's text and signature */
 export const signiertesManifest = (text = PROBE) => {
@@ -84,6 +88,19 @@ export const manifestDateien = (text = PROBE) => {
   return { manifest: pfad, signatur: `${pfad}.minisig` };
 };
 
+/**
+ * Imports the manifest over the API (Z-501); the same text again changes nothing, so every test
+ * imports what it installs. App and version to install it with
+ */
+export const manifestImportieren = async (request: APIRequestContext, text = PROBE) => {
+  const antwort = await request.post("/api/v1/manifeste", {
+    data: { ...signiertesManifest(text), grund: "Test" },
+  });
+  expect([200, 201]).toContain(antwort.status());
+  const { app, version } = (await antwort.json()) as { app: string; version: string };
+  return { app, version };
+};
+
 /** A host no other test uses; `kaputt…` makes the stand-in agent fail the setup */
 export const neuerHost = (vorne = "probe") => `${vorne}-${randomUUID().slice(0, 8)}.kunde.test`;
 
@@ -96,7 +113,7 @@ export type Angelegt = {
 
 /**
  * An installation made over the API for a new customer on a new server with a connected agent,
- * from the probe manifest or `text`
+ * from the probe manifest or `text`, imported first
  */
 export const installationAnlegen = async (
   request: APIRequestContext,
@@ -105,11 +122,12 @@ export const installationAnlegen = async (
 ): Promise<Angelegt> => {
   const kunde = await kundeAnlegen(request, "Kanzlei Nord");
   const agent = await agentVerbinden(request, "Gemeinsamer Server");
+  const wahl = await manifestImportieren(request, text);
   const antwort = await request.post("/api/v1/installationen", {
     data: {
       kundeId: kunde.id,
       serverId: agent.serverId,
-      ...signiertesManifest(text),
+      ...wahl,
       optionen: [],
       host,
       einstellungen: { PROBE_KENNWORT: "kennwort-der-installation" },

@@ -344,7 +344,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 6 – Updates
 
-- [ ] **Z-501 Versionen und Manifeste** – die Zentrale fragt die Registries nach Tags (Semver) und
+- [x] **Z-501 Versionen und Manifeste** – die Zentrale fragt die Registries nach Tags (Semver) und
   zeigt „neue Version, Manifest fehlt“, bis ein signiertes Manifest dieser Version importiert ist
   (Upload in der Oberfläche oder `zentrale manifest importieren <pfad>`); Vorabversionen nur für die
   Welle „intern“; Markierung `dringend` im Manifest.

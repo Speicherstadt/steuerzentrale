@@ -7,7 +7,9 @@ import {
   manifestPruefen,
   PFORTE_AKTIONEN,
 } from "@steuerzentrale/manifest";
+import { versionAngeboten } from "@steuerzentrale/planung";
 import type { Antwort, Fehlschlag } from "../anmeldung/api.ts";
+import type { ManifestDerZentrale } from "../daten/apps.ts";
 import type {
   AuftragDerInstallation,
   InstallationDerZentrale,
@@ -26,8 +28,9 @@ import { ausManifest, demoPlatzieren } from "./platz.ts";
 /*
  * The installations of the demo in memory, answering as the Zentrale's API would
  * (apps/zentrale, routes/installationen.ts): placement, making, reading and removing a failed one.
- * The demo has no public key, so it checks only that a signature came along; the manifest itself it
- * reads with the same function as the Zentrale. Without an agent a new installation stays
+ * App and version name an imported manifest of the demo (src/demo/apps-quelle.ts, Z-501), a
+ * pre-release only for an internal customer; the manifest it reads with the same function as the
+ * Zentrale. Without an agent a new installation stays
  * "wird_eingerichtet", and a job to configure one anew or restart one stays open, as in the
  * Zentrale; a log excerpt comes back at once (Z-405). A change lasts until the page reloads.
  */
@@ -36,6 +39,8 @@ export type DemoQuellen = {
   jetzt: () => number;
   kunden: () => Promise<Antwort<Kunde[]>>;
   server: () => Promise<Antwort<ServerDerZentrale[]>>;
+  /** An imported manifest with its text (Z-501) */
+  manifest: (app: string, version: string) => Promise<Antwort<ManifestDerZentrale>>;
   /** The names of the operator's values, set or not (level `betreiber`) */
   betreiberWerte: string[];
 };
@@ -146,12 +151,15 @@ export const demoInstallationenQuelle = (q: DemoQuellen): InstallationenQuelle =
   ): Promise<
     { ok: true; manifest: Manifest; platzierung: ReturnType<typeof demoPlatzieren> } | Fehlschlag
   > => {
-    if (!w.signatur.trim()) return nein(422, "signatur_ungueltig");
-    const geprueft = manifestPruefen(w.manifest);
+    const gewaehlt = await q.manifest(w.app, w.version);
+    if (!gewaehlt.ok) return gewaehlt;
+    const geprueft = manifestPruefen(gewaehlt.daten.text);
     if (!geprueft.ok)
       return nein(422, "manifest_ungueltig", { detail: geprueft.fehler.join("; ") });
     const [kunden, server] = await Promise.all([q.kunden(), q.server()]);
-    if (!kunden.ok || !kunden.daten.some((k) => k.id === w.kundeId)) return nein(404, "kein_kunde");
+    const kunde = kunden.ok ? kunden.daten.find((k) => k.id === w.kundeId) : undefined;
+    if (!kunde) return nein(404, "kein_kunde");
+    if (!versionAngeboten(w.version, kunde.intern)) return nein(409, "nur_intern");
     const sv = server.ok ? server.daten.find((s) => s.serverId === w.serverId) : undefined;
     if (!sv) return nein(404, "kein_server");
     if (sv.gesperrtAm !== null) return nein(409, "server_gesperrt");

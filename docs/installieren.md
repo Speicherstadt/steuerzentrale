@@ -2,7 +2,7 @@
 title: Apps installieren
 description: >-
   Wie die Steuerzentrale prüft, ob eine App auf einen Server passt (Platzierung), wie sie eine
-  Installation anlegt (signiertes Manifest, Name, Ports, Einstellungen, Einrichtungsauftrag) und wie
+  Installation anlegt (importiertes Manifest, Name, Ports, Einstellungen, Einrichtungsauftrag) und wie
   der Agent sie auf dem Server einrichtet und bei einem Fehler wieder abbaut.
 ---
 
@@ -36,11 +36,14 @@ drei Ergebnissen:
 
 ## Installation anlegen
 
-Bis Manifeste importiert werden (Z-501), lädt der Betreiber im Dialog das signierte Manifest hoch:
-den Text und die Signatur (`.minisig`). Die Zentrale prüft die Signatur mit demselben öffentlichen
-Schlüssel, den sie in `install.sh` einsetzt (`minisign.pub` neben dem Installationsskript), und
-lehnt ein Manifest ohne gültige Signatur ab, schon vor der Platzierung. Der Agent prüft sie vor dem
-Einrichten noch einmal.
+Der Betreiber wählt im Dialog App und Version aus den importierten Manifesten
+([Manifeste und Versionen](manifeste.md)); ein Hochladen gibt es seit Z-501 nicht mehr. Eine
+Vorabversion bietet der Dialog nur für einen internen Kunden an, und die Zentrale lehnt sie für jeden
+anderen ab (`409 nur_intern`), auch über die API. Eine Version ohne importiertes Manifest lehnt sie
+mit `404 kein_manifest` ab. Die Signatur prüft die Zentrale noch einmal mit dem Schlüssel, den sie in
+`install.sh` einsetzt, damit ein inzwischen gewechselter Schlüssel nicht erst auf dem Server
+auffällt; der Agent prüft sie vor dem Einrichten ohnehin. Die Installation behält den Text ihres
+Manifests.
 
 Dann, in dieser Reihenfolge:
 

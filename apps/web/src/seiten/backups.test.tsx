@@ -7,6 +7,7 @@ import { kundenQuelleEinsetzen } from "../daten/kunden.ts";
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
 import { serverQuelleEinsetzen } from "../daten/server.ts";
 import type { Rolle } from "../daten/typen.ts";
+import { demoAppsQuelle } from "../demo/apps-quelle.ts";
 import { demoBackups } from "../demo/backups.ts";
 import { demo } from "../demo/index.ts";
 import { demoInstallationenQuelle } from "../demo/installationen-quelle.ts";
@@ -33,6 +34,7 @@ beforeEach(() => {
       jetzt: () => demo.jetzt,
       kunden: kunden.liste,
       server: server.liste,
+      manifest: demoAppsQuelle(() => demo.jetzt).manifest,
       betreiberWerte: [],
     }),
   );

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
 import { agentVerbinden } from "./hilfen/agent.ts";
-import { manifestDateien } from "./hilfen/installationen.ts";
+import { manifestImportieren } from "./hilfen/installationen.ts";
 
 test.use({ locale: "de-DE" });
 
@@ -84,14 +84,14 @@ test.describe("addresses and DNS", { tag: "@phone" }, () => {
     });
     const { id } = (await kunde.json()) as { id: string };
     const agent = await agentVerbinden(page.request, "Gemeinsamer Server");
-    const dateien = manifestDateien();
+    await manifestImportieren(page.request);
     try {
       await page.goto(`/kunden/${id}`);
       await page.getByRole("button", { name: "App installieren" }).click();
       const dialog = page.getByRole("dialog", { name: "App installieren" });
       await dialog.getByLabel("Server", { exact: true }).selectOption(agent.serverId);
-      await dialog.getByLabel("Manifest (manifest.yml)").setInputFiles(dateien.manifest);
-      await dialog.getByLabel("Signatur (manifest.yml.minisig)").setInputFiles(dateien.signatur);
+      await dialog.getByLabel("App", { exact: true }).selectOption("probe");
+      await dialog.getByLabel("Version", { exact: true }).selectOption("1.0.0");
       await expect(dialog.getByLabel("Adresse")).toHaveValue(`probe.${k}.${DOMAIN}`);
       await expect(dialog.getByText(`Unter ${DOMAIN} setzt die Zentrale A und AAAA`)).toBeVisible();
       await ohneBefund(page);

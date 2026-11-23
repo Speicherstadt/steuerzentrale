@@ -1,23 +1,25 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { appsQuelleEinsetzen } from "../daten/apps.ts";
 import { dnsQuelleEinsetzen } from "../daten/dns.ts";
 import { apiInstallationen, installationenQuelleEinsetzen } from "../daten/installationen.ts";
 import { kundenQuelleEinsetzen } from "../daten/kunden.ts";
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
 import { serverQuelleEinsetzen } from "../daten/server.ts";
 import type { Rolle } from "../daten/typen.ts";
+import { demoAppsQuelle } from "../demo/apps-quelle.ts";
 import { demoDns } from "../demo/dns.ts";
 import { demo } from "../demo/index.ts";
 import { GESCHEITERT } from "../demo/installationen-bestand.ts";
 import { demoInstallationenQuelle } from "../demo/installationen-quelle.ts";
 import { demoKunden } from "../demo/kunden-quelle.ts";
-import { PROBE_MANIFEST, PROBE_SIGNATUR } from "../demo/probe-manifest.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
 import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
 
 // BAULISTE.md Z-402: the dialog "Installieren" with the placement live, making an installation
-// that waits for its agent, and removing a failed one, against the demo sources
+// that waits for its agent, and removing a failed one, against the demo sources; since Z-501 from
+// an imported manifest, chosen by app and version
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
 
@@ -25,13 +27,16 @@ beforeEach(() => {
   setLocale("de", { reload: false });
   const kunden = demoKunden(demo.kunden, () => demo.jetzt);
   const server = demoServerQuelle(demo.server, () => demo.jetzt);
+  const apps = demoAppsQuelle(() => demo.jetzt);
   kundenQuelleEinsetzen(kunden);
   serverQuelleEinsetzen(server);
+  appsQuelleEinsetzen(apps);
   installationenQuelleEinsetzen(
     demoInstallationenQuelle({
       jetzt: () => demo.jetzt,
       kunden: kunden.liste,
       server: server.liste,
+      manifest: apps.manifest,
       betreiberWerte: [],
     }),
   );
@@ -47,23 +52,18 @@ const waehlen = async (label: string, wert: string) => {
   await warten();
 };
 
-const hochladen = async (label: string, text: string, name: string) => {
-  const f = feld<HTMLInputElement>(label);
-  const uebergabe = new DataTransfer();
-  uebergabe.items.add(new File([text], name));
-  f.files = uebergabe.files;
-  f.dispatchEvent(new Event("change", { bubbles: true }));
-  await warten();
-};
+/** The versions the dialog offers for the chosen app */
+const versionen = () =>
+  [...feld<HTMLSelectElement>("Version").options].map((o) => o.value).filter(Boolean);
 
-/** Opens the dialog and chooses customer, server and the signed probe manifest */
-const auswaehlen = async (root: HTMLElement, kunde: string, server: string) => {
+/** Opens the dialog and chooses customer, server and the imported probe app in `version` */
+const auswaehlen = async (root: HTMLElement, kunde: string, server: string, version = "1.0.0") => {
   knopf(root, "App installieren")?.click();
   await warten();
   await waehlen("Kunde", kunde);
   await waehlen("Server", server);
-  await hochladen("Manifest (manifest.yml)", PROBE_MANIFEST, "manifest.yml");
-  await hochladen("Signatur (manifest.yml.minisig)", PROBE_SIGNATUR, "manifest.yml.minisig");
+  await waehlen("App", "probe");
+  await waehlen("Version", version);
 };
 
 const platzierung = () => dialog().querySelector("[data-testid=platzierung]")?.textContent ?? "";
@@ -72,6 +72,7 @@ describe("the dialog Installieren", () => {
   it("shows the placement, the manifest's settings and makes an installation", async () => {
     const { root } = await oeffne("/installationen");
     await auswaehlen(root, "atelier-nord", "shared-1");
+    expect(dialog().textContent).not.toContain("Manifest (manifest.yml)");
     expect(dialog().textContent).toContain("Manifest probe 1.0.0");
     expect(platzierung()).toContain("Passt");
     expect(platzierung()).toContain("probe auf Gemeinsamer Server 1");
@@ -121,13 +122,28 @@ describe("the dialog Installieren", () => {
     expect(dialog().textContent).toContain("Der Server gehört einem anderen Kunden.");
   });
 
-  it("says why a manifest cannot be read", async () => {
+  // Z-501: a pre-release only for an internal customer
+  it("offers a pre-release only to an internal customer", async () => {
     const { root } = await oeffne("/installationen");
-    knopf(root, "App installieren")?.click();
-    await warten();
-    await hochladen("Manifest (manifest.yml)", "schema: 2\n", "manifest.yml");
-    expect(dialog().querySelector("[data-testid=manifest-befund]")?.textContent).toMatch(
-      /^Das Manifest ist ungültig: /,
+    await auswaehlen(root, "atelier-nord", "shared-1");
+    expect(versionen()).toEqual(["1.0.0"]);
+    await waehlen("Kunde", "intern");
+    expect(versionen()).toEqual(["1.1.0-rc.1", "1.0.0"]);
+    await waehlen("Version", "1.1.0-rc.1");
+    expect(feld<HTMLSelectElement>("Version").selectedOptions[0]?.textContent).toBe(
+      "1.1.0-rc.1 · Vorabversion",
+    );
+    expect(platzierung()).toContain("Passt");
+  });
+
+  it("says why an imported version's manifest cannot be read", async () => {
+    const { root } = await oeffne("/installationen");
+    // the demo has no text for the eight apps' manifests
+    await auswaehlen(root, "atelier-nord", "shared-1");
+    await waehlen("App", "haben");
+    await waehlen("Version", "1.9.0");
+    expect(dialog().querySelector("[data-testid=manifest-befund]")?.textContent).toContain(
+      "kein_manifest",
     );
   });
 
