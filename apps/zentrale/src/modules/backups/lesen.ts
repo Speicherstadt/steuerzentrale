@@ -4,14 +4,16 @@ import type { Db } from "../../db/oeffnen.ts";
 import { backups } from "../../db/schema.ts";
 import { type Installation, installationenListe } from "../installationen/lesen.ts";
 import { kundenListe } from "../kunden/index.ts";
+import { type PruefRestoreStand, pruefRestoreStand } from "../pruef-restore/lesen.ts";
 import { serverListe } from "../server/index.ts";
 import { backupEingerichtet } from "./auftraege.ts";
 import { zugangLesen } from "./zugaenge.ts";
 
 /*
  * Reading backups (BAULISTE.md Z-601), always within one operator: per installation the parts its
- * manifest names, where its own S3 access stands, whether its backups are set up on the server and
- * the runs its agent reported, newest first. Nothing secret: no access, no password, no repository.
+ * manifest names, where its own S3 access stands, whether its backups are set up on the server, the
+ * runs its agent reported, newest first, and its newest test restore (Z-602). Nothing secret: no
+ * access, no password, no repository.
  */
 
 /** How many runs the page of an installation shows */
@@ -31,6 +33,7 @@ export type BackupsDerInstallation = {
   zugang: "anlegen" | "angelegt" | "loeschen" | "geloescht" | null;
   eingerichtet: boolean;
   laeufe: Lauf[];
+  pruefRestore: PruefRestoreStand;
 };
 
 /** The parts the installation's manifest backs up, each with what it names */
@@ -64,6 +67,7 @@ const stand = (db: Db, i: Installation, max: number): BackupsDerInstallation => 
   zugang: zugangLesen(db, i.betreiberId, i.installationId)?.zustand ?? null,
   eingerichtet: backupEingerichtet(db, i.betreiberId, i.installationId),
   laeufe: laeufeVon(db, i.betreiberId, i.installationId, max),
+  pruefRestore: pruefRestoreStand(db, i.betreiberId, i.installationId),
 });
 
 export const backupsDerInstallation = (db: Db, i: Installation): BackupsDerInstallation =>

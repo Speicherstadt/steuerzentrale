@@ -46,6 +46,9 @@ export type TestSystemOptionen = {
 
 const SUB = ["/etc/subuid", "/etc/subgid"];
 
+/** The snapshot every part is played back from on this server (Z-602) */
+export const TEST_SNAPSHOT = "5".repeat(64);
+
 /** `podman exec --env STEUERZENTRALE_LAUF=<marke> …` without the mark, if it is spawn's */
 const ohneMarke = (argv: string[], marke?: string): string[] =>
   marke !== undefined &&
@@ -237,8 +240,9 @@ const secretAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string }
 };
 
 /**
- * What a user reads besides Podman's secrets: a file of its own (`cat`, the backup's stand, Z-601)
- * and the answer of `steuerzentrale-agent sichern … --repository-anlegen`, a new repository
+ * What a user reads besides Podman's secrets: a file of its own (`cat`, the backup's stand, Z-601),
+ * the answer of `steuerzentrale-agent sichern … --repository-anlegen`, a new repository, and that of
+ * `steuerzentrale-agent zurueckspielen`, a part played back (Z-602)
  */
 const nutzerAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string } => {
   const n = z.nutzer.get(a.als);
@@ -250,6 +254,9 @@ const nutzerAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string }
   }
   if (a.argv[1] === "sichern")
     return { code: 0, aus: '{"msg":"repository","ok":true,"repository":"angelegt"}\n' };
+  // a part played back by the agent's binary as the target's user (Z-602), from a snapshot
+  if (a.argv[1] === "zurueckspielen")
+    return { code: 0, aus: `${JSON.stringify({ ok: true, snapshot: TEST_SNAPSHOT })}\n` };
   return secretAusgabe(z, a);
 };
 
@@ -265,8 +272,8 @@ export const testSystem = (o: TestSystemOptionen = {}) => {
     const code = o.scheitern?.(a) ?? (a.als === "root" ? alsRoot(z, o, a.argv) : alsNutzer(z, a));
     return Promise.resolve({ code });
   };
-  const lesen: SpawnMitAusgabe = async (argv) => {
-    const a: Aufgerufen = { ...ohnePraefix(argv), gelesen: true };
+  const lesen: SpawnMitAusgabe = async (argv, _signal, mit) => {
+    const a: Aufgerufen = { ...ohnePraefix(argv, mit), gelesen: true };
     z.laeufe.push(a);
     const code = o.scheitern?.(a);
     if (code !== undefined) return { code, aus: o.ausgabe?.(a) ?? "" };

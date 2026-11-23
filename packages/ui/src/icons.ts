@@ -3,6 +3,7 @@
 export type { IconNode } from "lucide";
 export {
   Archive,
+  ArchiveRestore,
   ArchiveX,
   ArrowLeft,
   Bell,

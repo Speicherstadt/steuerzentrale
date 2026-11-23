@@ -53,7 +53,11 @@ nur ihr Präfix erreicht. Unter Einstellungen → Backup setzt der Betreiber End
 den Zugang des Admins (MinIO); der Zugang liegt verschlüsselt in der Zentrale und erscheint nur als
 „gesetzt“, ein Server bekommt nur Zugang und Passwort seiner eigenen Installationen. Die Seite Backups
 und der Reiter einer Installation zeigen jeden gemeldeten Lauf, ein gescheiterter wird ein Ereignis;
-„Backup jetzt“ startet einen Lauf mit Grund ([Backups](docs/backups.md)).
+„Backup jetzt“ startet einen Lauf mit Grund. Einmal je Woche spielt der Prüf-Restore das Backup in eine
+Kopie mit eigenen Ports auf dem Server der Installation zurück, prüft ihre Health und entfernt sie
+wieder; ist dort kein Platz, meldet die Zentrale das, statt einen anderen Server zu nehmen. Den letzten
+Prüf-Restore zeigen die Seite Backups und der Reiter der Installation, einen gescheiterten auch die
+Übersicht; „Prüf-Restore jetzt“ startet einen mit Grund ([Backups](docs/backups.md)).
 
 **Einstellungen:** die Einstellungen jeder App entstehen als Formular aus ihrem Manifest. Unter
 Einstellungen → Apps pflegt der Betreiber seine Werte je App; ein Geheimnis erscheint nur als

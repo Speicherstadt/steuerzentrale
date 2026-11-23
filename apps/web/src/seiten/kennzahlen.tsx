@@ -109,7 +109,10 @@ export const UpdateZahl = () => (
   </Show>
 );
 
-/** The installations with parts to back up whose last run succeeded, from GET /api/v1/backups */
+/**
+ * The installations with parts to back up whose last run succeeded, and how many test restores
+ * failed (Z-602), from GET /api/v1/backups
+ */
 export const BackupZahl = () => {
   const antwort = createMemo(() => backupQuelle().uebersicht());
   const zeilen = () => {
@@ -118,6 +121,8 @@ export const BackupZahl = () => {
   };
   const ok = () => zeilen().filter((z) => z.letzter?.ok).length;
   const gescheitert = () => zeilen().filter((z) => z.letzter && !z.letzter.ok).length;
+  const pruefGescheitert = () =>
+    zeilen().filter((z) => z.pruefRestore.letzter?.ok === false).length;
   return (
     <Loading fallback={null}>
       <Kennzahl
@@ -125,7 +130,7 @@ export const BackupZahl = () => {
         wert={`${ok()}/${zeilen().length}`}
         marke={<Marke>{m.bak_restic()}</Marke>}
         zeile1={m.uebersicht_backups_gescheitert({ n: gescheitert() })}
-        zeile2={m.bak_pruef_spaeter()}
+        zeile2={m.uebersicht_pruef_gescheitert({ n: pruefGescheitert() })}
       />
     </Loading>
   );

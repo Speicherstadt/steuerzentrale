@@ -47,6 +47,15 @@ export type Eintrag =
       seit: number | null;
     }
   | {
+      /** The newest test restore failed, or there was none for 8 days (Z-602) */
+      art: "pruef_restore";
+      schwere: Schwere;
+      installation: InstallationVerweis;
+      gescheitert: boolean;
+      grund: string | null;
+      seit: number | null;
+    }
+  | {
       art: "auftrag";
       schwere: Schwere;
       auftragId: string;
@@ -70,13 +79,14 @@ export type MitVerweis = Eintrag & { verweis: Verweis };
 
 const RANG: Record<Schwere, number> = { stoerung: 0, warnung: 1, hinweis: 2 };
 
-/** Within one severity: faults, installations, agents, jobs, events */
+/** Within one severity: faults, installations, agents, test restores, jobs, events */
 const FOLGE: Record<Eintrag["art"], number> = {
   stoerung: 0,
   installation: 1,
   agent: 2,
-  auftrag: 3,
-  ereignis: 4,
+  pruef_restore: 3,
+  auftrag: 4,
+  ereignis: 5,
 };
 
 /** An event's target as `art:id` (modules/bewertung/lesen.ts, `zielVon`) leads to its page */
@@ -92,6 +102,7 @@ export const verweisVon = (e: Eintrag): Verweis => {
   switch (e.art) {
     case "stoerung":
     case "installation":
+    case "pruef_restore":
       return { art: "installation", id: e.installation.installationId };
     case "agent":
       return { art: "server", id: e.server.serverId };

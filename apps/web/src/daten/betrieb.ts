@@ -41,6 +41,14 @@ export type UebersichtEintrag = { schwere: Dringlichkeit; verweis: Verweis } & (
     }
   | { art: "agent"; server: ServerVerweis; zustand: "getrennt" | "still"; seit: number | null }
   | {
+      /** The newest test restore failed, or there was none for 8 days (Z-602) */
+      art: "pruef_restore";
+      installation: InstallationsVerweis;
+      gescheitert: boolean;
+      grund: string | null;
+      seit: number | null;
+    }
+  | {
       art: "auftrag";
       auftragId: string;
       aktion: string;

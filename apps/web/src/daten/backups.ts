@@ -5,8 +5,8 @@ import { demoBackups } from "../demo/backups.ts";
  * Backups (BAULISTE.md Z-601; docs/plan.md, "S3-Ziel und Zugang je Installation (Z-601)", "Backup
  * auf dem Server (Z-601)"), as the Zentrale's API answers (apps/zentrale, routes/backups.ts): the
  * operator's S3 target with its admin access only as set, the backups of every installation for
- * the page "Backups", those of one installation with its runs, and "Backup jetzt". Signed in the
- * API, else the demo in memory.
+ * the page "Backups", those of one installation with its runs and its newest test restore (Z-602),
+ * "Backup jetzt" and "Prüf-Restore jetzt". Signed in the API, else the demo in memory.
  */
 
 export type BackupZiel = {
@@ -39,6 +39,27 @@ export type BackupLauf = {
   teile: LaufTeil[];
 };
 
+/** A part of a test restore: the snapshot it read, or why it was not restored */
+export type PruefRestoreTeil = {
+  tag: string;
+  snapshot: string | null;
+  zurueckgespielt: boolean;
+  grund: string | null;
+};
+
+/** A test restore as the Zentrale kept it (apps/zentrale, modules/pruef-restore/lesen.ts) */
+export type PruefRestoreLauf = {
+  zeitpunkt: number;
+  ok: boolean;
+  grund: string | null;
+  kopie: string;
+  teile: PruefRestoreTeil[];
+  dauerMs: number | null;
+};
+
+/** The newest test restore and whether one is under way */
+export type PruefRestoreStand = { letzter: PruefRestoreLauf | null; laeuft: boolean };
+
 export type ZugangsZustand = "anlegen" | "angelegt" | "loeschen" | "geloescht";
 
 export type BackupsDerInstallation = {
@@ -47,6 +68,7 @@ export type BackupsDerInstallation = {
   zugang: ZugangsZustand | null;
   eingerichtet: boolean;
   laeufe: BackupLauf[];
+  pruefRestore: PruefRestoreStand;
 };
 
 /** A line of the page "Backups" */
@@ -69,6 +91,7 @@ export type BackupQuelle = {
   uebersicht: () => Promise<Antwort<BackupZeile[]>>;
   derInstallation: (id: string) => Promise<Antwort<BackupsDerInstallation>>;
   jetzt: (id: string, grund: string) => Promise<Antwort<BackupAuftrag>>;
+  pruefRestore: (id: string, grund: string) => Promise<Antwort<BackupAuftrag>>;
 };
 
 const pfad = (id: string) => `/api/v1/installationen/${encodeURIComponent(id)}`;
@@ -84,6 +107,12 @@ export const apiBackups: BackupQuelle = {
   derInstallation: (id) => api<BackupsDerInstallation>(`${pfad(id)}/backups`),
   jetzt: async (id, grund) => {
     const a = await api<{ auftrag: BackupAuftrag }>(`${pfad(id)}/backup`, { body: { grund } });
+    return a.ok ? { ...a, daten: a.daten.auftrag } : a;
+  },
+  pruefRestore: async (id, grund) => {
+    const a = await api<{ auftrag: BackupAuftrag }>(`${pfad(id)}/pruef-restore`, {
+      body: { grund },
+    });
     return a.ok ? { ...a, daten: a.daten.auftrag } : a;
   },
 };

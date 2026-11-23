@@ -14,12 +14,13 @@ import { demoKunden } from "../demo/kunden-quelle.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
 import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
 
-// BAULISTE.md Z-601: the page "Backups", the settings' tab with the S3 target and "Backup jetzt" on
-// an installation's page, against the demo sources, which answer as the API does
+// BAULISTE.md Z-601, Z-602: the page "Backups", the settings' tab with the S3 target, "Backup jetzt",
+// the newest test restore and "Prüf-Restore jetzt" on an installation's page, against the demo
+// sources, which answer as the API does
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
 
-let gesendet: { id: string; grund: string }[] = [];
+let gesendet: { id: string; grund: string; was?: string }[] = [];
 
 beforeEach(() => {
   setLocale("de", { reload: false });
@@ -43,6 +44,10 @@ beforeEach(() => {
       gesendet.push({ id, grund });
       return q.jetzt(id, grund);
     },
+    pruefRestore: (id, grund) => {
+      gesendet.push({ id, grund, was: "pruef" });
+      return q.pruefRestore(id, grund);
+    },
   };
   backupQuelleEinsetzen(mitProtokoll);
   rolle("technik");
@@ -64,7 +69,18 @@ describe("the page Backups", () => {
     const text = root.textContent ?? "";
     expect(text).toContain("pg_dump db, volume belege");
     expect(text).toContain("gescheitert: Backup älter als 26 h");
-    expect(text).toContain("Den wöchentlichen Prüf-Restore bringt Z-602.");
+  });
+
+  it("shows each installation's newest test restore, a failed one with its reason", async () => {
+    const { root } = await oeffne("/backups");
+    await warten();
+    const text = root.textContent ?? "";
+    expect(text).toContain("Prüf-Restore gelungen");
+    expect(text).toContain("gescheitert: Health der Kopie blieb rot");
+    const zeile = [...root.querySelectorAll("tr")].find((r) =>
+      r.querySelector('a[href="/installationen/atelier-haben"]'),
+    );
+    expect(zeile?.textContent).toContain(", gelungen");
   });
 });
 
@@ -124,5 +140,45 @@ describe("Backup jetzt", () => {
     const { root } = await oeffne("/installationen/atelier-haben");
     await warten();
     expect(knopf(root, "Backup jetzt")).toBeUndefined();
+    expect(knopf(root, "Prüf-Restore jetzt")).toBeUndefined();
+  });
+});
+
+describe("Prüf-Restore jetzt", () => {
+  it("asks for a reason and makes the job", async () => {
+    const { root } = await oeffne("/installationen/atelier-haben");
+    await warten();
+    knopf(root, "Prüf-Restore jetzt")?.click();
+    await warten();
+    expect(dialog().textContent).toContain("die Installation läuft unverändert weiter");
+    eintragen("Grund", "nach dem Wechsel des Buckets");
+    flush();
+    dialog().querySelector("form")?.requestSubmit();
+    await warten();
+    expect(gesendet).toEqual([
+      { id: "atelier-haben", grund: "nach dem Wechsel des Buckets", was: "pruef" },
+    ]);
+    expect(root.textContent).toContain("Prüf-Restore angefordert");
+  });
+
+  const reiterBackups = async (id: string) => {
+    const { root } = await oeffne(`/installationen/${id}`);
+    await warten();
+    [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+      .find((t) => t.textContent?.trim() === "Backups")
+      ?.click();
+    await warten();
+    return root.textContent ?? "";
+  };
+
+  it("shows a failed one on the tab Backups with its reason", async () => {
+    expect(await reiterBackups("holm-belegt")).toContain("gescheitert: Health der Kopie blieb rot");
+  });
+
+  it("shows a good one on the tab Backups, with what it restored", async () => {
+    const text = await reiterBackups("atelier-haben");
+    expect(text).toContain("Zurückgespielt");
+    expect(text).toMatch(/pg_dump:db:haben: [0-9a-f]{8}/);
+    expect(text).toMatch(/Dauer\d+ s/);
   });
 });

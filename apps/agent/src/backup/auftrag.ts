@@ -47,9 +47,9 @@ export type BackupDeps = EinrichtungsDeps & {
 
 const fehler = (text: string): Ergebnis => ({ ok: false, fehler: text });
 
-/** The finished installation's user and units, or why the job is refused */
-const fertigeInstallation = async (
-  deps: BackupDeps,
+/** The finished installation's user and units, or why the job is refused (also Z-602) */
+export const fertigeInstallation = async (
+  deps: Pick<EinrichtungsDeps, "gedaechtnis" | "nutzer">,
   name: string,
 ): Promise<{ ok: true; n: Nutzer; units: string[] } | { ok: false; grund: string }> => {
   const g = await deps.gedaechtnis.lesen();

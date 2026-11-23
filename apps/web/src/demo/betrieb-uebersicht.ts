@@ -6,6 +6,7 @@ import type {
   Verweis,
 } from "../daten/betrieb.ts";
 import type { Installation } from "../daten/typen.ts";
+import { pruefRestoreVon } from "./backups.ts";
 import { installationen } from "./installationen.ts";
 import { kunden } from "./kunden.ts";
 import { server } from "./server.ts";
@@ -13,8 +14,10 @@ import { JETZT } from "./zeit.ts";
 
 /*
  * The demo's overview as GET /api/v1/uebersicht answers it (BAULISTE.md Z-406): a red installation
- * as an open fault, yellow and unknown ones, agents not connected, failed jobs, warnings and errors
- * of the last 24 h; ordered as the Zentrale orders (apps/zentrale, modules/betrieb/ordnen.ts).
+ * as an open fault, yellow and unknown ones, agents not connected, test restores failed or due
+ * (Z-602, from the demo's `pruefRestore` as src/demo/backups.ts answers them), failed jobs, warnings
+ * and errors of the last 24 h; ordered as the Zentrale orders (apps/zentrale,
+ * modules/betrieb/ordnen.ts).
  */
 
 const TAG = 86_400_000;
@@ -23,8 +26,9 @@ const FOLGE: Record<UebersichtEintrag["art"], number> = {
   stoerung: 0,
   installation: 1,
   agent: 2,
-  auftrag: 3,
-  ereignis: 4,
+  pruef_restore: 3,
+  auftrag: 4,
+  ereignis: 5,
 };
 
 const kunde = (id: string) => kunden.find((k) => k.id === id);
@@ -81,6 +85,24 @@ const agenten = (): UebersichtEintrag[] =>
         ],
   );
 
+/** A failed test restore as a warning, one 9 days old (`offen`) as a note */
+const pruefRestore = (i: Installation): UebersichtEintrag[] => {
+  if (i.pruefRestore === "ok" || kunde(i.kunde)?.vertrag.ende) return [];
+  const gescheitert = i.pruefRestore === "gescheitert";
+  const letzter = pruefRestoreVon(i).letzter;
+  return [
+    {
+      art: "pruef_restore",
+      schwere: gescheitert ? "warnung" : "hinweis",
+      verweis: { art: "installation", id: i.id },
+      installation: verweis(i),
+      gescheitert,
+      grund: letzter?.grund ?? null,
+      seit: letzter?.zeitpunkt ?? null,
+    },
+  ];
+};
+
 const ereignisVerweis = (ziel: string): Verweis => {
   const [art, id = ""] = ziel.split(":");
   return art === "installation" || art === "server" ? { art, id } : { art: "ereignisse" };
@@ -90,10 +112,15 @@ export const demoUebersicht = (
   auftraege: AuftragDerZentrale[],
   ereignisse: EreignisDerZentrale[],
 ): UebersichtEintrag[] => {
-  const vorne = [...installationen.flatMap(zuInstallation), ...agenten()];
+  const vorne = [
+    ...installationen.flatMap(zuInstallation),
+    ...agenten(),
+    ...installationen.flatMap(pruefRestore),
+  ];
   const genannt = new Set(vorne.map((e) => JSON.stringify(e.verweis)));
   const gescheitert: UebersichtEintrag[] = auftraege
     .filter((a) => a.zustand === "gescheitert" && a.geaendertAm >= JETZT - 7 * TAG)
+    .filter((a) => a.aktion !== "installation_pruef_restore")
     .map((a) => ({
       art: "auftrag",
       schwere: "warnung",

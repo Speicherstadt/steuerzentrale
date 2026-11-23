@@ -50,7 +50,7 @@ export type VerbindenDeps = {
   /** Facts, SSH logins (Z-304) and the state of the installations (Z-403) to report while connected; none without */
   meldungen?: Pick<MeldungenDeps, "fakten" | "anmeldungen" | "zustand" | "backups">;
   /** Takes the jobs the Zentrale sends (Z-305, src/auftraege); without, jobs are left alone */
-  auftraege?: Auftraege;
+  auftraege?: Pick<Auftraege, "empfangen">;
 };
 
 /** The WebSocket address for the Zentrale's origin: wss for https, ws for http (test mode only) */

@@ -318,10 +318,17 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   landen als eigene Snapshots im Repository (CI gegen MinIO und Podman); `backup.json` gehört dem
   Nutzer mit 0600; der Zugang einer entfernten Installation ist gelöscht; „Backup jetzt“ in
   Playwright; kein Betreiber erreicht Backups oder S3-Ziel eines anderen (Test je Endpunkt).
-- [ ] **Z-602 Prüf-Restore** – wöchentlich je Installation unter einem Wegwerf-Nutzer
+- [x] **Z-602 Prüf-Restore** – wöchentlich je Installation unter einem Wegwerf-Nutzer
   `sz-restore-*` auf einem Server, den die Platzierung als passend meldet; Health prüfen, entfernen.
   Fertig, wenn: ein absichtlich beschädigtes Backup als „Prüf-Restore gescheitert“ erscheint und ein
-  Server ohne Platz nicht für den Prüf-Restore gewählt wird.
+  Server ohne Platz nicht für den Prüf-Restore gewählt wird; dazu (Tests): ein gutes Backup ergibt in
+  der CI gegen Podman und MinIO einen gelungenen Prüf-Restore, in dem die Daten des Snapshots stehen
+  (Eintrag der Beispiel-App über HTTP gelesen), und danach gibt es weder Nutzer noch Home, Units,
+  Volumes oder Container der Kopie, auch nach einem Fehler; die Original-Installation läuft dabei
+  unverändert weiter; nie bekommt ein anderer Server den Backup-Zugang einer Installation; der
+  Zeitplan legt höchstens einen Prüf-Restore je Installation und Woche an; die Seite der
+  Installation zeigt den letzten Prüf-Restore (Playwright); kein Betreiber erreicht Prüf-Restores
+  eines anderen (Test je Endpunkt).
 - [ ] **Z-603 Wiederherstellen** – Snapshot wählen, Grund angeben, vorher Backup vom Ist-Zustand;
   Ablauf je Backup-Art in der Zentrale (bei `pg_dump`: App-Container stoppen, `pg_restore --clean
   --if-exists` mit `datenbank` und `nutzer` aus dem Manifest, App starten, Health; bei `volume`: Units

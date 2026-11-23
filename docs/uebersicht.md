@@ -15,8 +15,8 @@ Aufträge, Ereignisse, Audit-Log und Einstellungen. Die Demodaten zeigt nur `bun
 ## Übersicht
 
 Oben vier Kennzahlen: Server (wie viele verbunden, nach Art), Installationen (grün, gelb, rot, ohne
-Zustand, gekündigt), Updates und Backups (bei wie vielen Installationen der letzte Lauf gelang,
-[Backups](backups.md)). Für Updates hat die Zentrale noch keine Daten; die Kennzahl sagt, mit welchem
+Zustand, gekündigt), Updates und Backups (bei wie vielen Installationen der letzte Lauf gelang und
+wie viele Prüf-Restores scheiterten, [Backups](backups.md)). Für Updates hat die Zentrale noch keine Daten; die Kennzahl sagt, mit welchem
 Punkt sie kommen (Z-503).
 
 Darunter **Braucht Aufmerksamkeit**: was die Zentrale unter `GET /api/v1/uebersicht` liefert, das
@@ -29,11 +29,14 @@ Schwerste zuerst. Jeder Eintrag führt zu seiner Ursache.
 | Agent getrennt | Störung | Server |
 | Installation gelb | Warnung | Installation |
 | Agent still (ab 75 s ohne Heartbeat) | Warnung | Server |
-| Auftrag gescheitert in den letzten 7 Tagen | Warnung | Aufträge |
+| Prüf-Restore gescheitert (der neueste) | Warnung | Installation |
+| Auftrag gescheitert in den letzten 7 Tagen (außer einem Prüf-Restore, der seinen eigenen Eintrag hat) | Warnung | Aufträge |
 | Ereignis `fehler` oder `warn` der letzten 24 Stunden | Störung bzw. Warnung | Installation oder Server des Ereignisses, sonst Ereignisse |
 | Installation ohne Zustand (unbekannt) | Hinweis | Installation |
+| kein Prüf-Restore seit über 8 Tagen (ohne jeden ab dem ersten gelungenen Backup) | Hinweis | Installation |
 
-Innerhalb einer Schwere stehen Störungen vor Installationen, Agenten, Aufträgen und Ereignissen,
+Innerhalb einer Schwere stehen Störungen vor Installationen, Agenten, Prüf-Restores, Aufträgen und
+Ereignissen,
 und jeweils das Neueste zuerst. Es zählen nur Installationen, die laufen (eine, die eingerichtet
 wird oder deren Einrichtung scheiterte, steht als Auftrag da), und nur Server, deren Agent beigetreten
 und nicht gesperrt ist. Ein Ereignis, dessen Installation oder Server schon einen Eintrag hat, steht
@@ -96,7 +99,6 @@ mit welchem Punkt sie kommen:
 
 | Seite oder Teil | kommt mit |
 | --- | --- |
-| Größe und Prüf-Restore der Backups | Z-602 |
 | Updates | Z-501, Z-503 |
 | Support-Zugänge, Support-Minuten eines Kunden | Z-802 |
 | Leistungen | Z-804 |

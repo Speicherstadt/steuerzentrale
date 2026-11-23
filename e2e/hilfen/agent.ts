@@ -14,8 +14,10 @@ import { serverAnlegen } from "./server.ts";
  * it reports done; for a log excerpt it sends the lines (`LOG_ZEILEN`, the secrets already
  * replaced as the real agent does) and then the result with their number. Setting up backups
  * (Z-601) it reports done; "Backup jetzt" it reports done after the run, as the real agent sends it
- * (`backup_stand` with a snapshot per part). It reports the state of installations and an SSH login
- * when a test tells it to (Z-403, Z-406). No Podman, no server.
+ * (`backup_stand` with a snapshot per part). A test restore (Z-602) it reports done with the
+ * snapshot each part was restored from and its duration, as the real agent does. It reports the
+ * state of installations and an SSH login when a test tells it to (Z-403, Z-406). No Podman, no
+ * server.
  */
 
 // The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite
@@ -135,6 +137,19 @@ const backupEingerichtet = (n: Nachricht) => ({
   },
 });
 
+/** A test restore done: each part of the manifest restored from its newest snapshot (Z-602) */
+const pruefRestoreGelungen = (n: Nachricht) => ({
+  ok: true,
+  daten: {
+    installation: n.installationId,
+    kopie: (n.argumente as { kopie?: string }).kopie,
+    teile: [
+      { tag: "volume:daten", snapshot: randomBytes(32).toString("hex"), zurueckgespielt: true },
+    ],
+    dauerMs: 42_000,
+  },
+});
+
 /** Done as the real agent reports configuring anew (apps/agent, Z-404) */
 const konfiguriert = (n: Nachricht) => ({
   ok: true,
@@ -157,6 +172,8 @@ const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   if (n.aktion === "installation_backup_einrichten")
     return ws.send(ergebnis(auftragId, backupEingerichtet(n)));
   if (n.aktion === "installation_backup") return backupJetzt(ws, n);
+  if (n.aktion === "installation_pruef_restore")
+    return ws.send(ergebnis(auftragId, pruefRestoreGelungen(n)));
   if (n.aktion === "installation_log_auszug") {
     ws.send(JSON.stringify({ typ: "log_auszug", protokoll: 1, auftragId, zeilen: LOG_ZEILEN }));
     return ws.send(ergebnis(auftragId, { ok: true, daten: { zeilen: LOG_ZEILEN.length } }));

@@ -94,10 +94,17 @@ export const installationenAuf = (sys: TestSystem): AuftraegeDeps["installatione
   lesen: sys.lesen,
   journal: sys.zeilenLesen,
   warten: async () => {},
+  // the copy of a Prüf-Restore answers its health check (Z-602)
+  holen: async () => new Response(null, { status: 200 }),
+  verbinden: async () => {},
 });
 
 export const einrichtungsAgent = (
-  o: TestSystemOptionen & { anfang?: Record<string, string> } = {},
+  o: TestSystemOptionen & {
+    anfang?: Record<string, string>;
+    /** Other parts of the installations' deps (Z-602: the copy's health check) */
+    installationen?: Partial<AuftraegeDeps["installationen"]>;
+  } = {},
   fs = speicher(o.anfang ?? {}),
   sys = testSystem({ nutzer: [PFORTE], ...o }),
 ) => {
@@ -112,7 +119,7 @@ export const einrichtungsAgent = (
     vertrauen: { schluessel, zweck: "test" },
     spawn: sys.spawn,
     pforte: { admin: testCaddy().admin, grund: pforteGrundkonfiguration() },
-    installationen: installationenAuf(sys),
+    installationen: { ...installationenAuf(sys), ...o.installationen },
     planen: (lauf, ms) => {
       plaene.push({ ms, lauf });
       return () => {};
@@ -134,5 +141,5 @@ export const einrichtungsAgent = (
         l.argv.slice(0, l.argv[0] === "systemctl" ? 3 : 2).join(" "),
       ].join(""),
     );
-  return { sys, fs, plaene, gesendet, logs, empfangen, ergebnis, record, programme };
+  return { sys, fs, plaene, gesendet, logs, empfangen, ergebnis, record, programme, agent };
 };

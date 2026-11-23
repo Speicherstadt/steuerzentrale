@@ -84,3 +84,34 @@ export const backups = sqliteTable(
     }),
   ],
 );
+
+/**
+ * One test restore of an installation (Z-602; docs/plan.md, "Prüf-Restore (Z-602)"), written when
+ * its job `installation_pruef_restore` ended: when, the copy's name, whether it succeeded or why
+ * not, each part with the snapshot it read (JSON `[{ tag, snapshot, zurueckgespielt, grund }]`) and
+ * how long it took, as the agent measured it. One row per job; kept 13 months like backups.
+ */
+export const pruefRestores = sqliteTable(
+  "pruef_restores",
+  {
+    betreiberId: text("betreiber_id").notNull(),
+    auftragId: text("auftrag_id").notNull(),
+    installationId: text("installation_id").notNull(),
+    serverId: text("server_id").notNull(),
+    kopie: text("kopie").notNull(),
+    zeitpunkt: integer("zeitpunkt").notNull(),
+    ok: integer("ok", { mode: "boolean" }).notNull(),
+    grund: text("grund"),
+    teile: text("teile").notNull(),
+    dauerMs: integer("dauer_ms"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.betreiberId, t.auftragId] }),
+    index("pruef_restores_installation").on(t.betreiberId, t.installationId, t.zeitpunkt),
+    index("pruef_restores_zeitpunkt").on(t.zeitpunkt),
+    foreignKey({
+      columns: [t.betreiberId, t.installationId],
+      foreignColumns: [installationen.betreiberId, installationen.installationId],
+    }),
+  ],
+);

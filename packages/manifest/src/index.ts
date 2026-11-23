@@ -61,7 +61,25 @@ export {
   istBackupAktion,
   SICHERUNG_PFAD,
 } from "./backup/auftraege.ts";
+export {
+  PRUEF_RESTORE_AKTION,
+  PRUEF_RESTORE_KOPIE,
+  PRUEF_RESTORE_ZEITLIMIT_S,
+  type PruefRestoreAnfrage,
+  type PruefRestoreAuftrag,
+  type PruefRestoreDaten,
+  type PruefRestoreGeprueft,
+  type PruefRestoreTeil,
+  pruefRestoreAuftragPruefen,
+  pruefRestoreDatenLesen,
+} from "./backup/pruef-restore.ts";
 export { AGENT_BINARY, BACKUP_SERVICE, BACKUP_TIMER, backupUnits } from "./backup/units.ts";
+export {
+  PRUEF_RESTORE_HEALTH_S,
+  type RestoreTeil,
+  type RestoreTeile,
+  restoreTeile,
+} from "./backup/zurueckspielen.ts";
 export {
   type BackupOrt,
   type BackupPolicy,

@@ -18,10 +18,14 @@ type Zustand = Extract<NachrichtVomAgenten, { typ: "zustand" }>["installationen"
 export type Health = Zustand["health"];
 export type Unit = Zustand["units"][number];
 
-/** Runs a fixed argv; its exit code and the first bytes of its standard output */
+/**
+ * Runs a fixed argv; its exit code and the first bytes of its standard output. `eingabe` goes to its
+ * standard input as with Spawn (the secrets a Prüf-Restore hands to its user, Z-602)
+ */
 export type SpawnMitAusgabe = (
   argv: readonly string[],
   signal: AbortSignal,
+  o?: { eingabe?: string },
 ) => Promise<{ code: number | null; aus: string }>;
 
 /** Opens a TCP connection and closes it again; throws when it cannot */

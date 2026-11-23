@@ -41,7 +41,8 @@ export type Minio = {
   stoppen: () => void;
 };
 
-export const minioStarten = async (name: string): Promise<Minio> => {
+/** MinIO on the port given: test files run side by side, each with a MinIO of its own */
+export const minioStarten = async (name: string, port = MINIO_PORT): Promise<Minio> => {
   muss([
     "podman",
     "run",
@@ -50,7 +51,7 @@ export const minioStarten = async (name: string): Promise<Minio> => {
     "--name",
     name,
     "-p",
-    `${MINIO_PORT}:9000`,
+    `${port}:9000`,
     "-e",
     `MINIO_ROOT_USER=${ADMIN.schluesselId}`,
     "-e",
@@ -60,12 +61,12 @@ export const minioStarten = async (name: string): Promise<Minio> => {
     MINIO_IMAGE,
   ]);
   for (let i = 0; i < 120; i++) {
-    const bereit = await fetch(`http://127.0.0.1:${MINIO_PORT}/minio/health/ready`)
+    const bereit = await fetch(`http://127.0.0.1:${port}/minio/health/ready`)
       .then((r) => r.status === 200)
       .catch(() => false);
     if (bereit)
       return {
-        fuerInstallation: `http://${hostIp()}:${MINIO_PORT}`,
+        fuerInstallation: `http://${hostIp()}:${port}`,
         stoppen: () => void lauf(["podman", "rm", "-f", name]),
       };
     await Bun.sleep(1000);

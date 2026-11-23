@@ -72,12 +72,12 @@ const ZUSTAND: Record<AuftragZustand, AuftragsZustand> = {
   gescheitert: "gescheitert",
 };
 
-/** The demo's actions as named commands; a restart is the built-in job of Z-405 */
+/** The demo's actions as named commands; restart and test restore are built-in jobs (Z-405, Z-602) */
 const AKTION: Record<Auftrag["aktion"], string> = {
   update: "update",
   neustart: "installation_neustart",
   neustart_server: "neustart_server",
-  pruef_restore: "pruef_restore",
+  pruef_restore: "installation_pruef_restore",
   backup: "backup",
 };
 

@@ -17,7 +17,8 @@ import {
  * 0700, no login shell), lingering, waiting for its user manager, the units, slice and `dateien`
  * owned by it, the Podman secrets through standard input (never in an argv, which every user sees
  * in the process list), each image pulled by its digest, daemon-reload and start of the units,
- * waiting until they are active, then the commands of `schritte.einrichten` in their containers.
+ * waiting until they are active, then the commands of `schritte.einrichten` in their containers
+ * (vorbereiten is all before the start, which a Prüf-Restore uses for its copy, Z-602).
  * Everything after useradd runs as that user. The first failing step ends it; tearing down is the
  * caller's (auftrag.ts), so nothing is left half set up.
  */
@@ -30,7 +31,10 @@ const AKTIV_VERSUCHE = 240;
 
 type Kontext = { deps: SystemDeps; a: Einrichten; lauf: Lauf; auftrag?: AbortSignal };
 
-const nutzerAnlegen = async (k: Kontext): Promise<Nutzer | Schrittergebnis> => {
+type Fehlschlag = { ok: false; grund: string };
+const fehlschlag = (grund: string): Fehlschlag => ({ ok: false, grund });
+
+const nutzerAnlegen = async (k: Kontext): Promise<Nutzer | Fehlschlag> => {
   const name = nutzerName(k.a.name);
   const home = homeVon(k.a.name);
   const r = await k.lauf("useradd", [
@@ -47,10 +51,10 @@ const nutzerAnlegen = async (k: Kontext): Promise<Nutzer | Schrittergebnis> => {
   ]);
   if (!r.ok) return r;
   const n = await k.deps.nutzer(name);
-  if (!n) return gescheitert(`useradd: ${name} is not there afterwards`);
-  if (n.home !== home) return gescheitert(`useradd: ${name} has the home ${n.home}, not ${home}`);
+  if (!n) return fehlschlag(`useradd: ${name} is not there afterwards`);
+  if (n.home !== home) return fehlschlag(`useradd: ${name} has the home ${n.home}, not ${home}`);
   const ohne = await ohneUntergeordneteIds(k, name);
-  if (ohne) return gescheitert(`useradd: ${name} has no subordinate ids in ${ohne}`);
+  if (ohne) return fehlschlag(`useradd: ${name} has no subordinate ids in ${ohne}`);
   await k.deps.haus.verzeichnis(home, 0o700, n);
   return n;
 };
@@ -144,14 +148,23 @@ export const bisAktiv = async (
   return aktiv ? gelungen : gescheitert(`units not active: ${units.join(", ")}`);
 };
 
-const unitsStarten = async (k: Kontext, n: Nutzer): Promise<Schrittergebnis> => {
-  const systemctl = (...argv: string[]) => alsNutzer(n, ["systemctl", "--user", ...argv]);
-  const gestartet = await nacheinander([
-    () => k.lauf("systemctl --user daemon-reload", systemctl("daemon-reload")),
-    () => k.lauf("systemctl --user start", systemctl("start", ...k.a.units)),
-  ]);
+const neuLaden = (k: Kontext, n: Nutzer) =>
+  k.lauf("systemctl --user daemon-reload", alsNutzer(n, ["systemctl", "--user", "daemon-reload"]));
+
+/** Starts the units and waits until all of them are active */
+export const unitsStarten = async (
+  deps: Pick<SystemDeps, "warten">,
+  lauf: Lauf,
+  n: Nutzer,
+  units: readonly string[],
+  auftrag?: AbortSignal,
+): Promise<Schrittergebnis> => {
+  const gestartet = await lauf(
+    "systemctl --user start",
+    alsNutzer(n, ["systemctl", "--user", "start", ...units]),
+  );
   if (!gestartet.ok) return gestartet;
-  return bisAktiv(k.deps, k.lauf, n, k.a.units, k.auftrag);
+  return bisAktiv(deps, lauf, n, units, auftrag);
 };
 
 /** `podman exec <installation>-<container>`, the container's name from its unit, marked (imContainer) */
@@ -163,24 +176,44 @@ const schritteAusfuehren = (k: Kontext, n: Nutzer) =>
     }),
   );
 
+/**
+ * Everything of setting up before the units start: the user, lingering, the files, the secrets,
+ * the images and daemon-reload; the user when it went through. A Prüf-Restore (Z-602) plays the
+ * snapshots back into the copy at this point, before anything of it ran
+ */
+export const vorbereiten = async (
+  deps: SystemDeps,
+  a: Einrichten,
+  lauf: Lauf,
+  auftrag?: AbortSignal,
+): Promise<{ ok: true; nutzer: Nutzer } | Fehlschlag> => {
+  const k: Kontext = { deps, a, lauf, ...(auftrag ? { auftrag } : {}) };
+  try {
+    const n = await nutzerAnlegen(k);
+    if ("ok" in n) return n;
+    const r = await nacheinander([
+      () => bereitstellen(k, n),
+      () => secretsUndImages(k, n),
+      () => neuLaden(k, n),
+    ]);
+    return r.ok ? { ok: true, nutzer: n } : fehlschlag(r.grund);
+  } catch (fehler) {
+    // writing into the home threw (haus.ts): a step like any other
+    return fehlschlag(String(fehler).slice(0, 500));
+  }
+};
+
 export const einrichten = async (
   deps: SystemDeps,
   a: Einrichten,
   lauf: Lauf,
   auftrag?: AbortSignal,
 ): Promise<Schrittergebnis> => {
+  const v = await vorbereiten(deps, a, lauf, auftrag);
+  if (!v.ok) return v;
   const k: Kontext = { deps, a, lauf, ...(auftrag ? { auftrag } : {}) };
-  try {
-    const n = await nutzerAnlegen(k);
-    if ("ok" in n) return n;
-    return await nacheinander([
-      () => bereitstellen(k, n),
-      () => secretsUndImages(k, n),
-      () => unitsStarten(k, n),
-      () => schritteAusfuehren(k, n),
-    ]);
-  } catch (fehler) {
-    // writing into the home threw (haus.ts): a step like any other
-    return gescheitert(String(fehler).slice(0, 500));
-  }
+  return nacheinander([
+    () => unitsStarten(deps, lauf, v.nutzer, a.units, auftrag),
+    () => schritteAusfuehren(k, v.nutzer),
+  ]);
 };

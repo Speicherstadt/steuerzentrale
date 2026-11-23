@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { TRENNUNG, VERSION } from "@steuerzentrale/protokoll";
@@ -14,6 +15,7 @@ import { backupSchleife } from "./modules/backups/index.ts";
 import { bewertungsSchleife } from "./modules/bewertung/index.ts";
 import { dnsSchleife } from "./modules/dns/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
+import { pruefRestoreSchleife } from "./modules/pruef-restore/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
 import { stilleSchleife } from "./modules/verbindung/stille.ts";
 import { verbindungen } from "./modules/verbindung/verbindungen.ts";
@@ -107,6 +109,20 @@ const backup = backupSchleife(
     now: Date.now,
     log,
     dnsAnstossen: dns.anstossen,
+  },
+  planen,
+);
+// The weekly test restore of each installation on its own server (Z-602): checked every hour
+pruefRestoreSchleife(
+  {
+    db,
+    schreibDb,
+    schluessel: env.schluessel,
+    verbindungen: agenten,
+    now: Date.now,
+    log,
+    zufall: (n) => new Uint8Array(randomBytes(n)),
+    verbunden: (b, s) => agenten.verbundenSeit(b, s) !== undefined,
   },
   planen,
 );

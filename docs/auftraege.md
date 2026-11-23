@@ -92,6 +92,16 @@ Neustart meldet `{ installation, units }`; der Log-Auszug schickt zuerst die Nac
 mit den Zeilen und der Auftrags-ID und meldet dann `{ zeilen: n }`. Nach einem Neustart des Agenten
 wird ein laufender Log-Auszug wiederholt, ein Neustart nicht.
 
+Der Prüf-Restore (`installation_pruef_restore`, siehe [Backups](backups.md)) ist
+eingebaut wie ein Einrichtungsauftrag: Er nennt die Installation, trägt den Namen der Kopie im Argument
+`kopie` (`restore-<6 Zeichen>`) und ihre Daten im Feld `einrichtung`, das die Zentrale erst beim
+Zustellen einsetzt; Units, Secrets und Dateien der Kopie rendert der Agent aus dem signierten Manifest.
+Ein Feld `backup` trägt er nie. Beide Seiten prüfen ihn mit `pruefRestoreAuftragPruefen` in
+`packages/manifest`.
+Der Agent prüft außerdem, dass die Units der Installation aus genau diesem Manifest gerendert sind
+(Labels), lässt Prüf-Restores nacheinander neben den Einrichtungsaufträgen laufen und lehnt einen
+Einrichtungsauftrag für einen Namen `restore-<6>` ab.
+
 Die beiden Aufträge der [Backups](backups.md) sind ebenfalls eingebaut:
 `installation_backup_einrichten` (Zeitlimit höchstens 30 Minuten) und `installation_backup`
 („Backup jetzt“, höchstens vier Stunden und zwei Minuten), mit dem signierten Manifest und dem Namen
@@ -149,7 +159,8 @@ Lief ein Auftrag, als der Agent neu startete, meldet er ihn nach dem Neustart al
 („Agent neu gestartet“): der Befehl kann einen Teil seiner Arbeit getan haben. Nur einen Befehl, den
 das Manifest als `idempotent` markiert, führt er dann noch einmal aus, ebenso die Aufträge der
 Pforte und einen Einrichtungsauftrag (der erkennt am Gedächtnis der Installationen, was schon
-eingerichtet ist, [Apps installieren](installieren.md)); `installation_konfigurieren` nicht, er
+eingerichtet ist, [Apps installieren](installieren.md)) und einen Prüf-Restore (die Kopie, die
+der Neustart zurückließ, baut der Agent beim Start ab); `installation_konfigurieren` nicht, er
 startet die App neu und gilt nach einem Neustart des Agenten als gescheitert. Ist die Datei unlesbar,
 führt der Agent keinen Auftrag aus, weil er einen doppelten nicht mehr erkennen könnte. Erledigte
 Aufträge vergisst er nach 30 Tagen.

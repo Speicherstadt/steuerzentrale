@@ -35,7 +35,10 @@ export type EinrichtungsAuftrag = {
 const fehler = (text: string): Ergebnis => ({ ok: false, fehler: text });
 
 /** sz-<name> or its home is there, though the agent did not make it */
-const fremd = async (deps: EinrichtungsDeps, name: string): Promise<string | undefined> => {
+export const fremd = async (
+  deps: Pick<EinrichtungsDeps, "nutzer" | "haus">,
+  name: string,
+): Promise<string | undefined> => {
   if (await deps.nutzer(nutzerName(name)))
     return `abgelehnt: ${nutzerName(name)} gibt es schon, nicht von diesem Agenten angelegt`;
   if (await deps.haus.existiert(homeVon(name)))

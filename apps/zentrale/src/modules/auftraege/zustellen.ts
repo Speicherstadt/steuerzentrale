@@ -5,6 +5,7 @@ import {
   EINRICHTUNG_AKTIONEN,
   type Einrichtung,
   manifestPruefen,
+  PRUEF_RESTORE_AKTION,
 } from "@steuerzentrale/manifest";
 import { sperrzeitAm } from "@steuerzentrale/planung";
 import {
@@ -20,6 +21,7 @@ import { schreiben } from "../audit/index.ts";
 import { backupFeldFuer } from "../backups/feld.ts";
 import { einrichtungFuer } from "../installationen/einrichtung.ts";
 import { konfigurationFuer } from "../installationen/konfiguration.ts";
+import { kopieEinrichtungFuer } from "../pruef-restore/kopie.ts";
 import type { Verbindungen } from "../verbindung/verbindungen.ts";
 import { type Auftrag, offeneAuftraege } from "./lesen.ts";
 
@@ -33,6 +35,8 @@ import { type Auftrag, offeneAuftraege } from "./lesen.ts";
  * it asked for, from their own row (modules/installationen/konfiguration.ts). A job
  * `installation_backup_einrichten` (Z-601) gets the installation's S3 access and restic password
  * only here, and only if the installation stands on the job's server (modules/backups/feld.ts).
+ * A test restore (Z-602) gets the copy's data only here: the installation's settings with the
+ * copy's ports, again only for the server the installation stands on (modules/pruef-restore).
  */
 
 export type AuftragDeps = {
@@ -74,6 +78,7 @@ const einrichtungVon = (deps: AuftragDeps, a: Auftrag) => {
     return einrichtungFuer(deps, a.betreiberId, a.installationId);
   if (a.aktion === EINRICHTUNG_AKTIONEN.konfigurieren)
     return konfigurationFuer(deps, a.betreiberId, a);
+  if (a.aktion === PRUEF_RESTORE_AKTION) return kopieEinrichtungFuer(deps, a);
   return undefined;
 };
 

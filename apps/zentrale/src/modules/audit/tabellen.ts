@@ -19,6 +19,7 @@ import {
   kunden,
   logAuszuege,
   mitglieder,
+  pruefRestores,
   server,
   tokens,
   vertraege,
@@ -68,6 +69,11 @@ export const tabellen = {
   backupZiele: { tabelle: backupZiele, schluessel: [] as string[], zeit: undefined },
   backupZugaenge: { tabelle: backupZugaenge, schluessel: ["installationId"], zeit: undefined },
   backups: { tabelle: backups, schluessel: ["backupId"], zeit: backups.zeitpunkt },
+  pruefRestores: {
+    tabelle: pruefRestores,
+    schluessel: ["auftragId"],
+    zeit: pruefRestores.zeitpunkt,
+  },
 } satisfies Record<
   string,
   { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined }

@@ -24,7 +24,11 @@ const zielSetzen = async (request: APIRequestContext) => {
   expect(antwort.status()).toBe(200);
 };
 
-type Backups = { eingerichtet: boolean; laeufe: { ok: boolean }[] };
+type Backups = {
+  eingerichtet: boolean;
+  laeufe: { ok: boolean }[];
+  pruefRestore: { letzter: { ok: boolean } | null; laeuft: boolean };
+};
 
 const backups = async (request: APIRequestContext, id: string) =>
   (await (await request.get(`/api/v1/installationen/${id}/backups`)).json()) as Backups;
@@ -32,8 +36,9 @@ const backups = async (request: APIRequestContext, id: string) =>
 // BAULISTE.md Z-601 against the real Zentrale with the first owner's session: the S3 target with
 // its admin access only as set; an installation with a volume to back up gets its own access at the
 // stand-in of MinIO and its backups set up by the stand-in agent (e2e/hilfen/agent.ts), then "Backup
-// jetzt" with a reason, after which the agent reports a run. The agent's own side (restic, the
-// timer, MinIO itself) runs in CI against Podman and MinIO (apps/agent).
+// jetzt" with a reason, after which the agent reports a run; then "Prüf-Restore jetzt" (Z-602), whose
+// result the agent reports and the page shows. The agent's own side (restic, the timer, the copy,
+// MinIO itself) runs in CI against Podman and MinIO (apps/agent).
 test.describe("backups", { tag: "@phone" }, () => {
   test("the S3 target takes the admin access and shows it only as set", async ({ page }) => {
     await page.goto("/einstellungen?tab=backup");
@@ -63,7 +68,9 @@ test.describe("backups", { tag: "@phone" }, () => {
     await ohneBefund(page);
   });
 
-  test("Backup jetzt with a reason, and the agent reports the run", async ({ page }) => {
+  test("Backup jetzt and Prüf-Restore jetzt; the page shows what the agent reports", async ({
+    page,
+  }) => {
     await zielSetzen(page.request);
     const i = await installationAnlegen(page.request, neuerHost("laeuft"), mitBackup());
     try {
@@ -98,6 +105,34 @@ test.describe("backups", { tag: "@phone" }, () => {
         .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) });
       await expect(zeile).toContainText("volume daten");
       await expect(zeile).toContainText("eingerichtet");
+      await ohneBefund(page);
+
+      await page.goto(`/installationen/${i.installationId}`);
+      await page.getByRole("button", { name: "Prüf-Restore jetzt" }).click();
+      const pruef = page.getByRole("dialog", { name: "Prüf-Restore jetzt" });
+      await pruef.getByLabel("Grund").fill("nach dem Wechsel des S3-Ziels");
+      await ohneBefund(page);
+      await pruef.getByRole("button", { name: "Ausführen" }).click();
+      await expect(pruef).toBeHidden();
+      await expect(page.getByText("Prüf-Restore angefordert")).toBeVisible();
+      await expect
+        .poll(async () => (await backups(page.request, i.installationId)).pruefRestore.letzter)
+        .toEqual(expect.objectContaining({ ok: true }));
+
+      await page.reload();
+      await page.getByRole("tab", { name: "Backups" }).click();
+      await expect(page.getByText(/, gelungen$/)).toBeVisible();
+      // the restored part with its snapshot, beside the runs' table
+      await expect(page.locator("dd").getByText(/^volume:daten: [0-9a-f]{8}$/)).toBeVisible();
+      await expect(page.getByText("42 s")).toBeVisible();
+      await ohneBefund(page);
+
+      await page.goto("/backups");
+      await expect(
+        page
+          .getByRole("row")
+          .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) }),
+      ).toContainText(", gelungen");
       await ohneBefund(page);
     } finally {
       i.agent.trennen();

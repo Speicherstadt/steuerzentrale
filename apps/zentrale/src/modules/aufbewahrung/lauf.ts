@@ -37,6 +37,7 @@ export const aufbewahren = (db: Db, schreibDb: SchreibDb, jetzt: number): Geloes
     installationVerlauf: 0,
     ereignisse: 0,
     backups: 0,
+    pruefRestores: 0,
   };
   for (const betreiberId of betreiberMitDaten(db)) {
     const kontext = { betreiberId, akteur: "system", jetzt, grund: "Aufbewahrung (docs/plan.md)" };

@@ -8,7 +8,11 @@ import { bestand } from "../daten/quelle.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { Aktionen } from "../seiten/installation-aktionen.tsx";
-import { BackupJetzt, InstallationBackups } from "../seiten/installation-backups.tsx";
+import {
+  BackupJetzt,
+  InstallationBackups,
+  PruefRestoreJetzt,
+} from "../seiten/installation-backups.tsx";
 import {
   EinrichtungsAngaben,
   EinrichtungsAuftraege,
@@ -137,6 +141,7 @@ const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
             <Aktionen a={props.a} neu={() => props.neu()} />
             <MitInstallationsRecht>
               <BackupJetzt a={props.a} neu={() => props.neu()} />
+              <PruefRestoreJetzt a={props.a} neu={() => props.neu()} />
             </MitInstallationsRecht>
             <EinstellungenAendern a={props.a} konfiguriert={() => props.neu()} />
           </div>

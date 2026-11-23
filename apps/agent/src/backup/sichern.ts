@@ -25,11 +25,22 @@ import {
 /** What restic reads beside its argv (restic.ts: descriptors 3 and 4) */
 export type Geheim = { passwort: string; zugang: string };
 
-/** restic's argv and, for a dump or a command, the argv whose output goes to its standard input */
-export type ResticAufruf = { argv: string[]; quelle?: string[] };
+/**
+ * restic's argv and, for a dump or a command, the argv whose output goes to its standard input;
+ * for playing a snapshot back (Z-602), the argv that reads restic's output instead (`ziel`)
+ */
+export type ResticAufruf = { argv: string[]; quelle?: string[]; ziel?: string[] };
 
-/** restic's exit code and standard output, and the exit code of the source, if any */
-export type ResticAntwort = { code: number | null; aus: string; quelleCode?: number | null };
+/**
+ * restic's exit code and standard output (empty when a target reads it), and the exit code of the
+ * source or the target, if any
+ */
+export type ResticAntwort = {
+  code: number | null;
+  aus: string;
+  quelleCode?: number | null;
+  zielCode?: number | null;
+};
 
 /** Runs restic, killed when the signal aborts; throws when it cannot start */
 export type ResticLauf = (
