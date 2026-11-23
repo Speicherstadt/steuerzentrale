@@ -89,7 +89,10 @@ const vorabPruefen = async (
   return { ok: true, inst };
 };
 
-type Vorwaerts = { ok: true } | { ok: false; grund: string; vorher?: Vorher };
+type Vorwaerts = { ok: true } | { ok: false; grund: string };
+
+/** How far the forward part came, and the old state once it is kept; also when it throws */
+type Fortschritt = { stufe: Stufe; vorher?: Vorher };
 
 const pullen = (lauf: Lauf, n: Nutzer, a: Update) =>
   nacheinander(
@@ -98,12 +101,12 @@ const pullen = (lauf: Lauf, n: Nutzer, a: Update) =>
     ),
   );
 
-/** Steps 1 to 3; `stufe` tells how far it came, also when it throws */
+/** Steps 1 to 3, recording how far they came */
 const vorwaerts = async (
   deps: UpdateDeps,
   a: Update,
   inst: Installation,
-  stufe: { jetzt: Stufe },
+  f: Fortschritt,
   signal: AbortSignal,
 ): Promise<Vorwaerts> => {
   const lauf = laeufer(deps, signal);
@@ -112,16 +115,16 @@ const vorwaerts = async (
   if (!angehalten.ok) return angehalten;
   const g = await standSichern(deps, n, a.quadlets, signal);
   if (!g.ok) return g;
-  const vorher: Vorher = { ...inst, alt: g.alt };
+  f.vorher = { ...inst, alt: g.alt };
   const pull = await pullen(lauf, n, a);
   if (!pull.ok) return pull;
-  stufe.jetzt = "units";
-  const r = await nacheinander([
+  f.stufe = "units";
+  return nacheinander([
     () =>
       lauf("systemctl --user stop", alsNutzer(n, ["systemctl", "--user", "stop", ...inst.units])),
     () => neuenStandSchreiben(deps, lauf, n, a.quadlets, g),
     async () => {
-      stufe.jetzt = "daten";
+      f.stufe = "daten";
       return neustarten(deps, lauf, n, a.units, signal);
     },
     () => schritteAusfuehren(lauf, n, a.name, a.schritte, "schritte.nach_update"),
@@ -130,7 +133,6 @@ const vorwaerts = async (
       return h.zustand === "rot" ? gescheitert(`Health: ${h.grund}`) : gelungen;
     },
   ]);
-  return r.ok ? r : { ...r, vorher };
 };
 
 const gemeldet = (daten: UpdateDaten): Ergebnis => ({ ok: true, daten });
@@ -141,15 +143,15 @@ const nachFehler = async (
   a: Update,
   inst: Installation,
   v: Exclude<Vorwaerts, { ok: true }>,
-  stufe: Stufe,
+  f: Fortschritt,
   t: { beginn: number; ende: number },
 ): Promise<Ergebnis> => {
-  if (stufe === "nichts" || v.vorher === undefined) {
+  if (f.stufe === "nichts" || f.vorher === undefined) {
     const timer = await timerStarten(deps, inst.n);
     const zusatz = timer.ok ? "" : `; Backup-Timer nicht gestartet: ${timer.grund}`;
     return fehler(`Update gescheitert: ${v.grund}; nichts geändert${zusatz}`);
   }
-  const r = await zuruecknehmen(deps, a, v.vorher, stufe === "daten", t.ende);
+  const r = await zuruecknehmen(deps, a, f.vorher, f.stufe === "daten", t.ende);
   const dauerMs = Math.max(0, deps.jetzt() - t.beginn);
   return r.ok
     ? gemeldet({ ergebnis: "zurueckgenommen", grund: v.grund, dauerMs })
@@ -167,17 +169,16 @@ const durchfuehren = async (
   zeitlimitMs: number,
 ): Promise<Ergebnis> => {
   const beginn = deps.jetzt();
-  const stufe: { jetzt: Stufe } = { jetzt: "nichts" };
+  const f: Fortschritt = { stufe: "nichts" };
   let v: Vorwaerts;
   try {
     v = await mitZeitlimit(deps, Math.round(zeitlimitMs * VORWAERTS), (signal) =>
-      vorwaerts(deps, a, inst, stufe, signal),
+      vorwaerts(deps, a, inst, f, signal),
     );
   } catch (e) {
     v = { ok: false, grund: String(e).slice(0, 500) };
   }
-  if (!v.ok)
-    return nachFehler(deps, a, inst, v, stufe.jetzt, { beginn, ende: beginn + zeitlimitMs });
+  if (!v.ok) return nachFehler(deps, a, inst, v, f, { beginn, ende: beginn + zeitlimitMs });
   await deps.gedaechtnis.setzen(a.name, "fertig", { units: a.units, ziel: a.ziel }, a.geheim);
   // the version changed whatever the timer does; a missing backup shows in the checks (Z-702)
   await timerStarten(deps, inst.n);
