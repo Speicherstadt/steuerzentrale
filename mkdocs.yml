@@ -68,12 +68,14 @@ nav:
       - Adressen und DNS: dns.md
       - Einstellungen: einstellungen.md
       - Health und Zustand: zustand.md
+      - Prüfungen der Server: pruefungen.md
       - Neustart, Log-Auszug, nur lesen: aktionen.md
       - Support-Zugang: support.md
       - Pforte: pforte.md
       - Manifeste und Versionen: manifeste.md
       - Updates: updates.md
       - Updates des Agenten: agent-updates.md
+      - Betriebssystem und Neustarts: betriebssystem.md
       - Backups: backups.md
   - Für App-Entwickler:
       - Manifest: manifest.md

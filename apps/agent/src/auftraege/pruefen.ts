@@ -26,8 +26,11 @@ import {
   pforteAuftragPruefen,
   pruefRestoreAuftragPruefen,
   restoreTeile,
+  SERVER_NEUSTART_AKTION,
+  SERVER_NEUSTART_ZEITLIMIT_S,
   STANDARD_ZEITLIMIT_S,
   schluesselVertrauen,
+  serverNeustartAuftragPruefen,
   signiertesManifestLaden,
   UPDATE_AKTION,
   UPDATE_ZEITLIMIT_S,
@@ -52,6 +55,7 @@ export type {
   PfortePlan,
   Plan,
   PruefRestorePlan,
+  ServerNeustartPlan,
   UpdatePlan,
   Vertrauen,
   WiederherstellenPlan,
@@ -77,7 +81,8 @@ export type {
  * manifest like reconfiguring, its `schritte.nach_update` filled from it, the parts to roll back
  * like a restore's. The update of the agent itself (Z-504) carries SHA256SUMS in the place of a
  * manifest: its signature with the same key, then its fixed shape (agentUpdateAuftragPruefen).
- * Pure, no I/O.
+ * The reboot of the server (Z-701) carries no manifest and nothing signed: after the key, its fixed
+ * shape with the boot it is meant for (serverNeustartAuftragPruefen). Pure, no I/O.
  */
 
 const pfortePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
@@ -296,9 +301,26 @@ const agentUpdatePlan = (n: AuftragNachricht, vertrauen: Vertrauen): Geprueft =>
   };
 };
 
+const serverNeustartPlan = (n: AuftragNachricht): Geprueft => {
+  const geprueft = serverNeustartAuftragPruefen(n);
+  if (!geprueft.ok) return geprueft;
+  return {
+    ok: true,
+    plan: {
+      art: "server_neustart",
+      aktion: n.aktion,
+      auftrag: geprueft.auftrag,
+      zeitlimitMs: Math.min(n.zeitlimitS, SERVER_NEUSTART_ZEITLIMIT_S) * 1000,
+      idempotent: false,
+    },
+  };
+};
+
 export const auftragPruefen = (n: AuftragNachricht, vertrauen: Vertrauen): Geprueft => {
   const vertraut = schluesselVertrauen(vertrauen.schluessel, vertrauen.zweck);
   if (!vertraut.ok) return vertraut;
+  // no manifest and nothing signed: a fixed shape and the boot it is meant for (Z-701)
+  if (n.aktion === SERVER_NEUSTART_AKTION) return serverNeustartPlan(n);
   // SHA256SUMS in the place of a manifest, signed with the same key (Z-504)
   if (n.aktion === AGENT_UPDATE_AKTION) return agentUpdatePlan(n, vertrauen);
   const geladen = signiertesManifestLaden(

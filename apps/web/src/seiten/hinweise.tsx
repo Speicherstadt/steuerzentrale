@@ -21,6 +21,7 @@ import { vor } from "../format/zeit.ts";
 import { SchwereSymbol } from "../teile/listen.tsx";
 import { ZuInstallation, ZuServer } from "../teile/verweise.tsx";
 import { aktionsText } from "./installieren-texte.ts";
+import { PRUEFUNG_ICONS, pruefungDetail, pruefungName } from "./server-texte.ts";
 
 /**
  * "Braucht Aufmerksamkeit" of the overview (BAULISTE.md Z-406): each entry of GET /api/v1/uebersicht
@@ -64,6 +65,16 @@ export const hinweisText = (e: UebersichtEintrag): Text => {
           zustand: e.zustand === "still" ? m.agent_still() : m.agent_getrennt(),
           seit: e.seit === null ? "–" : vor(e.seit, bestand().jetzt),
         }),
+      };
+    case "pruefung":
+      return {
+        icon: PRUEFUNG_ICONS[e.pruefung.pruefung],
+        titel: e.server.name,
+        text:
+          m.hinweis_pruefung({
+            pruefung: pruefungName(e.pruefung.pruefung),
+            detail: pruefungDetail(e.pruefung, bestand().jetzt),
+          }) + seit(e.seit),
       };
     case "pruef_restore":
       return {

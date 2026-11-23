@@ -35,6 +35,33 @@ export {
   type Wartungsfenster,
 } from "./fenster.ts";
 export {
+  NEUSTART_PAUSE_MS,
+  type NeustartEntscheid,
+  type NeustartServer,
+  type NeustartWartegrund,
+  neustartPruefen,
+  neustartZustellbar,
+} from "./neustart.ts";
+export {
+  BACKUP_FRIST_MS,
+  type BackupInstallation,
+  befundFortschreiben,
+  FAKTEN_FRIST_MS,
+  PLATTE_STOERUNG_PROZENT,
+  PLATTE_WARNUNG_PROZENT,
+  type Port,
+  PRUEFUNGEN,
+  type PruefEingabe,
+  type PruefFakten,
+  type PruefungName,
+  type Serverpruefung,
+  type Stufe,
+  SYSTEM_PORTS,
+  serverPruefen,
+  UHR_GRENZE_MS,
+  ZERTIFIKAT_FRIST_MS,
+} from "./pruefungen.ts";
+export {
   type AngeboteneVersion,
   angeboteneVersionen,
   istVorabversion,

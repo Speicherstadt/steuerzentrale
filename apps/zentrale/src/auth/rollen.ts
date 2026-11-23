@@ -19,7 +19,8 @@ const ANWEISUNGEN = {
   mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
   // intern: marking a customer as our own (Z-501), which brings its installations pre-releases
   kunden: ["lesen", "schreiben", "intern"],
-  server: ["anlegen", "lesen", "sperren"],
+  // neustart: the reboot of a server by hand (Z-701)
+  server: ["anlegen", "lesen", "sperren", "neustart"],
   // log_auszug: the lines of an installation's journal (Z-405), customer data; support reaches it
   // and the restart only through a support access (Z-802, src/routes/zugang.ts); sperrzeit: an
   // update by hand in a freeze window of the app (Z-503)
@@ -56,7 +57,7 @@ export const ROLLEN_ZUGRIFF = {
     betreiber: ["lesen"],
     mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
     kunden: ["lesen", "schreiben", "intern"],
-    server: ["anlegen", "lesen", "sperren"],
+    server: ["anlegen", "lesen", "sperren", "neustart"],
     installationen: ["lesen", "schreiben", "log_auszug", "sperrzeit"],
     audit: ["lesen"],
     dns: ["lesen", "schreiben"],
@@ -71,7 +72,7 @@ export const ROLLEN_ZUGRIFF = {
     betreiber: ["lesen"],
     mitglieder: ["lesen"],
     kunden: ["lesen", "schreiben"],
-    server: ["anlegen", "lesen", "sperren"],
+    server: ["anlegen", "lesen", "sperren", "neustart"],
     installationen: ["lesen", "schreiben", "log_auszug"],
     audit: ["lesen"],
     dns: ["lesen", "schreiben"],

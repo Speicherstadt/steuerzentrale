@@ -181,6 +181,7 @@ export {
   ramBedarf,
   WARNSCHWELLE,
 } from "./platzierung.ts";
+export { type OffenerPort, veroeffentlichtePorts } from "./ports.ts";
 export { LABEL as QUADLET_LABEL } from "./quadlet/container.ts";
 export { HOST, INSTALLATIONS_NAME } from "./quadlet/eingabe.ts";
 export { type PforteRoute, STREAM_SCHLIESSEN_NACH } from "./quadlet/pforte.ts";
@@ -209,5 +210,16 @@ export {
   repositoryAusImage,
   tokenUrl,
 } from "./registry.ts";
+export {
+  BOOT_ID,
+  KEIN_MANIFEST,
+  SERVER_NEUSTART_AKTION,
+  SERVER_NEUSTART_APP,
+  SERVER_NEUSTART_ZEITLIMIT_S,
+  type ServerNeustartAnfrage,
+  type ServerNeustartAuftrag,
+  type ServerNeustartGeprueft,
+  serverNeustartAuftragPruefen,
+} from "./server-neustart.ts";
 export { PFORTE_IMAGE, RESTIC_IMAGE, type SystemImage } from "./system.ts";
 export { schluesselVertrauen, TEST_SCHLUESSEL_ID, type Zweck } from "./vertrauen.ts";

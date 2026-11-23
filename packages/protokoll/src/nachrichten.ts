@@ -27,6 +27,10 @@ export const Hallo = z.object({
 
 export const Heartbeat = z.object({ typ: z.literal("heartbeat"), protokoll, zeit: zeitpunkt });
 
+const ports = z
+  .array(z.object({ port: z.number().int().min(1).max(65535), proto: z.enum(["tcp", "udp"]) }))
+  .max(10_000);
+
 const platte = z.object({
   mount: z.string().min(1),
   gesamtMb: z.number().nonnegative(),
@@ -54,12 +58,35 @@ export const Fakten = z.object({
   ipv4: z.array(z.string()).max(200).nullable(),
   ipv6: z.array(z.string()).max(200).nullable(),
   ptr: z.record(z.string(), z.string()),
-  portsBelegt: z
-    .array(z.object({ port: z.number().int().min(1).max(65535), proto: z.enum(["tcp", "udp"]) }))
-    .max(10_000)
-    .nullable(),
+  portsBelegt: ports.nullable(),
   port25Ausgehend: z.boolean().nullable(),
   uhrzeitAbweichungMs: z.number().int().nullable(),
+  // Z-701, still in protocol 1: a message without them (an agent before Z-701) reads as null
+  /** The kernel's id of this boot (/proc/sys/kernel/random/boot_id): another one after a reboot */
+  bootId: z.string().min(1).max(100).nullable().default(null),
+  /** When the server booted (`btime` of /proc/stat) */
+  gestartetAm: zeitpunkt.nullable().default(null),
+  /** Whether unattended-upgrades is installed and on, and when it last ran */
+  unattendedUpgrades: z
+    .object({
+      installiert: z.boolean(),
+      aktiv: z.boolean().nullable(),
+      letzterLauf: zeitpunkt.nullable(),
+    })
+    .nullable()
+    .default(null),
+  // For the checks (Z-702), still in protocol 1 (docs/plan.md, "Nachrichten vor dem ersten
+  // Release"); optional, so an agent from before them still sends valid facts
+  /** Listening sockets reachable from the network: not on loopback or a Podman bridge */
+  portsOffen: ports.nullable().optional(),
+  /** The certificates in the Pforte's storage, each with the end of its validity */
+  zertifikate: z
+    .array(z.object({ host: z.string().min(1).max(253), gueltigBis: zeitpunkt }))
+    .max(1000)
+    .nullable()
+    .optional(),
+  /** Whether the server's time service says it is synchronised (timedatectl, NTPSynchronized) */
+  uhrSynchron: z.boolean().nullable().optional(),
 });
 
 // The ActiveState values of systemd (`systemctl --state=help`; "refreshing" since systemd 257),

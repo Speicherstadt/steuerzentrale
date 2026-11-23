@@ -2,6 +2,7 @@ import { Fakten } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { faktenLesen, uhrAbweichung } from "./lesen.ts";
 import { testQuellen } from "./testquellen.ts";
+import { ZERTIFIKATE } from "./zertifikate.ts";
 
 describe("all facts", () => {
   it("are a valid message even when nothing is readable, with null for every fact", async () => {
@@ -25,6 +26,12 @@ describe("all facts", () => {
       portsBelegt: null,
       port25Ausgehend: null,
       uhrzeitAbweichungMs: null,
+      bootId: null,
+      gestartetAm: null,
+      unattendedUpgrades: { installiert: false, aktiv: false, letzterLauf: null },
+      portsOffen: null,
+      zertifikate: null,
+      uhrSynchron: null,
     });
   });
 
@@ -36,8 +43,14 @@ describe("all facts", () => {
         "/etc/os-release": 'NAME="Debian GNU/Linux"\nVERSION_ID="13"\n',
         "/proc/mounts": "/dev/sda1 / ext4 rw 0 0\n",
         "/proc/net/tcp": "kopf\n 0: 00000000:0016 00000000:0000 0A x\n",
+        "/proc/sys/kernel/random/boot_id": "8f4c1c9e-2d3a-4b5c-9d6e-7f8091a2b3c4\n",
+        "/proc/stat": "btime 1794900000\n",
       },
-      befehle: { "podman --version": { code: 0, aus: "podman version 5.4.2" } },
+      befehle: {
+        "podman --version": { code: 0, aus: "podman version 5.4.2" },
+        "timedatectl show --property=NTPSynchronized --value": { code: 0, aus: "no\n" },
+      },
+      ordner: { [ZERTIFIKATE]: [] },
       maschine: () => "aarch64",
       platz: async () => ({ gesamtMb: 10, freiMb: 4 }),
       verbinden: async () => false,
@@ -52,6 +65,11 @@ describe("all facts", () => {
       podman: "5.4.2",
       port25Ausgehend: false,
       uhrzeitAbweichungMs: -40,
+      bootId: "8f4c1c9e-2d3a-4b5c-9d6e-7f8091a2b3c4",
+      gestartetAm: 1_794_900_000_000,
+      portsOffen: [{ port: 22, proto: "tcp" }],
+      zertifikate: [],
+      uhrSynchron: false,
     });
   });
 });
