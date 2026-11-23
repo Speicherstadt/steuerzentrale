@@ -1,12 +1,19 @@
-import { agentAnzeige, type ServerDerZentrale } from "./server.ts";
+import { UHR_GRENZE_MS } from "@steuerzentrale/planung";
+import {
+  agentAnzeige,
+  type NeustartStand,
+  type ServerDerZentrale,
+  type ServerPruefung,
+} from "./server.ts";
 import type { AgentZustand, Art, Bestand, Server } from "./typen.ts";
 import { PLATTE_STOERUNG, type ServerZustand, serverZustand } from "./zustand.ts";
 
 /*
  * A server as the server pages show it (BAULISTE.md Z-304): what the Zentrale's API has, its facts
  * included, and nothing invented. A fact the agent could not read, or a server without facts yet,
- * stays null and the page says so. Load, provider, the reboot job and the checks exist only in the
- * demo data (`demo`, by the server's id) until their items bring them.
+ * stays null and the page says so. The checks come with Z-702, the operating system and the reboot
+ * with Z-701. Load, provider and the pending packages by name exist only in the demo data (`demo`,
+ * by the server's id) until their items bring them.
  */
 
 export type PlattenAnsicht = { mount: string; prozent: number; gesamtGb: number };
@@ -38,6 +45,12 @@ export type ServerAnsicht = {
   wartung: { von: string; bis: string };
   agent: { version: string | null; zustand: AgentZustand; letzteMeldung: number | null };
   faktenAm: number | null;
+  /** When the server booted, and unattended-upgrades (Z-701) */
+  gestartetAm: number | null;
+  unattended: NonNullable<ServerDerZentrale["fakten"]>["unattendedUpgrades"];
+  neustartStand: NeustartStand;
+  /** Its checks (Z-702), on its own page; null in the list */
+  pruefungen: ServerPruefung[] | null;
   demo: Server | undefined;
 };
 
@@ -83,11 +96,13 @@ export const serverAnsicht = (sv: ServerDerZentrale, demo: Server | undefined): 
     wartung: { von: sv.wartungsfenster.von, bis: sv.wartungsfenster.bis },
     agent: { version: sv.agentVersion, ...agentAnzeige(sv) },
     faktenAm: sv.faktenAm,
+    gestartetAm: f?.gestartetAm ?? null,
+    unattended: f?.unattendedUpgrades ?? null,
+    neustartStand: sv.neustart,
+    pruefungen: sv.pruefungen ?? null,
     demo,
   };
 };
-
-const UHR_GRENZE_MS = 500;
 
 /**
  * One word for the server: the demo's checks where the demo knows it, else from the agent and the
@@ -96,7 +111,7 @@ const UHR_GRENZE_MS = 500;
 export const ansichtZustand = (b: Bestand, a: ServerAnsicht): ServerZustand => {
   if (a.agent.zustand !== "verbunden") return "agent";
   if (a.demo) return serverZustand(b, a.demo);
-  if (a.platte !== null && a.platte >= PLATTE_STOERUNG) return "platte";
+  if (a.platte !== null && a.platte > PLATTE_STOERUNG) return "platte";
   if (a.neustart) return "neustart";
   const alleBekannt =
     a.faktenAm !== null &&

@@ -29,7 +29,8 @@ seinem letzten `hallo` gemeldet hat, mit `VERSION`. Sie legt den Auftrag `agent_
 - der Agent eine ältere Version meldet (eine Vorabversion gilt als älter als ihr Release),
 - er verbunden ist,
 - auf dem Server kein anderer Auftrag offen ist (der Neustart des Agenten würde ihn abbrechen; ein
-  Update einer Installation zählt mit, je Server läuft höchstens ein Update),
+  Update einer Installation und ein [Neustart des Servers](betriebssystem.md) zählen mit, je Server
+  läuft höchstens eins),
 - das Wartungsfenster des Servers offen ist, und
 - diese Version auf dem Server nicht in den letzten 24 Stunden versucht wurde.
 

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "5623bef3-c4a0-43eb-8654-e0a3cb56eebc",
+  "id": "f1e7fc03-7a18-4708-b50a-29b52f667adb",
   "prevId": "d2318c88-6bc0-4b99-a419-81b0bc314c6d",
   "tables": {
     "audit_log": {
@@ -2308,11 +2308,18 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "aussen_pruefungen": {
-      "name": "aussen_pruefungen",
+    "support_zugaenge": {
+      "name": "support_zugaenge",
       "columns": {
         "betreiber_id": {
           "name": "betreiber_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "zugang_id": {
+          "name": "zugang_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -2325,8 +2332,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "zustand": {
-          "name": "zustand",
+        "nutzer_id": {
+          "name": "nutzer_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -2339,99 +2346,58 @@
           "notNull": true,
           "autoincrement": false
         },
-        "seit": {
-          "name": "seit",
+        "beginn": {
+          "name": "beginn",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "geprueft_am": {
-          "name": "geprueft_am",
+        "ende": {
+          "name": "ende",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "ergebnis": {
-          "name": "ergebnis",
+        "beendet_am": {
+          "name": "beendet_am",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "beendet_von": {
+          "name": "beendet_von",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "aussen_pruefungen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
-          "name": "aussen_pruefungen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
-          "tableFrom": "aussen_pruefungen",
-          "tableTo": "installationen",
-          "columnsFrom": ["betreiber_id", "installation_id"],
-          "columnsTo": ["betreiber_id", "installation_id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "aussen_pruefungen_betreiber_id_installation_id_pk": {
-          "columns": ["betreiber_id", "installation_id"],
-          "name": "aussen_pruefungen_betreiber_id_installation_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "verfuegbarkeit": {
-      "name": "verfuegbarkeit",
-      "columns": {
-        "betreiber_id": {
-          "name": "betreiber_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
-        "installation_id": {
-          "name": "installation_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "stunde": {
-          "name": "stunde",
+        "ende_gemeldet_am": {
+          "name": "ende_gemeldet_am",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "gemessen": {
-          "name": "gemessen",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "rot": {
-          "name": "rot",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         }
       },
       "indexes": {
-        "verfuegbarkeit_stunde": {
-          "name": "verfuegbarkeit_stunde",
-          "columns": ["stunde"],
+        "support_zugaenge_nutzer": {
+          "name": "support_zugaenge_nutzer",
+          "columns": ["betreiber_id", "nutzer_id", "installation_id", "ende"],
+          "isUnique": false
+        },
+        "support_zugaenge_beginn": {
+          "name": "support_zugaenge_beginn",
+          "columns": ["betreiber_id", "beginn"],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "verfuegbarkeit_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
-          "name": "verfuegbarkeit_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
-          "tableFrom": "verfuegbarkeit",
+        "support_zugaenge_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
+          "name": "support_zugaenge_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
+          "tableFrom": "support_zugaenge",
           "tableTo": "installationen",
           "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
@@ -2440,9 +2406,9 @@
         }
       },
       "compositePrimaryKeys": {
-        "verfuegbarkeit_betreiber_id_installation_id_stunde_pk": {
-          "columns": ["betreiber_id", "installation_id", "stunde"],
-          "name": "verfuegbarkeit_betreiber_id_installation_id_stunde_pk"
+        "support_zugaenge_betreiber_id_zugang_id_pk": {
+          "columns": ["betreiber_id", "zugang_id"],
+          "name": "support_zugaenge_betreiber_id_zugang_id_pk"
         }
       },
       "uniqueConstraints": {},

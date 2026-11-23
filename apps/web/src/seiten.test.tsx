@@ -102,6 +102,17 @@ describe("pages", () => {
     expect(schweren).toEqual([...schweren].sort((a, b) => a - b));
   });
 
+  // Z-702: a check red over 90 % disk is a fault, leading to its server
+  it("name a server's check on the overview, leading to the server", async () => {
+    const root = await oeffne("/");
+    const eintrag = [...root.querySelectorAll<HTMLAnchorElement>("main ul li a")].find((a) =>
+      a.textContent?.includes("Platte: 91 % belegt (Grenze 90 %)"),
+    );
+    expect(eintrag?.textContent).toContain("Studio Lind");
+    expect(eintrag?.querySelector("svg")?.getAttribute("aria-label")).toBe("Störung");
+    expect(eintrag?.getAttribute("href")).toBe("/server/lind");
+  });
+
   it("show all eight apps on the apps page, and an app only imported (Z-501)", async () => {
     const root = await oeffne("/apps");
     const namen = [...root.querySelectorAll("main section h2")].map((h) => h.textContent);
@@ -203,8 +214,23 @@ describe("servers of the Zentrale", () => {
       portsBelegt: [{ port: 22, proto: "tcp" }],
       port25Ausgehend: false,
       uhrzeitAbweichungMs: 12,
+      bootId: "8f4c1c9e-2d3a-4b5c-9d6e-7f8091a2b3c4",
+      gestartetAm: JETZT - 38 * 86_400_000,
+      unattendedUpgrades: { installiert: true, aktiv: true, letzterLauf: JETZT - 3600_000 },
     },
     faktenAm: JETZT - 60_000,
+    neustart: {
+      noetig: true,
+      plan: { art: "warten", grund: "sperrzeit", ab: JETZT + 2 * 86_400_000 },
+      letzter: {
+        auftragId: "n-1",
+        zustand: "gescheitert",
+        vonHand: false,
+        angelegtAm: JETZT - 86_400_000,
+        geaendertAm: JETZT - 86_000_000,
+        fehler: "Neustart nicht erfolgt: Agent neu gestartet",
+      },
+    },
   };
   const ohneFakten: ServerDerZentrale = {
     ...mitFakten,
@@ -216,6 +242,7 @@ describe("servers of the Zentrale", () => {
     agent: { zustand: "getrennt", letzterHeartbeat: null },
     fakten: null,
     faktenAm: null,
+    neustart: { noetig: null, plan: { art: "warten", grund: "unbekannt" }, letzter: null },
   };
   const vorher = serverQuelle();
   beforeEach(() => {
@@ -227,6 +254,7 @@ describe("servers of the Zentrale", () => {
         return sv ? { ok: true, status: 200, daten: sv } : { ok: false, status: 404, fehler: "x" };
       },
       sperren: async () => ({ ok: false, status: 409, fehler: "x" }),
+      neustart: async () => ({ ok: false, status: 409, fehler: "x" }),
     });
   });
   afterEach(() => serverQuelleEinsetzen(vorher));
@@ -259,9 +287,56 @@ describe("servers of the Zentrale", () => {
       "203.0.113.10 → neu.example.org",
       "22/tcp",
       "Port 25 ausgehendgesperrt",
+      // Z-701: the operating system and the reboot
+      "unattended-upgradesan, zuletzt",
+      "Ausstehende Pakete3",
+      "Neustart nötigja, für Kernel 6.12.48+deb13-arm64",
+      "Nächster Neustartwartet auf das Ende einer Sperrzeit",
+      "Letzter Neustartgescheitert: Neustart nicht erfolgt: Agent neu gestartet",
     ])
       expect(text).toContain(teil);
     expect(text).not.toContain("Prüfungen");
+  });
+
+  // Z-702: the checks the Zentrale rated, each with what it measured; unknown is neither OK nor
+  // "Prüfen"
+  it("show the checks of the Zentrale on the server page", async () => {
+    const mitPruefungen: ServerDerZentrale = {
+      ...mitFakten,
+      serverId: "s-pruefungen",
+      pruefungen: [
+        { pruefung: "platte", ergebnis: "gelb", platten: [{ mount: "/", prozent: 85.5 }], seit: 1 },
+        { pruefung: "zertifikate", ergebnis: "unbekannt", zertifikate: null, seit: null },
+        { pruefung: "backups", ergebnis: "gruen", alt: [], seit: null },
+        {
+          pruefung: "ports",
+          ergebnis: "gelb",
+          fremd: [{ port: 5432, proto: "tcp" }],
+          seit: null,
+        },
+        { pruefung: "uhrzeit", ergebnis: "gruen", abweichungMs: 12, synchron: true, seit: null },
+      ],
+    };
+    serverQuelleEinsetzen({
+      ...serverQuelle(),
+      server: async () => ({ ok: true, status: 200, daten: mitPruefungen }),
+    });
+    const root = await oeffne("/server/s-pruefungen");
+    flush();
+    await new Promise((fertig) => setTimeout(fertig, 0));
+    const karte = [...root.querySelectorAll("section")].find((s) =>
+      s.querySelector("h2")?.textContent?.includes("Prüfungen"),
+    );
+    const text = karte?.textContent ?? "";
+    for (const teil of [
+      "Platte85,5 % belegt (Grenze 80 %)Prüfen",
+      "Zertifikatenicht gemessen",
+      "Backupsalle jünger als 26 hOK",
+      "Offene Ports5432/tcp: in keinem ManifestPrüfen",
+      "UhrzeitNTP synchron, Abweichung 12 msOK",
+    ])
+      expect(text).toContain(teil);
+    expect(text).not.toContain("Kernel");
   });
 
   it("say unknown where the agent reported nothing, and 404 for a server that is not there", async () => {

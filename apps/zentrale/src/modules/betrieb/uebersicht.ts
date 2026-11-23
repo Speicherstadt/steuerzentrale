@@ -7,6 +7,7 @@ import { backupEingerichtet } from "../backups/auftraege.ts";
 import { STOERUNG_ART, standVon } from "../bewertung/index.ts";
 import { stoerungOffen } from "../bewertung/lesen.ts";
 import { pruefRestoreAufmerksamkeit } from "../pruef-restore/lesen.ts";
+import { pruefungenLesen } from "../pruefungen/index.ts";
 import { letzteHeartbeats, serverListe } from "../server/index.ts";
 import { verbindungsZustand } from "../verbindung/zustand.ts";
 import { auftraegeSeite } from "./auftraege.ts";
@@ -15,7 +16,8 @@ import { type Eintrag, type MitVerweis, ordnen, type Schwere } from "./ordnen.ts
 
 /*
  * The overview (BAULISTE.md Z-406; docs/plan.md, "Echte Daten (Z-406)"): open faults, installations
- * red, yellow or unknown, agents disconnected or silent, test restores failed or older than 8 days
+ * red, yellow or unknown, agents disconnected or silent, checks of a server red or yellow (Z-702),
+ * test restores failed or older than 8 days
  * (Z-602), failed jobs of the last 7 days (a test restore's own job aside: its entry stands for it;
  * a restore's too, Z-603: its event `wiederherstellen_gescheitert` does),
  * events of severity `fehler` and `warn` of the last 24 h; each within the operator, ordered by
@@ -117,6 +119,27 @@ const agentEintraege = (deps: UebersichtDeps, betreiberId: string): Eintrag[] =>
   });
 };
 
+const SCHWERE_DER_PRUEFUNG = { rot: "stoerung", gelb: "warnung" } as const;
+
+/** The checks of joined, unrevoked servers that are red or yellow; unknown ones the agent's entry covers */
+const pruefungsEintraege = (deps: UebersichtDeps, betreiberId: string): Eintrag[] =>
+  serverListe(deps.db, betreiberId).flatMap((sv): Eintrag[] => {
+    if (sv.gesperrtAm !== null || sv.beigetretenAm === null) return [];
+    return pruefungenLesen(deps.db, sv, deps.jetzt).flatMap(({ seit, ...pruefung }): Eintrag[] =>
+      pruefung.ergebnis === "rot" || pruefung.ergebnis === "gelb"
+        ? [
+            {
+              art: "pruefung",
+              schwere: SCHWERE_DER_PRUEFUNG[pruefung.ergebnis],
+              server: { serverId: sv.serverId, name: sv.name },
+              pruefung,
+              seit,
+            },
+          ]
+        : [],
+    );
+  });
+
 /** Jobs whose failure has an entry of its own: a test restore's, a restore's event */
 const EIGENER_EINTRAG: readonly string[] = [PRUEF_RESTORE_AKTION, WIEDERHERSTELLEN_AKTION];
 
@@ -164,6 +187,7 @@ export const uebersichtLesen = (deps: UebersichtDeps, betreiberId: string): MitV
   ordnen([
     ...installationsEintraege(deps, betreiberId),
     ...agentEintraege(deps, betreiberId),
+    ...pruefungsEintraege(deps, betreiberId),
     ...pruefRestoreEintraege(deps, betreiberId),
     ...auftragsEintraege(deps, betreiberId),
     ...ereignisEintraege(deps, betreiberId),

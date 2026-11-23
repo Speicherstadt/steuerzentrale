@@ -30,6 +30,9 @@ const FAKTEN: ServerFakten = {
   ],
   port25Ausgehend: false,
   uhrzeitAbweichungMs: 12,
+  bootId: "8f4c1c9e-2d3a-4b5c-9d6e-7f8091a2b3c4",
+  gestartetAm: JETZT - 38 * 86_400_000,
+  unattendedUpgrades: { installiert: true, aktiv: true, letzterLauf: JETZT - 3600_000 },
 };
 
 const sv = (aenderung: Partial<ServerDerZentrale> = {}): ServerDerZentrale => ({
@@ -47,6 +50,11 @@ const sv = (aenderung: Partial<ServerDerZentrale> = {}): ServerDerZentrale => ({
   agent: { zustand: "verbunden", letzterHeartbeat: JETZT - 10 },
   fakten: FAKTEN,
   faktenAm: JETZT - 60_000,
+  neustart: {
+    noetig: true,
+    plan: { art: "warten", grund: "fenster", ab: JETZT + 3600_000 },
+    letzter: null,
+  },
   ...aenderung,
 });
 
@@ -77,6 +85,10 @@ describe("a server as the pages show it (Z-304)", () => {
       wartung: { von: "03:30", bis: "04:30" },
       agent: { version: "0.1.0", zustand: "verbunden", letzteMeldung: JETZT - 10 },
       faktenAm: JETZT - 60_000,
+      // Z-701
+      gestartetAm: JETZT - 38 * 86_400_000,
+      unattended: { installiert: true, aktiv: true, letzterLauf: JETZT - 3600_000 },
+      neustartStand: { noetig: true, plan: { art: "warten", grund: "fenster" }, letzter: null },
       demo: undefined,
     });
   });
@@ -96,6 +108,8 @@ describe("a server as the pages show it (Z-304)", () => {
       ports: null,
       port25: null,
       faktenAm: null,
+      gestartetAm: null,
+      unattended: null,
     });
   });
 

@@ -29,16 +29,18 @@ Schwerste zuerst. Jeder Eintrag führt zu seiner Ursache.
 | offene Störung einer Installation (5 Minuten rot, siehe [Health und Zustand](zustand.md)) | Störung | Installation |
 | Installation rot | Störung | Installation |
 | Agent getrennt | Störung | Server |
+| Prüfung eines Servers rot (Platte über 90 %, Zertifikat abgelaufen, siehe [Prüfungen der Server](pruefungen.md)) | Störung | Server |
 | Installation gelb | Warnung | Installation |
 | Agent still (ab 75 s ohne Heartbeat) | Warnung | Server |
+| Prüfung eines Servers gelb (Platte über 80 %, Zertifikat in 14 Tagen, Backup älter als 26 h, ein Port in keinem Manifest, Uhrzeit) | Warnung | Server |
 | Prüf-Restore gescheitert (der neueste) | Warnung | Installation |
 | Auftrag gescheitert in den letzten 7 Tagen (außer einem Prüf-Restore, der seinen eigenen Eintrag hat) | Warnung | Aufträge |
 | Ereignis `fehler` oder `warn` der letzten 24 Stunden | Störung bzw. Warnung | Installation oder Server des Ereignisses, sonst Ereignisse |
 | Installation ohne Zustand (unbekannt) | Hinweis | Installation |
 | kein Prüf-Restore seit über 8 Tagen (ohne jeden ab dem ersten gelungenen Backup) | Hinweis | Installation |
 
-Innerhalb einer Schwere stehen Störungen vor Installationen, Agenten, Prüf-Restores, Aufträgen und
-Ereignissen,
+Innerhalb einer Schwere stehen Störungen vor Installationen, Agenten, Prüfungen der Server,
+Prüf-Restores, Aufträgen und Ereignissen,
 und jeweils das Neueste zuerst. Es zählen nur Installationen, die laufen (eine, die eingerichtet
 wird oder deren Einrichtung scheiterte, steht als Auftrag da), und nur Server, deren Agent beigetreten
 und nicht gesperrt ist. Ein Ereignis, dessen Installation oder Server schon einen Eintrag hat, steht
@@ -101,11 +103,10 @@ mit welchem Punkt sie kommen:
 
 | Seite oder Teil | kommt mit |
 | --- | --- |
-| Support-Zugänge, Support-Minuten eines Kunden | Z-802 |
 | Leistungen | Z-804 |
 | Einstellungen → DNS | Z-407 |
 | Einstellungen → Benachrichtigungen | Z-703 |
-| Auslastung und Prüfungen eines Servers | Z-701, Z-702 |
+| Auslastung eines Servers (CPU, RAM), Pakete mit Namen; das Betriebssystem steht seit Z-701 in der Karte „Wartung“ | noch ohne Punkt |
 
 Die Beschreibungen der acht Apps (Seite „Apps“, Sperrzeiten in der Seitenleiste) stammen aus
 `manifeste/`, bis die Zentrale Manifeste importiert (Z-501). Unter Einstellungen → Konten stehen die

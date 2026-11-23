@@ -36,6 +36,15 @@ export const VOM_AGENTEN_V1: readonly Record<string, unknown>[] = [
     portsBelegt: [{ port: 443, proto: "tcp" }],
     port25Ausgehend: false,
     uhrzeitAbweichungMs: 12,
+    bootId: "8f4c1c9e-2d3a-4b5c-9d6e-7f8091a2b3c4",
+    gestartetAm: 1_794_900_000_000,
+    unattendedUpgrades: { installiert: true, aktiv: true, letzterLauf: 1_794_990_000_000 },
+    portsOffen: [
+      { port: 22, proto: "tcp" },
+      { port: 443, proto: "tcp" },
+    ],
+    zertifikate: [{ host: "haben.mueller.apps.example.org", gueltigBis: 1_800_000_000_000 }],
+    uhrSynchron: true,
   },
   {
     typ: "zustand",
@@ -180,6 +189,17 @@ export const VON_DER_ZENTRALE_V1: readonly Record<string, unknown>[] = [
     argumente: { version: "0.2.0" },
     manifest: `${"0".repeat(64)}  steuerzentrale-agent-linux-x64\n${"1".repeat(64)}  steuerzentrale-agent-linux-arm64\n`,
     signatur: SIGNATUR,
+    zeitlimitS: 600,
+  },
+  {
+    typ: "auftrag",
+    protokoll: 1,
+    auftragId: "a-5",
+    installationId: null,
+    aktion: "server_neustart",
+    argumente: { bootId: "8f4c1c9e-2d3a-4b5c-9d6e-7f8091a2b3c4" },
+    manifest: "-",
+    signatur: "-",
     zeitlimitS: 600,
   },
 ];

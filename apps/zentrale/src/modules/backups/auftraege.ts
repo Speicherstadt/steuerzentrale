@@ -62,12 +62,25 @@ const backupAuftraege = (
     )
     .all();
 
+/**
+ * When the installation's backups were set up: its access made, the job that set it up done (the
+ * newest such job's end); undefined while they are not
+ */
+export const backupEingerichtetAm = (
+  db: Db,
+  betreiberId: string,
+  installationId: string,
+): number | undefined => {
+  if (zugangLesen(db, betreiberId, installationId)?.zustand !== "angelegt") return undefined;
+  const fertig = backupAuftraege(db, betreiberId, installationId, [BACKUP_AKTIONEN.einrichten])
+    .filter((a) => a.zustand === "erfolgreich")
+    .map((a) => a.geaendertAm);
+  return fertig.length > 0 ? Math.max(...fertig) : undefined;
+};
+
 /** Whether the installation's backups are set up: its access made, the job that set it up done */
 export const backupEingerichtet = (db: Db, betreiberId: string, installationId: string): boolean =>
-  zugangLesen(db, betreiberId, installationId)?.zustand === "angelegt" &&
-  backupAuftraege(db, betreiberId, installationId).some(
-    (a) => a.aktion === BACKUP_AKTIONEN.einrichten && a.zustand === "erfolgreich",
-  );
+  backupEingerichtetAm(db, betreiberId, installationId) !== undefined;
 
 export type BackupAusgeloest =
   | { ok: true; auftrag: Auftrag }

@@ -2,6 +2,7 @@ import type {
   AgentUpdateAuftrag,
   OeffentlicherSchluessel,
   PforteAuftrag,
+  ServerNeustartAuftrag,
   Zweck,
 } from "@steuerzentrale/manifest";
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
@@ -139,9 +140,23 @@ export type AgentUpdatePlan = {
   idempotent: false;
 };
 
+/** What the reboot of the server does: `systemctl reboot` out of the job's boot (src/neustart) */
+export type ServerNeustartPlan = {
+  art: "server_neustart";
+  aktion: string;
+  auftrag: ServerNeustartAuftrag;
+  zeitlimitMs: number;
+  /**
+   * Not run again after a restart of the agent: the boot id tells whether the reboot came, and the
+   * job is reported by it (auftraege.ts, neustart/neustart.ts `neustartEnde`)
+   */
+  idempotent: false;
+};
+
 export type JederPlan =
   | Plan
   | AgentUpdatePlan
+  | ServerNeustartPlan
   | PfortePlan
   | EinrichtungPlan
   | AktionPlan

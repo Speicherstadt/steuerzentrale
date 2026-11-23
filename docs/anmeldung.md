@@ -74,8 +74,10 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 | Server hinzufügen | ja | ja | – |
 | Installationen und Platzierung sehen | ja | ja | ja |
 | Installationen anlegen, gescheiterte entfernen | ja | ja | – |
-| Neustart und „nur lesen“ einer Installation | ja | ja | – |
-| Log-Auszug einer Installation anfordern und lesen | ja | ja | ja |
+| „nur lesen“ einer Installation | ja | ja | – |
+| Neustart, Log-Auszug anfordern und lesen | ja | ja | nur mit Support-Zugang |
+| Support-Zugänge sehen, eigenen starten und beenden | ja | ja | ja |
+| fremden Support-Zugang beenden | ja | ja | – |
 | Übersicht, Aufträge und Ereignisse sehen | ja | ja | ja |
 | Audit-Log lesen | ja | ja | – |
 | Backups und S3-Ziel sehen | ja | ja | ja |
@@ -84,7 +86,8 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 Die Rollen sind die Zugriffssteuerung des Organization-Plugins von Better Auth; jeder Betreiber ist
 dort eine Organisation mit derselben ID. Ein Betreiber behält immer einen Inhaber: der letzte kann
 seine Rolle nicht abgeben und nicht entfernt werden. Wer entfernt wird, verliert den Zugang sofort.
-Weitere Rechte (Support-Zugänge, Updates) kommen mit ihren Punkten der Bauliste.
+Ein [Support-Zugang](support.md) gilt für eine Installation, ist zeitlich begrenzt und steht mit
+Grund im Audit-Log und in den Ereignissen des Kunden.
 Technik legt Kunden an und pflegt ihre Verträge, weil eine Installation von ihnen ausgeht; Support
 sieht sie nur ([Kunden und Verträge](kunden.md)).
 

@@ -6,7 +6,9 @@ import type {
   Verweis,
 } from "../daten/betrieb.ts";
 import type { Installation } from "../daten/typen.ts";
+import { auffaellig, pruefungenDerDemo } from "../daten/zustand.ts";
 import { pruefRestoreVon } from "./backups.ts";
+import { demo } from "./index.ts";
 import { installationen } from "./installationen.ts";
 import { kunden } from "./kunden.ts";
 import { server } from "./server.ts";
@@ -14,7 +16,8 @@ import { JETZT } from "./zeit.ts";
 
 /*
  * The demo's overview as GET /api/v1/uebersicht answers it (BAULISTE.md Z-406): a red installation
- * as an open fault, yellow and unknown ones, agents not connected, test restores failed or due
+ * as an open fault, yellow and unknown ones, agents not connected, checks of a server red or yellow
+ * (Z-702, as src/demo/server-quelle.ts answers them), test restores failed or due
  * (Z-602, from the demo's `pruefRestore` as src/demo/backups.ts answers them), failed jobs, warnings
  * and errors of the last 24 h; ordered as the Zentrale orders (apps/zentrale,
  * modules/betrieb/ordnen.ts).
@@ -26,9 +29,10 @@ const FOLGE: Record<UebersichtEintrag["art"], number> = {
   stoerung: 0,
   installation: 1,
   agent: 2,
-  pruef_restore: 3,
-  auftrag: 4,
-  ereignis: 5,
+  pruefung: 3,
+  pruef_restore: 4,
+  auftrag: 5,
+  ereignis: 6,
 };
 
 const kunde = (id: string) => kunden.find((k) => k.id === id);
@@ -85,6 +89,23 @@ const agenten = (): UebersichtEintrag[] =>
         ],
   );
 
+/** The checks of each server that are red (a fault) or yellow (a warning) */
+const pruefungen = (): UebersichtEintrag[] =>
+  server.flatMap((sv) =>
+    pruefungenDerDemo(demo, sv)
+      .filter(auffaellig)
+      .map(
+        (pruefung): UebersichtEintrag => ({
+          art: "pruefung",
+          schwere: pruefung.ergebnis === "rot" ? "stoerung" : "warnung",
+          verweis: { art: "server", id: sv.id },
+          server: { serverId: sv.id, name: sv.name },
+          pruefung,
+          seit: null,
+        }),
+      ),
+  );
+
 /** A failed test restore as a warning, one 9 days old (`offen`) as a note */
 const pruefRestore = (i: Installation): UebersichtEintrag[] => {
   if (i.pruefRestore === "ok" || kunde(i.kunde)?.vertrag.ende) return [];
@@ -115,6 +136,7 @@ export const demoUebersicht = (
   const vorne = [
     ...installationen.flatMap(zuInstallation),
     ...agenten(),
+    ...pruefungen(),
     ...installationen.flatMap(pruefRestore),
   ];
   const genannt = new Set(vorne.map((e) => JSON.stringify(e.verweis)));

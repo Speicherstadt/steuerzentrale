@@ -11,10 +11,11 @@ Deutsch und Englisch, auch auf dem Handy. Kunden mit Ansprechperson und Vertrag 
 legt der Betreiber an, ändert und kündigt sie, jedes Mal mit Grund im Audit-Log
 ([Kunden und Verträge](docs/kunden.md)). Angemeldet kommt alles aus der Zentrale: die Übersicht
 ordnet nach Schwere, was Aufmerksamkeit braucht (Störungen, rote, gelbe und unbekannte Installationen,
-getrennte oder stille Agenten, gescheiterte Aufträge, Warnungen des letzten Tages), und jeder Eintrag
+getrennte oder stille Agenten, rote und gelbe Prüfungen der Server, gescheiterte Aufträge, Warnungen
+des letzten Tages), und jeder Eintrag
 führt zu seiner Ursache; Aufträge, Ereignisse und Audit-Log (nur Inhaber und Technik) kommen
 seitenweise; Server- und Kundenseite zeigen ihre Installationen und Ereignisse. Wo die Zentrale noch
-keine Daten hat (Support-Zugänge, Leistungen), sagt die Seite, mit welchem Punkt sie
+keine Daten hat (Leistungen), sagt die Seite, mit welchem Punkt sie
 kommen ([Übersicht und Betrieb](docs/uebersicht.md)); Demodaten mit den acht Apps der Speicherstadt
 zeigt nur `bun run dev:demo`.
 
@@ -30,8 +31,15 @@ als systemd-Dienst ein, und der Agent tauscht das Token gegen sein Client-Zertif
 Heartbeat alle 30 Sekunden; jeder Server zeigt „verbunden“, „seit x min still“ oder „getrennt“, nach
 3 Minuten Stille entsteht ein Ereignis, und ein Zertifikat rotiert vor Ablauf von selbst und lässt
 sich sofort sperren. Der Agent meldet die Fakten seines Servers (CPU, RAM, Platten, OS, Kernel,
-„Neustart nötig“, ausstehende Updates, Podman, Adressen, PTR, Ports, Port 25, Uhrzeit) alle 15
-Minuten, die Server-Seiten zeigen sie, und jede SSH-Anmeldung wird ein Ereignis.
+„Neustart nötig“, ausstehende Updates, Podman, Adressen, PTR, Ports, Port 25, Uhrzeit, Zertifikate
+der Pforte) alle 15 Minuten, die Server-Seiten zeigen sie, und jede SSH-Anmeldung wird ein Ereignis.
+
+**Prüfungen:** jede Minute prüft die Zentrale jeden Server: Platte über 80 % (gelb) oder 90 % (rot),
+ein Zertifikat einer Installation in 14 Tagen (abgelaufen: rot), ein Backup älter als 26 Stunden, ein
+offener Port, den kein Manifest nennt, und die Uhrzeit (ab 500 ms Abweichung oder ohne Zeitabgleich).
+Was nicht frisch gemessen ist, ist unbekannt, nie grün. Rote und gelbe Prüfungen stehen in der
+Übersicht, alle auf der Server-Seite; Beginn, Verschlechterung und Behebung eines Befunds sind je ein
+Ereignis, nicht jeder Lauf ([Prüfungen der Server](docs/pruefungen.md)).
 
 **Manifeste und Versionen:** ein signiertes Manifest kommt per Import in die Zentrale, auf der Seite
 „Apps“ (Inhaber und Technik, mit Grund) oder mit `steuerzentrale manifest importieren <pfad>`; die
@@ -62,6 +70,14 @@ er lädt das Binary von seiner Zentrale, prüft Signatur und Prüfsumme wie `ins
 meldet sich der neue Agent nicht binnen 5 Minuten bei der Zentrale, kehrt der alte zurück. Eine falsche
 Signatur oder Prüfsumme ändert nichts und wird ein Ereignis; die Zentrale versteht Agenten einer
 Protokollversion zurück ([Updates des Agenten](docs/agent-updates.md)).
+
+**Betriebssystem und Neustarts:** die Seite eines Servers zeigt, ob unattended-upgrades läuft und wann
+zuletzt, wie viele Pakete ausstehen und ob ein Neustart nötig ist. Den Neustart plant die Zentrale im
+Wartungsfenster des Servers, nie in einer Sperrzeit einer App auf ihm, höchstens einen am Tag und nur
+nach einem Backup jeder laufenden Installation; der Agent startet nur aus dem Boot neu, für den der
+Auftrag gilt, und meldet ihn erst mit einer neuen Boot-ID als erledigt. Inhaber und Technik starten
+einen Server auch von Hand mit Grund neu, nie in einer Sperrzeit
+([Betriebssystem und Neustarts](docs/betriebssystem.md)).
 
 **Adressen und DNS:** jeder Kunde hat ein Kürzel, und der Dialog schlägt die Adresse
 `<app>.<kürzel>.<domain>` vor. Unter Einstellungen → DNS setzt der Betreiber Domain, Cloudflare-Zone und
@@ -94,7 +110,12 @@ Werte gelten erst nach seinem Erfolg ([Einstellungen](docs/einstellungen.md)).
 **Neustart, Log-Auszug, nur lesen:** die Seite einer laufenden Installation zeigt die Aktionen, die
 ihr Manifest anbietet, jede mit Grund im Audit-Log. Ein Neustart wartet auf offene Aufträge und läuft
 nie in einer Sperrzeit; ein Log-Auszug zeigt die letzten 500 Zeilen aus journald mit ersetzten
-Werten der Geheimnisse, auch für Support ([Neustart, Log-Auszug, nur lesen](docs/aktionen.md)).
+Werten der Geheimnisse ([Neustart, Log-Auszug, nur lesen](docs/aktionen.md)).
+
+**Support-Zugang:** Support erreicht Log-Auszug und Neustart einer Installation nur mit einem
+Support-Zugang, den die Person selbst startet: 1, 2 (Vorgabe) oder 4 Stunden, mit Grund. Er endet von
+selbst, lässt sich vorher beenden und steht mit Grund im Audit-Log und in den Ereignissen des Kunden;
+die Zentrale prüft ihn bei jeder Anfrage ([Support-Zugang](docs/support.md)).
 
 **Health und Zustand:** der Agent meldet alle 30 Sekunden Units und Health jeder Installation; die
 Zentrale bewertet sie grün, gelb, rot oder unbekannt, immer mit Grund (ohne Meldung seit 90 Sekunden

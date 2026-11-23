@@ -39,6 +39,8 @@ export type AuftragEreignis =
   | { art: "vorgaenger_gescheitert" }
   /** The Zentrale sent it to the agent */
   | { art: "zugestellt" }
+  /** The Zentrale cancels it before its agent acknowledged it (a reboot past its time, Z-701) */
+  | { art: "abbrechen" }
   | { art: "bestaetigt" }
   | { art: "fortschritt" }
   | { art: "ergebnis"; ok: boolean };
@@ -82,6 +84,8 @@ const SCHRITTE: Record<
     gescheitert: "gescheitert",
   },
   fortschritt: { zugestellt: "laeuft", bestaetigt: "laeuft", laeuft: "laeuft" },
+  // once the agent acknowledged it, the job is the agent's: only its result ends it
+  abbrechen: { bereit: "abgebrochen", zugestellt: "abgebrochen" },
 };
 
 const ergebnis = (von: AuftragZustand, ok: boolean, e: AuftragEreignis): Uebergang => {

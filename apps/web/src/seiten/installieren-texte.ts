@@ -87,6 +87,7 @@ const AKTIONEN: Record<string, () => string> = {
   installation_wiederherstellen: m.auftrag_installation_wiederherstellen,
   pforte_route_setzen: m.auftrag_pforte_route_setzen,
   pforte_route_entfernen: m.auftrag_pforte_route_entfernen,
+  server_neustart: m.auftrag_server_neustart,
 };
 
 /** The name of a job of an installation; a job the interface does not know keeps its code */

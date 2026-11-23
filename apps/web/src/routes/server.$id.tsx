@@ -1,19 +1,20 @@
 import { Icon, m } from "@steuerzentrale/ui";
 import { CircleCheck, Power } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
-import { createMemo, For, Loading, Match, Show, Switch } from "solid-js";
-import { ramDerMb, sperrzeitAktiv, sperrzeitenDer, suche } from "../daten/ableitungen.ts";
+import { createMemo, For, Loading, Match, refresh, Show, Switch } from "solid-js";
+import { ramDerMb, suche } from "../daten/ableitungen.ts";
 import { aufServer, einmal, type InstallationAnsicht } from "../daten/installation-ansicht.ts";
 import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
 import { serverQuelle } from "../daten/server.ts";
 import { ansichtZustand, type ServerAnsicht, serverAnsicht } from "../daten/server-ansicht.ts";
 import type { Bestand, Server } from "../daten/typen.ts";
-import { PLATTE_STOERUNG, pruefungen } from "../daten/zustand.ts";
+import { auffaellig, PLATTE_STOERUNG, pruefungen } from "../daten/zustand.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { InstallationsListe } from "../seiten/installations-liste.tsx";
-import { agentText, pruefText } from "../seiten/server-texte.ts";
+import { agentText, pruefText, serverPruefungText } from "../seiten/server-texte.ts";
+import { Wartung } from "../seiten/server-wartung.tsx";
 import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { Messer } from "../teile/balken.tsx";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
@@ -23,9 +24,10 @@ import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ArtZeichen, artIcon, ServerZeichen, Zustand } from "../teile/zeichen.tsx";
 
 /**
- * One server: its facts from the agent (BAULISTE.md Z-304), maintenance, and its installations and
- * events from the Zentrale (Z-406). Load, the checks and the reboot job come with Z-701 and Z-702;
- * until then only the demo shows them.
+ * One server: its facts from the agent (BAULISTE.md Z-304), its operating system, maintenance and
+ * reboot (Z-701, seiten/server-wartung.tsx), its checks (Z-702), and its installations and events
+ * from the Zentrale (Z-406). Load, the pending packages by name and the demo's checks of the
+ * operating system only the demo shows.
  */
 
 const Kopf = (props: { b: Bestand; a: ServerAnsicht }) => (
@@ -165,48 +167,6 @@ const System = (props: { b: Bestand; a: ServerAnsicht }) => (
   </Karte>
 );
 
-const Wartung = (props: Hier) => {
-  const sperren = () => sperrzeitenDer(props.b, apps(props));
-  const geplant = () => props.b.auftraege.find((a) => a.id === props.a.demo?.neustart?.auftrag);
-  return (
-    <Karte>
-      <KartenKopf titel={m.server_wartung()} text={m.server_wartung_text()} />
-      <KartenInhalt>
-        <Angaben
-          zeilen={[
-            {
-              name: m.server_spalte_wartung(),
-              wert: m.server_taeglich({ von: props.a.wartung.von, bis: props.a.wartung.bis }),
-            },
-            {
-              name: m.server_sperrzeiten_hier(),
-              wert: sperren().length
-                ? sperren()
-                    .map((z) => m.server_sperrzeit_tage({ app: z.appName, von: z.von, bis: z.bis }))
-                    .join(", ")
-                : m.server_keine(),
-            },
-            {
-              name: m.server_gesperrt(),
-              wert: sperren().some((z) => sperrzeitAktiv(z, props.b.jetzt)) ? m.ja() : m.nein(),
-            },
-            {
-              name: m.server_naechster_neustart(),
-              wert: geplant()
-                ? m.server_neustart_auftrag({
-                    zeit: zeitpunkt(geplant()?.start ?? 0, props.b.jetzt),
-                    id: geplant()?.id ?? "",
-                  })
-                : m.server_kein_neustart(),
-            },
-          ]}
-        />
-        <p class="mt-4 text-xs text-muted-foreground">{m.server_neustart_regel()}</p>
-      </KartenInhalt>
-    </Karte>
-  );
-};
-
 const Neustart = (props: { sv: Server }) => (
   <Show when={props.sv.neustart}>
     {(n) => (
@@ -250,22 +210,35 @@ const Neustart = (props: { sv: Server }) => (
   </Show>
 );
 
-/** The agent's checks; they come from the demo data until Z-702 */
-const Pruefungen = (props: { b: Bestand; sv: Server; still: boolean }) => (
+/**
+ * The checks of the server: those of Z-702 from the Zentrale (disk, certificates, backups, open
+ * ports, clock), those of the operating system from the demo data (the API's operating system
+ * stands in the card "Wartung", Z-701). A silent agent's
+ * last values are no check: no OK and no warning; an unknown check neither
+ */
+const Pruefungen = (props: { b: Bestand; a: ServerAnsicht; still: boolean }) => (
   <Karte>
     <KartenKopf
       titel={m.server_pruefungen()}
       text={props.still ? m.inst_units_still() : m.server_pruefungen_text()}
     />
     <KartenInhalt class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      <For each={pruefungen(props.b, props.sv)}>
-        {(p) => <Pruefzeile {...pruefText(props.b, p)} ok={props.still ? null : p.ok} />}
+      <For each={props.a.pruefungen ?? []}>
+        {(p) => (
+          <Pruefzeile
+            {...serverPruefungText(p, props.b.jetzt)}
+            ok={props.still || p.ergebnis === "unbekannt" ? null : !auffaellig(p)}
+          />
+        )}
+      </For>
+      <For each={props.a.demo ? pruefungen(props.a.demo) : []}>
+        {(p) => <Pruefzeile {...pruefText(p)} ok={props.still ? null : p.ok} />}
       </For>
     </KartenInhalt>
   </Karte>
 );
 
-const Detail = (props: { a: ServerAnsicht }) => {
+const Detail = (props: { a: ServerAnsicht; neu: () => void }) => {
   const b = bestand();
   const antwort = createMemo(() => uebersichtLaden());
   const installationen = () => {
@@ -285,9 +258,16 @@ const Detail = (props: { a: ServerAnsicht }) => {
         <div class="grid gap-4 lg:grid-cols-3">
           <Auslastung b={b} a={props.a} installationen={installationen()} />
           <System b={b} a={props.a} />
-          <Wartung b={b} a={props.a} installationen={installationen()} />
+          <Wartung
+            b={b}
+            a={props.a}
+            apps={installationen().map((i) => i.app)}
+            neu={() => props.neu()}
+          />
         </div>
-        <Show when={props.a.demo}>{(d) => <Pruefungen b={b} sv={d()} still={still()} />}</Show>
+        <Show when={props.a.pruefungen || props.a.demo}>
+          <Pruefungen b={b} a={props.a} still={still()} />
+        </Show>
         <div class="grid gap-4 lg:grid-cols-2">
           <Karte>
             <KartenKopf
@@ -332,7 +312,7 @@ const ServerSeite = () => {
   return (
     <Loading fallback={<p class="text-muted-foreground">{m.server_laden()}</p>}>
       <Switch fallback={<Fehler text={fehler()} />}>
-        <Match when={ansicht()}>{(a) => <Detail a={a()} />}</Match>
+        <Match when={ansicht()}>{(a) => <Detail a={a()} neu={() => refresh(antwort)} />}</Match>
         <Match when={fehlt()}>
           <NichtGefunden />
         </Match>

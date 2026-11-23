@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { auftragEinfuegen, ereignisEinfuegen, serverEinfuegen } from "../../testhilfen/betrieb.ts";
 import { bewertungsUmgebung, installationEinfuegen } from "../../testhilfen/bewertung.ts";
-import { bewertungSetzen } from "../audit/index.ts";
+import { bewertungSetzen, faktenAnfuegen } from "../audit/index.ts";
+import { pruefungenFortschreiben } from "../pruefungen/index.ts";
 import { type Eintrag, ordnen } from "./ordnen.ts";
 import { uebersichtLesen } from "./uebersicht.ts";
 
@@ -110,6 +111,92 @@ describe("uebersichtLesen", () => {
     expect(
       uebersichtLesen({ db: offen.db, jetzt: JETZT, verbundenSeit: () => JETZT }, "b1"),
     ).toEqual([]);
+  });
+});
+
+describe("checks in the overview (Z-702)", () => {
+  /** Facts of a joined server: a disk `frei` of 1000 MiB free and port 5432 open */
+  const pruefbar = (
+    offen: ReturnType<typeof bewertungsUmgebung>,
+    b: string,
+    s: string,
+    frei = 50,
+  ) => {
+    serverEinfuegen(offen.schreibDb, b, s, { beigetretenAm: 1, name: `Server ${s}` });
+    faktenAnfuegen(offen.schreibDb, {
+      betreiberId: b,
+      serverId: s,
+      zeitpunkt: JETZT - 60_000,
+      daten: JSON.stringify({
+        typ: "fakten",
+        protokoll: 1,
+        zeit: JETZT - 60_000,
+        cpuKerne: 2,
+        ramMb: 4096,
+        platten: [{ mount: "/", gesamtMb: 1000, freiMb: frei }],
+        architektur: "amd64",
+        os: null,
+        kernel: { laeuft: null, installiert: null },
+        neustartNoetig: null,
+        updatesAusstehend: null,
+        podman: null,
+        ipv4: [],
+        ipv6: [],
+        ptr: {},
+        portsBelegt: [],
+        port25Ausgehend: null,
+        uhrzeitAbweichungMs: 3,
+        portsOffen: [{ port: 5432, proto: "tcp" }],
+        zertifikate: [],
+        uhrSynchron: true,
+      }),
+    });
+  };
+
+  it("names each check that is red or yellow, leading to its server", () => {
+    const offen = bewertungsUmgebung();
+    pruefbar(offen, "b1", "s9");
+    pruefungenFortschreiben(offen.db, offen.schreibDb, JETZT - 30_000);
+    const eintraege = uebersichtLesen(
+      { db: offen.db, jetzt: JETZT, verbundenSeit: () => JETZT },
+      "b1",
+    );
+    expect(eintraege.map((e) => [e.schwere, e.art, e.verweis])).toEqual([
+      ["stoerung", "pruefung", { art: "server", id: "s9" }],
+      ["warnung", "pruefung", { art: "server", id: "s9" }],
+      ["hinweis", "installation", { art: "installation", id: "i1" }],
+      ["hinweis", "installation", { art: "installation", id: "i2" }],
+    ]);
+    // the checks' own events are left out: the entries lead to the same server
+    expect(eintraege[0]).toMatchObject({
+      server: { serverId: "s9", name: "Server s9" },
+      pruefung: { pruefung: "platte", ergebnis: "rot", platten: [{ mount: "/", prozent: 95 }] },
+      seit: JETZT - 30_000,
+    });
+    expect(eintraege[1]).toMatchObject({
+      pruefung: { pruefung: "ports", fremd: [{ port: 5432, proto: "tcp" }] },
+    });
+  });
+
+  it("shows no operator another's checks, and none of a server not joined", () => {
+    const offen = bewertungsUmgebung();
+    pruefbar(offen, "b2", "s9");
+    const lesen = (b: string) =>
+      uebersichtLesen({ db: offen.db, jetzt: JETZT, verbundenSeit: () => JETZT }, b).filter(
+        (e) => e.art === "pruefung",
+      );
+    expect(lesen("b1")).toEqual([]);
+    expect(lesen("b2")).toHaveLength(2);
+  });
+
+  it("leaves out green and unknown checks", () => {
+    const offen = bewertungsUmgebung();
+    pruefbar(offen, "b1", "s9", 500);
+    const ohne = uebersichtLesen(
+      { db: offen.db, jetzt: JETZT + 46 * 60_000, verbundenSeit: () => JETZT },
+      "b1",
+    );
+    expect(ohne.filter((e) => e.art === "pruefung")).toEqual([]);
   });
 });
 

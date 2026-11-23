@@ -1,3 +1,4 @@
+import type { Serverpruefung } from "@steuerzentrale/planung";
 import { type Antwort, api } from "../anmeldung/api.ts";
 import type { HealthGrund as Grund } from "./bewertung.ts";
 import type { AuftragsZustand } from "./installationen.ts";
@@ -40,6 +41,13 @@ export type UebersichtEintrag = { schwere: Dringlichkeit; verweis: Verweis } & (
       seit: number | null;
     }
   | { art: "agent"; server: ServerVerweis; zustand: "getrennt" | "still"; seit: number | null }
+  | {
+      /** A check of the server red or yellow (Z-702); `seit` the event of its open finding */
+      art: "pruefung";
+      server: ServerVerweis;
+      pruefung: Serverpruefung;
+      seit: number | null;
+    }
   | {
       /** The newest test restore failed, or there was none for 8 days (Z-602) */
       art: "pruef_restore";

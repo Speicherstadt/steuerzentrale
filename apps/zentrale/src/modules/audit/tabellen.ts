@@ -22,6 +22,7 @@ import {
   mitglieder,
   pruefRestores,
   server,
+  supportZugaenge,
   tokens,
   updates,
   verfuegbarkeit,
@@ -91,6 +92,7 @@ export const tabellen = {
     schluessel: ["installationId", "stunde"],
     zeit: verfuegbarkeit.stunde,
   },
+  supportZugaenge: { tabelle: supportZugaenge, schluessel: ["zugangId"], zeit: undefined },
   manifeste: { tabelle: manifeste, schluessel: ["app", "version"], zeit: undefined, global: true },
 } satisfies Record<
   string,

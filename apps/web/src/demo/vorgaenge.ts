@@ -1,5 +1,5 @@
 import type { AuditEintrag, Auftrag, Ereignis, Konto, Zugang } from "../daten/typen.ts";
-import { berlin, gestern, heute } from "./zeit.ts";
+import { berlin, gestern, heute, JETZT } from "./zeit.ts";
 
 /** What happened today and before: events, jobs, support accesses, audit log (design/mockup/) */
 
@@ -142,37 +142,72 @@ export const auftraege: Auftrag[] = [
   },
 ];
 
+const MINUTE = 60_000;
+
+/** A support access of the demo as the API answers it; ended early when `minuten` is given */
+const zugang = (
+  angaben: Pick<
+    Zugang,
+    "zugangId" | "installationId" | "kundeId" | "grund" | "beginn" | "aktionen"
+  > & {
+    wer: string;
+    eigen: boolean;
+    minuten?: number;
+  },
+): Zugang => {
+  const ende = angaben.beginn + 120 * MINUTE;
+  const beendetAm =
+    angaben.minuten === undefined ? null : angaben.beginn + angaben.minuten * MINUTE;
+  return {
+    zugangId: angaben.zugangId,
+    installationId: angaben.installationId,
+    kundeId: angaben.kundeId,
+    nutzer: { id: angaben.wer, name: angaben.wer },
+    grund: angaben.grund,
+    beginn: angaben.beginn,
+    ende,
+    beendetAm,
+    beendetVon: beendetAm === null ? null : angaben.wer,
+    endetAm: beendetAm ?? ende,
+    aktiv: beendetAm === null && ende > JETZT,
+    eigen: angaben.eigen,
+    aktionen: angaben.aktionen,
+  };
+};
+
 export const zugaenge: Zugang[] = [
-  {
-    id: "Z-41",
-    installation: "lind-haben",
+  zugang({
+    zugangId: "Z-41",
+    installationId: "lind-haben",
+    kundeId: "studio-lind",
     wer: "Ole Kamp",
-    rolle: "support",
+    eigen: false,
     grund: "Backup schlägt fehl, Platte prüfen",
-    start: heute("09:58"),
-    minuten: 44,
-    restMinuten: 76,
-  },
-  {
-    id: "Z-39",
-    installation: "berger-schreibzeug",
+    beginn: heute("09:58"),
+    aktionen: ["log_auszug"],
+  }),
+  zugang({
+    zugangId: "Z-39",
+    installationId: "berger-schreibzeug",
+    kundeId: "it-berger",
     wer: "Jana Beispiel",
-    rolle: "inhaber",
+    eigen: true,
     grund: "Dokumente laden nicht, Log ansehen",
-    start: berlin("2026-11-12", "09:30"),
+    beginn: berlin("2026-11-12", "09:30"),
     minuten: 10,
-    ergebnis: "Neustart",
-  },
-  {
-    id: "Z-38",
-    installation: "atelier-haben",
+    aktionen: ["log_auszug", "neustart"],
+  }),
+  zugang({
+    zugangId: "Z-38",
+    installationId: "atelier-haben",
+    kundeId: "atelier-nord",
     wer: "Ole Kamp",
-    rolle: "support",
+    eigen: false,
     grund: "Langsame Anmeldung",
-    start: berlin("2026-10-28", "16:20"),
+    beginn: berlin("2026-10-28", "16:20"),
     minuten: 25,
-    ergebnis: "Log-Auszug",
-  },
+    aktionen: ["log_auszug"],
+  }),
 ];
 
 const jana = { name: "Jana Beispiel", rolle: "inhaber" as const };

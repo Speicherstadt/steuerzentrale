@@ -8,7 +8,7 @@ import type { FaktenQuellen } from "./quellen.ts";
  */
 
 // Podman's bridges and the virtual ends of its containers are no addresses of the server
-const FREMD = /^(podman|cni-|veth|docker)/;
+export const FREMD = /^(podman|cni-|veth|docker)/;
 
 const istIpv4 = (info: NetworkInterfaceInfo) =>
   String(info.family) === "IPv4" || String(info.family) === "4";
