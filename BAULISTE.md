@@ -430,7 +430,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: der Ablauf mit der Beispiel-App in Playwright läuft, vor Ablauf der Frist nichts
   gelöscht wird, der Link nach seiner Frist abgelehnt wird und nach der Löschung weder Repository
   noch DNS-Eintrag noch Linux-Nutzer existieren (Test).
-- [ ] **Z-802 Support-Zugang** – zeitlich begrenzt (Vorgabe 2 h), mit Grund; erlaubt Log-Auszug,
+- [x] **Z-802 Support-Zugang** – zeitlich begrenzt (Vorgabe 2 h), mit Grund; erlaubt Log-Auszug,
   Neustart und die Aktionen der Rolle Support; endet von selbst; erscheint in den Ereignissen des
   Kunden.
   Fertig, wenn: nach Ablauf jeder Zugriff abgelehnt wird (Test) und der Zugang im Audit-Log mit Grund

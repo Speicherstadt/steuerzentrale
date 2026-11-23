@@ -5,6 +5,7 @@ import type { Antwort } from "../anmeldung/api.ts";
 import { anzeige, linuxNutzerVon, titelVon } from "../daten/installation-ansicht.ts";
 import { type Einzelansicht, einzelansichtLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
+import { eigenerZugang, supportQuelle } from "../daten/support.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { Aktionen } from "../seiten/installation-aktionen.tsx";
@@ -24,6 +25,7 @@ import { EinstellungenAendern } from "../seiten/installation-konfigurieren.tsx";
 import { InstallationEinstellungen } from "../seiten/installation-reiter.tsx";
 import { InstallationZustand } from "../seiten/installation-zustand.tsx";
 import { MitInstallationsRecht } from "../seiten/recht.tsx";
+import { ZugangHinweis } from "../seiten/support-zugang.tsx";
 import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { appIcon } from "../teile/app-icon.ts";
 import { Karte, KartenInhalt } from "../teile/karte.tsx";
@@ -36,7 +38,8 @@ import { InstallationsZeichen, Version } from "../teile/zeichen.tsx";
  * it runs "Einstellungen ändern" (Z-404) and the actions its manifest offers (Z-405).
  * Its events come from the Zentrale (Z-406), its backups with "Backup jetzt" too (Z-601). Settings
  * from the manifest and the check from outside of the demo data show only in `dev:demo`, for an
- * installation the demo knows by id.
+ * installation the demo knows by id. A support access starts here too, and while the member's own
+ * runs, support sees log excerpt and restart (Z-802).
  */
 
 const Kopf = (props: { a: Einzelansicht }) => (
@@ -132,13 +135,23 @@ const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): T
 
 const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
   const b = bestand();
+  // the member's own support access to it (Z-802), which opens log excerpt and restart to support
+  const zugaenge = createMemo(() => supportQuelle().liste({ installationId: props.a.id }));
+  const eigener = () => {
+    const z = zugaenge();
+    return z.ok ? eigenerZugang(z.daten, props.a.id) : undefined;
+  };
+  const zugangNeu = () => {
+    refresh(zugaenge);
+    props.neu();
+  };
   return (
     <div class="grid gap-6">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <Kopf a={props.a} />
         <Show when={props.a.zustand === "laeuft"}>
           <div class="flex flex-wrap gap-2">
-            <Aktionen a={props.a} neu={() => props.neu()} />
+            <Aktionen a={props.a} mitZugang={eigener() !== undefined} neu={() => props.neu()} />
             <MitInstallationsRecht>
               <BackupJetzt a={props.a} neu={() => props.neu()} />
               <PruefRestoreJetzt a={props.a} neu={() => props.neu()} />
@@ -149,6 +162,14 @@ const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
       </div>
       <Show when={props.a.zustand === "gescheitert"}>
         <Gescheitert a={props.a} entfernt={() => props.neu()} />
+      </Show>
+      <Show when={props.a.zustand !== "entfernt"}>
+        <ZugangHinweis
+          installationId={props.a.id}
+          eigener={eigener()}
+          jetzt={b.jetzt}
+          neu={zugangNeu}
+        />
       </Show>
       <Tabs label={m.inst_reiter()} tabs={reiter(b, props.a, props.a.demo)} />
     </div>

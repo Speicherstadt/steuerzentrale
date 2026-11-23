@@ -70,6 +70,7 @@ nav:
       - Health und Zustand: zustand.md
       - Prüfungen der Server: pruefungen.md
       - Neustart, Log-Auszug, nur lesen: aktionen.md
+      - Support-Zugang: support.md
       - Pforte: pforte.md
       - Manifeste und Versionen: manifeste.md
       - Updates: updates.md

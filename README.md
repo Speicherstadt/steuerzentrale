@@ -15,7 +15,7 @@ getrennte oder stille Agenten, rote und gelbe Prüfungen der Server, gescheitert
 des letzten Tages), und jeder Eintrag
 führt zu seiner Ursache; Aufträge, Ereignisse und Audit-Log (nur Inhaber und Technik) kommen
 seitenweise; Server- und Kundenseite zeigen ihre Installationen und Ereignisse. Wo die Zentrale noch
-keine Daten hat (Support-Zugänge, Leistungen), sagt die Seite, mit welchem Punkt sie
+keine Daten hat (Leistungen), sagt die Seite, mit welchem Punkt sie
 kommen ([Übersicht und Betrieb](docs/uebersicht.md)); Demodaten mit den acht Apps der Speicherstadt
 zeigt nur `bun run dev:demo`.
 
@@ -110,7 +110,12 @@ Werte gelten erst nach seinem Erfolg ([Einstellungen](docs/einstellungen.md)).
 **Neustart, Log-Auszug, nur lesen:** die Seite einer laufenden Installation zeigt die Aktionen, die
 ihr Manifest anbietet, jede mit Grund im Audit-Log. Ein Neustart wartet auf offene Aufträge und läuft
 nie in einer Sperrzeit; ein Log-Auszug zeigt die letzten 500 Zeilen aus journald mit ersetzten
-Werten der Geheimnisse, auch für Support ([Neustart, Log-Auszug, nur lesen](docs/aktionen.md)).
+Werten der Geheimnisse ([Neustart, Log-Auszug, nur lesen](docs/aktionen.md)).
+
+**Support-Zugang:** Support erreicht Log-Auszug und Neustart einer Installation nur mit einem
+Support-Zugang, den die Person selbst startet: 1, 2 (Vorgabe) oder 4 Stunden, mit Grund. Er endet von
+selbst, lässt sich vorher beenden und steht mit Grund im Audit-Log und in den Ereignissen des Kunden;
+die Zentrale prüft ihn bei jeder Anfrage ([Support-Zugang](docs/support.md)).
 
 **Health und Zustand:** der Agent meldet alle 30 Sekunden Units und Health jeder Installation; die
 Zentrale bewertet sie grün, gelb, rot oder unbekannt, immer mit Grund (ohne Meldung seit 90 Sekunden
