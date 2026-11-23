@@ -101,7 +101,10 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
     );
   });
 
-  const route = routenRegistrar(app, wache(deps.auth, deps.db, deps.socketAdresse, deps.now));
+  const route = routenRegistrar(
+    app,
+    wache(deps.auth, deps.db, deps.socketAdresse, deps.now, new URL(deps.url).origin),
+  );
   // For an external monitor (Z-704): no login, nothing but whether the Zentrale and its database
   // answer, and the version; 503 without a reason when the database does not
   route("GET /health", (c) =>

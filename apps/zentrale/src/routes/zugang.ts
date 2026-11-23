@@ -229,13 +229,31 @@ const perSupportZugang = (
   darf(mitglied.rolle, "support:starten") &&
   aktiverZugang(db, mitglied.betreiberId, mitglied.nutzerId, installationId, jetzt) !== undefined;
 
-/** The guard of one route; the role comes from `mitglieder`, so a removed member loses access at once */
+/**
+ * Whether a write with the session cookie comes from a page of another origin (docs/sicherheit.md
+ * B-39): a browser sends Origin with every cross-origin write ("null" for an opaque one), so a
+ * foreign value is refused; without Origin (a client that is no browser) Sec-Fetch-Site decides,
+ * if the client sends it. SameSite=Lax alone lets an app under the same domain through.
+ */
+const fremderUrsprung = (request: Request, ursprung: string): boolean => {
+  if (request.method === "GET" || request.method === "HEAD") return false;
+  const origin = request.headers.get("origin");
+  if (origin !== null) return origin !== ursprung;
+  const seite = request.headers.get("sec-fetch-site");
+  return seite !== null && seite !== "same-origin" && seite !== "none";
+};
+
+/**
+ * The guard of one route; the role comes from `mitglieder`, so a removed member loses access at
+ * once. `ursprung` is the interface's origin (STEUERZENTRALE_URL), the only one a write may come from.
+ */
 export const wache =
-  (auth: Auth, db: Db, socketAdresse: SocketAdresse, now: () => number) =>
+  (auth: Auth, db: Db, socketAdresse: SocketAdresse, now: () => number, ursprung: string) =>
   (zugang: Zugang): MiddlewareHandler<Anfrage> =>
   async (c, next) => {
     if (zugang.art === "oeffentlich" || zugang.art === "better-auth") return next();
     if (zugang.art === "agent") return agentWache(db, socketAdresse)(c, next);
+    if (fremderUrsprung(c.req.raw, ursprung)) return c.json({ fehler: "fremder_ursprung" }, 403);
     const sitzung = await auth.sitzung(c.req.raw.headers);
     if (!sitzung) return c.json({ fehler: "nicht_angemeldet" }, 401);
     c.set("nutzerId", sitzung.nutzerId);

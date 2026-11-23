@@ -93,11 +93,12 @@ Disclosure, **D**enial of Service, **E**levation of Privilege. Tests ohne Pfad z
 | B-20 | Passwort oder TOTP-Code wird durchprobiert | S | Rate-Limit von Better Auth: Passwort und TOTP je 5, Passkey 10 je Minute und Adresse; die Adresse ist die des Sockets bzw. der Pforte | `routes/anmeldung.test.ts` › the sign-in's rate limit › stops a sixth attempt within a minute from one address; › also limits the TOTP code; › is not escaped by an X-Forwarded-For or address header a client sends; › counts each address on its own: one client does not lock out another |
 | B-21 | Ein Konto ohne zweiten Faktor oder mit gestohlenem Passwort erreicht die Oberfläche | S, E | Passkey oder Passwort mit TOTP, sonst nur die Einrichtung; kein „Gerät merken“ | `routes/zweiter-faktor.test.ts` › reaches no route that needs a role; `routes/anmeldung.test.ts` › never trusts a device, which would skip TOTP next time |
 | B-22 | Eine Route ohne Prüfung der Sitzung oder des Rechts | E | Eine Liste aller Routen mit ihrem Recht (`routes/zugang.ts`); eine Route ohne Eintrag lässt den Test scheitern | `routes/zugang.test.ts` › holds exactly the routes the app registers; › refuses a request without a session; › needs a session where the list says so |
-| B-23 | Ein Mitglied tut mehr, als seine Rolle erlaubt | E | Rechte je Rolle (`auth/rollen.ts`), geprüft in jeder Route | `auth/rollen.test.ts`; `routes/zugang.test.ts` › gives every route that needs a right at least one role |
+| B-23 | Ein Mitglied tut mehr, als seine Rolle erlaubt | E | Rechte je Rolle (`auth/rollen.ts`), geprüft in jeder Route | `routes/zugang.test.ts` › <Route> › as inhaber/technik/support answers by the list (jede Route mit Recht in jeder Rolle, sonst `403 keine_berechtigung`); › gives every route that needs a right at least one role; `auth/rollen.test.ts` › darf |
 | B-24 | Ein Betreiber (Partner) sieht oder ändert Daten eines anderen | I, T | `betreiber_id` in jeder Tabelle und Abfrage; `schreiben` lehnt fremde Zeilen ab | `routes/mandanten.test.ts` › no operator reaches another's data; `routes/kunden-mandanten.test.ts`; `routes/betrieb-mandanten.test.ts`; `modules/audit/schreiben.test.ts` › refuses a row of another operator |
 | B-25 | Der Einrichtungscode des ersten Inhabers wird erraten oder wiederverwendet | S | Einmal, 24 h, nie im Log | `routes/erster-inhaber.test.ts` › refuses the code a second time; › refuses the code after 24 hours; › never writes the code into the request log |
 | B-26 | Ein Support-Zugang bleibt länger offen als vereinbart | E | Zugang mit Grund und Ende, Anfragen danach abgewiesen | `routes/support.test.ts` › after an access ran out › refuses every request it allowed, also at the very millisecond of its end |
 | B-27 | Ein Angreifer auf `api.<domain>` probiert Tokens durch | S | Annahme bis Z-901: `api.<domain>` hat noch keine Route; mit Z-901 kommen Tokens als Hash und ein Rate-Limit mit eigenem Test | – |
+| B-28 | Eine fremde Seite im Browser eines Mitglieds (etwa eine App unter derselben Domain) schreibt mit dessen Sitzung (CSRF) | S, E | Jede schreibende Anfrage mit Sitzung braucht den Origin der Oberfläche, sonst `403 fremder_ursprung` (Entscheidung „Schreiben nur vom eigenen Origin“); Better Auth prüft seine Pfade selbst gegen `STEUERZENTRALE_URL` | `routes/zugang.test.ts` › a write from a page of another origin › … is refused, with the member's session (jede schreibende Route) |
 
 ### Geheimnisse, Nachvollziehbarkeit, Netz
 
@@ -174,8 +175,9 @@ deren Zutrittskontrolle; der Betreiber hat keinen physischen Zugang.
 
 **Zugriffskontrolle**
 
-- Rollen Inhaber, Technik und Support mit festen Rechten je Route (B-22, B-23); Support-Zugang zu
-  einer Installation nur befristet und mit Grund (B-26).
+- Rollen Inhaber, Technik und Support mit festen Rechten je Route, Schreiben nur von der Oberfläche
+  selbst (B-22, B-23, B-28); Support-Zugang zu einer Installation nur befristet und mit Grund
+  (B-26).
 - Trennung der Betreiber durch `betreiber_id` in jeder Abfrage (B-24).
 - Auf den Servern läuft jede Installation unter einem eigenen Linux-Nutzer ohne Login-Shell, in
   einem eigenen Netz (B-34); der Agent führt nur signierte Manifeste aus (B-01 bis B-05).
