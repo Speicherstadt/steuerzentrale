@@ -100,6 +100,12 @@ Prüf-Restore zeigen die Seite Backups und der Reiter der Installation, einen ge
 Lauf mit Grund wiederherstellen: vorher sichert der Agent den Ist-Zustand, und scheitert das, wird
 nichts zurückgespielt ([Backups](docs/backups.md)).
 
+**Zentrale sichern:** `steuerzentrale sichern <datei>` schreibt die Datenbank der Zentrale im laufenden
+Betrieb als eine konsistente Datei, die restic auf ein S3-Ziel bringt; `STEUERZENTRALE_SECRET_KEY`
+liegt getrennt davon beim Betreiber. `steuerzentrale wiederherstellen <datei>` setzt sie auf einem
+neuen Server in ein leeres Datenverzeichnis, und die Agenten verbinden sich mit ihren Zertifikaten von
+selbst wieder ([Zentrale sichern](docs/zentrale-sichern.md)).
+
 **Einstellungen:** die Einstellungen jeder App entstehen als Formular aus ihrem Manifest. Unter
 Einstellungen → Apps pflegt der Betreiber seine Werte je App; ein Geheimnis erscheint nur als
 „gesetzt“, ein leeres geheimes Feld behält den Wert. Fehlt beim Installieren ein Pflichtwert des

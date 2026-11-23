@@ -243,6 +243,48 @@ describe("the compiled Zentrale", () => {
     expect(zeilen).toEqual([{ app: "probe", version: "1.0.0", importiert_von: "befehl" }]);
   }, 30_000);
 
+  // Z-1002: backed up while it runs, restored into the empty data directory of a "new server"
+  it("backs up while it runs and starts from the backup restored elsewhere", async () => {
+    const alt = join(ordner, "sicherung-alt");
+    const neu = join(ordner, "sicherung-neu");
+    const datei = join(ordner, "zentrale.sicherung.db");
+    const env = (daten: string, port: string, key = KEY) => ({
+      STEUERZENTRALE_PORT: port,
+      STEUERZENTRALE_DATA: daten,
+      STEUERZENTRALE_SECRET_KEY: key,
+      STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: AGENT_,
+    });
+    const laufend = Bun.spawn([binary], { env: env(alt, "28386"), stdout: "ignore" });
+    try {
+      await warteAuf("http://127.0.0.1:28386/health");
+      const sichern = Bun.spawn([binary, "sichern", datei], { env: env(alt, "1"), stdout: "pipe" });
+      expect(await sichern.exited).toBe(0);
+      expect(await new Response(sichern.stdout).text()).toContain('"backed up"');
+    } finally {
+      laufend.kill();
+      await laufend.exited;
+    }
+    const falsch = Buffer.alloc(32, 9).toString("base64");
+    const abgelehnt = Bun.spawn([binary, "wiederherstellen", datei], {
+      env: env(neu, "1", falsch),
+      stderr: "pipe",
+    });
+    expect(await abgelehnt.exited).toBe(1);
+    const meldung = await new Response(abgelehnt.stderr).text();
+    expect(meldung).toContain("does not open this database");
+    expect(meldung).not.toContain(falsch);
+    const zurueck = Bun.spawn([binary, "wiederherstellen", datei], { env: env(neu, "1") });
+    expect(await zurueck.exited).toBe(0);
+    const gestartet = Bun.spawn([binary], { env: env(neu, "28387"), stdout: "ignore" });
+    try {
+      expect((await warteAuf("http://127.0.0.1:28387/health")).status).toBe(200);
+    } finally {
+      gestartet.kill();
+      await gestartet.exited;
+    }
+  }, 30_000);
+
   it("refuses to start without the address of the interface", async () => {
     const ohne = Bun.spawn([binary], {
       env: {

@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { TRENNUNG, VERSION } from "@steuerzentrale/protokoll";
 import type { Server } from "bun";
@@ -21,6 +21,7 @@ import { neustartSchleife } from "./modules/neustart/index.ts";
 import { pruefRestoreSchleife } from "./modules/pruef-restore/index.ts";
 import { pruefungsSchleife } from "./modules/pruefungen/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
+import { DATEI, type Ergebnis, sichern, wiederherstellen } from "./modules/sicherung/index.ts";
 import { supportSchleife } from "./modules/support/index.ts";
 import { updateSchleife } from "./modules/updates/index.ts";
 import { stilleSchleife } from "./modules/verbindung/stille.ts";
@@ -52,14 +53,51 @@ const openDatabase = (dataDir: string, schluessel: Schluesselbund) => {
   try {
     mkdirSync(dataDir, { recursive: true });
     // Opening applies the migrations embedded in the binary; a changed one stops the start
-    return oeffneDatenbank(join(dataDir, "zentrale.db"), Date.now(), schluessel);
+    return oeffneDatenbank(join(dataDir, DATEI), Date.now(), schluessel);
   } catch (error) {
     return abbrechen([String((error as Error).message ?? error)]);
   }
 };
 
 const env = readEnv();
+
+/** The end of `sichern` and `wiederherstellen` (Z-1002): the path, never a secret, in the log */
+const sicherungBeenden = (r: Ergebnis, msg: string, datei: string): never => {
+  if (r.ok) {
+    log(JSON.stringify({ msg, datei }));
+    process.exit(0);
+  }
+  console.error(JSON.stringify({ msg: `${msg}: failed`, reason: r.grund }));
+  process.exit(1);
+};
+
+const sicherungsDatei = (befehl: string): string => {
+  const datei = process.argv[3];
+  if (datei) return datei;
+  console.error(JSON.stringify({ msg: `usage: steuerzentrale ${befehl} <datei>` }));
+  return process.exit(2);
+};
+
+// `steuerzentrale wiederherstellen <datei>` (Z-1002): a backup into the empty data directory of a
+// new server, before anything opens the database there, which would make an empty one
+if (process.argv[2] === "wiederherstellen") {
+  const datei = sicherungsDatei("wiederherstellen");
+  const r = wiederherstellen(datei, env.dataDir, (pfad) =>
+    oeffneDatenbank(pfad, Date.now(), env.schluessel),
+  );
+  sicherungBeenden(r, "restored", datei);
+}
+if (process.argv[2] === "sichern" && !existsSync(join(env.dataDir, DATEI)))
+  abbrechen([`no database in ${env.dataDir} to back up`]);
+
 const datenbank = openDatabase(env.dataDir, env.schluessel);
+
+// `steuerzentrale sichern <datei>` (Z-1002): a consistent copy of the database while the Zentrale
+// runs, for restic to take to the S3 target; the key is never part of it
+if (process.argv[2] === "sichern") {
+  const datei = sicherungsDatei("sichern");
+  sicherungBeenden(sichern(datenbank, datei), "backed up", datei);
+}
 
 // `steuerzentrale schluessel-rotieren`: every secret anew with STEUERZENTRALE_SECRET_KEY, the old
 // key in STEUERZENTRALE_SECRET_KEY_ALT; afterwards the old key can go

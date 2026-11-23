@@ -43,6 +43,12 @@ export type Datenbank = {
   anmeldeGeheimnis: string;
   /** After a rotation: the check value from now on with the current key */
   rotationAbschliessen: () => void;
+  /**
+   * A consistent copy of the whole database into the empty file `ziel` (Z-1002), committed rows
+   * still in the write-ahead log included; readers and the writer go on meanwhile
+   * (sqlite.org/lang_vacuum.html#vacuuminto)
+   */
+  sicherungSchreiben: (ziel: string) => void;
   /** The writable connection itself, for tests that tamper on purpose */
   sqlite: Database;
   schliessen: () => void;
@@ -84,10 +90,31 @@ export const oeffneDatenbank = (
       // nothing on the old key behind (sqlite.org/pragma.html#pragma_wal_checkpoint)
       sqlite.run("PRAGMA wal_checkpoint(TRUNCATE)");
     },
+    sicherungSchreiben: (ziel) => {
+      sqlite.run("VACUUM INTO ?", [ziel]);
+    },
     sqlite,
     schliessen: () => {
       lesend.close();
       sqlite.close();
     },
   };
+};
+
+/**
+ * Whether the file at `pfad` is an undamaged SQLite database (Z-1002, before a backup is restored):
+ * opened read-only, so a damaged or foreign file is not touched (sqlite.org/pragma.html#pragma_integrity_check)
+ */
+export const unversehrt = (pfad: string): boolean => {
+  try {
+    const datei = new Database(pfad, { readonly: true, strict: true });
+    try {
+      const zeilen = datei.query<{ integrity_check: string }, []>("PRAGMA integrity_check").all();
+      return zeilen.length === 1 && zeilen[0]?.integrity_check === "ok";
+    } finally {
+      datei.close();
+    }
+  } catch {
+    return false;
+  }
 };
