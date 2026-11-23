@@ -329,7 +329,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Zeitplan legt höchstens einen Prüf-Restore je Installation und Woche an; die Seite der
   Installation zeigt den letzten Prüf-Restore (Playwright); kein Betreiber erreicht Prüf-Restores
   eines anderen (Test je Endpunkt).
-- [ ] **Z-603 Wiederherstellen** – Snapshot wählen, Grund angeben, vorher Backup vom Ist-Zustand;
+- [x] **Z-603 Wiederherstellen** – Snapshot wählen, Grund angeben, vorher Backup vom Ist-Zustand;
   Ablauf je Backup-Art in der Zentrale (bei `pg_dump`: App-Container stoppen, `pg_restore --clean
   --if-exists` mit `datenbank` und `nutzer` aus dem Manifest, App starten, Health; bei `volume`: Units
   stoppen, Volume ersetzen, starten).
