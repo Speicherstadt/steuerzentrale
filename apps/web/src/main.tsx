@@ -12,6 +12,7 @@ import { apiEinstellungen, einstellungenQuelleEinsetzen } from "./daten/einstell
 import { apiIch, ichQuelleEinsetzen } from "./daten/ich.ts";
 import { apiInstallationen, installationenQuelleEinsetzen } from "./daten/installationen.ts";
 import { apiKunden, kundenQuelleEinsetzen } from "./daten/kunden.ts";
+import { apiLeistungen, leistungenQuelleEinsetzen } from "./daten/leistungen.ts";
 import { apiMitglieder, mitgliederQuelleEinsetzen } from "./daten/mitglieder.ts";
 import { bestandEinsetzen, ohneDemo } from "./daten/quelle.ts";
 import { apiRolle, rollenQuelleEinsetzen } from "./daten/rolle.ts";
@@ -21,7 +22,7 @@ import { aktuellesThema, wendeThemaAn } from "./rahmen/theme.ts";
 import { routeTree } from "./routeTree.gen.ts";
 
 // The shell needs a signed-in account with its second factor, and everything the pages show comes
-// from the Zentrale (Z-801, Z-304, Z-402, Z-406, Z-601, Z-802), no datum of the demo beside it; only
+// from the Zentrale (Z-801, Z-304, Z-402, Z-406, Z-601, Z-802, Z-804), no datum of the demo beside it; only
 // `bun run dev:demo`, the fixtures without any Zentrale, sets VITE_OHNE_ANMELDUNG, skips the check
 // (the server checks anyway) and keeps the demo sources
 if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
@@ -39,6 +40,7 @@ if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
   ichQuelleEinsetzen(apiIch);
   mitgliederQuelleEinsetzen(apiMitglieder);
   supportQuelleEinsetzen(apiSupport);
+  leistungenQuelleEinsetzen(apiLeistungen);
   bestandEinsetzen(ohneDemo);
 }
 

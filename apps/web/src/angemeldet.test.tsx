@@ -15,6 +15,7 @@ import {
   installationenQuelleEinsetzen,
 } from "./daten/installationen.ts";
 import { apiKunden, kundenQuelle, kundenQuelleEinsetzen } from "./daten/kunden.ts";
+import { apiLeistungen, leistungenQuelle, leistungenQuelleEinsetzen } from "./daten/leistungen.ts";
 import { apiMitglieder, mitgliederQuelleEinsetzen } from "./daten/mitglieder.ts";
 import { bestand, bestandEinsetzen, ohneDemo } from "./daten/quelle.ts";
 import { apiRolle, rolleLesen, rollenQuelleEinsetzen } from "./daten/rolle.ts";
@@ -50,6 +51,7 @@ const LEER: Record<string, unknown> = {
   "/api/v1/apps": { apps: [] },
   "/api/v1/updates": { installationen: [] },
   "/api/v1/support-zugaenge": { zugaenge: [] },
+  "/api/v1/leistungen": { monat: "2026-11", kunden: [] },
 };
 
 /** Names of the demo operator (src/demo/) that must not show */
@@ -93,6 +95,7 @@ const vorher = {
   backups: backupQuelle(),
   apps: appsQuelle(),
   support: supportQuelle(),
+  leistungen: leistungenQuelle(),
 };
 
 beforeAll(() => {
@@ -108,6 +111,7 @@ beforeAll(() => {
   backupQuelleEinsetzen(apiBackups);
   appsQuelleEinsetzen(apiApps);
   supportQuelleEinsetzen(apiSupport);
+  leistungenQuelleEinsetzen(apiLeistungen);
 });
 
 afterAll(() => {
@@ -120,6 +124,7 @@ afterAll(() => {
   backupQuelleEinsetzen(vorher.backups);
   appsQuelleEinsetzen(vorher.apps);
   supportQuelleEinsetzen(vorher.support);
+  leistungenQuelleEinsetzen(vorher.leistungen);
 });
 
 beforeEach(() => {
@@ -164,11 +169,60 @@ describe("signed in, against a Zentrale without data", () => {
   });
 
   it("says which item brings a page without an API", async () => {
-    const { root } = await oeffne("/leistungen");
+    const { root } = await oeffne("/einstellungen?tab=melden");
     await vi.waitFor(() => {
-      if (!root.textContent?.includes("kommt mit Z-804")) throw new Error("not yet");
+      if (!root.textContent?.includes("kommt mit Z-703")) throw new Error("not yet");
     });
     expect((await rolleLesen()).ok).toBe(true);
+  });
+
+  it("shows the services of the Zentrale and downloads the month from it (Z-804)", async () => {
+    const { root } = await oeffne("/leistungen");
+    await vi.waitFor(() => {
+      if (!root.textContent?.includes("Keine Kunden.")) throw new Error("not yet");
+    });
+    const link = root.querySelector<HTMLAnchorElement>("a[download]");
+    expect(link?.getAttribute("href")).toMatch(
+      /^\/api\/v1\/leistungen\?monat=\d{4}-\d{2}&format=csv$/,
+    );
+  });
+
+  it("names an app the interface does not describe by its id in the services", async () => {
+    const leer = LEER["/api/v1/leistungen"];
+    const v = { minuten: 60, gemessen: 60, anteil: 1 };
+    LEER["/api/v1/leistungen"] = {
+      monat: "2026-11",
+      kunden: [
+        {
+          kundeId: "k1",
+          name: "Kanzlei Nord",
+          kuerzel: "nord",
+          installationen: [
+            {
+              installationId: "probe-1",
+              app: "probe",
+              speicherBytes: 1024 ** 3,
+              verfuegbarkeit: { ...v, jahr: 2026, monat: 11, rot: 0 },
+            },
+          ],
+          speicherBytes: 1024 ** 3,
+          supportMinuten: 30,
+          verfuegbarkeit: v,
+        },
+      ],
+    };
+    try {
+      const { root } = await oeffne("/leistungen");
+      await vi.waitFor(() => {
+        if (!root.textContent?.includes("Kanzlei Nord")) throw new Error("not yet");
+      });
+      const zeile = root.querySelector("main tbody tr")?.textContent ?? "";
+      expect(zeile).toContain("probe");
+      expect(zeile).toContain("100,00");
+      expect(zeile).toContain("1,0");
+    } finally {
+      LEER["/api/v1/leistungen"] = leer;
+    }
   });
 
   it("shows the support accesses of the Zentrale: none yet (Z-802)", async () => {

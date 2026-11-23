@@ -438,7 +438,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Kunden.
   Fertig, wenn: nach Ablauf jeder Zugriff abgelehnt wird (Test) und der Zugang im Audit-Log mit Grund
   steht.
-- [ ] **Z-804 Leistungen** – je Kunde und Monat: Installationen, Speicher, Support-Zeit,
+- [x] **Z-804 Leistungen** – je Kunde und Monat: Installationen, Speicher, Support-Zeit,
   Verfügbarkeit; Export als CSV.
   nach: Z-704
   Fertig, wenn: die Summen aus den Ereignissen berechnet werden (Test) und der Export gültiges CSV

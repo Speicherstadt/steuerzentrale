@@ -15,7 +15,7 @@ getrennte oder stille Agenten, rote und gelbe Prüfungen der Server, gescheitert
 des letzten Tages), und jeder Eintrag
 führt zu seiner Ursache; Aufträge, Ereignisse und Audit-Log (nur Inhaber und Technik) kommen
 seitenweise; Server- und Kundenseite zeigen ihre Installationen und Ereignisse. Wo die Zentrale noch
-keine Daten hat (Leistungen), sagt die Seite, mit welchem Punkt sie
+keine Daten hat (Benachrichtigungen), sagt die Seite, mit welchem Punkt sie
 kommen ([Übersicht und Betrieb](docs/uebersicht.md)); Demodaten mit den acht Apps der Speicherstadt
 zeigt nur `bun run dev:demo`.
 
@@ -129,6 +129,11 @@ außen eine Störung. Die Seite einer Installation zeigt das Ergebnis und die Ve
 (Kalendermonat in Berlin, Anteil der grünen Prüfungen); `/health` der Zentrale sagt einem externen
 Prüfdienst, ob sie und ihre Datenbank antworten
 ([Prüfung von außen und Verfügbarkeit](docs/aussen.md)).
+
+**Leistungen:** je Kunde und Monat (Kalendermonat in Berlin) die Installationen, die Größe ihrer
+Daten aus dem letzten erfolgreichen Backup, die Support-Zeit aus den Support-Zugängen und die
+Verfügbarkeit der schlechtesten Installation, berechnet aus dem, was geschah; der Monat lässt sich
+als CSV nach RFC 4180 herunterladen ([Leistungen](docs/leistungen.md)).
 
 **Stand:** in Planung. Plan und Bauliste: [`docs/plan.md`](docs/plan.md), [`BAULISTE.md`](BAULISTE.md).
 

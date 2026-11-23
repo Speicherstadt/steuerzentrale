@@ -12,6 +12,9 @@ export const zahl = (wert: number, stellen = 0) =>
 
 export const gb = (wert: number): string => m.einheit_gb({ wert: zahl(wert, 1) });
 
+/** Bytes in GB of 1024³, as `speicher` counts a GB */
+export const gbAusBytes = (bytes: number): string => gb(bytes / 1024 ** 3);
+
 export const prozent = (wert: number, stellen = 0): string =>
   m.einheit_prozent({ wert: zahl(wert, stellen) });
 
