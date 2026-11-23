@@ -15,7 +15,8 @@ import { WIEDERHERSTELLEN_UNIT } from "./unit.ts";
  * its user: a transient unit still playing back is stopped, so it does not write beside an app
  * started again; and the backup's timer is started (idempotent), without which no backup would run.
  * The app's units are left as they are: the health shows them stopped, and the action "Neustart"
- * starts them. Both steps run even when the first fails; a failure is the installation's alone.
+ * starts them. An update (Z-503, src/update) leaves the same behind: its rollback plays back in
+ * the same transient unit, and it stops the timer too. Both steps run even when the first fails; a failure is the installation's alone.
  */
 
 export type Aufgeraeumt =

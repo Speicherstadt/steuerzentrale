@@ -117,6 +117,37 @@ Zeitlimit stoppt, mit allen Prozessen darin; danach startet er die Units der Ins
 Gelungen meldet er `{ teile: [{ tag, snapshot, zurueckgespielt, grund }], dauerMs }` wie der
 Prüf-Restore.
 
+Das Update (`installation_update`, siehe [Updates](updates.md)) ist ebenso eingebaut: Es trägt das
+signierte Manifest der neuen Version, das Feld `einrichtung` wie `installation_konfigurieren` und
+je Teil `volume` und `pg_dump` den Snapshot des Backups unmittelbar davor als Argument
+`snapshot:<tag>` wie das Wiederherstellen; Zeitlimit höchstens 18 300 Sekunden. Beide Seiten prüfen
+ihn mit `updateAuftragPruefen` in `packages/manifest`. Der Agent nimmt ihn nur für eine
+Installation an, die er fertig eingerichtet hat, deren Backup bei ihm eingerichtet ist und deren
+Units alle aus einer älteren Version derselben App gerendert sind (Labels), und lässt ihn
+nacheinander mit den Einrichtungsaufträgen laufen. Als Nutzer der Installation:
+
+1. Timer des Backups stoppen (läuft gerade ein Backup, lehnt er ab), alte Units, Slice, Dateien und
+   Secrets im Speicher sichern, die neuen Images per Digest ziehen; bis hier ändert sich an der App
+   nichts;
+2. alte Units stoppen, Units, Slice, Dateien und Secrets der neuen Version schreiben, Units der
+   alten Version, die die neue nicht mehr hat, entfernen, `daemon-reload`;
+3. die neuen Units neu starten, bis sie aktiv sind und 10 Sekunden aktiv bleiben, die Befehle aus
+   `schritte.nach_update` mit `podman exec` ausführen, die Health nach dem neuen Manifest höchstens
+   5 Minuten lang abwarten.
+
+Gelingt es, merkt er sich die neuen Units, das Ziel der Prüfung und die Namen der geheimen
+Einstellungen, startet den Timer und meldet `{ ergebnis: "aktualisiert", dauerMs }`. Scheitert
+Schritt 1, startet er den Timer und meldet den Auftrag als gescheitert („Update gescheitert: …;
+nichts geändert“). Scheitert Schritt 2 oder 3 oder läuft die Zeit dafür ab (2100 der 18 300
+Sekunden; der Rest gehört der Rücknahme), nimmt er es zurück: alle Units stoppen, alte Dateien und
+Secrets zurück, `daemon-reload`; lief die neue Version schon (Schritt 3), spielt er die Daten aus
+den Snapshots des Auftrags zurück wie beim Wiederherstellen, in der vorübergehenden Unit
+`sz_wiederherstellen.service`; dann die alten Units neu starten, ihre Health abwarten, den Timer
+starten. Er meldet `{ ergebnis: "zurueckgenommen", grund, dauerMs }` oder, wenn auch die Rücknahme
+scheitert, `{ ergebnis: "ruecknahme_unvollstaendig", grund, dauerMs }`; beides ist ein erfolgreiches
+Ergebnis, die Zentrale liest es mit `updateDatenLesen`. Die alten Images liegen noch im Speicher des
+Nutzers, gezogen wird bei der Rücknahme nichts. `AutoUpdate` steht in keiner Unit.
+
 Die beiden Aufträge der [Backups](backups.md) sind ebenfalls eingebaut:
 `installation_backup_einrichten` (Zeitlimit höchstens 30 Minuten) und `installation_backup`
 („Backup jetzt“, höchstens vier Stunden und zwei Minuten), mit dem signierten Manifest und dem Namen
@@ -181,9 +212,11 @@ Lief ein Auftrag, als der Agent neu startete, meldet er ihn nach dem Neustart al
 das Manifest als `idempotent` markiert, führt er dann noch einmal aus, ebenso die Aufträge der
 Pforte und einen Einrichtungsauftrag (der erkennt am Gedächtnis der Installationen, was schon
 eingerichtet ist, [Apps installieren](installieren.md)) und einen Prüf-Restore (die Kopie, die
-der Neustart zurückließ, baut der Agent beim Start ab); `installation_konfigurieren` und
-`installation_wiederherstellen` nicht, beide stoppen oder starten die App und gelten nach einem
-Neustart des Agenten als gescheitert. Ist die Datei unlesbar,
+der Neustart zurückließ, baut der Agent beim Start ab); `installation_konfigurieren`,
+`installation_wiederherstellen` und `installation_update` nicht, alle drei stoppen oder starten die
+App und gelten nach einem Neustart des Agenten als gescheitert. Was ein Wiederherstellen oder
+Update zurückließ, räumt der Agent beim Start auf: er stoppt die vorübergehende Unit und startet den
+Timer des Backups jeder Installation. Ist die Datei unlesbar,
 führt der Agent keinen Auftrag aus, weil er einen doppelten nicht mehr erkennen könnte. Erledigte
 Aufträge vergisst er nach 30 Tagen.
 
