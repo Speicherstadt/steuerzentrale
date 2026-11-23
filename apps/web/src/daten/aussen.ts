@@ -48,7 +48,7 @@ export const aussenGrundText = (g: AussenGrund): string => {
     case "dns":
       return m.aussen_dns({ fehler: w("fehler") });
     case "dns_abweichung":
-      return m.aussen_dns_abweichung({ ist: w("ist"), soll: w("soll") });
+      return m.aussen_dns_abweichung({ ist: g.werte.ist ?? "", soll: g.werte.soll ?? "" });
     case "zertifikat":
       return m.aussen_zertifikat({ fehler: w("fehler") });
     case "pforte":
