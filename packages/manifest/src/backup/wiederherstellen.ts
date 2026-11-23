@@ -63,7 +63,8 @@ export type WiederherstellenGeprueft =
 
 const nein = (grund: string): WiederherstellenGeprueft => ({ ok: false, grund });
 
-const zurueckspielbar = (teile: readonly RestoreTeil[]): string[] =>
+/** The tags of the parts that are played back (`volume`, `pg_dump`); a command's export is not */
+export const zurueckspielbar = (teile: readonly RestoreTeil[]): string[] =>
   teile.flatMap((t) => (t.art === "befehl" ? [] : [t.tag]));
 
 /** The snapshot of each part from the arguments, or why they are not one per part */
