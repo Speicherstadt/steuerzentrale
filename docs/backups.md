@@ -70,6 +70,9 @@ mit jedem Lauf ändert. Sind alle Teile gelungen, folgt
 Scheitert ein Teil, laufen die übrigen trotzdem, die Aufbewahrung aber nicht: ein kaputter Teil soll
 die älteren Snapshots nicht ausdünnen. Endet die Quelle eines Dumps oder Befehls mit einem Fehler,
 vergisst restic den Snapshot, den es daraus gemacht hat, wieder: er sähe sonst aus wie ein ganzer.
+Zu jedem gelungenen Teil meldet der Agent neben dem Snapshot die Bytes, die restic gelesen hat
+(`total_bytes_processed` seiner Zusammenfassung); daraus kommt der Speicher der
+[Leistungen](leistungen.md).
 
 Passwort und S3-Zugang bekommt restic weder in `argv` noch in seiner Umgebung: das Agent-Binary
 schreibt beide in je eine Datei im Laufzeitordner des Nutzers (`/run/user/<uid>`, nur im

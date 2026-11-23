@@ -163,15 +163,31 @@ describe("pages", () => {
   it("bill no month before a customer's contract began", async () => {
     // Ingenieurbüro Kraft is a customer since 06.11.2026: October has no availability or data of it
     const root = await oeffne("/leistungen");
-    const oktober = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(
-      (t) => t.textContent === "Oktober 2026",
-    );
-    oktober?.click();
+    const wahl = root.querySelector<HTMLSelectElement>("[data-testid=leistungen-monat]");
+    if (!wahl) throw new Error("no month to choose");
+    wahl.value = "2026-10";
+    wahl.dispatchEvent(new Event("change", { bubbles: true }));
     flush();
-    const tabelle = root.querySelector('[role="tabpanel"]');
-    expect(tabelle?.querySelector("[aria-label]")?.getAttribute("aria-label")).toContain("Oktober");
+    await vi.waitFor(() => {
+      if (!root.querySelector('section[aria-label="Leistungen Oktober 2026"]'))
+        throw new Error("not yet October");
+    });
+    const tabelle = root.querySelector('section[aria-label="Leistungen Oktober 2026"]');
     expect(tabelle?.textContent).toContain("Fotografie Aust");
     expect(tabelle?.textContent).not.toContain("Ingenieurbüro Kraft");
+    expect(root.querySelector("a[download]")?.getAttribute("download")).toBe(
+      "leistungen-2026-10.csv",
+    );
+  });
+
+  it("download the month as CSV with the same sums as the table", async () => {
+    const root = await oeffne("/leistungen");
+    const href = root.querySelector("a[download]")?.getAttribute("href") ?? "";
+    expect(href.startsWith("data:text/csv;charset=utf-8,")).toBe(true);
+    const csv = decodeURIComponent(href.slice(href.indexOf(",") + 1));
+    expect(csv.startsWith("monat,kunde,kuerzel,installationen,apps,")).toBe(true);
+    expect(csv).toContain("\r\n2026-11,");
+    expect(csv).not.toContain("Ingenieurbüro Kraft,kraft,0");
   });
 
   it("say so for an unknown object", async () => {

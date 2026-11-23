@@ -370,11 +370,83 @@ jobs:
           test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 0.0.1 (protokoll 1)"
           sudo incus exec "$VM" -- test ! -e /usr/local/bin/steuerzentrale-agent.neu
           sudo incus exec "$VM" -- test ! -e /var/lib/steuerzentrale/agent-update.json
+      # Z-1002 (docs/zentrale-sichern.md): the Zentrale backs up its database while it runs, restic
+      # takes the file to an S3 target (the test MinIO of the agent's backup tests), the key stays
+      # apart; then a "new server": the Zentrale and its Pforte stopped, the backup restored from
+      # restic into an empty data directory, both started there on the same address. The agent,
+      # whose certificate chains to the restored CA, connects again and sends heartbeats; the server
+      # and its events are there
+      - name: The Zentrale is backed up and restored on a new server
+        run: |
+          minio="$(bun --print 'require("./apps/agent/test/backup-hilfen.ts").MINIO_IMAGE')"
+          restic_image="$(bun --print 'require("./packages/manifest/src/system.ts").RESTIC_IMAGE.image')"
+          s3_geheim="sz-test-$(head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9')"
+          podman run -d --rm --name sz-test-zentrale-s3 -p 127.0.0.1:29402:9000 \
+            -e MINIO_ROOT_USER=sztest -e MINIO_ROOT_PASSWORD="$s3_geheim" -e MINIO_DEFAULT_BUCKETS=zentrale "$minio"
+          for i in $(seq 1 120); do curl -fsS http://127.0.0.1:29402/minio/health/ready && break; sleep 1; done
+          head -c 32 /dev/urandom | base64 > "$RUNNER_TEMP/restic-passwort"
+          export AWS_ACCESS_KEY_ID=sztest AWS_SECRET_ACCESS_KEY="$s3_geheim"
+          restic() {
+            podman run --rm --network host -v "$RUNNER_TEMP/restic-passwort:/passwort:ro" \
+              -v "$RUNNER_TEMP/sicherung:/sicherung" -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY \
+              -e RESTIC_PASSWORD_FILE=/passwort "$restic_image" --no-cache \
+              --repo s3:http://127.0.0.1:29402/zentrale/steuerzentrale "$@"
+          }
+          mkdir -p "$RUNNER_TEMP/sicherung"
+          # the Zentrale runs on while it backs up
+          bun apps/zentrale/src/main.ts sichern "$RUNNER_TEMP/sicherung/zentrale.sicherung.db"
+          curl -fsS "$STEUERZENTRALE_URL/health"
+          restic init
+          restic backup --host steuerzentrale /sicherung
+          # the snapshot holds the database alone, and never the key
+          restic ls latest | tee "$RUNNER_TEMP/restic-ls.txt"
+          test "$(grep -c '^/sicherung/' "$RUNNER_TEMP/restic-ls.txt")" = 1
+          grep -qx /sicherung/zentrale.sicherung.db "$RUNNER_TEMP/restic-ls.txt"
+          restic dump latest /sicherung/zentrale.sicherung.db > "$RUNNER_TEMP/dump.db"
+          test -s "$RUNNER_TEMP/dump.db"
+          if grep -aqF "$STEUERZENTRALE_SECRET_KEY" "$RUNNER_TEMP/dump.db"; then echo "the key is in the backup"; exit 1; fi
+          vorher="$(bun apps/zentrale/src/testhilfen/testserver.ts fingerabdruck "$SERVER_ID")"
+
+          # the old server is gone: Zentrale and Pforte stopped, its data directory with them
+          pkill -f 'apps/zentrale/src/main.ts' || true
+          pkill -f 'testhilfen/ci-pforte.ts' || true
+          for i in $(seq 1 50); do pgrep -f 'apps/zentrale/src/main.ts|testhilfen/ci-pforte.ts' >/dev/null || break; sleep 0.2; done
+          if curl -fsS "$STEUERZENTRALE_URL/health"; then echo "the old Zentrale still answers"; exit 1; fi
+          mv "$RUNNER_TEMP/daten" "$RUNNER_TEMP/daten.alter-server"
+          rm -rf "$RUNNER_TEMP/sicherung"
+          mkdir -p "$RUNNER_TEMP/sicherung"
+
+          # the new server: the backup from restic, the key brought apart, an empty data directory
+          export STEUERZENTRALE_DATA="$RUNNER_TEMP/daten-neu"
+          echo "STEUERZENTRALE_DATA=$STEUERZENTRALE_DATA" >> "$GITHUB_ENV"
+          restic restore latest --target /
+          bun apps/zentrale/src/main.ts wiederherstellen "$RUNNER_TEMP/sicherung/zentrale.sicherung.db"
+          wiederhergestellt="$(date +%s%3N)"
+          nohup bun apps/zentrale/src/main.ts > "$RUNNER_TEMP/zentrale-neu.log" 2>&1 &
+          for i in $(seq 1 50); do curl -fsS "$STEUERZENTRALE_URL/health" && break; sleep 0.2; done
+          ca="$RUNNER_TEMP/pforte-ca.pem"
+          nohup bun apps/zentrale/src/testhilfen/ci-pforte.ts "$PFORTE_HOST" 28443 "$ca" > "$RUNNER_TEMP/pforte-neu.log" 2>&1 &
+          for i in $(seq 1 50); do curl -fsS --cacert "$ca" "$STEUERZENTRALE_AGENT_URL/health" && break; sleep 0.2; done
+
+          # the server with its certificate's fingerprint and its events came back
+          test "$(bun apps/zentrale/src/testhilfen/testserver.ts fingerabdruck "$SERVER_ID")" = "$vorher"
+          stand="$RUNNER_TEMP/wiederhergestellt.json"
+          bun apps/zentrale/src/testhilfen/testserver.ts neustart "$SERVER_ID" > "$stand"
+          jq -e '.ereignisse | any(.art == "server_neu_gestartet")' "$stand"
+          # the agent connects again with its certificate and sends heartbeats after the restore
+          verbunden() { test "$(jq -r '.letzterHeartbeat // 0' "$stand")" -gt "$wiederhergestellt"; }
+          for i in $(seq 1 60); do bun apps/zentrale/src/testhilfen/testserver.ts neustart "$SERVER_ID" > "$stand"; verbunden && break; sleep 5; done
+          jq . "$stand"
+          verbunden
+          sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
       - if: failure()
         run: |
           cat "$RUNNER_TEMP/zentrale.log" || true
           cat "$RUNNER_TEMP/pforte.log" || true
           cat "$RUNNER_TEMP/neustart.json" || true
+          cat "$RUNNER_TEMP/zentrale-neu.log" || true
+          cat "$RUNNER_TEMP/pforte-neu.log" || true
+          podman logs sz-test-zentrale-s3 || true
           sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent --no-pager -n 100 || true
           sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent-pruefen --no-pager -n 50 || true
 

@@ -80,10 +80,16 @@ export const testAnfrage = (
   };
 };
 
-/** Every case of the golden files: each app alone and with each of its options */
-export const testFaelle = (m: Manifest): { fall: string; optionen: string[] }[] => [
-  { fall: m.id, optionen: [] },
-  ...m.optionen.map((o) => ({ fall: `${m.id}+${o.id}`, optionen: [o.id] })),
+/**
+ * Every case of the golden files: each app alone and with each of its options; `name` tells the
+ * versions of an app with several apart
+ */
+export const testFaelle = (
+  m: Manifest,
+  name: string = m.id,
+): { fall: string; optionen: string[] }[] => [
+  { fall: name, optionen: [] },
+  ...m.optionen.map((o) => ({ fall: `${name}+${o.id}`, optionen: [o.id] })),
 ];
 
 /** The rendered files as one map by path, the layout of a golden folder */

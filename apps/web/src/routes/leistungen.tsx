@@ -1,112 +1,148 @@
-import { m, Tabs } from "@steuerzentrale/ui";
+import { type Leistungen, leistungenDatei, letzteMonate, monatText } from "@steuerzentrale/planung";
+import { buttonClass, Icon, m } from "@steuerzentrale/ui";
+import { Download } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
-import { For, Show } from "solid-js";
-import { appVon, installationenVon, monatVon, supportMinuten } from "../daten/ableitungen.ts";
-import { bestand, mitDemo } from "../daten/quelle.ts";
-import type { Bestand } from "../daten/typen.ts";
-import { gb, minuten, prozent } from "../format/zahl.ts";
-import { monatName, monatUndVormonat } from "../format/zeit.ts";
+import { createMemo, createSignal, createUniqueId, For, Loading, Show } from "solid-js";
+import { suche } from "../daten/ableitungen.ts";
+import { leistungenQuelle } from "../daten/leistungen.ts";
+import { bestand } from "../daten/quelle.ts";
+import { gbAusBytes, minuten, prozent } from "../format/zahl.ts";
+import { monatName } from "../format/zeit.ts";
+import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
-import { NochNicht } from "../teile/kommt-noch.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuKunde } from "../teile/verweise.tsx";
-import { AppZeichen } from "../teile/zeichen.tsx";
+import { AppZeichen, Marke } from "../teile/zeichen.tsx";
 
-/** What each customer used in a month (BAULISTE.md, Z-804); invoices are the portal's business */
+/*
+ * What each customer used in a month (BAULISTE.md Z-804; docs/plan.md, "Leistungen"): a month of
+ * the last 13, its customers with installations, availability, data and support time, and the
+ * month as CSV; invoices are the portal's business.
+ */
 
-const Monat = (props: { b: Bestand; monat: string }) => {
-  const zeilen = () =>
-    props.b.kunden
-      // A month before the contract began has nothing to show, not 100 % of nothing
-      .filter((k) => !k.intern && monatVon(k.vertrag.beginn) <= props.monat)
-      .map((k) => {
-        const installationen = installationenVon(props.b, k.id);
-        return {
-          k,
-          installationen,
-          verfuegbar: Math.min(
-            100,
-            ...installationen.map((i) => i.verfuegbarkeit[props.monat] ?? 100),
-          ),
-          daten: installationen.reduce((summe, i) => summe + i.datenGb, 0),
-          support: supportMinuten(props.b, k.id, props.monat),
-        };
-      });
+const MONATE = 13;
+
+const feldKlasse =
+  "h-8 rounded-lg border border-border bg-background px-2.5 text-[13px] disabled:opacity-50";
+
+const MonatsWahl = (props: { monat: string; monate: string[]; setzen: (m: string) => void }) => {
+  const id = createUniqueId();
   return (
-    <Tabelle
-      name={m.leist_tabelle({ monat: monatName(props.monat) })}
-      minBreite={800}
-      leer={m.kunden_keine()}
-      anzahl={zeilen().length}
-      spalten={[
-        { name: m.inst_spalte_kunde() },
-        { name: m.nav_installationen() },
-        { name: m.inst_verfuegbarkeit(), class: "text-right" },
-        { name: m.inst_spalte_daten(), class: "text-right" },
-        { name: m.nav_support(), class: "text-right" },
-      ]}
-    >
-      <For each={zeilen()}>
-        {(z) => (
-          <Reihe>
-            <td>
-              <ZuKunde id={z.k.id} class="font-medium">
-                {z.k.name}
-              </ZuKunde>
-            </td>
-            <td>
-              <div class="flex flex-wrap gap-1">
-                <For each={z.installationen}>
-                  {(i) => <AppZeichen app={appVon(props.b, i.app)} />}
-                </For>
-              </div>
-            </td>
-            <td class="text-right font-mono text-xs tabular-nums">{prozent(z.verfuegbar, 2)}</td>
-            <td class="text-right font-mono text-xs tabular-nums">{gb(z.daten)}</td>
-            <td class="text-right text-xs tabular-nums">{z.support ? minuten(z.support) : "–"}</td>
-          </Reihe>
-        )}
-      </For>
-    </Tabelle>
-  );
-};
-
-const LeistungenDemo = () => {
-  const b = bestand();
-  const [vorher, jetzt] = monatUndVormonat(b.jetzt);
-  return (
-    <div class="grid gap-6">
-      <Seitenkopf titel={m.nav_leistungen()} text={m.leist_text()} />
-      <Tabs
-        label={m.leist_monate()}
-        initial={jetzt}
-        tabs={[vorher, jetzt].map((monat) => ({
-          id: monat,
-          label: monatName(monat),
-          content: () => <Monat b={b} monat={monat} />,
-        }))}
-      />
+    <div class="flex items-center gap-2">
+      <label for={id} class="text-xs font-medium">
+        {m.leist_monate()}
+      </label>
+      <select
+        id={id}
+        class={feldKlasse}
+        data-testid="leistungen-monat"
+        onChange={(e) => props.setzen(e.currentTarget.value)}
+      >
+        <For each={props.monate}>
+          {(monat) => (
+            <option value={monat} selected={monat === props.monat}>
+              {monatName(monat)}
+            </option>
+          )}
+        </For>
+      </select>
     </div>
   );
 };
 
-/**
- * Signed in, nothing of the demo: the page waits for Z-804 (docs/plan.md, "Echte Daten (Z-406)")
- */
-const Leistungen = () => (
+/** An app of the manifests with its mark; one the interface does not describe by its id */
+const App = (props: { app: string }) => (
   <Show
-    when={mitDemo()}
-    fallback={
-      <NochNicht
-        titel={m.nav_leistungen()}
-        text={m.leist_text()}
-        punkt="Z-804"
-        hinweis={m.leistungen_spaeter()}
-      />
-    }
+    when={suche(bestand().apps, props.app)}
+    fallback={<Marke class="font-mono">{props.app}</Marke>}
   >
-    <LeistungenDemo />
+    {(a) => <AppZeichen app={a()} />}
   </Show>
 );
 
-export const Route = createFileRoute("/leistungen")({ component: Leistungen });
+const Tabellenzeilen = (props: { l: Leistungen }) => (
+  <Tabelle
+    name={m.leist_tabelle({ monat: monatName(props.l.monat) })}
+    minBreite={800}
+    leer={m.kunden_keine()}
+    anzahl={props.l.kunden.length}
+    spalten={[
+      { name: m.inst_spalte_kunde() },
+      { name: m.nav_installationen() },
+      { name: m.inst_verfuegbarkeit(), class: "text-right" },
+      { name: m.inst_spalte_daten(), class: "text-right" },
+      { name: m.nav_support(), class: "text-right" },
+    ]}
+  >
+    <For each={props.l.kunden}>
+      {(k) => (
+        <Reihe>
+          <td>
+            <ZuKunde id={k.kundeId} class="font-medium">
+              {k.name}
+            </ZuKunde>
+          </td>
+          <td>
+            <div class="flex flex-wrap gap-1">
+              <For each={k.installationen}>{(i) => <App app={i.app} />}</For>
+            </div>
+          </td>
+          <td class="text-right font-mono text-xs tabular-nums">
+            {k.verfuegbarkeit.anteil === null
+              ? m.aussen_nicht_gemessen()
+              : prozent(k.verfuegbarkeit.anteil * 100, 2)}
+          </td>
+          <td class="text-right font-mono text-xs tabular-nums">
+            {k.speicherBytes === null ? "–" : gbAusBytes(k.speicherBytes)}
+          </td>
+          <td class="text-right text-xs tabular-nums">
+            {k.supportMinuten ? minuten(k.supportMinuten) : "–"}
+          </td>
+        </Reihe>
+      )}
+    </For>
+  </Tabelle>
+);
+
+const LeistungenSeite = () => {
+  const monate = letzteMonate(bestand().jetzt, MONATE).map(monatText);
+  const [monat, setMonat] = createSignal(monate[0] ?? "");
+  const antwort = createMemo(() => leistungenQuelle().imMonat(monat()));
+  const gelesen = () => {
+    const r = antwort();
+    return r.ok ? r.daten : undefined;
+  };
+  const fehler = () => {
+    const r = antwort();
+    return r.ok ? "" : fehlerText(r);
+  };
+  return (
+    <div class="grid gap-6">
+      <Seitenkopf
+        titel={m.nav_leistungen()}
+        text={m.leist_text()}
+        aktion={
+          <>
+            <MonatsWahl monat={monat()} monate={monate} setzen={setMonat} />
+            <a
+              href={leistungenQuelle().csvAdresse(monat())}
+              download={leistungenDatei(monat())}
+              class={buttonClass({ variant: "outline" })}
+            >
+              <Icon icon={Download} size={14} />
+              {m.leist_csv()}
+            </a>
+          </>
+        }
+      />
+      <Loading fallback={<p class="text-muted-foreground">{m.leist_laden()}</p>}>
+        <Show when={gelesen()} fallback={<Fehler text={fehler()} />}>
+          {(l) => <Tabellenzeilen l={l()} />}
+        </Show>
+      </Loading>
+      <p class="text-xs text-muted-foreground">{m.leist_hinweis()}</p>
+    </div>
+  );
+};
+
+export const Route = createFileRoute("/leistungen")({ component: LeistungenSeite });

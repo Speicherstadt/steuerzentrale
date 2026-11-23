@@ -438,7 +438,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Kunden.
   Fertig, wenn: nach Ablauf jeder Zugriff abgelehnt wird (Test) und der Zugang im Audit-Log mit Grund
   steht.
-- [ ] **Z-804 Leistungen** – je Kunde und Monat: Installationen, Speicher, Support-Zeit,
+- [x] **Z-804 Leistungen** – je Kunde und Monat: Installationen, Speicher, Support-Zeit,
   Verfügbarkeit; Export als CSV.
   nach: Z-704
   Fertig, wenn: die Summen aus den Ereignissen berechnet werden (Test) und der Export gültiges CSV
@@ -449,10 +449,10 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: jede Bedrohung einen Test oder eine begründete Annahme hat, darunter: eine Zentrale
   mit fremdem Manifest bringt keinen Code auf einen Server (Test), ein gestohlenes Agent-Zertifikat
   erzeugt keine Aufträge (Test), Rate-Limits an Anmeldung und Token-Tausch greifen (Test).
-- [ ] **Z-1002 Zentrale sichern** – Backup der Zentrale (Datenbank und Schlüssel getrennt),
+- [x] **Z-1002 Zentrale sichern** – Backup der Zentrale (Datenbank und Schlüssel getrennt),
   Wiederherstellung auf einem neuen Server, Agenten verbinden sich wieder.
   Fertig, wenn: der Ablauf in der CI durchläuft.
-- [ ] **Z-1003 Echte Apps** – Schreibzeug und Haben aus `manifeste/` in der CI installieren, sichern
+- [x] **Z-1003 Echte Apps** – Schreibzeug und Haben aus `manifeste/` in der CI installieren, sichern
   und wiederherstellen; Schreibzeug zusätzlich in einer Welle aktualisieren; Haben (ohne Health) von
   Hand mit Grund von einer auf die nächste Version aktualisieren, bewertet nach Units. Als
   Hersteller-ID des Betreibers der Testwert `74931` (Haben, `packages/elster/src/xml.ts`). Images von

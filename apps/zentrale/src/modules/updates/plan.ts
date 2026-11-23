@@ -56,7 +56,7 @@ export type PlanZeile = Planeintrag & {
   dringend: boolean;
 };
 
-type Laufend = {
+export type Laufend = {
   installationId: string;
   serverId: string;
   app: string;
@@ -110,7 +110,8 @@ const gelesen = (text: string | undefined): Manifest | undefined => {
   return m?.ok ? m.manifest : undefined;
 };
 
-const planInstallation = (i: Laufend, neu: Manifest): PlanInstallation => ({
+/** An installation as the plan sees it; an app whose new version has no health only by hand */
+export const planInstallation = (i: Laufend, neu: Manifest): PlanInstallation => ({
   id: i.installationId,
   intern: i.intern,
   automatisch: neu.health.art !== "keine",

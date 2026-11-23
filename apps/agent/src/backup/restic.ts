@@ -161,6 +161,29 @@ export const snapshotAus = (aus: string): string | undefined => {
   return undefined;
 };
 
+/**
+ * What restic read for a part: `total_bytes_processed` of the summary of `backup --json`
+ * (doc/075_scripting.rst, "backup"), the storage of the Leistungen (Z-804); none in other output
+ */
+export const bytesAus = (aus: string): number | undefined => {
+  for (const zeile of aus.split("\n")) {
+    try {
+      const n = JSON.parse(zeile) as { message_type?: unknown; total_bytes_processed?: unknown };
+      const b = n.total_bytes_processed;
+      if (
+        n.message_type === "summary" &&
+        typeof b === "number" &&
+        Number.isSafeInteger(b) &&
+        b >= 0
+      )
+        return b;
+    } catch {
+      // a line that is no JSON
+    }
+  }
+  return undefined;
+};
+
 /** The reason for an exit code by restic's table (doc/075_scripting.rst, "Exit codes"), no output */
 export const resticGrund = (code: number | null): string => {
   if (code === 12) return "falsches Passwort des Repositorys";
