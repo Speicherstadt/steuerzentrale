@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { AGENT_UPDATE_AKTION } from "@steuerzentrale/manifest";
 import { and, desc, eq } from "drizzle-orm";
 import { oeffneDatenbank } from "../db/oeffnen.ts";
-import { auftraege, ereignisse, server } from "../db/schema.ts";
+import { auftraege, betreiber, ereignisse, server } from "../db/schema.ts";
 import { parseEnv } from "../env.ts";
 import { schreiben } from "../modules/audit/index.ts";
 import { serverAnlegen } from "../modules/server/index.ts";
@@ -35,6 +35,16 @@ const [befehl, wert = ""] = process.argv.slice(2);
 
 if (befehl === "anlegen") {
   const kontext = { betreiberId: BETREIBER, akteur: "ci", jetzt: Date.now(), grund: "CI" };
+  // the loops over every operator (the agents' update among them) see only those in `betreiber`
+  const bekannt = db
+    .select({ betreiberId: betreiber.betreiberId })
+    .from(betreiber)
+    .where(eq(betreiber.betreiberId, BETREIBER))
+    .get();
+  if (!bekannt)
+    schreiben(schreibDb, kontext, "betreiber.anlegen", (w) =>
+      w.einfuegen("betreiber", { betreiberId: BETREIBER, name: "CI", angelegtAm: kontext.jetzt }),
+    );
   const neu = serverAnlegen(schreibDb, kontext, {
     name: wert,
     art: "gemeinsam",
