@@ -51,6 +51,8 @@ export type VerbindenDeps = {
   meldungen?: Pick<MeldungenDeps, "fakten" | "anmeldungen" | "zustand" | "backups">;
   /** Takes the jobs the Zentrale sends (Z-305, src/auftraege); without, jobs are left alone */
   auftraege?: Pick<Auftraege, "empfangen">;
+  /** At each `willkommen`: confirms an update of the agent to this version (Z-504, src/agent-update) */
+  verbunden?: () => Promise<void>;
 };
 
 /** The WebSocket address for the Zentrale's origin: wss for https, ws for http (test mode only) */
@@ -92,6 +94,15 @@ const zertifikatAnfrage = (csr: string) =>
   schreiben(ZertifikatAnfrage, { typ: "zertifikat_anfrage", protokoll: PROTOKOLL_VERSION, csr });
 
 export type Schleife = { stoppen: () => void };
+
+/** At `willkommen`: an update of the agent to this version is confirmed (Z-504) */
+const bestaetigen = (
+  deps: VerbindenDeps,
+  log: (msg: string, mehr?: Record<string, unknown>) => void,
+) =>
+  deps
+    .verbunden?.()
+    .catch((fehler) => log("agent update not confirmed", { fehler: String(fehler) }));
 
 /**
  * The certificate's care over one connection: in its last 30 days, at willkommen or on a later
@@ -161,6 +172,7 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
     if (n.typ === "willkommen") {
       versuch = 0;
       log("connected");
+      void bestaetigen(deps, log);
       herzschlag(s, n.zertifikatGueltigBis);
       meldungen.starten(
         (text) => s.senden(text),

@@ -1,5 +1,6 @@
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
 import {
+  fuerVersion,
   HEARTBEAT_MS,
   type NachrichtVomAgenten,
   schreiben as nachrichtSchreiben,
@@ -9,6 +10,11 @@ import {
   vomAgentenLesen,
 } from "@steuerzentrale/protokoll";
 import type { LogSink } from "../../log.ts";
+import {
+  agentVersionFortschreiben,
+  rueckkehrFortschreiben,
+  rueckkehrOhneHallo,
+} from "../agent-update/ende.ts";
 import { heartbeatAnfuegen, schreiben } from "../audit/index.ts";
 import { offeneZustellen } from "../auftraege/index.ts";
 import { backupStandAnnehmen } from "../backups/stand.ts";
@@ -35,6 +41,9 @@ import type { Sockel, Verbindungen } from "./verbindungen.ts";
  * about them move them on (Z-305, src/modules/auftraege); the lines of a log excerpt are kept for
  * a log job of this server (Z-405, auftraege/log-auszug.ts), any other dropped and logged. The
  * runs of backups (Z-601) are kept for installations of this server (src/modules/backups).
+ * Everything the Zentrale sends goes in the protocol version of the agent's `hallo`, so an agent one
+ * version behind keeps reading it until its own update (Z-504); a changed agent version becomes an
+ * event of the server (modules/agent-update).
  */
 export type SitzungDeps = BeitrittDeps & {
   verbindungen: Verbindungen;
@@ -106,8 +115,40 @@ const backupEingang =
     else deps.log(JSON.stringify({ msg: "backup report dropped", serverId: server.serverId }));
   };
 
-const senden = (sockel: Sockel, nachricht: NachrichtVonDerZentrale) =>
-  sockel.senden(nachrichtSchreiben(VonDerZentrale, nachricht));
+/** Version and architecture of `hallo` at the server, a changed version as an event (Z-504) */
+const agentMerken = (
+  deps: SitzungDeps,
+  server: Server,
+  n: Extract<NachrichtVomAgenten, { typ: "hallo" }>,
+  jetzt: number,
+): Server => {
+  const { betreiberId, serverId } = server;
+  if (n.agentVersion === server.agentVersion && n.architektur === server.architektur) {
+    // the new agent of an update never said hallo: its check put this one back (Z-504)
+    const zurueck = rueckkehrOhneHallo(deps.db, server, n.agentVersion);
+    if (zurueck)
+      schreiben(
+        deps.schreibDb,
+        { betreiberId, akteur: `server:${serverId}`, jetzt, grund: "Agent meldet sich" },
+        "server.agent",
+        (w) => rueckkehrFortschreiben(w, server, zurueck, n.agentVersion, jetzt),
+      );
+    return server;
+  }
+  return schreiben(
+    deps.schreibDb,
+    { betreiberId, akteur: `server:${serverId}`, jetzt, grund: "Agent meldet sich" },
+    "server.agent",
+    (w) => {
+      agentVersionFortschreiben(w, server, n.agentVersion, jetzt);
+      const { agentVersion, architektur } = n;
+      return w.aendern("server", { serverId }, { agentVersion, architektur });
+    },
+  );
+};
+
+const senden = (sockel: Sockel, nachricht: NachrichtVonDerZentrale, protokoll: number) =>
+  sockel.senden(fuerVersion(nachrichtSchreiben(VonDerZentrale, nachricht), protokoll));
 
 export const sitzung = (
   deps: SitzungDeps,
@@ -117,6 +158,8 @@ export const sitzung = (
   let server = angemeldet.server;
   let sockel: Sockel | undefined;
   let gegruesst = false;
+  // the agent's protocol, from its `hallo`: never newer than this Zentrale's (vomAgentenLesen)
+  let protokoll = PROTOKOLL_VERSION;
   // a clock that jumped back does not silence the server
   const heartbeatErlaubt = mindestabstand(HEARTBEAT_ABSTAND_MS);
   const faktenErlaubt = mindestabstand(FAKTEN_ABSTAND_MS);
@@ -126,28 +169,22 @@ export const sitzung = (
   const backupStand = backupEingang(deps, eimer(BACKUP_VORRAT, BACKUP_NACHSCHUB_MS));
 
   const hallo = (n: Extract<NachrichtVomAgenten, { typ: "hallo" }>, s: Sockel, jetzt: number) => {
-    if (n.agentVersion !== server.agentVersion || n.architektur !== server.architektur)
-      server = schreiben(
-        deps.schreibDb,
-        { betreiberId, akteur: `server:${serverId}`, jetzt, grund: "Agent meldet sich" },
-        "server.agent",
-        (w) =>
-          w.aendern(
-            "server",
-            { serverId },
-            { agentVersion: n.agentVersion, architektur: n.architektur },
-          ),
-      );
+    server = agentMerken(deps, server, n, jetzt);
     gegruesst = true;
-    senden(s, {
-      typ: "willkommen",
-      protokoll: PROTOKOLL_VERSION,
-      zeit: jetzt,
-      ...(server.zertifikatGueltigBis === null
-        ? {}
-        : { zertifikatGueltigBis: server.zertifikatGueltigBis }),
-    });
-    deps.verbindungen.gruessen(betreiberId, serverId, s);
+    protokoll = Math.min(n.protokoll, PROTOKOLL_VERSION);
+    senden(
+      s,
+      {
+        typ: "willkommen",
+        protokoll: PROTOKOLL_VERSION,
+        zeit: jetzt,
+        ...(server.zertifikatGueltigBis === null
+          ? {}
+          : { zertifikatGueltigBis: server.zertifikatGueltigBis }),
+      },
+      protokoll,
+    );
+    deps.verbindungen.gruessen(betreiberId, serverId, s, protokoll);
     offeneZustellen(deps, betreiberId, serverId);
   };
 
@@ -165,7 +202,11 @@ export const sitzung = (
     // revoked or replaced while the certificate was made: this connection has no say any more
     if (!deps.verbindungen.aktuell(betreiberId, serverId, s)) return;
     const { zertifikat, ca, gueltigBis } = ergebnis;
-    senden(s, { typ: "zertifikat", protokoll: PROTOKOLL_VERSION, zertifikat, ca, gueltigBis });
+    senden(
+      s,
+      { typ: "zertifikat", protokoll: PROTOKOLL_VERSION, zertifikat, ca, gueltigBis },
+      protokoll,
+    );
   };
 
   return {

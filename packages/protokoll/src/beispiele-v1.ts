@@ -169,4 +169,17 @@ export const VON_DER_ZENTRALE_V1: readonly Record<string, unknown>[] = [
       passwort: "restic-passwort-der-installation",
     },
   },
+  // Z-504: the update of the agent itself, which every agent of this protocol must read, also one
+  // version behind its Zentrale: SHA256SUMS and its signature in the place of the manifest
+  {
+    typ: "auftrag",
+    protokoll: 1,
+    auftragId: "a-4",
+    installationId: null,
+    aktion: "agent_update",
+    argumente: { version: "0.2.0" },
+    manifest: `${"0".repeat(64)}  steuerzentrale-agent-linux-x64\n${"1".repeat(64)}  steuerzentrale-agent-linux-arm64\n`,
+    signatur: SIGNATUR,
+    zeitlimitS: 600,
+  },
 ];

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { VOM_AGENTEN_V1, VON_DER_ZENTRALE_V1 } from "./beispiele-v1.ts";
 import {
   AELTESTE_VERSION,
+  fuerVersion,
   MAX_NACHRICHT_BYTES,
   PROTOKOLL_VERSION,
   schreiben,
@@ -95,6 +96,28 @@ describe("versions", () => {
       ok: false,
       grund: "no upgrade from protokoll 1",
     });
+  });
+
+  it("the Zentrale writes to an agent one version behind in the agent's version", () => {
+    // as a Zentrale of protocol 2 would, with a field that is new in 2 (Z-504)
+    const neu = JSON.stringify({ typ: "willkommen", protokoll: 2, zeit: 1, neuIn2: true });
+    const fuerAlt = JSON.parse(fuerVersion(neu, 1, 2));
+    expect(fuerAlt).toEqual({ typ: "willkommen", protokoll: 1, zeit: 1, neuIn2: true });
+    // the older schema drops what it does not know
+    expect(VonDerZentrale.parse(fuerAlt)).toEqual({ typ: "willkommen", protokoll: 1, zeit: 1 });
+    expect(fuerVersion(neu, 2, 2)).toBe(neu);
+    const jetzt = schreiben(VonDerZentrale, {
+      typ: "willkommen",
+      protokoll: PROTOKOLL_VERSION,
+      zeit: 1,
+    });
+    expect(fuerVersion(jetzt, PROTOKOLL_VERSION)).toBe(jetzt);
+  });
+
+  it("every agent of protocol 1 reads the update of the agent (Z-504)", () => {
+    const update = VON_DER_ZENTRALE_V1.find((n) => n.aktion === "agent_update");
+    expect(update, "frozen agent_update").toBeDefined();
+    expect(vonDerZentraleLesen(JSON.stringify(update))).toMatchObject({ ok: true });
   });
 
   it("refuses a newer or a too old version and a message without one", () => {

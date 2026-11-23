@@ -1,5 +1,8 @@
 import {
+  AGENT_UPDATE_AKTION,
+  AGENT_UPDATE_ZEITLIMIT_S,
   AKTION_ZEITLIMIT_S,
+  agentUpdateAuftragPruefen,
   aktionsAuftragPruefen,
   BACKUP_AKTIONEN,
   BACKUP_EINRICHTEN_ZEITLIMIT_S,
@@ -39,6 +42,7 @@ import { pruefZiel } from "../zustand/ziel.ts";
 import type { AuftragNachricht, Geprueft, Vertrauen } from "./plaene.ts";
 
 export type {
+  AgentUpdatePlan,
   AktionPlan,
   AuftragNachricht,
   BackupPlan,
@@ -71,7 +75,9 @@ export type {
  * wiederherstellenAuftragPruefen: the parts from the signed manifest, the snapshots from the job.
  * An update (Z-503) passes updateAuftragPruefen: the new version's units rendered from the signed
  * manifest like reconfiguring, its `schritte.nach_update` filled from it, the parts to roll back
- * like a restore's. Pure, no I/O.
+ * like a restore's. The update of the agent itself (Z-504) carries SHA256SUMS in the place of a
+ * manifest: its signature with the same key, then its fixed shape (agentUpdateAuftragPruefen).
+ * Pure, no I/O.
  */
 
 const pfortePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
@@ -275,9 +281,26 @@ const einrichtungPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
   };
 };
 
+const agentUpdatePlan = (n: AuftragNachricht, vertrauen: Vertrauen): Geprueft => {
+  const geprueft = agentUpdateAuftragPruefen(n, vertrauen.schluessel);
+  if (!geprueft.ok) return geprueft;
+  return {
+    ok: true,
+    plan: {
+      art: "agent_update",
+      aktion: n.aktion,
+      auftrag: geprueft.auftrag,
+      zeitlimitMs: Math.min(n.zeitlimitS, AGENT_UPDATE_ZEITLIMIT_S) * 1000,
+      idempotent: false,
+    },
+  };
+};
+
 export const auftragPruefen = (n: AuftragNachricht, vertrauen: Vertrauen): Geprueft => {
   const vertraut = schluesselVertrauen(vertrauen.schluessel, vertrauen.zweck);
   if (!vertraut.ok) return vertraut;
+  // SHA256SUMS in the place of a manifest, signed with the same key (Z-504)
+  if (n.aktion === AGENT_UPDATE_AKTION) return agentUpdatePlan(n, vertrauen);
   const geladen = signiertesManifestLaden(
     new TextEncoder().encode(n.manifest),
     n.signatur,

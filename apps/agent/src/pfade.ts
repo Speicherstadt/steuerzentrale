@@ -24,6 +24,8 @@ export type Pfade = {
   installationen: string;
   /** The backup runs the agent has reported (src/backup/melden.ts) */
   backupGemeldet: string;
+  /** The update of the agent until the new one confirms it (src/agent-update/marke.ts, Z-504) */
+  agentUpdate: string;
 };
 
 export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
@@ -38,4 +40,5 @@ export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
   auftraege: join(zustand, "auftraege.json"),
   installationen: join(zustand, "installationen.json"),
   backupGemeldet: join(zustand, "backup-gemeldet.json"),
+  agentUpdate: join(zustand, "agent-update.json"),
 });

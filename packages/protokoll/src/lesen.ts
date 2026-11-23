@@ -93,6 +93,18 @@ export const vomAgentenLesen = (
 export const vonDerZentraleLesen = (text: string): Gelesen<NachrichtVonDerZentrale> =>
   lesen(VonDerZentrale, text, { ...STANDARD, aelteste: PROTOKOLL_VERSION });
 
+/**
+ * A message of the Zentrale as an agent of protocol `version` reads it (Z-504): the agent reads only
+ * its own version, so after an update of the Zentrale an agent one behind gets every message stamped
+ * with its version. Versions only add: the message is the older one plus fields the older schema
+ * drops; a message type or a job the older version does not know the Zentrale must not send it.
+ */
+export const fuerVersion = (text: string, version: number, eigene = PROTOKOLL_VERSION): string => {
+  if (version >= eigene) return text;
+  const nachricht = JSON.parse(text) as Record<string, unknown>;
+  return JSON.stringify({ ...nachricht, protokoll: version });
+};
+
 /** The text sent over the WebSocket, checked against the schema before it leaves */
 export const schreiben = <S extends z.ZodType>(schema: S, nachricht: z.input<S>): string => {
   const text = JSON.stringify(schema.parse(nachricht));

@@ -14,6 +14,39 @@ import { FINGERABDRUCK_HEADER } from "../modules/verbindung/herkunft.ts";
 
 export type TestPforte = { port: number; stoppen: () => void };
 
+/**
+ * What one direction still has to write: a socket takes only what fits at once (write returns the
+ * bytes taken), the rest goes on `drain`; an end asked for waits until all of it went out
+ */
+type Puffer = { rest: Uint8Array[]; enden: boolean };
+
+const neuerPuffer = (): Puffer => ({ rest: [], enden: false });
+
+/** Writes the waiting bytes until the socket takes no more; ends it once empty if asked to */
+const leeren = (socket: Socket<unknown>, puffer: Puffer): void => {
+  while (puffer.rest.length > 0) {
+    const erstes = puffer.rest[0] as Uint8Array;
+    const genommen = Math.max(socket.write(erstes), 0);
+    if (genommen < erstes.length) {
+      puffer.rest[0] = erstes.subarray(genommen);
+      return;
+    }
+    puffer.rest.shift();
+  }
+  if (puffer.enden) socket.end();
+};
+
+/** Queues a copy (Bun may reuse the buffer it handed to `data`) and writes what fits */
+const schreiben = (socket: Socket<unknown>, puffer: Puffer, daten: Uint8Array): void => {
+  puffer.rest.push(daten.slice());
+  if (puffer.rest.length === 1) leeren(socket, puffer);
+};
+
+const beenden = (socket: Socket<unknown>, puffer: Puffer): void => {
+  puffer.enden = true;
+  leeren(socket, puffer);
+};
+
 type Strom = {
   /** The request head until it is complete; undefined once it went on */
   kopf: Uint8Array | undefined;
@@ -22,6 +55,9 @@ type Strom = {
   /** What arrived while the connection to the Zentrale was being opened */
   wartend: Uint8Array[];
   offen: boolean;
+  /** What is still to go to the client, and to the Zentrale */
+  nachUnten: Puffer;
+  nachOben: Puffer;
 };
 
 const ENDE = new TextEncoder().encode("\r\n\r\n");
@@ -60,6 +96,9 @@ export const testPforte = (optionen: {
   schluessel: string;
   /** The CAs client certificates are checked against */
   clientCas: string[];
+  /** Where it listens: 127.0.0.1 and a free port unless given (CI's VMs reach it on the bridge) */
+  hostname?: string;
+  port?: number;
 }): TestPforte => {
   const weiter = async (unten: Socket<Strom>, start: Uint8Array) => {
     // a Zentrale that is down: the client's connection ends, as Caddy's would with a 502
@@ -67,28 +106,23 @@ export const testPforte = (optionen: {
       hostname: "127.0.0.1",
       port: optionen.ziel,
       socket: {
-        data: (_o, daten) => {
-          unten.write(daten);
-        },
-        close: () => {
-          unten.end();
-        },
-        error: () => {
-          unten.end();
-        },
+        data: (_o, daten) => schreiben(unten, unten.data.nachUnten, daten),
+        drain: (o) => leeren(o, unten.data.nachOben),
+        close: () => beenden(unten, unten.data.nachUnten),
+        error: () => beenden(unten, unten.data.nachUnten),
       },
     }).catch(() => undefined);
     if (!oben) return unten.end();
     if (!unten.data.offen) return oben.end();
     unten.data.oben = oben;
-    oben.write(start);
-    for (const teil of unten.data.wartend) oben.write(teil);
+    schreiben(oben, unten.data.nachOben, start);
+    for (const teil of unten.data.wartend) schreiben(oben, unten.data.nachOben, teil);
     unten.data.wartend = [];
   };
 
   const listener = Bun.listen<Strom>({
-    hostname: "127.0.0.1",
-    port: 0,
+    hostname: optionen.hostname ?? "127.0.0.1",
+    port: optionen.port ?? 0,
     tls: {
       cert: optionen.zertifikat,
       key: optionen.schluessel,
@@ -105,15 +139,18 @@ export const testPforte = (optionen: {
           oben: undefined,
           wartend: [],
           offen: true,
+          nachUnten: neuerPuffer(),
+          nachOben: neuerPuffer(),
         };
       },
+      drain: (s) => leeren(s, s.data.nachUnten),
       handshake: (s, _ok, fehler) => {
         const zertifikat = fehler ? undefined : s.getPeerX509Certificate();
         s.data.fingerabdruck = zertifikat?.fingerprint256.replaceAll(":", "").toLowerCase();
       },
       data: (s, daten) => {
-        if (s.data.oben) return void s.data.oben.write(daten);
-        if (s.data.kopf === undefined) return void s.data.wartend.push(daten);
+        if (s.data.oben) return schreiben(s.data.oben, s.data.nachOben, daten);
+        if (s.data.kopf === undefined) return void s.data.wartend.push(daten.slice());
         const bisher = zusammen(s.data.kopf, daten);
         const ende = kopfEnde(bisher);
         if (ende < 0) {
@@ -130,7 +167,7 @@ export const testPforte = (optionen: {
       },
       close: (s) => {
         s.data.offen = false;
-        s.data.oben?.end();
+        if (s.data.oben) beenden(s.data.oben, s.data.nachOben);
       },
     },
   });

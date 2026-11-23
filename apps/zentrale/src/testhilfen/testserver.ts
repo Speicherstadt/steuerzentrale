@@ -1,8 +1,10 @@
 import { join } from "node:path";
-import { and, eq } from "drizzle-orm";
+import { AGENT_UPDATE_AKTION } from "@steuerzentrale/manifest";
+import { and, desc, eq } from "drizzle-orm";
 import { oeffneDatenbank } from "../db/oeffnen.ts";
-import { server } from "../db/schema.ts";
+import { auftraege, betreiber, ereignisse, server } from "../db/schema.ts";
 import { parseEnv } from "../env.ts";
+import { schreiben } from "../modules/audit/index.ts";
 import { serverAnlegen } from "../modules/server/index.ts";
 
 /*
@@ -13,6 +15,11 @@ import { serverAnlegen } from "../modules/server/index.ts";
  *
  *   bun apps/zentrale/src/testhilfen/testserver.ts anlegen <name>     → {"serverId","befehl"}
  *   bun apps/zentrale/src/testhilfen/testserver.ts fingerabdruck <id> → the fingerprint
+ *   bun apps/zentrale/src/testhilfen/testserver.ts wartungsfenster <id> → the window all day (Z-504)
+ *   bun apps/zentrale/src/testhilfen/testserver.ts agent <id>         → {"version","update","ereignisse"}
+ *
+ * `agent` names the agent version of the last `hallo`, the newest job `agent_update` (version,
+ * state, result) and the events of the server, for the test of the agent's update (Z-504).
  *
  * It reads the Zentrale's environment (STEUERZENTRALE_DATA, _SECRET_KEY, _URL, _AGENT_URL).
  */
@@ -28,6 +35,16 @@ const [befehl, wert = ""] = process.argv.slice(2);
 
 if (befehl === "anlegen") {
   const kontext = { betreiberId: BETREIBER, akteur: "ci", jetzt: Date.now(), grund: "CI" };
+  // the loops over every operator (the agents' update among them) see only those in `betreiber`
+  const bekannt = db
+    .select({ betreiberId: betreiber.betreiberId })
+    .from(betreiber)
+    .where(eq(betreiber.betreiberId, BETREIBER))
+    .get();
+  if (!bekannt)
+    schreiben(schreibDb, kontext, "betreiber.anlegen", (w) =>
+      w.einfuegen("betreiber", { betreiberId: BETREIBER, name: "CI", angelegtAm: kontext.jetzt }),
+    );
   const neu = serverAnlegen(schreibDb, kontext, {
     name: wert,
     art: "gemeinsam",
@@ -43,8 +60,47 @@ if (befehl === "anlegen") {
     .get();
   if (!zeile?.fingerabdruck) process.exitCode = 1;
   else console.log(zeile.fingerabdruck);
+} else if (befehl === "wartungsfenster") {
+  const kontext = { betreiberId: BETREIBER, akteur: "ci", jetzt: Date.now(), grund: "CI" };
+  // "00:00" to "00:00" ends on the next day: a window over the whole day
+  const fenster = { tage: [0, 1, 2, 3, 4, 5, 6], von: "00:00", bis: "00:00" };
+  schreiben(schreibDb, kontext, "server.wartungsfenster", (w) =>
+    w.aendern("server", { serverId: wert }, { wartungsfenster: JSON.stringify(fenster) }),
+  );
+} else if (befehl === "agent") {
+  const zeile = db
+    .select({ version: server.agentVersion })
+    .from(server)
+    .where(and(eq(server.betreiberId, BETREIBER), eq(server.serverId, wert)))
+    .get();
+  const update = db
+    .select({
+      version: auftraege.version,
+      zustand: auftraege.zustand,
+      ergebnis: auftraege.ergebnis,
+    })
+    .from(auftraege)
+    .where(
+      and(
+        eq(auftraege.betreiberId, BETREIBER),
+        eq(auftraege.serverId, wert),
+        eq(auftraege.aktion, AGENT_UPDATE_AKTION),
+      ),
+    )
+    .orderBy(desc(auftraege.angelegtAm))
+    .get();
+  const arten = db
+    .select({ art: ereignisse.art, text: ereignisse.text })
+    .from(ereignisse)
+    .where(and(eq(ereignisse.betreiberId, BETREIBER), eq(ereignisse.ziel, `server:${wert}`)))
+    .all();
+  console.log(
+    JSON.stringify({ version: zeile?.version ?? null, update: update ?? null, ereignisse: arten }),
+  );
 } else {
-  console.error("usage: testserver.ts anlegen <name> | fingerabdruck <serverId>");
+  console.error(
+    "usage: testserver.ts anlegen <name> | fingerabdruck | wartungsfenster | agent <serverId>",
+  );
   process.exitCode = 2;
 }
 schliessen();

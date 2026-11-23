@@ -175,12 +175,13 @@ jobs:
   # systemd and rootless Podman as on Debian 13 and Ubuntu 24.04 (docs/plan.md, "Was sich in der CI
   # nicht echt testen lässt"). The Zentrale runs on the runner and serves the agent files signed with the
   # test key, so the script runs in test mode; afterwards the agent's service runs and the fingerprint
-  # of its certificate is the one the Zentrale keeps
+  # of its certificate is the one the Zentrale keeps. Then the agent updates itself to a newer release
+  # the Zentrale serves and refuses one signed with another key (BAULISTE.md Z-504)
   server:
     needs: changes
     if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -196,8 +197,9 @@ jobs:
       - name: Incus
         run: |
           sudo apt-get update -q
-          # incus-agent lets `incus exec` into a VM; qemu and OVMF run it (KVM is on the runner)
-          sudo apt-get install -y -q incus incus-agent qemu-system-x86 ovmf
+          # incus-agent lets `incus exec` into a VM; qemu and OVMF run it (KVM is on the runner);
+          # minisign makes the other key the update of the agent must refuse (Z-504)
+          sudo apt-get install -y -q incus incus-agent qemu-system-x86 ovmf minisign
           sudo incus admin init --minimal
           # Docker on the runner drops forwarded packets: let the VMs' bridge out, and answers back in
           if sudo iptables -n -L DOCKER-USER >/dev/null 2>&1; then
@@ -212,26 +214,44 @@ jobs:
       - name: Zentrale with the agent files
         run: |
           bun run --cwd apps/agent build
-          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-dateien"
+          # a link the update of the agent (Z-504) turns to a newer release in one step (rename)
+          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-0.0.0"
+          ln -s "$RUNNER_TEMP/agent-0.0.0" "$RUNNER_TEMP/agent-dateien"
           host="$(sudo incus network get incusbr0 ipv4.address | cut -d/ -f1)"
           {
             echo "STEUERZENTRALE_PORT=28300"
-            echo "STEUERZENTRALE_HOST=0.0.0.0"
+            echo "STEUERZENTRALE_HOST=127.0.0.1"
             echo "STEUERZENTRALE_DATA=$RUNNER_TEMP/daten"
             echo "STEUERZENTRALE_SECRET_KEY=$(head -c 32 /dev/zero | tr '\0' '\7' | base64)"
             echo "STEUERZENTRALE_URL=http://localhost:28300"
-            echo "STEUERZENTRALE_AGENT_URL=http://$host:28300"
+            # agents reach the Zentrale only through its Pforte, as agent.<domain> in production
+            echo "STEUERZENTRALE_AGENT_URL=https://$host:28443"
             echo "STEUERZENTRALE_AGENT_DATEIEN=$RUNNER_TEMP/agent-dateien"
+            echo "PFORTE_HOST=$host"
           } >> "$GITHUB_ENV"
       - name: install.sh in the VM
         run: |
           nohup bun apps/zentrale/src/main.ts > "$RUNNER_TEMP/zentrale.log" 2>&1 &
-          for i in $(seq 1 50); do curl -fsS "$STEUERZENTRALE_AGENT_URL/health" && break; sleep 0.2; done
+          for i in $(seq 1 50); do curl -fsS "$STEUERZENTRALE_URL/health" && break; sleep 0.2; done
           neu="$(bun apps/zentrale/src/testhilfen/testserver.ts anlegen "${{ matrix.system }}")"
           echo "SERVER_ID=$(jq -r .serverId <<< "$neu")" >> "$GITHUB_ENV"
+          # The Pforte in front of the Zentrale (testhilfen/ci-pforte.ts): TLS, the client certificate
+          # checked against the operator's CA, its fingerprint passed on from loopback; the Zentrale
+          # believes that header from nowhere else, so without it the agent's connection gets 401
+          ca="$RUNNER_TEMP/pforte-ca.pem"
+          nohup bun apps/zentrale/src/testhilfen/ci-pforte.ts "$PFORTE_HOST" 28443 "$ca" > "$RUNNER_TEMP/pforte.log" 2>&1 &
+          for i in $(seq 1 50); do curl -fsS --cacert "$ca" "$STEUERZENTRALE_AGENT_URL/health" && break; sleep 0.2; done
+          curl -fsS --cacert "$ca" "$STEUERZENTRALE_AGENT_URL/health"
           # The command needs curl, as the one the interface shows does
-          sudo incus exec "$VM" -- sh -c 'command -v curl >/dev/null || { apt-get update -q && apt-get install -y -q curl; }'
-          sudo incus exec "$VM" -- sh -c "$(jq -r .befehl <<< "$neu")"
+          sudo incus exec "$VM" -- sh -c 'command -v curl >/dev/null && command -v update-ca-certificates >/dev/null || { apt-get update -q && apt-get install -y -q curl ca-certificates; }'
+          # The VM trusts the Pforte's test CA: curl through the system's store, the agent (Bun)
+          # through NODE_EXTRA_CA_CERTS, in install.sh and in its service (also after its update)
+          crt=/usr/local/share/ca-certificates/sz-test-pforte.crt
+          sudo incus file push "$ca" "$VM$crt"
+          sudo incus exec "$VM" -- update-ca-certificates
+          printf '[Service]\nEnvironment=NODE_EXTRA_CA_CERTS=%s\n' "$crt" > "$RUNNER_TEMP/sz-test-pforte.conf"
+          sudo incus file push --create-dirs "$RUNNER_TEMP/sz-test-pforte.conf" "$VM/etc/systemd/system/steuerzentrale-agent.service.d/sz-test-pforte.conf"
+          sudo incus exec "$VM" --env NODE_EXTRA_CA_CERTS="$crt" -- sh -c "$(jq -r .befehl <<< "$neu")"
       - name: The agent runs and has its certificate
         run: |
           sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
@@ -245,10 +265,67 @@ jobs:
           zentrale="$(bun apps/zentrale/src/testhilfen/testserver.ts fingerabdruck "$SERVER_ID")"
           echo "VM: $vm, Zentrale: $zentrale"
           test -n "$vm" && test "$vm" = "$zentrale"
+          # the agent is connected: the Zentrale saw its hallo through the Pforte
+          agent() { bun apps/zentrale/src/testhilfen/testserver.ts agent "$SERVER_ID"; }
+          for i in $(seq 1 30); do test "$(agent | jq -r .version)" = 0.0.0 && break; sleep 2; done
+          test "$(agent | jq -r .version)" = 0.0.0
+      # Z-504: a newer agent (0.0.1, the same code with another version, scripts/compile.ts) in the
+      # agent files; the maintenance window is the whole day, the planning runs every minute
+      - name: The agent updates itself
+        run: |
+          STEUERZENTRALE_BAU_VERSION=0.0.1 bun run --cwd apps/agent build
+          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-0.0.1"
+          ln -sfn "$RUNNER_TEMP/agent-0.0.1" "$RUNNER_TEMP/agent-dateien.neu"
+          mv -T "$RUNNER_TEMP/agent-dateien.neu" "$RUNNER_TEMP/agent-dateien"
+          bun apps/zentrale/src/testhilfen/testserver.ts wartungsfenster "$SERVER_ID"
+          agent() { bun apps/zentrale/src/testhilfen/testserver.ts agent "$SERVER_ID"; }
+          for i in $(seq 1 60); do test "$(agent | jq -r .version)" = 0.0.1 && break; sleep 5; done
+          agent | tee "$RUNNER_TEMP/agent.json"
+          # the Zentrale saw the new agent's hallo, the job succeeded, the event says so
+          test "$(jq -r .version "$RUNNER_TEMP/agent.json")" = 0.0.1
+          test "$(jq -r .update.zustand "$RUNNER_TEMP/agent.json")" = erfolgreich
+          jq -e '.ereignisse | any(.art == "agent_aktualisiert")' "$RUNNER_TEMP/agent.json"
+          # the new binary runs as the service, the old one is kept beside it
+          sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
+          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 0.0.1 (protokoll 1)"
+          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent.alt --version)" = "steuerzentrale-agent 0.0.0 (protokoll 1)"
+          # the new agent confirmed itself at willkommen; the check from the old binary is planned
+          bestaetigt() { sudo incus exec "$VM" -- grep -q '"bestaetigt":true' /var/lib/steuerzentrale/agent-update.json; }
+          for i in $(seq 1 10); do bestaetigt && break; sleep 1; done
+          bestaetigt
+          sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent-pruefen.timer
+          # the check, run now as its timer would: a confirmed update stays
+          sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent.alt agent-update-pruefen
+          sudo incus exec "$VM" -- test ! -e /var/lib/steuerzentrale/agent-update.json
+          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 0.0.1 (protokoll 1)"
+          sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
+      # Z-504: 0.0.2 with SHA256SUMS signed by a key the server does not trust: refused, nothing replaced
+      - name: A wrong signature is refused
+        run: |
+          STEUERZENTRALE_BAU_VERSION=0.0.2 bun run --cwd apps/agent build
+          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-0.0.2"
+          minisign -G -W -p "$RUNNER_TEMP/fremd.pub" -s "$RUNNER_TEMP/fremd.key"
+          minisign -S -s "$RUNNER_TEMP/fremd.key" -m "$RUNNER_TEMP/agent-0.0.2/SHA256SUMS" < /dev/null
+          ln -sfn "$RUNNER_TEMP/agent-0.0.2" "$RUNNER_TEMP/agent-dateien.neu"
+          mv -T "$RUNNER_TEMP/agent-dateien.neu" "$RUNNER_TEMP/agent-dateien"
+          agent() { bun apps/zentrale/src/testhilfen/testserver.ts agent "$SERVER_ID"; }
+          for i in $(seq 1 60); do test "$(agent | jq -r '.update | "\(.version) \(.zustand)"')" = "0.0.2 gescheitert" && break; sleep 5; done
+          agent | tee "$RUNNER_TEMP/agent.json"
+          test "$(jq -r .update.zustand "$RUNNER_TEMP/agent.json")" = gescheitert
+          jq -r .update.ergebnis "$RUNNER_TEMP/agent.json" | grep -q "the signature of SHA256SUMS does not hold"
+          jq -e '.ereignisse | any(.art == "agent_update_gescheitert")' "$RUNNER_TEMP/agent.json"
+          # the agent still runs 0.0.1 and wrote nothing of 0.0.2
+          test "$(jq -r .version "$RUNNER_TEMP/agent.json")" = 0.0.1
+          sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
+          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 0.0.1 (protokoll 1)"
+          sudo incus exec "$VM" -- test ! -e /usr/local/bin/steuerzentrale-agent.neu
+          sudo incus exec "$VM" -- test ! -e /var/lib/steuerzentrale/agent-update.json
       - if: failure()
         run: |
           cat "$RUNNER_TEMP/zentrale.log" || true
+          cat "$RUNNER_TEMP/pforte.log" || true
           sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent --no-pager -n 100 || true
+          sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent-pruefen --no-pager -n 50 || true
 
   # One result for the rules on main (required check "check"), however many parts the jobs split into
   check:

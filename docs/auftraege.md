@@ -163,6 +163,18 @@ Einrichtungsaufträgen und meldet `{ installation, repository, teile, timer }`; 
 daneben und meldet `{ installation, lauf, teile }`. Beide werden nach einem Neustart des Agenten
 wiederholt.
 
+Das Update des Agenten selbst (`agent_update`, siehe [Updates des Agenten](agent-updates.md)) ist
+ebenso eingebaut, gehört aber zu keiner App: An der Stelle des Manifests trägt er `SHA256SUMS` der
+Agent-Binaries und an der Stelle der Signatur `SHA256SUMS.minisig`, genau wie die Zentrale sie unter
+`/agent/` ausliefert, dazu als einziges Argument `version`; keine Installation, kein Feld
+`einrichtung` oder `backup`, keine Adresse, Zeitlimit höchstens 600 Sekunden. Der Agent prüft
+Schlüssel und Signatur über `SHA256SUMS` wie bei einem Manifest, dann die feste Form
+(`agentUpdateAuftragPruefen` in `packages/manifest`, die auch die Zentrale beim Anlegen nutzt). Er
+lädt sein Binary nur von seiner eigenen Zentrale (Adresse aus `agent.json`), prüft die Prüfsumme, dass
+das neue Binary die Version des Auftrags nennt, und tauscht es aus. Er lehnt ihn ab, solange ein
+anderer Auftrag bei ihm läuft, und meldet gelungen `{ version, vorher }`; danach nimmt er keinen
+Auftrag mehr an und startet neu. Nach einem Neustart mittendrin wird er nicht wiederholt.
+
 Nach Schlüssel und Signatur prüft der Agent die feste Form der Einrichtungsaufträge (Name der Installation, Ports von 1024 bis 65535, nur Optionen des
 Manifests, keine Argumente) und rendert die Units selbst aus dem signierten Manifest. Die Angaben
 zur Installation (Feld `einrichtung`) trägt nur ein Einrichtungsauftrag; jeden anderen Auftrag mit

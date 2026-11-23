@@ -1,11 +1,17 @@
 import { join } from "node:path";
-import { type OeffentlicherSchluessel, schluesselLesen } from "@steuerzentrale/manifest";
+import {
+  AGENT_VERSION,
+  type OeffentlicherSchluessel,
+  schluesselLesen,
+} from "@steuerzentrale/manifest";
 
 /*
  * What `agent.<domain>` hands out before an agent has a certificate (BAULISTE.md Z-302): the install
  * script, the agent binaries and their checksums with the minisign signature. They lie in one
  * directory (STEUERZENTRALE_AGENT_DATEIEN), as `scripts/agent-dateien.ts` lays it out for a release
  * candidate (signed with the test key) and a person for a release (signed with the real key).
+ * `VERSION` names the version of the binaries there: the agents of an older one are updated to it
+ * (Z-504, modules/agent-update); it is not served, the agent checks what its new binary says.
  */
 export const DATEIEN = [
   "steuerzentrale-agent-linux-x64",
@@ -45,6 +51,9 @@ export const skriptAusfuellen = (
   return vorlage.replaceAll(ZENTRALE, werte.zentrale).replaceAll(SCHLUESSEL, werte.schluessel);
 };
 
+/** The agents' release in the directory: its version, SHA256SUMS and the signature, as served */
+export type AgentStand = { version: string; summen: string; signatur: string };
+
 export type Auslieferung = {
   skript: () => Promise<string | undefined>;
   datei: (name: Datei) => Bun.BunFile | undefined;
@@ -53,6 +62,8 @@ export type Auslieferung = {
    * uploaded manifest with (docs/plan.md, "Manifest beim Installieren"); undefined without one
    */
   manifestSchluessel: () => Promise<OeffentlicherSchluessel | undefined>;
+  /** The release to update agents to; undefined without VERSION, SHA256SUMS or its signature */
+  agentStand: () => Promise<AgentStand | undefined>;
 };
 
 /** Reads from `verzeichnis` on every request, so a new release there needs no restart */
@@ -76,6 +87,19 @@ export const auslieferung = (verzeichnis: string | undefined, zentrale: string):
     manifestSchluessel: async () => {
       const zeile = await zeileLesen();
       return zeile ? schluesselLesen(zeile) : undefined;
+    },
+    agentStand: async () => {
+      if (!verzeichnis) return undefined;
+      const lesen = async (name: string) => {
+        const datei = Bun.file(join(verzeichnis, name));
+        return (await datei.exists()) ? await datei.text() : undefined;
+      };
+      const [version, summen, signatur] = await Promise.all(
+        ["VERSION", "SHA256SUMS", "SHA256SUMS.minisig"].map(lesen),
+      );
+      const v = version?.trim();
+      if (!v || !AGENT_VERSION.test(v) || !summen || !signatur) return undefined;
+      return { version: v, summen, signatur };
     },
   };
 };
