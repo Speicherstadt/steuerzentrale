@@ -49,6 +49,11 @@ legt es an, signiert mit dem Test-Schlüssel ([Server hinzufügen](server-hinzuf
 `openssl`; die CI prüft das Skript mit `shellcheck --shell=sh install/install.sh` und lässt es im Job
 `server` in je einer Incus-VM mit Debian 13 und Ubuntu 24.04 laufen (nur CI).
 
+DNS-Einträge setzt die Zentrale über die Cloudflare-API. Tests sprechen nie mit Cloudflare: sie
+starten den Nachbau `apps/zentrale/src/testhilfen/cloudflare.ts`, die E2E-Tests auf Port 28301, und
+`STEUERZENTRALE_CLOUDFLARE_API` lenkt die Zentrale dorthin; die Variable nimmt nur eine Adresse auf
+localhost an ([Adressen und DNS](dns.md)).
+
 Anmeldung und Rollen: `apps/zentrale/src/auth/` (Better Auth mit Organisationen, Passkeys und TOTP;
 Rollen als Zugriffssteuerung des Organization-Plugins in `rollen.ts`). Jede Route steht mit ihrem
 Recht in `apps/zentrale/src/routes/zugang.ts` (`ROUTEN`) und wird nur darüber angelegt; `zugang.test.ts`

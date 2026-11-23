@@ -16,6 +16,7 @@ kommen, ändert ihre Angaben und trägt eine Kündigung ein.
 | Angabe | Bedeutung |
 | --- | --- |
 | Name | Name des Kunden, wie er in Listen und Installationen steht |
+| Kürzel | Teil der Adressen seiner Installationen, `<app>.<kürzel>.<domain>` ([DNS](dns.md)) |
 | Ansprechperson | Name, E-Mail-Adresse und wahlweise Telefon |
 | Notiz | freier Text für den Betreiber, wahlweise |
 | Vertrag | SLA, Vertragsbeginn und, nach einer Kündigung, Vertragsende |
@@ -28,6 +29,20 @@ Vertragsbeginn und Vertragsende sind Tage. Die Zentrale speichert den Beginn die
 `Europe/Berlin` als Zeitpunkt in UTC-Millisekunden; die Oberfläche zeigt ihn als TT.MM.JJJJ. Einen
 Zeitpunkt, der nicht der Beginn eines Tages in Berlin ist, lehnt die API mit `400 ungueltig` ab. Das
 Vertragsende liegt nie vor dem Beginn.
+
+## Kürzel
+
+Das Kürzel besteht aus Kleinbuchstaben, Ziffern und Bindestrichen (nicht am Anfang oder Ende), höchstens
+30 Zeichen, und ist unter den Kunden eines Betreibers eindeutig. Bleibt das Feld beim Anlegen leer,
+schlägt die Zentrale eines aus dem Namen vor: Umlaute ausgeschrieben, Akzente weggelassen, jedes andere
+Zeichen ein Bindestrich, also „Praxis Dr. Müller & Söhne“ → `praxis-dr-mueller-soehne`; ist es schon
+vergeben, folgt `-2`, `-3` usw. Ein angegebenes Kürzel, das ein anderer Kunde hat, lehnt die API mit
+`409 kuerzel_vergeben` ab. Kunden, die es vor dem Kürzel schon gab, bekamen beim Update eines auf die
+gleiche Weise; bei gleichem Vorschlag hängt die Zentrale den Anfang der Kunden-ID an.
+
+Solange eine Installation des Kunden läuft oder eingerichtet wird, bleibt das Kürzel fest (`409
+kuerzel_fest`); der Dialog zeigt das Feld dann gesperrt. Die Adresse einer bestehenden Installation
+ändert sich mit dem Kürzel ohnehin nicht, das Kürzel ist nur der Vorschlag für neue.
 
 ## Kündigung
 
@@ -70,8 +85,8 @@ Jede schreibende Route verlangt `grund` im Körper.
 | --- | --- | --- |
 | `GET /api/v1/kunden` | alle Rollen | – |
 | `GET /api/v1/kunden/:kundeId` | alle Rollen | – |
-| `POST /api/v1/kunden` | Inhaber, Technik | `name`, `kontakt` (`name`, `email`, `telefon`?), `notiz`?, `vertrag` (`sla: "basis"`, `beginn`), `grund` |
-| `PUT /api/v1/kunden/:kundeId` | Inhaber, Technik | `name`, `kontakt`, `notiz`?, `beginn`, `grund`; ersetzt die Angaben, ein fehlendes Feld mit `?` wird leer |
+| `POST /api/v1/kunden` | Inhaber, Technik | `name`, `kontakt` (`name`, `email`, `telefon`?), `notiz`?, `kuerzel`?, `vertrag` (`sla: "basis"`, `beginn`), `grund`; ohne `kuerzel` schlägt die Zentrale eines vor |
+| `PUT /api/v1/kunden/:kundeId` | Inhaber, Technik | `name`, `kontakt`, `notiz`?, `kuerzel`?, `beginn`, `grund`; ersetzt die Angaben, ein fehlendes Feld mit `?` wird leer, ein fehlendes `kuerzel` bleibt |
 | `PUT /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `ende`, `grund` |
 | `DELETE /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `grund` |
 
@@ -83,6 +98,8 @@ Die Antwort ist der Kunde:
   "name": "Atelier Nord",
   "kontakt": { "name": "Anna Nord", "email": "buero@atelier-nord.de", "telefon": null },
   "notiz": null,
+  "kuerzel": "atelier-nord",
+  "kuerzelAenderbar": true,
   "angelegtAm": 1795167720000,
   "vertrag": { "sla": "basis", "beginn": 1773442800000, "ende": null }
 }

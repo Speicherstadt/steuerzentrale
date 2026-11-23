@@ -1,3 +1,4 @@
+import { KUERZEL } from "@steuerzentrale/manifest";
 import { tagesbeginn } from "@steuerzentrale/planung";
 import type { Context } from "hono";
 import { z } from "zod";
@@ -15,6 +16,7 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 /*
  * Customers and their contracts (BAULISTE.md Z-801): every role reads, owner and technik write
  * (src/auth/rollen.ts). Every write names its reason in `grund`, which goes into the audit log.
+ * The short name (Z-407) may be left out: a new customer gets one from its name, a change keeps it.
  */
 
 const text = (max: number) => z.string().trim().min(1).max(max);
@@ -35,6 +37,7 @@ const stammdaten = {
     .object({ name: text(200), email: z.email().max(254), telefon: text(50).optional() })
     .strict(),
   notiz: text(2000).optional(),
+  kuerzel: z.string().regex(KUERZEL).optional(),
 };
 
 // stage 1 offers only SLA Basis; the schema of the table carries Plus and Ruhe for Z-505
@@ -49,10 +52,17 @@ const aendernSchema = z.object({ ...stammdaten, beginn: tag, grund }).strict();
 const kuendigenSchema = z.object({ ende: tag, grund }).strict();
 const grundSchema = z.object({ grund }).strict();
 
-const STATUS = { kein_kunde: 404, ende_vor_beginn: 409 } as const;
+const STATUS = {
+  kein_kunde: 404,
+  ende_vor_beginn: 409,
+  kuerzel_vergeben: 409,
+  kuerzel_fest: 409,
+} as const;
 
-const antwort = (c: Context<Anfrage>, ergebnis: Ergebnis) =>
-  ergebnis.ok ? c.json(ergebnis.kunde) : c.json({ fehler: ergebnis.grund }, STATUS[ergebnis.grund]);
+const antwort = (c: Context<Anfrage>, ergebnis: Ergebnis, status: 200 | 201 = 200) =>
+  ergebnis.ok
+    ? c.json(ergebnis.kunde, status)
+    : c.json({ fehler: ergebnis.grund }, STATUS[ergebnis.grund]);
 
 export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
   const kontext = (c: Context<Anfrage>, begruendung: string) => ({
@@ -77,7 +87,7 @@ export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
     const angaben = await eingabe(c, anlegenSchema);
     if (!angaben) return ungueltig(c);
     const { grund: begruendung, ...daten } = angaben;
-    return c.json(kundeAnlegen(deps.db, deps.schreibDb, kontext(c, begruendung), daten), 201);
+    return antwort(c, kundeAnlegen(deps.db, deps.schreibDb, kontext(c, begruendung), daten), 201);
   });
 
   route("PUT /api/v1/kunden/:kundeId", async (c) => {

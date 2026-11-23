@@ -151,4 +151,20 @@ describe("parseEnv", () => {
       }).agentDateien,
     ).toBe("/opt/steuerzentrale/agent");
   });
+
+  // Z-407: Cloudflare's API, elsewhere only for the stand-in in tests (testhilfen/cloudflare.ts)
+  it("talks to Cloudflare's API and lets only a test point it at localhost", () => {
+    const basis = {
+      STEUERZENTRALE_SECRET_KEY: KEY,
+      STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: AGENT_,
+    };
+    expect(parseEnv(basis).cloudflareApi).toBe("https://api.cloudflare.com/client/v4");
+    const test = { ...basis, STEUERZENTRALE_CLOUDFLARE_API: "http://127.0.0.1:28301/client/v4/" };
+    expect(parseEnv(test).cloudflareApi).toBe("http://127.0.0.1:28301/client/v4");
+    for (const fremd of ["https://evil.example/client/v4", "http://10.0.0.1/", "kein-url"])
+      expect(fehlerVon({ ...basis, STEUERZENTRALE_CLOUDFLARE_API: fremd })).toContain(
+        "STEUERZENTRALE_CLOUDFLARE_API is for tests only",
+      );
+  });
 });

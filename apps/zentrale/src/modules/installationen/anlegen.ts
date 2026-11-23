@@ -24,6 +24,7 @@ import {
 } from "../auftraege/anlegen.ts";
 import type { Auftrag } from "../auftraege/lesen.ts";
 import { type AuftragDeps, zustellen } from "../auftraege/zustellen.ts";
+import { dnsFuerNeueInstallation } from "../dns/index.ts";
 import { betreiberWerteSchreiben } from "../einstellungen/betreiber.ts";
 import {
   type GeheimeEinstellungen,
@@ -49,6 +50,7 @@ import { autoWerteErzeugen, betreiberWerteFuer, installationsWerte, type Zufall 
  * values (`einrichtungAuftragPruefen`). Then, in one transaction with the audit log, the row with
  * its secrets encrypted, its ports, the operator's values the dialog added (Z-404), the job
  * `installation_einrichten` and, for an app with a route, `pforte_route_setzen` that waits for it.
+ * A host below the operator's domain gets its DNS records after that (modules/dns, Z-407).
  */
 
 export type InstallationsDeps = AuftragDeps & {
@@ -247,6 +249,7 @@ const zeileAus = (kontext: Kontext, deps: InstallationsDeps, neu: NeueInstallati
     einstellungen: JSON.stringify(plan.offen),
     geheim: geheimVerschluesseln(deps.schluessel, betreiberId, plan.name, plan.geheim),
     zustand: "wird_eingerichtet" as const,
+    ...dnsFuerNeueInstallation(deps.db, betreiberId, neu.host, jetzt),
     angelegtVon: kontext.akteur,
     angelegtAm: jetzt,
     geaendertAm: jetzt,
@@ -289,6 +292,7 @@ export const installationAnlegen = (
     return auftraege.zeilen.map((z) => auftragEinfuegen(w, z));
   });
   if (einrichten) zustellen(deps, [einrichten]);
+  deps.dnsAnstossen?.();
   return {
     ok: true,
     installation: installationLesen(deps.db, betreiberId, plan.name) as Installation,

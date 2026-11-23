@@ -3,11 +3,13 @@ import { and, eq } from "drizzle-orm";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import { kunden, type SLAS, vertraege } from "../../db/schema.ts";
 import { type Kontext, schreiben } from "../audit/index.ts";
+import { kuerzelFuerNeu, kuerzelVergeben, kundenMitFestemKuerzel } from "./kuerzel.ts";
 
 /*
  * Customers and their contracts (BAULISTE.md Z-801). Reads go through the read-only `db`, always
  * within one operator; every write goes through `schreiben` with the caller's reason. A customer
- * and its one contract are made together; the notice date is the contract's end.
+ * and its one contract are made together; the notice date is the contract's end. Its short name
+ * (Z-407) is unique within the operator and fixed while an installation of it runs (kuerzel.ts).
  */
 
 export type Sla = (typeof SLAS)[number];
@@ -17,6 +19,9 @@ export type Kunde = {
   name: string;
   kontakt: { name: string; email: string; telefon: string | null };
   notiz: string | null;
+  kuerzel: string;
+  /** False while an installation of the customer runs or is being set up (Z-407) */
+  kuerzelAenderbar: boolean;
   angelegtAm: number;
   vertrag: { sla: Sla; beginn: number; ende: number | null };
 };
@@ -26,11 +31,13 @@ export type Stammdaten = {
   name: string;
   kontakt: { name: string; email: string; telefon?: string | undefined };
   notiz?: string | undefined;
+  /** Left out: a new customer gets one suggested from its name, a changed one keeps its own */
+  kuerzel?: string | undefined;
 };
 
 export type Ergebnis =
   | { ok: true; kunde: Kunde }
-  | { ok: false; grund: "kein_kunde" | "ende_vor_beginn" };
+  | { ok: false; grund: "kein_kunde" | "ende_vor_beginn" | "kuerzel_vergeben" | "kuerzel_fest" };
 
 const SPALTEN = {
   id: kunden.kundeId,
@@ -39,6 +46,7 @@ const SPALTEN = {
   kontaktEmail: kunden.kontaktEmail,
   kontaktTelefon: kunden.kontaktTelefon,
   notiz: kunden.notiz,
+  kuerzel: kunden.kuerzel,
   angelegtAm: kunden.angelegtAm,
   vertragId: vertraege.vertragId,
   sla: vertraege.sla,
@@ -57,14 +65,18 @@ const abfrage = (db: Db) =>
 
 type Zeile = Awaited<ReturnType<ReturnType<typeof abfrage>["all"]>>[number];
 
-const alsKunde = (z: Zeile): Kunde => ({
-  id: z.id,
-  name: z.name,
-  kontakt: { name: z.kontaktName, email: z.kontaktEmail, telefon: z.kontaktTelefon },
-  notiz: z.notiz,
-  angelegtAm: z.angelegtAm,
-  vertrag: { sla: z.sla, beginn: z.beginn, ende: z.ende },
-});
+const alsKunde =
+  (fest: Set<string>) =>
+  (z: Zeile): Kunde => ({
+    id: z.id,
+    name: z.name,
+    kontakt: { name: z.kontaktName, email: z.kontaktEmail, telefon: z.kontaktTelefon },
+    notiz: z.notiz,
+    kuerzel: z.kuerzel,
+    kuerzelAenderbar: !fest.has(z.id),
+    angelegtAm: z.angelegtAm,
+    vertrag: { sla: z.sla, beginn: z.beginn, ende: z.ende },
+  });
 
 const zeileVon = (db: Db, betreiberId: string, kundeId: string): Zeile | undefined =>
   abfrage(db)
@@ -76,12 +88,12 @@ export const kundenListe = (db: Db, betreiberId: string): Kunde[] =>
   abfrage(db)
     .where(eq(kunden.betreiberId, betreiberId))
     .all()
-    .map(alsKunde)
+    .map(alsKunde(kundenMitFestemKuerzel(db, betreiberId)))
     .sort((a, b) => a.name.localeCompare(b.name, "de"));
 
 export const kundeLesen = (db: Db, betreiberId: string, kundeId: string): Kunde | undefined => {
   const zeile = zeileVon(db, betreiberId, kundeId);
-  return zeile && alsKunde(zeile);
+  return zeile && alsKunde(kundenMitFestemKuerzel(db, betreiberId))(zeile);
 };
 
 /** The columns of `kunden` a person sets; empty optional fields are stored as null */
@@ -109,11 +121,20 @@ export const kundeAnlegen = (
   schreibDb: SchreibDb,
   kontext: Kontext,
   daten: Stammdaten & { vertrag: { sla: Sla; beginn: number } },
-): Kunde => {
+): Ergebnis => {
   const kundeId = randomUUID();
   const { betreiberId, jetzt } = kontext;
+  if (daten.kuerzel !== undefined && kuerzelVergeben(db, betreiberId, daten.kuerzel))
+    return { ok: false, grund: "kuerzel_vergeben" };
+  const kuerzel = daten.kuerzel ?? kuerzelFuerNeu(db, betreiberId, daten.name);
   schreiben(schreibDb, kontext, "kunde.anlegen", (s) => {
-    s.einfuegen("kunden", { betreiberId, kundeId, ...spaltenAus(daten), angelegtAm: jetzt });
+    s.einfuegen("kunden", {
+      betreiberId,
+      kundeId,
+      ...spaltenAus(daten),
+      kuerzel,
+      angelegtAm: jetzt,
+    });
     s.einfuegen("vertraege", {
       betreiberId,
       vertragId: randomUUID(),
@@ -124,7 +145,19 @@ export const kundeAnlegen = (
       angelegtAm: jetzt,
     });
   });
-  return kundeLesen(db, betreiberId, kundeId) as Kunde;
+  return gelesen(db, kontext, kundeId);
+};
+
+/** Why the short name cannot become `neu`, if it changes at all */
+const kuerzelHindernis = (
+  db: Db,
+  betreiberId: string,
+  alt: { id: string; kuerzel: string },
+  neu: string | undefined,
+): "kuerzel_vergeben" | "kuerzel_fest" | undefined => {
+  if (neu === undefined || neu === alt.kuerzel) return undefined;
+  if (kundenMitFestemKuerzel(db, betreiberId).has(alt.id)) return "kuerzel_fest";
+  return kuerzelVergeben(db, betreiberId, neu, alt.id) ? "kuerzel_vergeben" : undefined;
 };
 
 /** Replaces what a person entered about the customer and the day its contract begins */
@@ -138,7 +171,12 @@ export const kundeAendern = (
   const alt = zeileVon(db, kontext.betreiberId, kundeId);
   if (!alt) return { ok: false, grund: "kein_kunde" };
   if (alt.ende !== null && alt.ende < daten.beginn) return { ok: false, grund: "ende_vor_beginn" };
-  const stamm = unterschied(alt, spaltenAus(daten));
+  const hindernis = kuerzelHindernis(db, kontext.betreiberId, alt, daten.kuerzel);
+  if (hindernis) return { ok: false, grund: hindernis };
+  const stamm = unterschied(alt, {
+    ...spaltenAus(daten),
+    ...(daten.kuerzel === undefined ? {} : { kuerzel: daten.kuerzel }),
+  });
   const vertrag = unterschied(alt, { beginn: daten.beginn });
   if (Object.keys(stamm).length > 0 || Object.keys(vertrag).length > 0)
     schreiben(schreibDb, kontext, "kunde.aendern", (s) => {

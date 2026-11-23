@@ -1,4 +1,5 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { Database } from "bun:sqlite";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -130,5 +131,26 @@ describe("the example app", () => {
 
   it("answers health red in its broken build", async () => {
     expect((await starten(28483, 28484, { BEISPIEL_KAPUTT: "1" })).status).toBe(500);
+  });
+
+  // The agent runs `migrieren` by podman exec while the app writes (BAULISTE.md Z-402): without a
+  // busy timeout SQLite answers "database is locked" at once and the setup fails now and then
+  it("migrates while another connection holds the write lock for a moment", async () => {
+    const ordner = join(daten, "gesperrt");
+    mkdirSync(ordner, { recursive: true });
+    const halter = new Database(join(ordner, "beispiel.db"), { create: true });
+    halter.run("PRAGMA journal_mode = WAL");
+    halter.run("BEGIN IMMEDIATE");
+    halter.run("CREATE TABLE IF NOT EXISTS sperre (x INTEGER)");
+    const migration = Bun.spawn(["bun", SERVER, "migrieren"], {
+      env: env({ BEISPIEL_DATEN: ordner }),
+      stdout: "ignore",
+      stderr: "pipe",
+    });
+    await Bun.sleep(1000);
+    halter.run("COMMIT");
+    halter.close();
+    const code = await migration.exited;
+    expect(code, await new Response(migration.stderr).text()).toBe(0);
   });
 });

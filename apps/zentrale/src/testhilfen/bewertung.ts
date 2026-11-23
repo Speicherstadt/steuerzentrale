@@ -65,6 +65,7 @@ export const kundeUndServer = (
       name: "Kanzlei",
       kontaktName: "Kim",
       kontaktEmail: "kim@kanzlei.test",
+      kuerzel: "kanzlei",
       angelegtAm: jetzt,
     });
     for (const serverId of serverIds)

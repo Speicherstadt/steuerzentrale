@@ -182,7 +182,8 @@ export const einladungen = sqliteTable(
 
 /**
  * A customer of an operator with one contact person (BAULISTE.md Z-801); customers never sign in
- * to the Zentrale (docs/plan.md, "Was der Kunde sieht")
+ * to the Zentrale (docs/plan.md, "Was der Kunde sieht"). `kuerzel` is its short name in the
+ * addresses `<app>.<kuerzel>.<domain>` (Z-407), unique within the operator
  */
 export const kunden = sqliteTable(
   "kunden",
@@ -194,9 +195,13 @@ export const kunden = sqliteTable(
     kontaktEmail: text("kontakt_email").notNull(),
     kontaktTelefon: text("kontakt_telefon"),
     notiz: text("notiz"),
+    kuerzel: text("kuerzel").notNull(),
     angelegtAm: integer("angelegt_am").notNull(),
   },
-  (t) => [primaryKey({ columns: [t.betreiberId, t.kundeId] })],
+  (t) => [
+    primaryKey({ columns: [t.betreiberId, t.kundeId] }),
+    uniqueIndex("kunden_kuerzel").on(t.betreiberId, t.kuerzel),
+  ],
 );
 
 /** The service levels of a contract (docs/plan.md, "SLA"); stage 1 offers only `basis` (Z-505) */

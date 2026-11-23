@@ -11,6 +11,7 @@ import { parseEnv } from "./env.ts";
 import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
 import { bewertungsSchleife } from "./modules/bewertung/index.ts";
+import { dnsSchleife } from "./modules/dns/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
 import { stilleSchleife } from "./modules/verbindung/stille.ts";
@@ -78,6 +79,19 @@ const planen = (lauf: () => void, ms: number) => {
 aufbewahrungsSchleife(db, schreibDb, Date.now, planen, log);
 stilleSchleife(db, schreibDb, Date.now, planen, log);
 bewertungsSchleife(db, schreibDb, Date.now, planen, log);
+// DNS records of installations at Cloudflare (Z-407): every 30 s and at once when some are due
+const dns = dnsSchleife(
+  {
+    db,
+    schreibDb,
+    schluessel: env.schluessel,
+    fetch,
+    basis: env.cloudflareApi,
+    now: Date.now,
+    log,
+  },
+  planen,
+);
 const auth = createAuth({ schreibDb, url: env.url, geheimnis: datenbank.anmeldeGeheimnis });
 const app = createApp({
   log,
@@ -92,6 +106,7 @@ const app = createApp({
   auslieferung: auslieferung(env.agentDateien, env.agentUrl),
   socketAdresse: (request, server) => (server as Server<unknown>).requestIP(request)?.address,
   verbindungen: verbindungen(TRENNUNG.ersetzt),
+  dnsAnstossen: dns.anstossen,
 });
 // `websocket` carries the agents' connections (src/routes/verbindung.ts)
 const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch, websocket });

@@ -132,3 +132,40 @@ describe("the customer pages", () => {
     );
   });
 });
+
+describe("a customer's short name (Z-407)", () => {
+  // Z-407: the short name in the addresses `<app>.<kuerzel>.<domain>`
+  it("suggest a short name from the name, or take the one given", async () => {
+    const { root } = await oeffne("/kunden");
+    knopf(root, "Kunde anlegen").click();
+    flush();
+    await ausfuellen(root, {
+      "Name des Kunden": "Müller & Söhne",
+      Ansprechperson: "Mia Muster",
+      "E-Mail-Adresse": "mia@muster.test",
+      Vertragsbeginn: "2026-12-01",
+      Grund: "Vertrag vom 20.11.",
+    });
+    expect(root.textContent).toContain("Kürzel mueller-soehne");
+    knopf(root, "Ändern").click();
+    flush();
+    await ausfuellen(root, { Kürzel: "atelier-nord", Grund: "anderes Kürzel" });
+    expect(root.querySelector("dialog[open] [role=alert]")?.textContent).toBe(
+      "Dieses Kürzel hat schon ein anderer Kunde.",
+    );
+  });
+
+  it("keep the short name fixed while an installation runs", async () => {
+    const { root } = await oeffne("/kunden/atelier-nord");
+    expect(root.textContent).toContain("Kürzel atelier-nord");
+    knopf(root, "Ändern").click();
+    flush();
+    const dialog = root.querySelector("dialog[open]");
+    const marke = [...(dialog?.querySelectorAll("label") ?? [])].find(
+      (l) => l.textContent === "Kürzel",
+    );
+    const feld = dialog?.querySelector<HTMLInputElement>(`#${CSS.escape(marke?.htmlFor ?? "")}`);
+    expect(feld?.disabled).toBe(true);
+    expect(dialog?.textContent).toContain("Fest, solange eine Installation des Kunden läuft");
+  });
+});

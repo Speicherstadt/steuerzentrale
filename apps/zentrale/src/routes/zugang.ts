@@ -89,6 +89,9 @@ export const ROUTEN = {
   "GET /api/v1/auftraege": recht("betreiber:lesen"),
   "GET /api/v1/ereignisse": recht("betreiber:lesen"),
   "GET /api/v1/audit": recht("audit:lesen"),
+  // the operator's DNS (Z-407): every role sees domain and zone and whether a token is set
+  "GET /api/v1/dns": recht("dns:lesen"),
+  "PUT /api/v1/dns": recht("dns:schreiben"),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,

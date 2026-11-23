@@ -14,6 +14,8 @@ export type Stammdaten = {
   name: string;
   kontakt: { name: string; email: string; telefon?: string };
   notiz?: string;
+  /** Left out: a new customer gets one from its name, a changed one keeps its own (Z-407) */
+  kuerzel?: string;
 };
 
 export type KundeNeu = Stammdaten & { vertrag: { sla: "basis"; beginn: number } };

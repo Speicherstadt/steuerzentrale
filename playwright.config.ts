@@ -8,6 +8,9 @@ import { defineConfig, devices } from "@playwright/test";
 // (CLAUDE.md, "Working rules"). Layout from Speicherstadt/kennwort, playwright.config.ts.
 const port = 5182;
 const zentralePort = 28300;
+// The stand-in for Cloudflare's API (Z-407, apps/zentrale/src/testhilfen/cloudflare.ts): no DNS
+// record of a test ever reaches Cloudflare
+const cloudflarePort = 28301;
 // Where the pinned Playwright's own browser is missing (some sandboxes), CHROMIUM_PATH names another
 const executablePath = process.env.CHROMIUM_PATH;
 const launchOptions = executablePath ? { executablePath } : {};
@@ -69,7 +72,13 @@ export default defineConfig({
         // where agents reach it: the install command of the dialog "Server hinzufügen" names it
         STEUERZENTRALE_AGENT_URL: `http://localhost:${zentralePort}`,
         STEUERZENTRALE_AGENT_DATEIEN: agentDateien,
+        STEUERZENTRALE_CLOUDFLARE_API: `http://127.0.0.1:${cloudflarePort}/client/v4`,
       },
+    },
+    {
+      command: `bun apps/zentrale/src/testhilfen/cloudflare.ts ${cloudflarePort}`,
+      port: cloudflarePort,
+      reuseExistingServer: false,
     },
     {
       command: "bun run --cwd apps/web build --mode demo && bun run --cwd apps/web preview",

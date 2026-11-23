@@ -1,4 +1,5 @@
 import {
+  adresseVorschlag,
   alleOptionen,
   einstellungsFormular,
   type Geprueft,
@@ -9,6 +10,7 @@ import {
 import { m } from "@steuerzentrale/ui";
 import { createMemo, createSignal } from "solid-js";
 import type { Antwort } from "../anmeldung/api.ts";
+import { dnsQuelle } from "../daten/dns.ts";
 import type { Feld } from "../daten/einstellungs-formular.ts";
 import { installationenQuelle, type PlatzWunsch } from "../daten/installationen.ts";
 import { kundenQuelle } from "../daten/kunden.ts";
@@ -19,7 +21,8 @@ import type { Kunde } from "../daten/typen.ts";
  * What the dialog "Installieren" has chosen so far, and what follows from it (BAULISTE.md Z-402):
  * the manifest read in the browser with the Zentrale's own function, its settings for the chosen
  * options, and the placement asked again on every change of customer, server, manifest, signature
- * or options. Created in the dialog's form, so it starts empty each time the dialog opens.
+ * or options, and the address it suggests, `<app>.<kuerzel>.<domain>` (Z-407). Created in the
+ * dialog's form, so it starts empty each time the dialog opens.
  */
 
 export type Auswahl = {
@@ -50,6 +53,10 @@ export type Auswahl = {
   platzierung: () => Antwort<Platzierung> | undefined;
   /** "<app> auf <server>", the line under the placement's verdict */
   titel: () => string;
+  /** The operator's domain from its DNS settings, null while it has none (Z-407) */
+  domain: () => string | null;
+  /** `<app>.<kuerzel>.<domain>` once customer and manifest are chosen and a domain is set */
+  vorschlag: () => string | undefined;
 };
 
 export const auswahlZustand = (vorgewaehlt: () => string | undefined): Auswahl => {
@@ -96,6 +103,17 @@ export const auswahlZustand = (vorgewaehlt: () => string | undefined): Auswahl =
     );
     return betreiberFormular().filter((f) => fehlt.has(f.name));
   };
+  const dns = createMemo(() => dnsQuelle().lesen());
+  const domain = () => {
+    const d = dns();
+    return d.ok ? d.daten.domain : null;
+  };
+  const vorschlag = () => {
+    const k = kunden();
+    const kunde = k.ok ? k.daten.find((x) => x.id === kundeId()) : undefined;
+    const app = gelesen()?.id;
+    return kunde && app ? adresseVorschlag(app, kunde.kuerzel, domain()) : undefined;
+  };
   const titel = () => {
     const s = server();
     const name = s.ok ? s.daten.find((x) => x.serverId === serverId())?.name : undefined;
@@ -123,5 +141,7 @@ export const auswahlZustand = (vorgewaehlt: () => string | undefined): Auswahl =
     wunsch,
     platzierung,
     titel,
+    domain,
+    vorschlag,
   };
 };

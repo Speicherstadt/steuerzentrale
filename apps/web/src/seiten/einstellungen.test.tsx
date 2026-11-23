@@ -1,12 +1,14 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { dnsQuelleEinsetzen } from "../daten/dns.ts";
 import { einstellungenQuelleEinsetzen } from "../daten/einstellungen.ts";
 import { installationenQuelleEinsetzen } from "../daten/installationen.ts";
 import { kundenQuelleEinsetzen } from "../daten/kunden.ts";
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
 import { serverQuelleEinsetzen } from "../daten/server.ts";
 import type { Rolle } from "../daten/typen.ts";
+import { demoDns } from "../demo/dns.ts";
 import { demoEinstellungenQuelle } from "../demo/einstellungen.ts";
 import { demo } from "../demo/index.ts";
 import { demoInstallationenQuelle } from "../demo/installationen-quelle.ts";
@@ -84,6 +86,44 @@ describe("the operator's values per app", () => {
     const haben = karte(root, "Haben");
     expect(haben.querySelector("form")).toBeNull();
     expect(haben.textContent).toContain("12345");
+  });
+});
+
+// Z-407: domain, zone and Cloudflare token; the token never comes back, only as set
+describe("the DNS settings", () => {
+  const dnsKarte = async (rolleName: Rolle = "technik") => {
+    rolle(rolleName);
+    const { root } = await oeffne("/einstellungen?tab=dns");
+    return { root, k: karte(root, "DNS") };
+  };
+
+  it("are saved with a reason; the token shows only as set and its field stays empty", async () => {
+    dnsQuelleEinsetzen(demoDns({ domain: null, zoneId: null, tokenGesetzt: false }));
+    const { root, k } = await dnsKarte();
+    expect(feld<HTMLInputElement>("API-Token", k).required).toBe(true);
+    eintragen("Domain", "apps.example.de", k);
+    eintragen("Zone-ID", "023e105f4ecef8ad9ca31a8372d0c353", k);
+    eintragen("API-Token", "cf-token-aus-dem-dashboard-1234567890", k);
+    eintragen("Grund", "Zone angelegt", k);
+    flush();
+    k.querySelector("form")?.requestSubmit();
+    await warten();
+    const neu = karte(root, "DNS");
+    expect(neu.textContent).toContain("DNS-Einstellungen gespeichert.");
+    expect(feld<HTMLInputElement>("Domain", neu).value).toBe("apps.example.de");
+    expect(feld<HTMLInputElement>("API-Token", neu).value).toBe("");
+    expect(feld<HTMLInputElement>("API-Token", neu).required).toBe(false);
+    expect(neu.textContent).toContain("gesetzt; leer lassen behält den Token");
+    expect(root.textContent).not.toContain("cf-token-aus-dem-dashboard");
+  });
+
+  it("are only read by support", async () => {
+    dnsQuelleEinsetzen(demoDns());
+    const { k } = await dnsKarte("support");
+    expect(k.querySelector("form")).toBeNull();
+    expect(k.textContent).toContain("apps.beispiel-hosting.de");
+    expect(k.textContent).toContain("<app>.<kürzel>.apps.beispiel-hosting.de");
+    expect(k.textContent).toContain("gesetzt");
   });
 });
 
