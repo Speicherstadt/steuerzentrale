@@ -1,3 +1,4 @@
+import { signieren, vorsignieren } from "@steuerzentrale/manifest";
 import { describe, expect, it } from "vitest";
 import {
   FRAGMENT_BYTES,
@@ -6,7 +7,6 @@ import {
   sioOeffnen,
   sioVersiegeln,
 } from "./madmin-daten.ts";
-import { signieren } from "./sigv4.ts";
 
 /*
  * BAULISTE.md Z-601: the Zentrale signs its requests to MinIO and encrypts the bodies of the admin
@@ -77,6 +77,40 @@ describe("AWS Signature V4", () => {
     expect(signatur(k.authorization)).toBe(
       "34b48302e7b5fa45bde8084f4b7868a86f0a534bc59db6670ed5711ef69dc6f7",
     );
+  });
+
+  // "Authenticating Requests: Using Query Parameters", the example GET of test.txt for 24 hours
+  it("pre-signs the documentation's GET Object in the query (Z-604)", async () => {
+    const url = await vorsignieren({
+      methode: "GET",
+      url: new URL("https://examplebucket.s3.amazonaws.com/test.txt"),
+      zugang: AWS,
+      region: "us-east-1",
+      jetzt: JETZT,
+      gueltigS: 86_400,
+    });
+    expect(url.searchParams.get("X-Amz-Signature")).toBe(
+      "aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404",
+    );
+    expect(url.searchParams.get("X-Amz-Credential")).toBe(
+      "AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request",
+    );
+    expect(url.searchParams.get("X-Amz-Expires")).toBe("86400");
+  });
+
+  it("refuses a pre-signed URL valid for longer than seven days", async () => {
+    const neu = (gueltigS: number) =>
+      vorsignieren({
+        methode: "GET",
+        url: new URL("https://examplebucket.s3.amazonaws.com/test.txt"),
+        zugang: AWS,
+        region: "us-east-1",
+        jetzt: JETZT,
+        gueltigS,
+      });
+    await expect(neu(604_801)).rejects.toThrow();
+    await expect(neu(0)).rejects.toThrow();
+    await expect(neu(604_800)).resolves.toBeInstanceOf(URL);
   });
 });
 

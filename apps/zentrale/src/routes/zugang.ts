@@ -86,6 +86,10 @@ export const ROUTEN = {
   "POST /api/v1/installationen/:installationId/neustart": mitZugang("installationen:schreiben"),
   "POST /api/v1/installationen/:installationId/nur-lesen": recht("installationen:schreiben"),
   "POST /api/v1/installationen/:installationId/log-auszug": mitZugang("installationen:log_auszug"),
+  // after the contract's end (Z-604): every role sees where it stands; the link to the archive
+  // for the customer only owner and technik, with a reason
+  "GET /api/v1/installationen/:installationId/abwicklung": recht("installationen:lesen"),
+  "POST /api/v1/installationen/:installationId/archiv-link": recht("installationen:schreiben"),
   "GET /api/v1/installationen/:installationId/log-auszuege/:auftragId": mitZugang(
     "installationen:log_auszug",
   ),

@@ -53,6 +53,16 @@ export {
   type Wartungsfenster,
 } from "./fenster.ts";
 export {
+  type Fristen,
+  fristen,
+  LINK_MAX_MS,
+  LOESCHFRIST_TAGE,
+  linkGueltigBis,
+  NUR_LESEN_TAGE,
+  type Vertragsphase,
+  vertragsphase,
+} from "./kuendigung.ts";
+export {
   NEUSTART_PAUSE_MS,
   type NeustartEntscheid,
   type NeustartServer,

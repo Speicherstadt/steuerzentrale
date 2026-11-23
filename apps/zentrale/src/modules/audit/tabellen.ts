@@ -1,5 +1,6 @@
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import {
+  abwicklungen,
   appEinstellungen,
   auftraege,
   backups,
@@ -103,6 +104,7 @@ export const tabellen = {
     zeit: undefined,
   },
   empfaenger: { tabelle: empfaenger, schluessel: ["empfaengerId"], zeit: undefined },
+  abwicklungen: { tabelle: abwicklungen, schluessel: ["installationId"], zeit: undefined },
   zustellungen: {
     tabelle: zustellungen,
     schluessel: ["zustellungId"],

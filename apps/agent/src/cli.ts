@@ -1,6 +1,8 @@
 import { homedir } from "node:os";
 import { AGENT_BINARY, pforteGrundkonfiguration } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
+import { type ArchivDeps, archivierenBefehl } from "./abwicklung/archivieren.ts";
+import { echtesArchiv } from "./abwicklung/echt.ts";
 import type { AgentUpdateDeps } from "./agent-update/aktualisieren.ts";
 import { updateBestaetigen } from "./agent-update/marke.ts";
 import { PRUEFEN_BEFEHL, type RueckkehrDeps, updatePruefen } from "./agent-update/rueckkehr.ts";
@@ -44,6 +46,7 @@ export const USAGE = [
   "       steuerzentrale-agent fakten",
   "       steuerzentrale-agent sichern <installation> [--repository-anlegen]",
   "       steuerzentrale-agent zurueckspielen <installation> < teil.json",
+  "       steuerzentrale-agent archivieren <installation> <region>",
   `       steuerzentrale-agent ${PRUEFEN_BEFEHL}`,
 ].join("\n");
 
@@ -66,6 +69,7 @@ export type CliDeps = {
   sichern: SichernBefehlDeps;
   /** A part played back as the target installation's user (src/pruef-restore, Z-602) */
   spielen: SpielBefehlDeps;
+  archiv: ArchivDeps;
   /** The check after an update of the agent, run by systemd from the old binary (Z-504) */
   rueckkehr: RueckkehrDeps;
   /** Other directories than /etc/steuerzentrale and /var/lib/steuerzentrale, for tests */
@@ -214,6 +218,7 @@ const echteDeps = (): CliDeps => ({
     dateien: echteDateien,
     sichern: { restic: echtRestic(), jetzt: Date.now, id: () => crypto.randomUUID(), planen },
   },
+  archiv: echtesArchiv(),
   spielen: {
     uid: () => process.getuid?.() ?? 0,
     eingabe: () => Bun.stdin.text(),
@@ -291,6 +296,8 @@ export const runCli = async (args: string[], deps: CliDeps = echteDeps()): Promi
   if (befehl === "sichern") return sichernBefehl(rest, deps.sichern);
   // a part of a backup played back as the target's user, started by the agent (Z-602)
   if (befehl === "zurueckspielen") return spielenBefehl(rest, deps.spielen);
+  // the archive for the customer after the contract, as the installation's user (Z-604)
+  if (befehl === "archivieren") return archivierenBefehl(rest, deps.archiv);
   // the check after its own update, run by systemd from the old binary (Z-504)
   if (befehl === PRUEFEN_BEFEHL && rest.length === 0) return updatePruefen(deps.rueckkehr);
   return { code: 2, out: USAGE };

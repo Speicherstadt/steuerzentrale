@@ -29,7 +29,13 @@ export type Geheim = { passwort: string; zugang: string };
  * restic's argv and, for a dump or a command, the argv whose output goes to its standard input;
  * for playing a snapshot back (Z-602), the argv that reads restic's output instead (`ziel`)
  */
-export type ResticAufruf = { argv: string[]; quelle?: string[]; ziel?: string[] };
+export type ResticAufruf = {
+  argv: string[];
+  quelle?: string[];
+  ziel?: string[];
+  /** For the archive after a contract (Z-604): restic's standard output into this file */
+  datei?: string;
+};
 
 /**
  * restic's exit code and standard output (empty when a target reads it), and the exit code of the

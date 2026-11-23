@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import { kunden, type SLAS, vertraege } from "../../db/schema.ts";
+import { abwicklungenDesKunden } from "../abwicklung/lesen.ts";
 import { type Kontext, schreiben } from "../audit/index.ts";
 import { kuerzelFuerNeu, kuerzelVergeben, kundenMitFestemKuerzel } from "./kuerzel.ts";
 
@@ -39,7 +40,15 @@ export type Stammdaten = {
 
 export type Ergebnis =
   | { ok: true; kunde: Kunde }
-  | { ok: false; grund: "kein_kunde" | "ende_vor_beginn" | "kuerzel_vergeben" | "kuerzel_fest" };
+  | {
+      ok: false;
+      grund:
+        | "kein_kunde"
+        | "ende_vor_beginn"
+        | "kuerzel_vergeben"
+        | "kuerzel_fest"
+        | "loeschung_laeuft";
+    };
 
 const SPALTEN = {
   id: kunden.kundeId,
@@ -191,9 +200,14 @@ export const kundeAendern = (
   return gelesen(db, kontext, kundeId);
 };
 
+/** Steps of an installation after its contract that still stand before any deletion */
+const VOR_DER_LOESCHUNG = new Set(["archiv", "warten"]);
+
 /**
- * Sets the day the contract ends (the customer gave notice), or takes it back with `null`; what
- * follows the end (read only, export, deletion after 90 days) comes with later items
+ * Sets the day the contract ends (the customer gave notice), or takes it back with `null`. What
+ * follows the end runs in modules/abwicklung (Z-604): once the deletion of an installation began,
+ * the end stays as it is; a notice taken back or moved into the future before that drops what was
+ * made after the end (read only stays as the app was set, docs/kunden.md)
  */
 export const vertragsendeSetzen = (
   db: Db,
@@ -205,12 +219,21 @@ export const vertragsendeSetzen = (
   const alt = zeileVon(db, kontext.betreiberId, kundeId);
   if (!alt) return { ok: false, grund: "kein_kunde" };
   if (ende !== null && ende < alt.beginn) return { ok: false, grund: "ende_vor_beginn" };
+  const abwicklungen = abwicklungenDesKunden(db, kontext.betreiberId, kundeId);
+  if (alt.ende !== ende && abwicklungen.some((a) => !VOR_DER_LOESCHUNG.has(a.schritt)))
+    return { ok: false, grund: "loeschung_laeuft" };
+  const laeuftWieder = ende === null || ende > kontext.jetzt;
   if (alt.ende !== ende)
     schreiben(
       schreibDb,
       kontext,
       ende === null ? "vertrag.zuruecknehmen" : "vertrag.kuendigen",
-      (s) => s.aendern("vertraege", { vertragId: alt.vertragId }, { ende }),
+      (s) => {
+        s.aendern("vertraege", { vertragId: alt.vertragId }, { ende });
+        if (laeuftWieder)
+          for (const a of abwicklungen)
+            s.loeschen("abwicklungen", { installationId: a.installationId });
+      },
     );
   return gelesen(db, kontext, kundeId);
 };

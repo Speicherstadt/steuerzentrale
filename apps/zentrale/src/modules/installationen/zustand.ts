@@ -1,4 +1,4 @@
-import { EINRICHTUNG_AKTIONEN } from "@steuerzentrale/manifest";
+import { ABWICKLUNG_AKTIONEN, EINRICHTUNG_AKTIONEN } from "@steuerzentrale/manifest";
 import type { AuftragZustand } from "@steuerzentrale/protokoll";
 import type { Db } from "../../db/oeffnen.ts";
 import type { INSTALLATIONS_ZUSTAENDE } from "../../db/schema.ts";
@@ -14,7 +14,8 @@ import { installationLesen, portsDerInstallation } from "./lesen.ts";
  * or cancelled, it failed; removed, it is gone and its ports are free again; configured anew
  * (Z-404), it runs with the asked values, after a failure with its old ones; removed, its DNS
  * records are due for deletion (Z-407). Set up, a manifest with parts to back up gets its own S3
- * access, which goes again with the installation (Z-601). Runs inside the
+ * access, which goes again with the installation (Z-601). Deleted after its contract
+ * (`installation_loeschen`, Z-604), a running one is removed the same way. Runs inside the
  * transaction that records the job's end (modules/auftraege/melden.ts), so the installation's state
  * and the job's never disagree.
  */
@@ -36,6 +37,9 @@ export const zustandNach = (
     jetzt === "gescheitert" &&
     auftrag === "erfolgreich"
   )
+    return "entfernt";
+  // deleted after its contract (Z-604): its repository and access go afterwards, modules/abwicklung
+  if (aktion === ABWICKLUNG_AKTIONEN.loeschen && jetzt === "laeuft" && auftrag === "erfolgreich")
     return "entfernt";
   return undefined;
 };
@@ -67,7 +71,8 @@ export const installationFortschreiben = (
   );
   if (neu === "laeuft") zugangNachEinrichten(w, deps, i, jetzt);
   if (neu !== "entfernt") return;
-  zugangNachEntfernen(w, db, i, jetzt);
+  // after a deletion (Z-604) the access is still needed to delete the repository with it
+  if (a.aktion === EINRICHTUNG_AKTIONEN.entfernen) zugangNachEntfernen(w, db, i, jetzt);
   for (const p of portsDerInstallation(db, a.betreiberId, i.installationId))
     w.loeschen("installationsPorts", p);
 };

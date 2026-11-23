@@ -94,6 +94,7 @@ export const auftragMelden = (
   if (ENDZUSTAENDE.has(u.zustand)) {
     deps.dnsAnstossen?.();
     deps.backupAnstossen?.();
+    deps.abwicklungAnstossen?.();
   }
   return { ok: true, geaendert: true };
 };

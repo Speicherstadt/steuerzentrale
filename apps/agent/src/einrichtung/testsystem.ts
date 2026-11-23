@@ -259,7 +259,7 @@ export const imBinary = (argv: readonly string[]): readonly string[] =>
 /**
  * What a user reads besides Podman's secrets: a file of its own (`cat`, the backup's stand, Z-601),
  * the answer of `steuerzentrale-agent sichern … --repository-anlegen`, a new repository, and that of
- * `steuerzentrale-agent zurueckspielen`, a part played back (Z-602)
+ * `steuerzentrale-agent zurueckspielen`, a part played back (Z-602), and that of `archivieren` (Z-604)
  */
 const nutzerAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string } => {
   const n = z.nutzer.get(a.als);
@@ -271,6 +271,12 @@ const nutzerAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string }
   }
   if (a.argv[1] === "sichern")
     return { code: 0, aus: '{"msg":"repository","ok":true,"repository":"angelegt"}\n' };
+  // the archive after a contract (Z-604): one file uploaded
+  if (a.argv[1] === "archivieren")
+    return {
+      code: 0,
+      aus: '{"ok":true,"objekte":[{"tag":"volume:daten","datei":"volume-daten.tar","bytes":3}]}\n',
+    };
   // `systemctl --user is-active <units>` prints each unit's state, as the restore reads it (Z-603)
   if (a.argv[0] === "systemctl" && a.argv[2] === "is-active") {
     const laufend = z.aktiv.get(a.als) ?? new Set<string>();

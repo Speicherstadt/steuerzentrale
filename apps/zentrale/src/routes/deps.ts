@@ -35,6 +35,8 @@ export type RoutenDeps = {
   dnsAnstossen?: () => void;
   /** Starts making or deleting the S3 accesses that are due (modules/backups, Z-601) */
   backupAnstossen?: () => void;
+  /** Takes the next steps after contracts ended (modules/abwicklung, Z-604) */
+  abwicklungAnstossen?: () => void;
   /** How notifications go out, for the test message (modules/benachrichtigung, Z-703) */
   versand?: Versand;
 };

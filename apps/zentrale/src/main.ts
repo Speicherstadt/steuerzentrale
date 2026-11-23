@@ -10,6 +10,7 @@ import { createAuth } from "./auth/auth.ts";
 import { oeffneDatenbank } from "./db/oeffnen.ts";
 import type { Schluesselbund } from "./db/schluessel.ts";
 import { parseEnv } from "./env.ts";
+import { abwicklungSchleife } from "./modules/abwicklung/index.ts";
 import { agentUpdateSchleife } from "./modules/agent-update/index.ts";
 import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
@@ -167,6 +168,22 @@ const backup = backupSchleife(
   },
   planen,
 );
+// What follows a contract's end (Z-604): read only, archive, deletion after 90 days; every 30 s
+// and at once after a notice or a job's end
+const abwicklung = abwicklungSchleife(
+  {
+    db,
+    schreibDb,
+    schluessel: env.schluessel,
+    verbindungen: agenten,
+    fetch,
+    now: Date.now,
+    log,
+    dnsAnstossen: dns.anstossen,
+    backupAnstossen: backup.anstossen,
+  },
+  planen,
+);
 // The weekly test restore of each installation on its own server (Z-602): checked every hour
 pruefRestoreSchleife(
   {
@@ -264,6 +281,7 @@ const app = createApp({
   verbindungen: agenten,
   dnsAnstossen: dns.anstossen,
   backupAnstossen: backup.anstossen,
+  abwicklungAnstossen: abwicklung.anstossen,
   versionen: neueVersionen,
   versand,
 });

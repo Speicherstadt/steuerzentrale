@@ -29,6 +29,17 @@ const deps = (eingabe = ""): CliDeps & { gesendet: unknown[]; gestartet: unknown
         planen: () => () => {},
       },
     },
+    archiv: {
+      uid: () => 0,
+      home: () => "/home/sz-x",
+      dateien: speicher().dateien,
+      restic: async () => ({ code: 0, aus: "" }),
+      jetzt: () => 0,
+      ordner: async () => "/tmp",
+      groesse: async () => 0,
+      hochladen: async () => 200,
+      entfernen: async () => {},
+    },
     spielen: {
       uid: () => 0,
       eingabe: async () => eingabe,

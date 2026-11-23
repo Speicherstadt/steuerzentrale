@@ -1,9 +1,8 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { backupPolicy, RESTIC_IMAGE } from "@steuerzentrale/manifest";
+import { backupPolicy, RESTIC_IMAGE, sha256Hex, signieren } from "@steuerzentrale/manifest";
 import { dienstkontoAnlegen } from "../../zentrale/src/modules/backups/minio.ts";
-import { sha256Hex, signieren } from "../../zentrale/src/modules/backups/sigv4.ts";
 import { zugangErzeugen } from "../../zentrale/src/modules/backups/zugaenge.ts";
 import { hostIp, type Lauf, lauf, muss } from "./pforte-hilfen.ts";
 
