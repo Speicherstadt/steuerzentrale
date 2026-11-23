@@ -9,6 +9,7 @@ import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
 import type { Versionen } from "./modules/versionen/index.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { aktionenRouten } from "./routes/aktionen.ts";
+import { aussenRouten } from "./routes/aussen.ts";
 import { backupRouten } from "./routes/backups.ts";
 import { betriebRouten } from "./routes/betrieb.ts";
 import { dnsRouten } from "./routes/dns.ts";
@@ -106,6 +107,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   serverRouten(route, deps);
   installationenRouten(route, deps);
   aktionenRouten(route, deps);
+  aussenRouten(route, deps);
   einstellungenRouten(route, deps);
   betriebRouten(route, deps);
   dnsRouten(route, deps);

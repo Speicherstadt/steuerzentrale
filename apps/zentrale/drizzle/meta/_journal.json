@@ -134,6 +134,13 @@
       "when": 1795417646240,
       "tag": "0018_updates",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1795442125937,
+      "tag": "0019_aussen",
+      "breakpoints": true
     }
   ]
 }

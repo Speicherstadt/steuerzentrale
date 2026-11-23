@@ -82,6 +82,8 @@ export const ROUTEN = {
   "GET /api/v1/installationen/:installationId/log-auszuege/:auftragId": recht(
     "installationen:log_auszug",
   ),
+  // the check from outside and the availability (Z-704): read like the installation
+  "GET /api/v1/installationen/:installationId/aussen": recht("installationen:lesen"),
   // the operator's values of an app (Z-404): rights as for installations, which they serve
   "GET /api/v1/apps/:app/einstellungen": recht("installationen:lesen"),
   "PUT /api/v1/apps/:app/einstellungen": recht("installationen:schreiben"),

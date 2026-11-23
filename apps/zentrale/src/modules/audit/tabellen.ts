@@ -24,6 +24,7 @@ import {
   server,
   tokens,
   updates,
+  verfuegbarkeit,
   vertraege,
   wiederherstellungen,
 } from "../../db/schema.ts";
@@ -85,6 +86,11 @@ export const tabellen = {
     zeit: undefined,
   },
   updates: { tabelle: updates, schluessel: ["auftragId"], zeit: undefined },
+  verfuegbarkeit: {
+    tabelle: verfuegbarkeit,
+    schluessel: ["installationId", "stunde"],
+    zeit: verfuegbarkeit.stunde,
+  },
   manifeste: { tabelle: manifeste, schluessel: ["app", "version"], zeit: undefined, global: true },
 } satisfies Record<
   string,

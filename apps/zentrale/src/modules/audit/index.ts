@@ -1,4 +1,6 @@
 export {
+  type AussenZeile,
+  aussenSetzen,
   type BewertungZeile,
   bewertungSetzen,
   type FaktenZeile,

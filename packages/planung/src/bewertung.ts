@@ -125,19 +125,3 @@ export const nachFrist = (stand: Bewertungsstand, jetzt: number): Bewertungsstan
     gemeldetAm: stand.gemeldetAm,
   };
 };
-
-/**
- * Whether a fault begins or ends now (docs/plan.md, "Störung"): red for five minutes with reports
- * coming makes one, unless one is open (`offen`); green ends an open one; yellow and unknown end none
- */
-export const stoerungPruefen = (
-  stand: Bewertungsstand,
-  offen: boolean,
-  jetzt: number,
-): "stoerung" | "behoben" | undefined => {
-  const aktuell = nachFrist(stand, jetzt);
-  if (aktuell.bewertung === "rot" && !offen && jetzt - aktuell.seit >= STOERUNG_NACH_MS)
-    return "stoerung";
-  if (aktuell.bewertung === "gruen" && offen) return "behoben";
-  return undefined;
-};

@@ -10,6 +10,7 @@ export default defineConfig({
     "./src/db/schema-backups.ts",
     "./src/db/schema-manifeste.ts",
     "./src/db/schema-updates.ts",
+    "./src/db/schema-aussen.ts",
     "./src/db/auth-schema.ts",
   ],
   out: "./drizzle",
