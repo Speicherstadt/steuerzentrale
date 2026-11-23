@@ -3,8 +3,8 @@ title: Backups
 description: >-
   Wie jede Installation täglich in ihr eigenes restic-Repository auf dem S3-Ziel des Betreibers
   gesichert wird: was der Agent auf dem Server einrichtet, wie ein Lauf abläuft, wie die Zentrale
-  davon erfährt, und in der Zentrale S3-Ziel, eigene Zugänge je Installation, „Backup jetzt“ und der
-  wöchentliche Prüf-Restore.
+  davon erfährt, und in der Zentrale S3-Ziel, eigene Zugänge je Installation, „Backup jetzt“, der
+  wöchentliche Prüf-Restore und das Wiederherstellen.
 ---
 
 # Backups
@@ -317,6 +317,66 @@ Installation wird nur gelesen. Prüf-Restores laufen auf einem Server nacheinand
 Einrichtungsaufträgen, denn einer kann Stunden dauern. Einen Einrichtungsauftrag für einen Namen
 `restore-<6>` lehnt der Agent ab.
 
+### Wiederherstellen
+
+Wiederherstellen spielt die Daten eines gewählten gelungenen Laufs in die Installation selbst zurück.
+Die Zentrale legt dafür zuerst „Backup jetzt“ an, ein Backup vom Ist-Zustand, und danach den
+eingebauten Auftrag `installation_wiederherstellen`, der darauf wartet; scheitert das Backup, wird
+nichts zurückgespielt. Der Auftrag nennt die Installation und je Teil, der zurückgespielt wird, den
+Snapshot des gewählten Laufs als Argument `snapshot:<tag>` mit der vollen ID (64 Zeichen), etwa
+`snapshot:volume:daten` oder `snapshot:pg_dump:db:app`. Ein `befehl` bekommt keines, denn seine
+Ausgabe ist ein Export. Ein Feld `einrichtung` oder `backup` trägt der Auftrag nicht. Zeitlimit: so
+lange wie ein Backup (vier Stunden) und 30 Minuten für Stoppen, Starten und Health.
+
+#### Auf dem Server
+
+Der Agent nimmt `installation_wiederherstellen` nur an, wenn er die Installation selbst fertig
+eingerichtet hat, ihre Units aus genau dem Manifest des Auftrags gerendert sind (App und Version in
+ihren Labels), ihr Backup bei ihm eingerichtet ist (`backup.json`) und der Auftrag für jeden Teil
+`volume` und `pg_dump` genau einen Snapshot nennt; sonst meldet er „abgelehnt: …“ und fasst nichts
+an. Dann, als Nutzer der Installation und nacheinander mit den Einrichtungsaufträgen:
+
+1. stoppt er `sz_backup.timer`; läuft gerade ein Backup (`sz_backup.service`), scheitert der Auftrag;
+2. stoppt er die Units: alle, wenn ein Volume zurückgespielt wird, sonst alle außer den
+   Datenbank-Containern der Dumps;
+3. leert er jedes Volume eines Teils: `podman volume rm --force <installation>-<volume>`, dann legt
+   `systemctl --user restart` seiner Volume-Unit es leer neu an;
+4. spielt er jeden Teil aus dem Snapshot des Auftrags zurück, wie beim Prüf-Restore (oben): zuerst
+   die Volumes, dann die Datenbanken, `pg_restore --clean --if-exists` mit `datenbank` und `nutzer`
+   aus dem Manifest, nachdem nur der Datenbank-Container läuft und antwortet;
+5. startet er alle Units, wartet, bis sie aktiv sind, und prüft die Health nach dem Manifest,
+   höchstens fünf Minuten lang;
+6. startet er `sz_backup.timer` wieder.
+
+Jeden Teil spielt das Agent-Binary in einer vorübergehenden Unit des Nutzers zurück:
+
+```
+systemd-run --user --unit sz_wiederherstellen.service --quiet --wait --collect --pipe \
+  -p RuntimeMaxSec=<Sekunden bis zum Ende des Auftrags> -p TimeoutStopSec=15 -p Delegate=yes \
+  -- steuerzentrale-agent zurueckspielen <installation>
+```
+
+Repository, Zugang und Passwort bekommt es wie beim Prüf-Restore über die Standardeingabe, nie in
+`argv`. restic startet es dort mit `podman run --cgroups split`, so bleiben conmon und restic in der
+cgroup der Unit. Endet die Unit, endet alles, was in ihr lief: nach `RuntimeMaxSec` durch systemd
+selbst, auch wenn der Agent nicht mehr läuft, und nach einem Fehler oder dem Zeitlimit des Auftrags,
+weil der Agent sie über ihren festen Namen stoppt. Den Snapshot sucht das Binary mit
+`restic ls --json <id>` und spielt nur zurück, wenn er zum Host der Installation und zum Tag des
+Teils gehört; restic selbst prüft das bei einer ID nicht.
+
+Scheitert ein Schritt oder läuft das Zeitlimit ab, stoppt der Agent die vorübergehende Unit, setzt
+die Units zurück (`reset-failed`), startet sie neu, wartet, bis sie aktiv bleiben, und startet den
+Timer; jeder dieser Schritte hat ein eigenes Zeitlimit von 60 Sekunden und läuft auch, wenn einer
+davor scheiterte. Das Backup vom Ist-Zustand liegt bereit. Gelungen meldet der Agent wie beim
+Prüf-Restore `{ teile: [{ tag, snapshot, zurueckgespielt, grund }], dauerMs }`, gescheitert nur den
+Grund, etwa „Wiederherstellen gescheitert: volume:daten: Zeitlimit des Auftrags überschritten; Units
+wieder gestartet“ oder „…; Units nicht wieder gestartet: …“.
+
+Startet der Agent mitten im Wiederherstellen neu, meldet er den Auftrag als gescheitert („Agent neu
+gestartet“) und wiederholt ihn nicht: er weiß nicht, wie weit er kam, und Daten sollen nicht zu einer
+Zeit ersetzt werden, die niemand gewählt hat. Die Units startet er dann nicht von selbst; die Health
+zeigt die gestoppte App, und die Aktion „Neustart“ startet sie.
+
 ### API
 
 | Route | Wer | Körper | Antwort |
@@ -377,3 +437,13 @@ Port gelesen, über einen Haken im Ablauf, den nur der Test setzt); danach gibt 
 Home, Prozesse oder Laufzeitordner der Kopie, und die Installation läuft mit ihrem Eintrag weiter.
 Mit dem Admin-Zugang überschriebene Packdateien ergeben einen gescheiterten Prüf-Restore mit Grund,
 nach dem ebenfalls alles abgebaut ist.
+
+Das Wiederherstellen auf dem Server prüft die CI ebenso (`apps/agent/test/wiederherstellen.agent.test.ts`):
+Die Beispiel-App bekommt Eintrag A, Lauf 1, Eintrag B, Lauf 2; nach dem Wiederherstellen mit den
+Snapshots von Lauf 1 steht A da und B nicht mehr (über HTTP gelesen), und die App ist gesund. Eine
+App mit Postgres-Container (per Digest) verliert eine Zeile, die nach Lauf 1 eingefügt wurde. Ist
+MinIO weg, hängt restic in der vorübergehenden Unit, bis das Zeitlimit des Auftrags abläuft; danach
+läuft kein `restic`, kein `zurueckspielen` und kein `systemd-run` des Nutzers mehr, und App und
+Timer laufen wieder. Die Unit-Tests des Agenten (`apps/agent/test/wiederherstellen*.test.ts`)
+prüfen die Ablehnungen, den Ablauf je Art, den Neustart der Units nach jedem Fehler und nach dem
+Zeitlimit, `RuntimeMaxSec` und dass kein Geheimnis in `argv`, Ergebnis oder Log steht.
