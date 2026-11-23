@@ -141,6 +141,26 @@ describe("a restore is refused and touches nothing", () => {
     expect(systemctl(a).filter((s) => s === `stop ${UNIT_APP}`)).toEqual([]);
     expect(alsInstallation(a).filter((l) => l.argv[0] === "podman")).toEqual([]);
   });
+
+  // sz_backup.service is Type=oneshot (backup/units.ts): while its run goes on, systemd shows it
+  // `activating`, and `systemctl is-active` exits 3 for every state but active and reloading
+  // (systemctl(1), is-active; systemd.service(5), Type=oneshot)
+  it("when a backup of the installation is running, as systemd shows a oneshot: activating", async () => {
+    const backupAbfrage = (l: Aufgerufen) =>
+      l.argv[0] === "systemctl" &&
+      l.argv[2] === "is-active" &&
+      l.argv.includes("sz_backup.service");
+    const a = await eingerichtet({
+      scheitern: (l) => (backupAbfrage(l) ? 3 : undefined),
+      ausgabe: (l) => (backupAbfrage(l) ? "activating\n" : undefined),
+    });
+    await a.empfangen(wiederherstellen());
+    expect(fehler(a)).toBe(
+      "Wiederherstellen gescheitert: ein Backup von beispiel-x7k2p9 läuft gerade; Units wieder gestartet",
+    );
+    expect(systemctl(a).filter((s) => s === `stop ${UNIT_APP}`)).toEqual([]);
+    expect(alsInstallation(a).filter((l) => l.argv[0] === "podman")).toEqual([]);
+  });
 });
 
 describe("a restore that fails starts the units again", () => {
