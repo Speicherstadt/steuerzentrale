@@ -41,6 +41,12 @@ describe("darf", () => {
     expect(darf("support", "installationen:schreiben")).toBe(false);
   });
 
+  it("lets only the owner update in a freeze window, with a reason (Z-503)", () => {
+    expect(darf("inhaber", "installationen:sperrzeit")).toBe(true);
+    expect(darf("technik", "installationen:sperrzeit")).toBe(false);
+    expect(darf("support", "installationen:sperrzeit")).toBe(false);
+  });
+
   it("lets owner and technik read the audit log, not support (Z-406)", () => {
     expect(darf("inhaber", "audit:lesen")).toBe(true);
     expect(darf("technik", "audit:lesen")).toBe(true);

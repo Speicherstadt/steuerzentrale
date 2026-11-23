@@ -14,7 +14,7 @@ ordnet nach Schwere, was Aufmerksamkeit braucht (Störungen, rote, gelbe und unb
 getrennte oder stille Agenten, gescheiterte Aufträge, Warnungen des letzten Tages), und jeder Eintrag
 führt zu seiner Ursache; Aufträge, Ereignisse und Audit-Log (nur Inhaber und Technik) kommen
 seitenweise; Server- und Kundenseite zeigen ihre Installationen und Ereignisse. Wo die Zentrale noch
-keine Daten hat (Updates, Support-Zugänge, Leistungen), sagt die Seite, mit welchem Punkt sie
+keine Daten hat (Support-Zugänge, Leistungen), sagt die Seite, mit welchem Punkt sie
 kommen ([Übersicht und Betrieb](docs/uebersicht.md)); Demodaten mit den acht Apps der Speicherstadt
 zeigt nur `bun run dev:demo`.
 
@@ -48,6 +48,13 @@ füllt die Einstellungen der Installation aus dem Manifest aus und gibt Adresse 
 Platzierung zeigt bei jeder Änderung, ob die App passt, mit jedem Grund. Die Installationen-Seiten
 zeigen die Installationen der Zentrale mit Zustand und Aufträgen; eine gescheiterte Einrichtung lässt
 sich mit Grund entfernen ([Apps installieren](docs/installieren.md)).
+
+**Updates mit Rückkehr:** alle 5 Minuten startet die Zentrale, was in den Wellen „intern“ und „alle“
+fällig ist: im Wartungsfenster des Servers, nie in einer Sperrzeit, ein dringendes sofort, höchstens
+eins je Server, eine App ohne Health nie. Jedes Update sichert zuerst den Ist-Zustand; wird die neue
+Version nicht gesund, nimmt der Agent sie mit diesem Backup zurück, die Wellen der Version halten an
+und ein Ereignis steht da. Inhaber und Technik aktualisieren auf der Seite „Updates“ auch von Hand,
+mit Version und Grund, in einer Sperrzeit nur der Inhaber ([Updates](docs/updates.md)).
 
 **Adressen und DNS:** jeder Kunde hat ein Kürzel, und der Dialog schlägt die Adresse
 `<app>.<kürzel>.<domain>` vor. Unter Einstellungen → DNS setzt der Betreiber Domain, Cloudflare-Zone und

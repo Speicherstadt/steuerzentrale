@@ -71,7 +71,7 @@ Je App zeigt die Seite **Apps** jede Version mit ihrem Zustand:
 
 | Zustand | Bedeutung |
 | --- | --- |
-| verfügbar | das Manifest ist importiert; die Version kann installiert und (mit Z-503) aktualisiert werden |
+| verfügbar | das Manifest ist importiert; die Version kann installiert und aktualisiert werden |
 | neue Version, Manifest fehlt | die Registry hat sie, ein signiertes Manifest fehlt noch; nichts geschieht, bis es importiert ist |
 
 Als „neu“ gilt ein Tag, der neuer ist als die neueste importierte Version (eine Vorabversion verglichen
@@ -90,7 +90,8 @@ Eine Installation bekommt jede importierte Version angeboten, die neuer ist als 
 **Vorabversion** nur, wenn ihr Kunde **intern** ist ([Kunden](kunden.md)): sonst nie, auch nicht
 von Hand im Dialog (`409 nur_intern`). Die Regel ist eine reine Funktion in `packages/planung`
 (`versionAngeboten`, `angeboteneVersionen`), die auch das Update (Z-503) nutzt. Die Seite
-**Updates** zeigt je Installation die angebotenen Versionen; ausführen lassen sich Updates mit Z-503.
+**Updates** zeigt je Installation die angebotenen Versionen, den Plan und das letzte Update
+([Updates](updates.md)).
 
 ## Rollen
 

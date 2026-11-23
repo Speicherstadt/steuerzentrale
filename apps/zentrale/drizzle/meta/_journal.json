@@ -127,6 +127,13 @@
       "when": 1795413024865,
       "tag": "0017_manifeste",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1795417646240,
+      "tag": "0018_updates",
+      "breakpoints": true
     }
   ]
 }

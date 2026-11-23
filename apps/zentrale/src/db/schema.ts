@@ -323,3 +323,5 @@ export * from "./schema-backups.ts";
 export * from "./schema-installationen.ts";
 // The imported manifests, for every operator (Z-501)
 export * from "./schema-manifeste.ts";
+// The updates of installations (Z-503)
+export * from "./schema-updates.ts";

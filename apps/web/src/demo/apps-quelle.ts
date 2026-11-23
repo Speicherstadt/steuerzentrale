@@ -7,6 +7,7 @@ import type {
   AppVersion,
   ImportAntwort,
   ManifestDerZentrale,
+  UpdateStand,
 } from "../daten/apps.ts";
 import type { Manifest } from "../daten/typen.ts";
 import { apps } from "./apps.ts";
@@ -20,7 +21,8 @@ import { JETZT } from "./zeit.ts";
  * Zentrale's API would (apps/zentrale, routes/manifeste.ts): the eight apps with the version their
  * manifest in manifeste/ names and, for Kontext, a newer one only the registry has; the probe app of
  * the dialog's tests with its text, also as a pre-release. The demo has no public key: an import
- * needs only some signature and a manifest that reads. A change lasts until the page reloads.
+ * needs only some signature and a manifest that reads. An update by hand (Z-503) stays at its
+ * backup: the demo has no agent. A change lasts until the page reloads.
  */
 
 type Eintrag = { app: string; version: string; text: string | null; dringend: boolean };
@@ -75,8 +77,11 @@ const fehlt = (v: string): AppVersion => ({
   importiert: null,
 });
 
+const KEIN_UPDATE: UpdateStand = { letzter: null, laeuft: false };
+
 export const demoAppsQuelle = (jetzt: () => number): AppsQuelle => {
   let liste: Eintrag[] = START;
+  const updates = new Map<string, UpdateStand>();
   const beschreibung = (app: string) => apps.find((a) => a.id === app);
   const appsJetzt = (): AppDerZentrale[] =>
     [...new Set(liste.map((e) => e.app))].sort().map((app) => {
@@ -140,8 +145,38 @@ export const demoAppsQuelle = (jetzt: () => number): AppsQuelle => {
             version: i.version,
             intern,
             angeboten: angeboteneVersionen({ version: i.version, intern }, eigene),
+            plan: null,
+            update: updates.get(i.id) ?? KEIN_UPDATE,
           };
         }),
       ),
+    update: async (installationId, version, grund) => {
+      const i = installationen.find((x) => x.id === installationId);
+      if (!i) return nein(404, "keine_installation");
+      if (!grund.trim()) return nein(400, "ungueltig");
+      if (updates.get(installationId)?.laeuft) return nein(409, "auftrag_offen");
+      if (!liste.some((e) => e.app === i.app && e.version === version))
+        return nein(422, "kein_manifest");
+      updates.set(installationId, {
+        laeuft: true,
+        letzter: {
+          vonVersion: i.version,
+          nachVersion: version,
+          anlass: "hand",
+          welle: null,
+          sperrzeitUebergangen: false,
+          angefordertAm: jetzt(),
+          phase: "sichern",
+          endeAm: null,
+          fehler: null,
+          dauerMs: null,
+        },
+      });
+      const auftrag = (n: number) => ({
+        auftragId: `demo-update-${installationId}-${n}`,
+        zustand: "zugestellt",
+      });
+      return ok({ backup: auftrag(1), update: { ...auftrag(2), zustand: "wartend" } }, 201);
+    },
   };
 };
