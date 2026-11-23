@@ -80,6 +80,8 @@ export default defineConfig({
         STEUERZENTRALE_AGENT_DATEIEN: agentDateien,
         STEUERZENTRALE_CLOUDFLARE_API: `http://127.0.0.1:${cloudflarePort}/client/v4`,
         STEUERZENTRALE_REGISTRY_HTTP: `http://127.0.0.1:${registryPort}`,
+        // the hosts of e2e installations are made up: no check from outside (Z-704) asks for them
+        STEUERZENTRALE_AUSSEN_PRUEFUNG: "aus",
       },
     },
     {

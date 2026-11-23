@@ -4,11 +4,13 @@ import type { Db, SchreibDb } from "./db/oeffnen.ts";
 import type { Schluesselbund } from "./db/schluessel.ts";
 import { formatRequestLog, type LogSink, redactUrl } from "./log.ts";
 import { clientAdresse } from "./modules/anmeldung/adresse.ts";
+import { datenbankAntwortet } from "./modules/aussen/index.ts";
 import type { Auslieferung } from "./modules/server/index.ts";
 import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
 import type { Versionen } from "./modules/versionen/index.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { aktionenRouten } from "./routes/aktionen.ts";
+import { aussenRouten } from "./routes/aussen.ts";
 import { backupRouten } from "./routes/backups.ts";
 import { betriebRouten } from "./routes/betrieb.ts";
 import { dnsRouten } from "./routes/dns.ts";
@@ -95,8 +97,13 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   });
 
   const route = routenRegistrar(app, wache(deps.auth, deps.db, deps.socketAdresse, deps.now));
-  // For an external monitor (Z-704): no login, nothing but liveness and version
-  route("GET /health", (c) => c.json({ status: "ok", version: deps.version }));
+  // For an external monitor (Z-704): no login, nothing but whether the Zentrale and its database
+  // answer, and the version; 503 without a reason when the database does not
+  route("GET /health", (c) =>
+    datenbankAntwortet(deps.db)
+      ? c.json({ status: "ok", version: deps.version })
+      : c.json({ status: "fehler", version: deps.version }, 503),
+  );
   route("GET /api/auth/*", betterAuthRoute(deps));
   route("POST /api/auth/*", betterAuthRoute(deps));
   ersterInhaberRouten(route, deps);
@@ -107,6 +114,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   serverRouten(route, deps);
   installationenRouten(route, deps);
   aktionenRouten(route, deps);
+  aussenRouten(route, deps);
   einstellungenRouten(route, deps);
   betriebRouten(route, deps);
   dnsRouten(route, deps);

@@ -7,6 +7,7 @@ import {
   heartbeats,
   installationVerlauf,
   logAuszuege,
+  verfuegbarkeit,
 } from "../../db/schema.ts";
 import { schreiben } from "../audit/index.ts";
 import type { AufbewahrteTabelle } from "../audit/tabellen.ts";
@@ -17,13 +18,21 @@ export type Geloescht = Record<AufbewahrteTabelle, number>;
 /** Every operator with rows, also one already deleted from `betreiber`: its old rows go too */
 const betreiberMitDaten = (db: Db): Set<string> =>
   new Set(
-    [betreiber, heartbeats, fakten, logAuszuege, installationVerlauf, ereignisse, backups].flatMap(
-      (tabelle) =>
-        db
-          .selectDistinct({ betreiberId: tabelle.betreiberId })
-          .from(tabelle)
-          .all()
-          .map((zeile) => zeile.betreiberId),
+    [
+      betreiber,
+      heartbeats,
+      fakten,
+      logAuszuege,
+      installationVerlauf,
+      ereignisse,
+      backups,
+      verfuegbarkeit,
+    ].flatMap((tabelle) =>
+      db
+        .selectDistinct({ betreiberId: tabelle.betreiberId })
+        .from(tabelle)
+        .all()
+        .map((zeile) => zeile.betreiberId),
     ),
   );
 
@@ -38,6 +47,7 @@ export const aufbewahren = (db: Db, schreibDb: SchreibDb, jetzt: number): Geloes
     ereignisse: 0,
     backups: 0,
     pruefRestores: 0,
+    verfuegbarkeit: 0,
   };
   for (const betreiberId of betreiberMitDaten(db)) {
     const kontext = { betreiberId, akteur: "system", jetzt, grund: "Aufbewahrung (docs/plan.md)" };

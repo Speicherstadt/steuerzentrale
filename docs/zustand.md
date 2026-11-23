@@ -147,6 +147,10 @@ wiederholt und vergisst ein Neustart der Zentrale keine.
 
 Geprüft wird bei jeder Meldung und alle 30 Sekunden.
 
+Dieselbe Störung entsteht, wenn die Installation **von außen** 5 Minuten durchgehend rot ist, auch
+wenn der Agent grün meldet; dann endet sie erst, wenn innen und außen wieder grün sind
+([Prüfung von außen und Verfügbarkeit](aussen.md)).
+
 ### API und Oberfläche
 
 `GET /api/v1/installationen` und `GET /api/v1/installationen/{id}` liefern an jeder Installation

@@ -89,6 +89,8 @@ export const ROUTEN = {
   "GET /api/v1/installationen/:installationId/log-auszuege/:auftragId": mitZugang(
     "installationen:log_auszug",
   ),
+  // the check from outside and the availability (Z-704): read like the installation
+  "GET /api/v1/installationen/:installationId/aussen": recht("installationen:lesen"),
   // support accesses (Z-802): every role sees them and starts one for itself; its holder ends it,
   // owner and technik also another's (checked in the route)
   "GET /api/v1/support-zugaenge": recht("support:lesen"),
