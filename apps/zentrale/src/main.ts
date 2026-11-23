@@ -19,6 +19,7 @@ import { rotieren } from "./modules/geheim/index.ts";
 import { befehlImportieren, manifesteUebernehmen } from "./modules/manifeste/index.ts";
 import { pruefRestoreSchleife } from "./modules/pruef-restore/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
+import { supportSchleife } from "./modules/support/index.ts";
 import { updateSchleife } from "./modules/updates/index.ts";
 import { stilleSchleife } from "./modules/verbindung/stille.ts";
 import { verbindungen } from "./modules/verbindung/verbindungen.ts";
@@ -105,6 +106,8 @@ const planen = (lauf: () => void, ms: number) => {
 aufbewahrungsSchleife(db, schreibDb, Date.now, planen, log);
 stilleSchleife(db, schreibDb, Date.now, planen, log);
 bewertungsSchleife(db, schreibDb, Date.now, planen, log);
+// The end of every support access that ran out as an event for the customer (Z-802): every minute
+supportSchleife(db, schreibDb, Date.now, planen, log);
 // DNS records of installations at Cloudflare (Z-407): every 30 s and at once when some are due
 const dns = dnsSchleife(
   {

@@ -22,6 +22,7 @@ import {
   mitglieder,
   pruefRestores,
   server,
+  supportZugaenge,
   tokens,
   updates,
   vertraege,
@@ -85,6 +86,7 @@ export const tabellen = {
     zeit: undefined,
   },
   updates: { tabelle: updates, schluessel: ["auftragId"], zeit: undefined },
+  supportZugaenge: { tabelle: supportZugaenge, schluessel: ["zugangId"], zeit: undefined },
   manifeste: { tabelle: manifeste, schluessel: ["app", "version"], zeit: undefined, global: true },
 } satisfies Record<
   string,

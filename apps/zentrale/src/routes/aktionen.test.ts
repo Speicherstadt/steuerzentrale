@@ -1,21 +1,17 @@
 import { AKTIONS_AUFTRAEGE } from "@steuerzentrale/manifest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { auditLog, auftraege } from "../db/schema.ts";
-import { schreiben } from "../modules/audit/index.ts";
 import { logAuszugAnnehmen } from "../modules/auftraege/log-auszug.ts";
-import { KENNWORT, LIZENZ } from "../testhilfen/installationen.ts";
-import {
-  kundeAnlegen,
-  manifestHochladen,
-  serverMitAgent,
-} from "../testhilfen/installationen-api.ts";
+import { kundeAnlegen, serverMitAgent } from "../testhilfen/installationen-api.ts";
+import { allesErledigt as erledigt, laufendeInstallation } from "../testhilfen/laufend.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
  * BAULISTE.md Z-405 over HTTP: restart, log excerpt and "nur lesen" of an installation, each with a
  * reason in the audit log, only when its manifest offers it; owner and technik trigger all three,
- * support only the log excerpt; a restart never in a freeze window and never beside an open job; no
- * operator reaches another's actions or log excerpts (a test per endpoint).
+ * support the log excerpt and the restart only during a support access (Z-802, routes/support.test.ts);
+ * a restart never in a freeze window and never beside an open job; no operator reaches another's
+ * actions or log excerpts (a test per endpoint).
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 type Antwort = { status: number; daten: Record<string, unknown> };
@@ -42,44 +38,12 @@ const logPfad = (id: string, auftragId: string) =>
 const ausloesen = (p: Pick<Person, "json">, id: string, aktion: string, grund?: unknown) =>
   json(p, pfad(id, aktion), { body: grund === undefined ? {} : { grund } });
 
-/** All jobs of the installation done, as the agent would have reported */
 const allesErledigt = (installationId: string) =>
-  schreiben(
-    server.schreibDb,
-    { betreiberId: teufel.betreiberId, akteur: "test", jetzt: 1, grund: "Test" },
-    "test",
-    (w) => {
-      for (const a of server.db.select().from(auftraege).all())
-        if (a.installationId === installationId)
-          w.aendern("auftraege", { auftragId: a.auftragId }, { zustand: "erfolgreich" });
-    },
-  );
+  erledigt(server, teufel.betreiberId, installationId);
 
 /** A running installation of Teufel IT from one of the test manifests; its id */
-const laufend = async (app: "probe" | "aktionen" | "gesperrt", host: string) => {
-  const a = await json(teufel, "/api/v1/installationen", {
-    body: {
-      kundeId,
-      serverId,
-      ...(await manifestHochladen(json, teufel, app)),
-      optionen: [],
-      host,
-      einstellungen: { PROBE_TITEL: "Kanzlei", PROBE_KENNWORT: KENNWORT },
-      betreiberWerte: { PROBE_LIZENZ: LIZENZ },
-      grund: "Auftrag",
-    },
-  });
-  if (a.status !== 201) throw new Error(`anlegen ${a.status} ${JSON.stringify(a.daten)}`);
-  const id = String(a.daten.installationId);
-  schreiben(
-    server.schreibDb,
-    { betreiberId: teufel.betreiberId, akteur: "test", jetzt: 1, grund: "Test" },
-    "test",
-    (w) => w.aendern("installationen", { installationId: id }, { zustand: "laeuft" }),
-  );
-  allesErledigt(id);
-  return id;
-};
+const laufend = (app: "probe" | "aktionen" | "gesperrt", host: string) =>
+  laufendeInstallation(server, json, teufel, { kundeId, serverId }, app, host);
 
 beforeAll(async () => {
   server = testServer(afterAll);
@@ -149,15 +113,23 @@ describe("the actions of an installation", () => {
     });
   });
 
-  it("lets support take a log excerpt, but not restart or switch to nur lesen", async () => {
+  it("refuses support without a support access, and „nur lesen“ even with one (Z-802)", async () => {
     const id = await laufend("aktionen", "support.kanzlei.test");
-    expect((await ausloesen(support, id, "log-auszug", "Anfrage aus dem Portal")).status).toBe(201);
-    allesErledigt(id);
-    for (const a of ["neustart", "nur-lesen"])
+    for (const a of ["log-auszug", "neustart", "nur-lesen"])
       expect(await ausloesen(support, id, a, "Anfrage")).toEqual({
         status: 403,
         daten: { fehler: "keine_berechtigung" },
       });
+    const zugang = await json(support, "/api/v1/support-zugaenge", {
+      body: { installationId: id, grund: "Anfrage aus dem Portal" },
+    });
+    expect(zugang.status).toBe(201);
+    expect((await ausloesen(support, id, "log-auszug", "Anfrage aus dem Portal")).status).toBe(201);
+    allesErledigt(id);
+    expect(await ausloesen(support, id, "nur-lesen", "Anfrage")).toEqual({
+      status: 403,
+      daten: { fehler: "keine_berechtigung" },
+    });
   });
 });
 
@@ -192,8 +164,11 @@ describe("a restart", () => {
 });
 
 describe("a log excerpt", () => {
-  it("shows the agent's lines to every role, once they arrived", async () => {
+  it("shows the agent's lines to every role, support during its access, once they arrived", async () => {
     const id = await laufend("probe", "zeilen.kanzlei.test");
+    await json(support, "/api/v1/support-zugaenge", {
+      body: { installationId: id, grund: "Anmeldung langsam" },
+    });
     const r = await ausloesen(support, id, "log-auszug", "Anmeldung langsam");
     const auftragId = (r.daten.auftrag as { auftragId: string }).auftragId;
     expect(await json(support, logPfad(id, auftragId))).toMatchObject({
