@@ -6,6 +6,7 @@ import { formatRequestLog, type LogSink, redactUrl } from "./log.ts";
 import { clientAdresse } from "./modules/anmeldung/adresse.ts";
 import type { Auslieferung } from "./modules/server/index.ts";
 import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
+import type { Versionen } from "./modules/versionen/index.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { aktionenRouten } from "./routes/aktionen.ts";
 import { backupRouten } from "./routes/backups.ts";
@@ -17,6 +18,7 @@ import { ersterInhaberRouten } from "./routes/erster-inhaber.ts";
 import { installationenRouten } from "./routes/installationen.ts";
 import { kontoRouten } from "./routes/konto.ts";
 import { kundenRouten } from "./routes/kunden.ts";
+import { manifesteRouten } from "./routes/manifeste.ts";
 import { mitgliederRouten } from "./routes/mitglieder.ts";
 import { serverRouten } from "./routes/server.ts";
 import { verbindungRouten } from "./routes/verbindung.ts";
@@ -47,6 +49,8 @@ export type AppDeps = {
   socketAdresse: SocketAdresse;
   /** The agents' open connections, in memory (src/modules/verbindung) */
   verbindungen: Verbindungen;
+  /** What the registries said and the query "Registry abfragen" (modules/versionen, Z-501) */
+  versionen: Versionen;
   /** Starts setting or deleting the DNS records that are due (modules/dns, Z-407) */
   dnsAnstossen?: () => void;
   /** Starts making or deleting the S3 accesses that are due (modules/backups, Z-601) */
@@ -105,6 +109,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   betriebRouten(route, deps);
   dnsRouten(route, deps);
   backupRouten(route, deps);
+  manifesteRouten(route, deps);
   agentRouten(route, deps);
   verbindungRouten(route, deps);
 

@@ -18,6 +18,7 @@ import {
   installationVerlauf,
   kunden,
   logAuszuege,
+  manifeste,
   mitglieder,
   pruefRestores,
   server,
@@ -29,7 +30,9 @@ import {
 /**
  * The tables `schreiben` may write, with the columns that name one row besides `betreiber_id`, and
  * the column the retention run (src/modules/aufbewahrung) deletes by. A table missing here cannot be
- * written through the audit log; the audit log itself is not here: it is only appended to.
+ * written through the audit log; the audit log itself is not here: it is only appended to. A
+ * `global` table holds no operator's data and has no `betreiber_id` (the imported manifests, Z-501):
+ * its row is not bound to the writer's operator, the entry still goes into the writer's audit log.
  */
 export const tabellen = {
   betreiber: { tabelle: betreiber, schluessel: [] as string[], zeit: undefined },
@@ -80,12 +83,17 @@ export const tabellen = {
     schluessel: ["auftragId"],
     zeit: undefined,
   },
+  manifeste: { tabelle: manifeste, schluessel: ["app", "version"], zeit: undefined, global: true },
 } satisfies Record<
   string,
-  { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined }
+  { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined; global?: true }
 >;
 
 export type TabellenName = keyof typeof tabellen;
+
+/** Whether a table holds no operator's data (`global`), so its rows carry no `betreiber_id` */
+export const istGlobal = (name: TabellenName): boolean =>
+  (tabellen[name] as { global?: true }).global === true;
 
 /**
  * Encrypted columns, which the append-only audit log records only as changed: a ciphertext kept
@@ -100,13 +108,15 @@ export const verschluesselteSpalten: Partial<Record<TabellenName, readonly strin
 };
 /**
  * Columns the audit log records only as set: a job's manifest text and signature (Z-305) would put
- * the same kilobytes into the append-only log with every job; its hash stands in the row. The lines
+ * the same kilobytes into the append-only log with every job; its hash stands in the row, as in an
+ * imported manifest (Z-501). The lines
  * of a log excerpt (Z-405) hold the customers' data and go after 30 days; the audit log stays.
  */
 export const ausgelasseneSpalten: Partial<Record<TabellenName, readonly string[]>> = {
   logAuszuege: ["inhalt"],
   auftraege: ["manifest", "signatur"],
   installationen: ["manifest", "signatur"],
+  manifeste: ["text", "signatur"],
 };
 export type Tabelle<N extends TabellenName> = (typeof tabellen)[N]["tabelle"];
 

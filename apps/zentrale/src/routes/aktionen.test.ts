@@ -3,8 +3,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { auditLog, auftraege } from "../db/schema.ts";
 import { schreiben } from "../modules/audit/index.ts";
 import { logAuszugAnnehmen } from "../modules/auftraege/log-auszug.ts";
-import { KENNWORT, LIZENZ, signiert } from "../testhilfen/installationen.ts";
-import { kundeAnlegen, serverMitAgent } from "../testhilfen/installationen-api.ts";
+import { KENNWORT, LIZENZ } from "../testhilfen/installationen.ts";
+import {
+  kundeAnlegen,
+  manifestHochladen,
+  serverMitAgent,
+} from "../testhilfen/installationen-api.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
@@ -57,7 +61,7 @@ const laufend = async (app: "probe" | "aktionen" | "gesperrt", host: string) => 
     body: {
       kundeId,
       serverId,
-      ...signiert(app),
+      ...(await manifestHochladen(json, teufel, app)),
       optionen: [],
       host,
       einstellungen: { PROBE_TITEL: "Kanzlei", PROBE_KENNWORT: KENNWORT },

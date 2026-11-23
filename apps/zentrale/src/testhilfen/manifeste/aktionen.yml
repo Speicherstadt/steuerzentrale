@@ -1,10 +1,11 @@
 # Test manifest for the actions of an installation (Z-405), signed with the public test key
-# (test/schluessel/):
-# minisign -S -s test/schluessel/test.key -m aktionen.yml -t "probe 1.0.0 aktionen (test key)"
+# (test/schluessel/), by scripts/minisign.ts with test/schluessel/test.key, trusted comment
+# "probe 1.0.1 aktionen (test key)"
+# Version 1.0.1: an imported version has one text (Z-501), so each variant has its own.
 # The manifest probe.yml with a command for "nur lesen" and without restart.
 schema: 1
 id: probe
-version: 1.0.0
+version: 1.0.1
 lizenz: AGPL-3.0-only
 quelle: https://example.org/probe
 container:

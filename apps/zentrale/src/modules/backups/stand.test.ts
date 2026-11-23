@@ -107,7 +107,7 @@ describe("a backup report", () => {
     const u = backupUmgebung(minio);
     const id = u.laufend();
     u.bereit("b2");
-    const fremd = u.laufend({}, "b2");
+    const fremd = u.laufend("gesichert", {}, "b2");
     for (const [s, i] of [
       [server("s2"), id],
       [server("s1", "b2"), id],

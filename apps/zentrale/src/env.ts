@@ -69,6 +69,26 @@ const cloudflareFeld = z
     return z.NEVER;
   });
 
+/**
+ * The test registry in tests only (docs/plan.md, "Versionen aus den Registries (Z-501)"): the
+ * stand-in (testhilfen/registry.ts) or CI's registry on localhost, over plain HTTP, in place of
+ * every registry. Any other host is refused, so the variable cannot send the queries elsewhere.
+ */
+const registryFeld = z
+  .string()
+  .optional()
+  .transform((wert, ctx) => {
+    if (wert === undefined || wert.trim() === "") return undefined;
+    const geparst = URL.parse(wert.trim());
+    if (geparst && geparst.protocol === "http:" && LOOPBACK.has(geparst.hostname))
+      return geparst.origin;
+    ctx.addIssue({
+      code: "custom",
+      message: "STEUERZENTRALE_REGISTRY_HTTP is for tests only and must be http://localhost…",
+    });
+    return z.NEVER;
+  });
+
 /** The settings of the Zentrale from the environment; dev uses port 18300 (CLAUDE.md, "Working rules") */
 const EnvSchema = z.object({
   STEUERZENTRALE_PORT: z.coerce.number().int().min(1).max(65535).default(8300),
@@ -82,6 +102,7 @@ const EnvSchema = z.object({
   // The previous key, only while rotating (`steuerzentrale schluessel-rotieren`)
   STEUERZENTRALE_SECRET_KEY_ALT: schluesselFeld("STEUERZENTRALE_SECRET_KEY_ALT").optional(),
   STEUERZENTRALE_CLOUDFLARE_API: cloudflareFeld,
+  STEUERZENTRALE_REGISTRY_HTTP: registryFeld,
 });
 
 /** `dataDir` holds the database `zentrale.db`; created on the first start */
@@ -96,6 +117,8 @@ export type Env = {
   schluessel: Schluesselbund;
   /** Cloudflare's API, https://api.cloudflare.com/client/v4 but in tests */
   cloudflareApi: string;
+  /** The test registry in place of every registry; unset outside tests */
+  registryHttp: string | undefined;
 };
 
 export const parseEnv = (env: Record<string, string | undefined>): Env => {
@@ -110,5 +133,6 @@ export const parseEnv = (env: Record<string, string | undefined>): Env => {
     agentDateien: parsed.STEUERZENTRALE_AGENT_DATEIEN,
     schluessel: { aktuell: parsed.STEUERZENTRALE_SECRET_KEY, alt: alt ? [alt] : [] },
     cloudflareApi: parsed.STEUERZENTRALE_CLOUDFLARE_API,
+    registryHttp: parsed.STEUERZENTRALE_REGISTRY_HTTP,
   };
 };

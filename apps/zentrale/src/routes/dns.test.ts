@@ -4,8 +4,12 @@ import { schreiben } from "../modules/audit/index.ts";
 import { dnsAbgleichen } from "../modules/dns/index.ts";
 import { spalteVerschluesseln } from "../modules/geheim/spalten.ts";
 import { cloudflareNachbau, TEST_TOKEN, TEST_ZONE } from "../testhilfen/cloudflare.ts";
-import { dateiInhalt, KENNWORT, LIZENZ, signiert } from "../testhilfen/installationen.ts";
-import { kundeAnlegen, serverMitAgent } from "../testhilfen/installationen-api.ts";
+import { dateiInhalt, KENNWORT, LIZENZ } from "../testhilfen/installationen.ts";
+import {
+  kundeAnlegen,
+  manifestHochladen,
+  serverMitAgent,
+} from "../testhilfen/installationen-api.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
@@ -136,7 +140,7 @@ describe("an installation below the domain", () => {
       body: {
         kundeId,
         serverId,
-        ...signiert("probe"),
+        ...(await manifestHochladen(json, teufel)),
         host,
         einstellungen: { PROBE_TITEL: "Kanzlei", PROBE_KENNWORT: KENNWORT },
         grund: "Bestellung",

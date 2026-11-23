@@ -6,6 +6,7 @@ import type { Schluesselbund } from "../db/schluessel.ts";
 import type { LogSink } from "../log.ts";
 import type { Auslieferung } from "../modules/server/index.ts";
 import type { Verbindungen } from "../modules/verbindung/verbindungen.ts";
+import type { Versionen } from "../modules/versionen/index.ts";
 import type { SocketAdresse } from "./zugang.ts";
 
 /** What the routes need; they stay thin and call into src/modules (docs/plan.md, "Projektstruktur") */
@@ -27,6 +28,8 @@ export type RoutenDeps = {
   /** The agents' open connections (src/modules/verbindung) */
   verbindungen: Verbindungen;
   log: LogSink;
+  /** What the registries said and the query "Registry abfragen" (modules/versionen, Z-501) */
+  versionen: Versionen;
   /** Starts setting or deleting the DNS records that are due (modules/dns, Z-407) */
   dnsAnstossen?: () => void;
   /** Starts making or deleting the S3 accesses that are due (modules/backups, Z-601) */

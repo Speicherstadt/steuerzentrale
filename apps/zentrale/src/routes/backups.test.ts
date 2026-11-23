@@ -6,8 +6,12 @@ import { auftragMelden } from "../modules/auftraege/melden.ts";
 import { backupAbgleichen, backupStandAnnehmen } from "../modules/backups/index.ts";
 import { spalteVerschluesseln } from "../modules/geheim/spalten.ts";
 import type { Server } from "../modules/server/index.ts";
-import { dateiInhalt, KENNWORT, LIZENZ, signiert } from "../testhilfen/installationen.ts";
-import { kundeAnlegen, serverMitAgent } from "../testhilfen/installationen-api.ts";
+import { dateiInhalt, KENNWORT, LIZENZ } from "../testhilfen/installationen.ts";
+import {
+  kundeAnlegen,
+  manifestHochladen,
+  serverMitAgent,
+} from "../testhilfen/installationen-api.ts";
 import { minioNachbau, TEST_ADMIN, TEST_REGION } from "../testhilfen/minio.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
@@ -168,7 +172,7 @@ describe("the backups of an installation", () => {
       body: {
         kundeId,
         serverId,
-        ...signiert("gesichert"),
+        ...(await manifestHochladen(json, teufel, "gesichert")),
         host: "probe.kanzlei-sued.example",
         einstellungen: { PROBE_TITEL: "Kanzlei", PROBE_KENNWORT: KENNWORT },
         grund: "Bestellung",

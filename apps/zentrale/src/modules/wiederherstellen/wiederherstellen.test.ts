@@ -5,7 +5,7 @@ import {
 } from "@steuerzentrale/manifest";
 import { afterAll, describe, expect, it } from "vitest";
 import { auditLog, auftraege, backups, ereignisse } from "../../db/schema.ts";
-import { neueInstallation, signiert, TEST_SCHLUESSEL } from "../../testhilfen/installationen.ts";
+import { neueInstallation, TEST_SCHLUESSEL } from "../../testhilfen/installationen.ts";
 import { minioNachbau } from "../../testhilfen/minio.ts";
 import { SNAPSHOT } from "../../testhilfen/pruef-restore.ts";
 import { wiederherstellenUmgebung } from "../../testhilfen/wiederherstellen.ts";
@@ -105,7 +105,7 @@ describe("making a restore", () => {
   it("refuses a run of another operator, though its id is known", async () => {
     const { u, id, anlegen } = await umgebung();
     u.bereit("b2");
-    const andere = u.laufend({}, "b2");
+    const andere = u.laufend("gesichert", {}, "b2");
     backupStandAnnehmen(
       u.deps,
       { betreiberId: "b2", serverId: "s1" } as Server,
@@ -156,7 +156,7 @@ describe("making a restore", () => {
     expect(anlegen(lauf, ohneLauf)).toEqual({ ok: false, grund: "lauf_unbekannt" });
     expect(anlegen(lauf, u.laufend())).toEqual({ ok: false, grund: "nicht_eingerichtet" });
     const neu = installationAnlegen(u.deps, u.kontext("b1"), TEST_SCHLUESSEL, {
-      ...neueInstallation({ host: "neu.kunde.example", ...signiert("gesichert") }),
+      ...neueInstallation({ host: "neu.kunde.example", ...u.manifest("gesichert") }),
     });
     if (!neu.ok) throw new Error(neu.grund);
     expect(anlegen(lauf, neu.installation.installationId)).toEqual({
@@ -183,7 +183,7 @@ describe("making a restore", () => {
     // the 8th of a month, inside the manifest's window from the 7th to the 12th
     u.uhr.ms = Date.UTC(2027, 1, 8, 10, 0, 0);
     u.zielSetzen();
-    const id = u.laufend(signiert("gesichert-gesperrt"));
+    const id = u.laufend("gesichert-gesperrt");
     u.melden(u.auftrag(id, "pforte_route_setzen")?.auftragId ?? "", true);
     await backupAbgleichen({ ...u.deps, fetch });
     u.melden(u.auftrag(id, BACKUP_AKTIONEN.einrichten)?.auftragId ?? "", true);

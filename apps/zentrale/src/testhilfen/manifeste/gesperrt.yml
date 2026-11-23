@@ -1,9 +1,10 @@
 # Test manifest for "neu konfigurieren" (Z-404), signed with the public test key (test/schluessel/):
-# minisign -S -s test/schluessel/test.key -m gesperrt.yml -t "probe 1.0.0 gesperrt (test key)"
+# signed by scripts/minisign.ts with test/schluessel/test.key, trusted comment "probe 1.0.2 gesperrt (test key)"
+# Version 1.0.2: an imported version has one text (Z-501), so each variant has its own.
 # The manifest probe.yml with a freeze window from the 7th to the 12th of every month.
 schema: 1
 id: probe
-version: 1.0.0
+version: 1.0.2
 lizenz: AGPL-3.0-only
 quelle: https://example.org/probe
 container:

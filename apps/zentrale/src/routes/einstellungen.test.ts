@@ -2,8 +2,12 @@ import { EINRICHTUNG_AKTIONEN } from "@steuerzentrale/manifest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { appEinstellungen, auditLog, auftraege, installationen } from "../db/schema.ts";
 import { schreiben } from "../modules/audit/index.ts";
-import { dateiInhalt, KENNWORT, LIZENZ, signiert } from "../testhilfen/installationen.ts";
-import { kundeAnlegen, serverMitAgent } from "../testhilfen/installationen-api.ts";
+import { dateiInhalt, KENNWORT, LIZENZ } from "../testhilfen/installationen.ts";
+import {
+  kundeAnlegen,
+  manifestHochladen,
+  serverMitAgent,
+} from "../testhilfen/installationen-api.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
@@ -42,7 +46,8 @@ const json = async (
 const neu = (host: string, teil: Record<string, unknown> = {}) => ({
   kundeId,
   serverId,
-  ...signiert("probe"),
+  app: "probe",
+  version: "1.0.0",
   optionen: [],
   host,
   einstellungen: { PROBE_TITEL: "Kanzlei", PROBE_KENNWORT: KENNWORT },
@@ -78,7 +83,7 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("the operator's values of an app", () => {
-  it("have no form before the operator has an installation of the app", async () => {
+  it("have no form before a manifest of the app is imported (Z-501)", async () => {
     expect(await json(support, APP)).toEqual({ status: 404, daten: { fehler: "kein_manifest" } });
     expect(
       await json(teufel, APP, { method: "PUT", body: { werte: {}, grund: "erste Werte" } }),
@@ -86,6 +91,7 @@ describe("the operator's values of an app", () => {
   });
 
   it("are added in the dialog, in the installation's transaction, and block it while missing", async () => {
+    await manifestHochladen(json, teufel);
     const ohne = await json(teufel, "/api/v1/installationen", { body: neu("ohne.kanzlei.test") });
     expect(ohne).toMatchObject({
       status: 409,
@@ -221,19 +227,28 @@ describe("changing an installation's settings", () => {
 });
 
 describe("no operator reaches another's settings", () => {
+  // the manifest holds for every operator (Z-501), the values stay each operator's own
   it("GET /api/v1/apps/:app/einstellungen shows only the operator's own values", async () => {
-    expect(await json(partner, APP)).toEqual({ status: 404, daten: { fehler: "kein_manifest" } });
+    expect(await json(partner, APP)).toMatchObject({
+      status: 200,
+      daten: { app: "probe", werte: {}, gesetzt: [] },
+    });
   });
 
   it("PUT /api/v1/apps/:app/einstellungen changes only the operator's own values", async () => {
-    const vorher = server.db.select().from(appEinstellungen).all();
-    expect(
-      await json(partner, APP, {
-        method: "PUT",
-        body: { werte: { PROBE_LIZENZ: "fremd" }, grund: "fremd" },
-      }),
-    ).toEqual({ status: 404, daten: { fehler: "kein_manifest" } });
-    expect(server.db.select().from(appEinstellungen).all()).toEqual(vorher);
+    const eigene = () =>
+      server.db
+        .select()
+        .from(appEinstellungen)
+        .all()
+        .filter((z) => z.betreiberId === teufel.betreiberId);
+    const vorher = eigene();
+    const geaendert = await json(partner, APP, {
+      method: "PUT",
+      body: { werte: { PROBE_LIZENZ: "fremd" }, grund: "fremd" },
+    });
+    expect(geaendert).toMatchObject({ status: 200, daten: { gesetzt: ["PROBE_LIZENZ"] } });
+    expect(eigene()).toEqual(vorher);
   });
 
   it("PUT /api/v1/installationen/:installationId/einstellungen does not configure another's", async () => {

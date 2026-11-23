@@ -17,7 +17,8 @@ const ANWEISUNGEN = {
   ...defaultStatements,
   betreiber: ["lesen"],
   mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
-  kunden: ["lesen", "schreiben"],
+  // intern: marking a customer as our own (Z-501), which brings its installations pre-releases
+  kunden: ["lesen", "schreiben", "intern"],
   server: ["anlegen", "lesen", "sperren"],
   // log_auszug: the lines of an installation's journal (Z-405), customer data; Z-802 limits it to
   // support access later
@@ -29,6 +30,9 @@ const ANWEISUNGEN = {
   // backups (Z-601): the runs of each installation and the S3 target, whose admin access is never
   // read back; writing sets the target and starts "Backup jetzt"
   backups: ["lesen", "schreiben"],
+  // the imported manifests and the registries' versions (Z-501): every role reads; importing a
+  // signed manifest and asking the registries now is for owner and technik
+  manifeste: ["lesen", "importieren", "abfragen"],
 } as const;
 
 export const zugriff = createAccessControl(ANWEISUNGEN);
@@ -47,12 +51,13 @@ export const ROLLEN_ZUGRIFF = {
     ...KEINE_RECHTE_IN_BETTER_AUTH,
     betreiber: ["lesen"],
     mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
-    kunden: ["lesen", "schreiben"],
+    kunden: ["lesen", "schreiben", "intern"],
     server: ["anlegen", "lesen", "sperren"],
     installationen: ["lesen", "schreiben", "log_auszug"],
     audit: ["lesen"],
     dns: ["lesen", "schreiben"],
     backups: ["lesen", "schreiben"],
+    manifeste: ["lesen", "importieren", "abfragen"],
   }),
   // servers, installations and updates (later items); sees who else works on the operator; takes
   // on customers and their contracts, which installing an app starts from (docs/plan.md, "Kunden")
@@ -66,6 +71,7 @@ export const ROLLEN_ZUGRIFF = {
     audit: ["lesen"],
     dns: ["lesen", "schreiben"],
     backups: ["lesen", "schreiben"],
+    manifeste: ["lesen", "importieren", "abfragen"],
   }),
   // support access to customers (later items); sees who else works on the operator, whom it
   // helps, the servers and installations they run on, but changes no customer, contract, server
@@ -81,6 +87,7 @@ export const ROLLEN_ZUGRIFF = {
     audit: [],
     dns: ["lesen"],
     backups: ["lesen"],
+    manifeste: ["lesen"],
   }),
 } as const;
 

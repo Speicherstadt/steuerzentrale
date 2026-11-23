@@ -4,8 +4,8 @@ import { auditLog, auftraege } from "../../db/schema.ts";
 import {
   installationsUmgebung,
   neueInstallation,
-  signiert,
   TEST_SCHLUESSEL,
+  type Testmanifest,
 } from "../../testhilfen/installationen.ts";
 import { type AuftragsMeldung, auftragMelden } from "../auftraege/melden.ts";
 import { offeneZustellen } from "../auftraege/zustellen.ts";
@@ -43,9 +43,10 @@ const allesErledigt = (u: U) => {
 };
 
 /** An installation set up and running; with what its agent got */
-const laufend = (u: U, teil: Parameters<typeof neueInstallation>[0] = {}) => {
-  const agent = u.bereit() as Nachricht[];
-  const a = installationAnlegen(u.deps, u.kontext("b1"), TEST_SCHLUESSEL, neueInstallation(teil));
+const laufend = (u: U, mit: Testmanifest = "probe") => {
+  const agent = u.bereit("b1", mit) as Nachricht[];
+  const wahl = u.manifest(mit);
+  const a = installationAnlegen(u.deps, u.kontext("b1"), TEST_SCHLUESSEL, neueInstallation(wahl));
   if (!a.ok) throw new Error(`${a.grund} ${a.detail ?? ""}`);
   allesErledigt(u);
   allesErledigt(u);
@@ -81,7 +82,7 @@ describe("an action of an installation", () => {
 
   it("nur lesen runs the command the manifest names", () => {
     const u = installationsUmgebung();
-    const { i, agent } = laufend(u, signiert("aktionen"));
+    const { i, agent } = laufend(u, "aktionen");
     const r = ausloesen(u, i.installationId, "nur_lesen");
     expect(r).toMatchObject({ ok: true, auftrag: { aktion: "nurlesen" } });
     expect(agent.at(-1)).toMatchObject({ aktion: "nurlesen", argumente: {} });
@@ -115,7 +116,7 @@ describe("an action of an installation", () => {
 
   it.each(["neustart", "nur_lesen"] as const)("%s is refused when not offered", (aktion) => {
     const u = installationsUmgebung();
-    const { i } = laufend(u, aktion === "neustart" ? signiert("aktionen") : {});
+    const { i } = laufend(u, aktion === "neustart" ? "aktionen" : "probe");
     const jobs = u.db.select().from(auftraege).all().length;
     expect(ausloesen(u, i.installationId, aktion)).toEqual({ ok: false, grund: "nicht_angeboten" });
     expect(u.db.select().from(auftraege).all()).toHaveLength(jobs);
@@ -159,7 +160,7 @@ describe("a restart", () => {
   it("is refused in a freeze window of the manifest, and not outside it", () => {
     const u = installationsUmgebung();
     u.uhr.ms = Date.UTC(2027, 0, 13, 12);
-    const { i } = laufend(u, signiert("gesperrt"));
+    const { i } = laufend(u, "gesperrt");
     u.uhr.ms = Date.UTC(2027, 1, 7, 9);
     expect(ausloesen(u, i.installationId, "neustart")).toEqual({
       ok: false,
@@ -176,7 +177,7 @@ describe("a restart", () => {
   it("made outside a freeze window is not sent to an agent that connects within it", () => {
     const u = installationsUmgebung();
     u.uhr.ms = Date.UTC(2027, 0, 13, 12);
-    const { i } = laufend(u, signiert("gesperrt"));
+    const { i } = laufend(u, "gesperrt");
     u.deps.verbindungen.trennen("b1", "s1", 1001, "test");
     u.uhr.ms = Date.UTC(2027, 1, 6, 12);
     const r = ausloesen(u, i.installationId, "neustart");

@@ -57,6 +57,7 @@ describe("a customer", () => {
       notiz: "Zahlt per Rechnung",
       kuerzel: "liste-gmbh",
       kuerzelAenderbar: true,
+      intern: false,
       angelegtAm: server.jetzt(),
       vertrag: { sla: "basis", beginn: BEGINN, ende: null },
     });

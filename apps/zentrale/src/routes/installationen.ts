@@ -7,7 +7,7 @@ import { standVon, verlaufLesen } from "../modules/bewertung/index.ts";
 import {
   angeboteneAktionen,
   auftraegeDerInstallation,
-  hochgeladenesManifest,
+  gewaehltesManifest,
   type Installation,
   type InstallationsDeps,
   installationAnlegen,
@@ -25,7 +25,8 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 /*
  * Installations (BAULISTE.md Z-402): every role reads, owner and technik make and remove
  * (src/auth/rollen.ts); every write names its reason in `grund`. The dialog asks for the placement
- * first (a preview that writes nothing), then makes the installation with the same input. No
+ * first (a preview that writes nothing), then makes the installation with the same input: app and
+ * version of an imported manifest (Z-501). No
  * answer carries a secret: the encrypted column stays in the Zentrale. Each installation comes with
  * its state (Z-403), unknown 90 s after the last report, the page also with its history and the
  * form of its settings, with which "Einstellungen ändern" configures it anew (Z-404), and which
@@ -37,12 +38,9 @@ const grund = z.string().trim().min(1).max(500);
 const wunsch = {
   kundeId: id,
   serverId: id,
-  // the manifest's exact text: never trimmed, its bytes are what the signature signs
-  manifest: z
-    .string()
-    .min(1)
-    .max(512 * 1024),
-  signatur: z.string().min(1).max(4000),
+  // an imported manifest (Z-501): the dialog chooses app and version, it uploads nothing
+  app: z.string().min(1).max(100),
+  version: z.string().min(1).max(100),
   optionen: z.array(z.string().min(1).max(100)).max(50).default([]),
 };
 const platzierungSchema = z.object(wunsch).strict();
@@ -61,6 +59,8 @@ const konfigurierenSchema = z.object({ einstellungen: einstellungsWerte, grund }
 const STATUS: Record<string, 400 | 404 | 409 | 422 | 500 | 503> = {
   kein_kunde: 404,
   kein_server: 404,
+  kein_manifest: 404,
+  nur_intern: 409,
   keine_installation: 404,
   server_gesperrt: 409,
   passt_nicht: 409,
@@ -180,11 +180,11 @@ export const installationenRouten = (route: Registrar, deps: RoutenDeps): void =
     if (!angaben) return ungueltig(c);
     const key = await schluessel();
     if (!key) return fehler(c, { grund: "kein_schluessel" });
-    const geprueft = hochgeladenesManifest(key, angaben.manifest, angaben.signatur);
-    if (!geprueft.ok) return fehler(c, geprueft);
+    const gewaehlt = gewaehltesManifest(deps.db, key, c.get("betreiberId"), angaben);
+    if (!gewaehlt.ok) return fehler(c, gewaehlt);
     const platz = platzPruefen(modul, c.get("betreiberId"), {
       ...angaben,
-      manifest: geprueft.manifest,
+      manifest: gewaehlt.manifest,
     });
     if (!platz.ok) return fehler(c, platz);
     return c.json({ platzierung: platz.platzierung });

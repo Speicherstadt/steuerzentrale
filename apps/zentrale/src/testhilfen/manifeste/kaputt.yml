@@ -1,0 +1,6 @@
+# Test manifest for imported versions (Z-501), signed with the public test key (test/schluessel/)
+# by scripts/minisign.ts, trusted comment "kaputt (test key)".
+# Signed, but no valid manifest.
+schema: 1
+id: probe
+version: 1.0.0

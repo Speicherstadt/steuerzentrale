@@ -6,14 +6,25 @@ import { auditLog } from "../../db/schema.ts";
 import {
   type AufbewahrteTabelle,
   ausgelasseneSpalten,
+  istGlobal,
   type Tabelle,
   type TabellenName,
   tabellen,
   verschluesselteSpalten,
 } from "./tabellen.ts";
 
-/** Who writes, for which operator, when and why (docs/plan.md, "Sicherheit": every write with a reason) */
-export type Kontext = { betreiberId: string; akteur: string; jetzt: number; grund: string };
+/**
+ * Who writes, for which operator, when and why (docs/plan.md, "Sicherheit": every write with a
+ * reason). `auchFuer` names further operators whose audit logs get the same entries: only for a
+ * change of `global` tables alone, such as a manifest the command imports for all (Z-501)
+ */
+export type Kontext = {
+  betreiberId: string;
+  akteur: string;
+  jetzt: number;
+  grund: string;
+  auchFuer?: readonly string[];
+};
 
 type Zeile<N extends TabellenName> = InferSelectModel<Tabelle<N>>;
 type Neu<N extends TabellenName> = InferInsertModel<Tabelle<N>>;
@@ -39,14 +50,16 @@ type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 const spalte = (name: TabellenName, feld: string): SQLiteColumn =>
   (tabellen[name].tabelle as unknown as Record<string, SQLiteColumn>)[feld] as SQLiteColumn;
 
-/** The row named by its key, always within the writer's operator */
+/** The row named by its key, always within the writer's operator (a `global` table has none) */
 const wo = (name: TabellenName, betreiberId: string, schluessel: Record<string, unknown>): SQL => {
   const fehlt = tabellen[name].schluessel.filter((feld) => schluessel[feld] === undefined);
   if (fehlt.length > 0) throw new Error(`${name}: key ${fehlt.join(", ")} missing`);
   const bedingungen = tabellen[name].schluessel.map((feld) =>
     eq(spalte(name, feld), schluessel[feld]),
   );
-  return and(eq(spalte(name, "betreiberId"), betreiberId), ...bedingungen) as SQL;
+  return istGlobal(name)
+    ? (and(...bedingungen) as SQL)
+    : (and(eq(spalte(name, "betreiberId"), betreiberId), ...bedingungen) as SQL);
 };
 
 const zielVon = (name: TabellenName, zeile: Record<string, unknown>): string =>
@@ -66,23 +79,35 @@ const eineZeile = <T>(zeilen: T[], name: string): T => {
   return zeilen[0] as T;
 };
 
+/** Only a `global` table may be written for several operators' audit logs at once */
+const pruefen = (name: TabellenName, kontext: Kontext): void => {
+  if ((kontext.auchFuer?.length ?? 0) > 0 && !istGlobal(name))
+    throw new Error(`${name}: written for several operators, but holds an operator's data`);
+};
+
 const schreiberFuer = (tx: Tx, kontext: Kontext, aktion: string): Schreiber => {
+  const betreiberIds = [...new Set([kontext.betreiberId, ...(kontext.auchFuer ?? [])])];
   const anhaengen = (ziel: string, inhalt: unknown): void => {
-    tx.insert(auditLog)
-      .values({
-        betreiberId: kontext.betreiberId,
-        zeitpunkt: kontext.jetzt,
-        akteur: kontext.akteur,
-        aktion,
-        ziel,
-        grund: kontext.grund,
-        inhalt: JSON.stringify(inhalt),
-      })
-      .run();
+    for (const betreiberId of betreiberIds)
+      tx.insert(auditLog)
+        .values({
+          betreiberId,
+          zeitpunkt: kontext.jetzt,
+          akteur: kontext.akteur,
+          aktion,
+          ziel,
+          grund: kontext.grund,
+          inhalt: JSON.stringify(inhalt),
+        })
+        .run();
   };
   return {
     einfuegen: (name, werte) => {
-      if ((werte as { betreiberId?: string }).betreiberId !== kontext.betreiberId)
+      pruefen(name, kontext);
+      if (
+        !istGlobal(name) &&
+        (werte as { betreiberId?: string }).betreiberId !== kontext.betreiberId
+      )
         throw new Error(`${name}: row of another operator`);
       const zeile = eineZeile(
         tx
@@ -96,6 +121,7 @@ const schreiberFuer = (tx: Tx, kontext: Kontext, aktion: string): Schreiber => {
       return zeile as never;
     },
     aendern: (name, schluessel, werte) => {
+      pruefen(name, kontext);
       const neu = { ...werte } as Record<string, unknown>;
       for (const feld of ["betreiberId", ...tabellen[name].schluessel]) delete neu[feld];
       const zeile = eineZeile(
@@ -111,6 +137,7 @@ const schreiberFuer = (tx: Tx, kontext: Kontext, aktion: string): Schreiber => {
       return zeile as never;
     },
     loeschen: (name, schluessel) => {
+      pruefen(name, kontext);
       const zeile = eineZeile(
         tx
           .delete(tabellen[name].tabelle)
@@ -129,6 +156,7 @@ const schreiberFuer = (tx: Tx, kontext: Kontext, aktion: string): Schreiber => {
         .where(wo(name, kontext.betreiberId, schluessel))
         .all().length > 0,
     loeschenVor: (name, grenze) => {
+      pruefen(name, kontext);
       const { tabelle, zeit } = tabellen[name];
       // bun:sqlite's run() reports no row count through Drizzle; the deleted instants do
       const geloescht = tx
