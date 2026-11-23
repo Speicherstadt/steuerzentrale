@@ -33,14 +33,18 @@ export type NeueDnsEinstellungen = {
 const zeileVon = (db: Db, betreiberId: string) =>
   db.select().from(dnsEinstellungen).where(eq(dnsEinstellungen.betreiberId, betreiberId)).get();
 
-const tokenGesetzt = (db: Db, betreiberId: string): boolean =>
+/** The token's row, its value still encrypted */
+const tokenZeile = (db: Db, betreiberId: string) =>
   db
-    .select({ id: geheimnisse.geheimnisId })
+    .select({ wert: geheimnisse.wert })
     .from(geheimnisse)
     .where(
       and(eq(geheimnisse.betreiberId, betreiberId), eq(geheimnisse.geheimnisId, TOKEN_GEHEIMNIS)),
     )
-    .get() !== undefined;
+    .get();
+
+const tokenGesetzt = (db: Db, betreiberId: string): boolean =>
+  tokenZeile(db, betreiberId) !== undefined;
 
 export const dnsEinstellungenLesen = (db: Db, betreiberId: string): DnsEinstellungen => {
   const zeile = zeileVon(db, betreiberId);
@@ -96,6 +100,15 @@ export const dnsEinstellungenSetzen = (
         });
     });
   return { ok: true, einstellungen: dnsEinstellungenLesen(deps.db, betreiberId) };
+};
+
+/**
+ * What the operator's settings stand at, the token as its ciphertext (fresh on every save): an
+ * attempt that failed while this changed failed with settings no longer set, so it waits no backoff
+ */
+export const dnsStand = (db: Db, betreiberId: string): string => {
+  const zeile = zeileVon(db, betreiberId);
+  return JSON.stringify([zeile?.domain, zeile?.zoneId, tokenZeile(db, betreiberId)?.wert]);
 };
 
 export type DnsZugang =

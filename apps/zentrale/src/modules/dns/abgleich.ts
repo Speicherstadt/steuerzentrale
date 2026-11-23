@@ -16,7 +16,7 @@ import {
   eintragLoeschen,
   type Zugang,
 } from "./cloudflare.ts";
-import { dnsZugang } from "./einstellungen.ts";
+import { dnsStand, dnsZugang } from "./einstellungen.ts";
 import {
   DNS_FEHLER_ART,
   kommentarFuer,
@@ -187,7 +187,10 @@ export const ergebnisSchreiben = (
 export const dnsAbgleichen = async (deps: DnsDeps): Promise<number> => {
   const faellig = faelligeInstallationen(deps.db, deps.now());
   for (const i of faellig) {
+    const stand = dnsStand(deps.db, i.betreiberId);
     const ergebnis = await installationAbgleichen(deps, i);
+    // new settings came in while it ran: it stays due and is tried with them, not after a backoff
+    if (!ergebnis.ok && dnsStand(deps.db, i.betreiberId) !== stand) continue;
     ergebnisSchreiben(deps, i, ergebnis, deps.now());
   }
   return faellig.length;

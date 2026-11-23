@@ -67,7 +67,8 @@ mit einem Fehler, ist nicht erreichbar, der Token fehlt oder ein fremder Eintrag
 versucht die Zentrale es wieder: nach 1, 2, 4, 8 … Minuten, höchstens stündlich. Sie prüft alle 30
 Sekunden, welche Einträge fällig sind, und sofort nach dem Anlegen, nach einem Entfernen und nach
 neuen DNS-Einstellungen; neue Einstellungen machen jeden wartenden Versuch sofort fällig, so wirkt ein
-nachgetragener Token gleich.
+nachgetragener Token gleich. Scheitert ein Versuch, während neue Einstellungen gespeichert werden,
+zählt er nicht: er lief noch mit den alten, die Installation bleibt fällig.
 
 Der erste Fehlschlag einer Reihe schreibt das Ereignis `dns_fehler` (Schwere `warn`) mit Host, Versuch
 und Grund an die Installation, ein anhaltender Fehler höchstens eines am Tag. Der Grund enthält nie den
