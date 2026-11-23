@@ -139,6 +139,37 @@ export const ZertifikatAnfrage = z.object({
   csr: pem("CERTIFICATE REQUEST"),
 });
 
+/** One part of a backup run (Z-601): its tag, and restic's snapshot ID when it made one */
+const backupTeil = z.object({
+  tag: z.string().min(1).max(300),
+  ok: z.boolean(),
+  snapshot: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
+  fehler: z.string().min(1).max(500).optional(),
+});
+
+/**
+ * One run of an installation's backup on the server (Z-601; docs/plan.md, "Backup auf dem
+ * Server"), as `sichern` wrote it: `lauf` is its own ID, so a run sent again after a reconnect is
+ * one run; a reason names what failed, never the output of restic or of a command
+ */
+export const BackupLauf = z.object({
+  lauf: id,
+  beginn: zeitpunkt,
+  ende: zeitpunkt,
+  ok: z.boolean(),
+  fehler: z.string().min(1).max(2000).optional(),
+  teile: z.array(backupTeil).max(100),
+});
+
+export const BackupStand = BackupLauf.extend({
+  typ: z.literal("backup_stand"),
+  protokoll,
+  installationId: id,
+});
+
 // Zentrale → Agent
 
 /**
@@ -185,6 +216,21 @@ export const Einrichtung = z.object({
   }),
 });
 
+/**
+ * What `installation_backup_einrichten` tells the agent (Z-601): the installation's restic
+ * repository on the operator's S3 target, the S3 access that reaches only its prefix, and its own
+ * restic password. The Zentrale adds it, decrypted, only when it sends the job, like the `auto`
+ * values of `einrichtung`; packages/manifest (backup/auftraege.ts) checks the form
+ */
+export const Backup = z.object({
+  repository: z.string().min(1).max(1000),
+  zugang: z.object({
+    schluesselId: z.string().min(1).max(200),
+    geheim: z.string().min(1).max(200),
+  }),
+  passwort: z.string().min(1).max(500),
+});
+
 export const Auftrag = z.object({
   typ: z.literal("auftrag"),
   protokoll,
@@ -198,6 +244,8 @@ export const Auftrag = z.object({
   zeitlimitS: z.number().int().positive(),
   /** Only with `installation_einrichten` (BAULISTE.md Z-402) */
   einrichtung: Einrichtung.optional(),
+  /** Only with `installation_backup_einrichten` (BAULISTE.md Z-601) */
+  backup: Backup.optional(),
 });
 
 export const VomAgenten = z.discriminatedUnion("typ", [
@@ -211,6 +259,7 @@ export const VomAgenten = z.discriminatedUnion("typ", [
   LogAuszug,
   SshAnmeldung,
   ZertifikatAnfrage,
+  BackupStand,
 ]);
 export const VonDerZentrale = z.discriminatedUnion("typ", [Willkommen, Auftrag, Zertifikat]);
 

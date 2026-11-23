@@ -6,6 +6,7 @@ import type { Schluesselbund } from "../../db/schluessel.ts";
 import { schreiben } from "../audit/index.ts";
 import type { Planer } from "../aufbewahrung/index.ts";
 import type { Installation } from "../installationen/lesen.ts";
+import { anstossbareSchleife } from "../schleife/index.ts";
 import { serverFakten, serverLesen } from "../server/index.ts";
 import {
   type DnsEintrag,
@@ -200,26 +201,10 @@ export const dnsAbgleichen = async (deps: DnsDeps): Promise<number> => {
  * Checks every 30 seconds, and at once when `anstossen` is called (a new installation, a removed
  * one, new settings); never two runs at a time: a push during a run makes one more after it
  */
-export const dnsSchleife = (deps: DnsDeps, planen: Planer): { anstossen: () => void } => {
-  let laeuft = false;
-  let nochmal = false;
-  const lauf = async (): Promise<void> => {
-    if (laeuft) {
-      nochmal = true;
-      return;
-    }
-    laeuft = true;
-    try {
-      do {
-        nochmal = false;
-        await dnsAbgleichen(deps);
-      } while (nochmal);
-    } catch (fehler) {
-      deps.log(JSON.stringify({ msg: "dns check failed", fehler: String(fehler) }));
-    } finally {
-      laeuft = false;
-    }
-  };
-  planen(() => void lauf(), DNS_PRUEFUNG_MS);
-  return { anstossen: () => void lauf() };
-};
+export const dnsSchleife = (deps: DnsDeps, planen: Planer): { anstossen: () => void } =>
+  anstossbareSchleife(
+    () => dnsAbgleichen(deps),
+    planen,
+    DNS_PRUEFUNG_MS,
+    (fehler) => deps.log(JSON.stringify({ msg: "dns check failed", fehler: String(fehler) })),
+  );

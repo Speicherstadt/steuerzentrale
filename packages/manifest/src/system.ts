@@ -29,3 +29,22 @@ export const PFORTE_IMAGE: SystemImage = {
   tag: CADDY.tag,
   quelle: `Registry docker.io, Tag ${CADDY.tag}`,
 };
+
+const RESTIC = {
+  // renovate: datasource=docker depName=docker.io/restic/restic
+  tag: "0.20.0",
+  digest: "sha256:93999df80d4ac6cb148e82d2ef1fe6a81996f17ff535e772723538211b31555a",
+};
+
+/**
+ * restic for the backups (Z-601; docs/plan.md, "Backup auf dem Server"), the official image of
+ * restic/restic, in November 2026 its newest release. Flags, environment and exit codes are checked
+ * against its source and docs at v0.20.0 (cmd/restic, internal/global/global.go,
+ * doc/075_scripting.rst). The digest: `bun scripts/digest.ts docker.io/restic/restic:0.20.0` on
+ * 2026-11-23, later Renovate's pull requests
+ */
+export const RESTIC_IMAGE: SystemImage = {
+  image: `docker.io/restic/restic@${RESTIC.digest}`,
+  tag: RESTIC.tag,
+  quelle: `Registry docker.io, Tag ${RESTIC.tag}`,
+};

@@ -14,8 +14,10 @@ import type { Planer } from "./verbinden.ts";
 /*
  * What the agent reports on its own while connected (BAULISTE.md Z-304, Z-403): its facts right
  * after `willkommen` and then every 15 minutes (FAKTEN_MS), every SSH login from the journal, and
- * the state of its installations right after `willkommen` and then every 30 s (ZUSTAND_MS). All stop
- * when the connection ends and start again with the next `willkommen`.
+ * the state of its installations right after `willkommen` and then every 30 s (ZUSTAND_MS), and
+ * the runs of their backups not yet reported, right after `willkommen` and then every minute
+ * (BACKUP_STAND_MS, Z-601). All stop when the connection ends and start again with the next
+ * `willkommen`.
  */
 
 /**
@@ -23,6 +25,9 @@ import type { Planer } from "./verbinden.ts";
  * without a report for 90 s as unknown
  */
 export const ZUSTAND_MS = 30_000;
+
+/** How often the agent looks for new backup runs (src/backup/melden.ts) */
+export const BACKUP_STAND_MS = 60_000;
 
 export type MeldungenDeps = {
   planen: Planer;
@@ -36,6 +41,41 @@ export type MeldungenDeps = {
    * when there is nothing to send, e.g. while the last round still runs. None without
    */
   zustand?: () => Promise<ZustandNachricht | undefined>;
+  /**
+   * One round of the backup runs not yet reported (src/backup/melden.ts); `senden` says whether
+   * the message went out, `erste` marks the round at `willkommen`. None without
+   */
+  backups?: (senden: (text: string) => boolean, erste: boolean) => Promise<void>;
+};
+
+/** The backup runs every BACKUP_STAND_MS, a round never started while the last one still runs */
+const backupTakt = (
+  deps: MeldungenDeps,
+  runde: NonNullable<MeldungenDeps["backups"]>,
+  senden: (text: string) => void,
+  istAktiv: () => boolean,
+): (() => void) => {
+  let abbrechen: (() => void) | undefined;
+  let laeuft = false;
+  let erste = true;
+  const takt = () => {
+    abbrechen = deps.planen(takt, BACKUP_STAND_MS);
+    if (laeuft) return;
+    laeuft = true;
+    const sendenWennAktiv = (text: string) => {
+      if (!istAktiv()) return false;
+      senden(text);
+      return true;
+    };
+    runde(sendenWennAktiv, erste)
+      .catch((fehler) => deps.log("backup report failed", { fehler: String(fehler) }))
+      .finally(() => {
+        laeuft = false;
+      });
+    erste = false;
+  };
+  takt();
+  return () => abbrechen?.();
 };
 
 /**
@@ -87,11 +127,15 @@ export const meldungenStarten = (
   const zustandStoppen = deps.zustand
     ? zustandTakt(deps, deps.zustand, senden, () => aktiv)
     : () => {};
+  const backupStoppen = deps.backups
+    ? backupTakt(deps, deps.backups, senden, () => aktiv)
+    : () => {};
   return () => {
     aktiv = false;
     abbrechen?.();
     ssh.stoppen();
     zustandStoppen();
+    backupStoppen();
   };
 };
 

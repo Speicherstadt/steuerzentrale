@@ -1,5 +1,6 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { apiBackups, backupQuelle, backupQuelleEinsetzen } from "./daten/backups.ts";
 import { apiBetrieb, betriebQuelle, betriebQuelleEinsetzen } from "./daten/betrieb.ts";
 import {
   apiEinstellungen,
@@ -42,6 +43,8 @@ const LEER: Record<string, unknown> = {
   "/api/v1/auftraege": { eintraege: [], weiter: null },
   "/api/v1/ereignisse": { eintraege: [], weiter: null },
   "/api/v1/audit": { eintraege: [], weiter: null },
+  "/api/v1/backups": { installationen: [] },
+  "/api/v1/backup-ziel": { endpunkt: null, region: null, bucket: null, zugangGesetzt: false },
 };
 
 /** Names of the demo operator (src/demo/) that must not show */
@@ -82,6 +85,7 @@ const vorher = {
   installationen: installationenQuelle(),
   kunden: kundenQuelle(),
   einstellungen: einstellungenQuelle(),
+  backups: backupQuelle(),
 };
 
 beforeAll(() => {
@@ -94,6 +98,7 @@ beforeAll(() => {
   rollenQuelleEinsetzen(apiRolle);
   ichQuelleEinsetzen(apiIch);
   mitgliederQuelleEinsetzen(apiMitglieder);
+  backupQuelleEinsetzen(apiBackups);
 });
 
 afterAll(() => {
@@ -103,6 +108,7 @@ afterAll(() => {
   installationenQuelleEinsetzen(vorher.installationen);
   kundenQuelleEinsetzen(vorher.kunden);
   einstellungenQuelleEinsetzen(vorher.einstellungen);
+  backupQuelleEinsetzen(vorher.backups);
 });
 
 beforeEach(() => {
@@ -142,13 +148,14 @@ describe("signed in, against a Zentrale without data", () => {
     });
     expect(root.textContent).toContain("Keine Ereignisse.");
     expect(root.textContent).toContain("Keine Aufträge.");
-    expect(root.textContent).toContain("kommt mit Z-601");
+    expect(root.textContent).toContain("kommt mit Z-503");
+    expect(root.textContent).toContain("Letzter Lauf erfolgreich0/0");
   });
 
   it("says which item brings a page without an API", async () => {
-    const { root } = await oeffne("/backups");
+    const { root } = await oeffne("/updates");
     await vi.waitFor(() => {
-      if (!root.textContent?.includes("kommt mit Z-601")) throw new Error("not yet");
+      if (!root.textContent?.includes("kommt mit Z-503")) throw new Error("not yet");
     });
     expect((await rolleLesen()).ok).toBe(true);
   });

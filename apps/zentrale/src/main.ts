@@ -10,6 +10,7 @@ import type { Schluesselbund } from "./db/schluessel.ts";
 import { parseEnv } from "./env.ts";
 import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
+import { backupSchleife } from "./modules/backups/index.ts";
 import { bewertungsSchleife } from "./modules/bewertung/index.ts";
 import { dnsSchleife } from "./modules/dns/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
@@ -92,6 +93,23 @@ const dns = dnsSchleife(
   },
   planen,
 );
+// The agents' connections, shared by the routes and the backup check, which sends a job when it
+// made an installation's S3 access (Z-601)
+const agenten = verbindungen(TRENNUNG.ersetzt);
+// The installations' own S3 accesses at MinIO (Z-601): every 30 s and at once when some are due
+const backup = backupSchleife(
+  {
+    db,
+    schreibDb,
+    schluessel: env.schluessel,
+    verbindungen: agenten,
+    fetch,
+    now: Date.now,
+    log,
+    dnsAnstossen: dns.anstossen,
+  },
+  planen,
+);
 const auth = createAuth({ schreibDb, url: env.url, geheimnis: datenbank.anmeldeGeheimnis });
 const app = createApp({
   log,
@@ -105,8 +123,9 @@ const app = createApp({
   agentUrl: env.agentUrl,
   auslieferung: auslieferung(env.agentDateien, env.agentUrl),
   socketAdresse: (request, server) => (server as Server<unknown>).requestIP(request)?.address,
-  verbindungen: verbindungen(TRENNUNG.ersetzt),
+  verbindungen: agenten,
   dnsAnstossen: dns.anstossen,
+  backupAnstossen: backup.anstossen,
 });
 // `websocket` carries the agents' connections (src/routes/verbindung.ts)
 const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch, websocket });

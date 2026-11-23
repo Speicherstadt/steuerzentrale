@@ -12,12 +12,13 @@ import { auftragsUmgebung } from "./auftraege.ts";
  * For the tests of installing (Z-402): the job environment with customers, server facts and the
  * operator's values for an app, and two manifests signed with the public test key
  * (testhilfen/manifeste/), the key install.sh hands the agents in tests; `gesperrt` is `probe`
- * with a freeze window (Z-404), `aktionen` with "nur lesen" and without restart (Z-405).
+ * with a freeze window (Z-404), `aktionen` with "nur lesen" and without restart (Z-405),
+ * `gesichert` with two parts to back up (Z-601).
  */
 const ORDNER = join(import.meta.dirname, "manifeste");
 const REPO = join(import.meta.dirname, "../../../..");
 
-export const signiert = (app: "probe" | "stumm" | "gesperrt" | "aktionen") => ({
+export const signiert = (app: "probe" | "stumm" | "gesperrt" | "aktionen" | "gesichert") => ({
   manifest: readFileSync(join(ORDNER, `${app}.yml`), "utf8"),
   signatur: readFileSync(join(ORDNER, `${app}.yml.minisig`), "utf8"),
 });

@@ -71,6 +71,7 @@ nav:
       - Neustart, Log-Auszug, nur lesen: aktionen.md
       - Pforte: pforte.md
       - Updates: updates.md
+      - Backups: backups.md
   - Für App-Entwickler:
       - Manifest: manifest.md
   - Entwicklung:

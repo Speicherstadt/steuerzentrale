@@ -47,6 +47,31 @@ export {
   nurLesenBefehl,
 } from "./aktionen.ts";
 export {
+  BACKUP_AKTIONEN,
+  BACKUP_AUFBEWAHRUNG,
+  BACKUP_EINRICHTEN_ZEITLIMIT_S,
+  BACKUP_ZEITLIMIT_S,
+  type BackupAnfrage,
+  type BackupAuftrag,
+  type BackupGeprueft,
+  type BackupTeil,
+  type BackupZugang,
+  backupAuftragPruefen,
+  backupTeile,
+  istBackupAktion,
+  SICHERUNG_PFAD,
+} from "./backup/auftraege.ts";
+export { AGENT_BINARY, BACKUP_SERVICE, BACKUP_TIMER, backupUnits } from "./backup/units.ts";
+export {
+  type BackupOrt,
+  type BackupPolicy,
+  BUCKET,
+  backupPolicy,
+  backupPraefix,
+  backupRepository,
+  type OrtGeprueft,
+} from "./backup-zugang.ts";
+export {
   EINRICHTUNG_AKTIONEN,
   EINRICHTUNG_ZEITLIMIT_S,
   type Einrichtung,
@@ -122,5 +147,5 @@ export {
   type Quadlets,
   type Wert,
 } from "./quadlet/typen.ts";
-export { PFORTE_IMAGE, type SystemImage } from "./system.ts";
+export { PFORTE_IMAGE, RESTIC_IMAGE, type SystemImage } from "./system.ts";
 export { schluesselVertrauen, TEST_SCHLUESSEL_ID, type Zweck } from "./vertrauen.ts";

@@ -92,6 +92,19 @@ Neustart meldet `{ installation, units }`; der Log-Auszug schickt zuerst die Nac
 mit den Zeilen und der Auftrags-ID und meldet dann `{ zeilen: n }`. Nach einem Neustart des Agenten
 wird ein laufender Log-Auszug wiederholt, ein Neustart nicht.
 
+Die beiden Aufträge der [Backups](backups.md) sind ebenfalls eingebaut:
+`installation_backup_einrichten` (Zeitlimit höchstens 30 Minuten) und `installation_backup`
+(„Backup jetzt“, höchstens vier Stunden und zwei Minuten), mit dem signierten Manifest und dem Namen
+der Installation, ohne Argumente und ohne Feld `einrichtung`. Nur `installation_backup_einrichten`
+trägt das Feld `backup` mit Repository, S3-Zugang und restic-Passwort der Installation; die Zentrale
+setzt es erst beim Zustellen ein, und jeden anderen Auftrag mit diesem Feld lehnt der Agent ab. Er
+prüft die Form (nur ein S3-Repository, Zugang und Passwort aus Zeichen, die die Dateien für restic
+halten können) und dass das Manifest Teile unter `backup` nennt, und nimmt beide Aufträge nur für
+eine Installation an, die er fertig eingerichtet hat. Das Einrichten läuft nacheinander mit den
+Einrichtungsaufträgen und meldet `{ installation, repository, teile, timer }`; „Backup jetzt“ läuft
+daneben und meldet `{ installation, lauf, teile }`. Beide werden nach einem Neustart des Agenten
+wiederholt.
+
 Nach Schlüssel und Signatur prüft der Agent die feste Form der Einrichtungsaufträge (Name der Installation, Ports von 1024 bis 65535, nur Optionen des
 Manifests, keine Argumente) und rendert die Units selbst aus dem signierten Manifest. Die Angaben
 zur Installation (Feld `einrichtung`) trägt nur ein Einrichtungsauftrag; jeden anderen Auftrag mit

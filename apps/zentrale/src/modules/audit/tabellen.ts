@@ -2,6 +2,9 @@ import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import {
   appEinstellungen,
   auftraege,
+  backups,
+  backupZiele,
+  backupZugaenge,
   betreiber,
   dnsEinstellungen,
   einladungen,
@@ -62,6 +65,9 @@ export const tabellen = {
     zeit: undefined,
   },
   dnsEinstellungen: { tabelle: dnsEinstellungen, schluessel: [] as string[], zeit: undefined },
+  backupZiele: { tabelle: backupZiele, schluessel: [] as string[], zeit: undefined },
+  backupZugaenge: { tabelle: backupZugaenge, schluessel: ["installationId"], zeit: undefined },
+  backups: { tabelle: backups, schluessel: ["backupId"], zeit: backups.zeitpunkt },
 } satisfies Record<
   string,
   { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined }
@@ -78,6 +84,7 @@ export const verschluesselteSpalten: Partial<Record<TabellenName, readonly strin
   installationen: ["geheim"],
   appEinstellungen: ["wertVerschluesselt"],
   installationKonfigurationen: ["geheim"],
+  backupZugaenge: ["geheim"],
 };
 /**
  * Columns the audit log records only as set: a job's manifest text and signature (Z-305) would put

@@ -48,7 +48,7 @@ export type VerbindenDeps = {
   /** A new key and its request, PEM (csr.ts by default) */
   anfrage?: () => Promise<{ schluessel: string; csr: string }>;
   /** Facts, SSH logins (Z-304) and the state of the installations (Z-403) to report while connected; none without */
-  meldungen?: Pick<MeldungenDeps, "fakten" | "anmeldungen" | "zustand">;
+  meldungen?: Pick<MeldungenDeps, "fakten" | "anmeldungen" | "zustand" | "backups">;
   /** Takes the jobs the Zentrale sends (Z-305, src/auftraege); without, jobs are left alone */
   auftraege?: Auftraege;
 };

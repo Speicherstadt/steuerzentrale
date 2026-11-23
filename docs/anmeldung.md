@@ -75,6 +75,8 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 | Log-Auszug einer Installation anfordern und lesen | ja | ja | ja |
 | Übersicht, Aufträge und Ereignisse sehen | ja | ja | ja |
 | Audit-Log lesen | ja | ja | – |
+| Backups und S3-Ziel sehen | ja | ja | ja |
+| S3-Ziel setzen, „Backup jetzt“ | ja | ja | – |
 
 Die Rollen sind die Zugriffssteuerung des Organization-Plugins von Better Auth; jeder Betreiber ist
 dort eine Organisation mit derselben ID. Ein Betreiber behält immer einen Inhaber: der letzte kann

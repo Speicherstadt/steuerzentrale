@@ -18,6 +18,17 @@ const deps = (eingabe = ""): CliDeps & { gesendet: unknown[]; gestartet: unknown
     eingabe: async () => eingabe,
     architektur: "x64",
     fakten: async () => ({ typ: "fakten", zeit: 1 }) as never,
+    sichern: {
+      uid: () => 0,
+      home: () => "/root",
+      dateien: speicher().dateien,
+      sichern: {
+        restic: async () => ({ code: 0, aus: "" }),
+        jetzt: () => 1,
+        id: () => "l",
+        planen: () => () => {},
+      },
+    },
     gesendet,
   };
 };
@@ -37,6 +48,16 @@ describe("agent command line", () => {
     );
     expect((await runCli(["dienst", "--jetzt"], deps())).code).toBe(2);
     expect((await runCli(["fakten", "--shell"], deps())).code).toBe(2);
+  });
+
+  it("backs up only as an installation's user, never as root (Z-601)", async () => {
+    const ergebnis = await runCli(["sichern", "test-x"], deps());
+    expect(ergebnis.code).toBe(1);
+    expect(JSON.parse(ergebnis.out)).toEqual({
+      msg: "refusing to back up",
+      grund: "sichern runs as the installation's user",
+    });
+    expect((await runCli(["sichern"], deps())).code).toBe(2);
   });
 
   it("prints the facts it would report (Z-304)", async () => {

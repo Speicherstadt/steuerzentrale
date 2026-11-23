@@ -137,6 +137,9 @@ jobs:
           printf '[[registry]]\nlocation = "localhost:5000"\ninsecure = true\n' |
             sudo tee /etc/containers/registries.conf.d/sz-test-registry.conf
           echo "SZ_TEST_EINRICHTUNG=1" >> "$GITHUB_ENV"
+      # BAULISTE.md Z-601: apps/agent/test/backup.agent.test.ts starts MinIO by digest in a container
+      # of the runner (port 29401) and installs the agent's binary as /usr/local/bin/sz-test-agent-*,
+      # which the installation's backup service runs as its user; both go again after the test
       - run: podman --version && bun run test:agent
       - name: What the Pforte's user manager saw
         if: failure()
@@ -151,6 +154,8 @@ jobs:
           sudo -n -u sz-pforte env -i HOME=/home/sz-pforte /usr/libexec/podman/quadlet --user --dryrun || true
           sudo journalctl --user-unit sz-pforte.service -n 50 --no-pager || true
           sudo journalctl _UID="$uid" -n 80 --no-pager || true
+          # what the backup services of the installations printed (Z-601): tags and reasons, no values
+          sudo journalctl --user-unit sz_backup.service -n 80 --no-pager || true
 
   # What a user does, desktop and @phone, with axe; Playwright fails when no test ran
   e2e:

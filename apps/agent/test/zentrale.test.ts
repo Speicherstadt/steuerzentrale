@@ -87,11 +87,14 @@ describe("agent and Zentrale", () => {
     const { inhaber, agent, log, herzschlaege } = await aufgebaut();
     await expect.poll(() => herzschlaege(), { timeout: 5000 }).toBeGreaterThanOrEqual(3);
     expect(log.filter((z) => z.msg === "connected")).toHaveLength(1);
-    const { daten } = await inhaber.json(`/api/v1/server/${agent.serverId}`);
-    expect(daten).toMatchObject({
-      agentVersion: expect.any(String),
-      agent: { zustand: "verbunden" },
-    });
+    // the Zentrale's clock runs RAFFUNG times faster, so "still" begins 75 ms after a heartbeat:
+    // a busy runner can read between two of them, so the state is asked until a read lands
+    // in time, as the heartbeats go on
+    await expect
+      .poll(async () => (await inhaber.json(`/api/v1/server/${agent.serverId}`)).daten, {
+        timeout: 5000,
+      })
+      .toMatchObject({ agentVersion: expect.any(String), agent: { zustand: "verbunden" } });
   });
 
   it("reconnect with backoff after the Zentrale went away and came back", async () => {

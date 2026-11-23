@@ -29,6 +29,8 @@ export type RoutenDeps = {
   log: LogSink;
   /** Starts setting or deleting the DNS records that are due (modules/dns, Z-407) */
   dnsAnstossen?: () => void;
+  /** Starts making or deleting the S3 accesses that are due (modules/backups, Z-601) */
+  backupAnstossen?: () => void;
 };
 
 /** The request's JSON body parsed against `schema`, or undefined */

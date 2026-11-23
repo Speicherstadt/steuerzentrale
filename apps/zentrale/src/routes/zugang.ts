@@ -92,6 +92,13 @@ export const ROUTEN = {
   // the operator's DNS (Z-407): every role sees domain and zone and whether a token is set
   "GET /api/v1/dns": recht("dns:lesen"),
   "PUT /api/v1/dns": recht("dns:schreiben"),
+  // backups (Z-601): every role sees the runs and the S3 target without its admin access; owner
+  // and technik set the target and start "Backup jetzt"
+  "GET /api/v1/backups": recht("backups:lesen"),
+  "GET /api/v1/backup-ziel": recht("backups:lesen"),
+  "PUT /api/v1/backup-ziel": recht("backups:schreiben"),
+  "GET /api/v1/installationen/:installationId/backups": recht("backups:lesen"),
+  "POST /api/v1/installationen/:installationId/backup": recht("backups:schreiben"),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,
