@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { pforteTls } from "../../testhilfen/tls.ts";
 import { webhookEmpfaenger } from "../../testhilfen/webhook.ts";
-import { istOeffentlicheAdresse, type WebhookDeps, webhookSenden } from "./webhook.ts";
+import { istOeffentlicheAdresse } from "../dns/plan.ts";
+import { type WebhookDeps, webhookSenden } from "./webhook.ts";
 
 /*
  * BAULISTE.md Z-703: a webhook goes out signed, the test receiver checks the signature and notices
@@ -121,28 +122,5 @@ describe("webhookSenden", () => {
     e.stoppen();
     const weg = await webhookSenden(imTest, ziel, NACHRICHT, T);
     expect(weg.ok).toBe(false);
-  });
-});
-
-describe("istOeffentlicheAdresse", () => {
-  it("allows public unicast addresses only", () => {
-    for (const ja of ["203.0.113.7", "8.8.8.8", "2a01:4f8::1"])
-      expect(istOeffentlicheAdresse(ja), ja).toBe(true);
-    for (const nein of [
-      "127.0.0.1",
-      "10.1.2.3",
-      "172.16.0.1",
-      "192.168.0.1",
-      "100.64.0.1",
-      "169.254.1.1",
-      "0.1.2.3",
-      "224.0.0.1",
-      "::1",
-      "fe80::1",
-      "fc00::1",
-      "::ffff:127.0.0.1",
-      "kein",
-    ])
-      expect(istOeffentlicheAdresse(nein), nein).toBe(false);
   });
 });

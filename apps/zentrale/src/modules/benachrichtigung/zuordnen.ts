@@ -3,12 +3,14 @@ import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import { empfaenger, ereignisse, zustellungen } from "../../db/schema.ts";
 import { schreiben } from "../audit/index.ts";
+import { AUSSEN_GRUEN_ART, AUSSEN_ROT_ART } from "../aussen/lesen.ts";
 
 /*
  * Which event goes to whom (BAULISTE.md Z-703; docs/plan.md, "Benachrichtigungen"): every event of
  * an operator reaches each of its recipients whose threshold its severity meets, as one delivery in
  * the outbox. One message per fault, not per check, because the events already are one per fault
- * (Z-403 `stoerung` and `stoerung_behoben`, Z-702 one per finding). A fix (`<art>_behoben`) goes out
+ * (Z-403 `stoerung` and `stoerung_behoben`, Z-702 one per finding). A fix (`<art>_behoben`, and
+ * Z-704's `aussen_gruen` after `aussen_rot`) goes out
  * with the severity of the newest `<art>` at the same target before it, so whoever heard of the
  * fault hears of its end. Events of the last 24 hours are looked at, each delivery's id is
  * `<ereignis>.<empfaenger>`, so a second look writes nothing and an event written after a slow
@@ -23,9 +25,17 @@ export const BEHOBEN = "_behoben";
 export const zustellungId = (ereignisId: string, empfaengerId: string) =>
   `${ereignisId}.${empfaengerId}`;
 
-/** The newest event a fix fixes: `<art>` without `_behoben`, same target, not after it */
+/** Fixes named otherwise than `<art>_behoben`: the check from outside reports green (Z-704) */
+const BEHEBT: Readonly<Record<string, string>> = { [AUSSEN_GRUEN_ART]: AUSSEN_ROT_ART };
+
+/** The kind of event that an event of `art` fixes, or undefined when it fixes none */
+export const behobeneArt = (art: string): string | undefined =>
+  art.endsWith(BEHOBEN) ? art.slice(0, -BEHOBEN.length) : BEHEBT[art];
+
+/** The newest event a fix fixes: of the kind it fixes, same target, not after it */
 const behobenes = (db: Db, e: Ereignis): { schwere: string } | undefined => {
-  if (!e.art.endsWith(BEHOBEN)) return undefined;
+  const art = behobeneArt(e.art);
+  if (art === undefined) return undefined;
   return db
     .select({ schwere: ereignisse.schwere })
     .from(ereignisse)
@@ -33,7 +43,7 @@ const behobenes = (db: Db, e: Ereignis): { schwere: string } | undefined => {
       and(
         eq(ereignisse.betreiberId, e.betreiberId),
         eq(ereignisse.ziel, e.ziel),
-        eq(ereignisse.art, e.art.slice(0, -BEHOBEN.length)),
+        eq(ereignisse.art, art),
         lte(ereignisse.zeitpunkt, e.zeitpunkt),
       ),
     )

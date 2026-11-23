@@ -25,7 +25,8 @@ export const monateZurueck = (jetzt: number, monate: number): number => {
 /**
  * What is older than these instants goes (docs/plan.md, "Daten der Zentrale"): heartbeats, the
  * history of facts, log excerpts and the deliveries of notifications (Z-703) after 30 days, the history of ratings after 90 (Z-403), events,
- * the runs of backups (Z-601) and the test restores (Z-602) after 13 months; the audit log stays for
+ * the runs of backups (Z-601), the test restores (Z-602) and the hourly counts of the checks from
+ * outside (Z-704: a year of months and the month a year ago) after 13 months; the audit log stays for
  * good and is not here, nor the newest facts at each server or the current rating at each
  * installation
  */
@@ -38,4 +39,5 @@ export const aufbewahrungsGrenzen = (jetzt: number): Record<AufbewahrteTabelle, 
   ereignisse: monateZurueck(jetzt, 13),
   backups: monateZurueck(jetzt, 13),
   pruefRestores: monateZurueck(jetzt, 13),
+  verfuegbarkeit: monateZurueck(jetzt, 13),
 });

@@ -22,8 +22,8 @@ und schreibt ihn mit Grund und Person ins Audit-Log ([Aufträge](auftraege.md)).
 
 | Aktion | Auftrag | Wer | Wann nicht |
 | --- | --- | --- | --- |
-| Neustart | `installation_neustart` | Inhaber, Technik | in einer Sperrzeit des Manifests; solange ein anderer Auftrag der Installation offen ist |
-| Log-Auszug | `installation_log_auszug` | Inhaber, Technik, Support | – |
+| Neustart | `installation_neustart` | Inhaber, Technik; Support mit [Support-Zugang](support.md) | in einer Sperrzeit des Manifests; solange ein anderer Auftrag der Installation offen ist |
+| Log-Auszug | `installation_log_auszug` | Inhaber, Technik; Support mit [Support-Zugang](support.md) | – |
 | Nur lesen | der Befehl aus `aktionen.nur_lesen.befehl` | Inhaber, Technik | solange ein anderer Auftrag der Installation offen ist |
 
 Alle drei gibt es nur für eine Installation im Zustand „läuft“. Neustart und Log-Auszug sind

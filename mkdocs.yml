@@ -68,9 +68,11 @@ nav:
       - Adressen und DNS: dns.md
       - Einstellungen: einstellungen.md
       - Health und Zustand: zustand.md
+      - Prüfung von außen und Verfügbarkeit: aussen.md
       - Prüfungen der Server: pruefungen.md
       - Benachrichtigungen und Webhooks: benachrichtigungen.md
       - Neustart, Log-Auszug, nur lesen: aktionen.md
+      - Support-Zugang: support.md
       - Pforte: pforte.md
       - Manifeste und Versionen: manifeste.md
       - Updates: updates.md

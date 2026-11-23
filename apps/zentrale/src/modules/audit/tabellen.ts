@@ -24,8 +24,10 @@ import {
   mitglieder,
   pruefRestores,
   server,
+  supportZugaenge,
   tokens,
   updates,
+  verfuegbarkeit,
   vertraege,
   wiederherstellungen,
   zustellungen,
@@ -88,6 +90,12 @@ export const tabellen = {
     zeit: undefined,
   },
   updates: { tabelle: updates, schluessel: ["auftragId"], zeit: undefined },
+  verfuegbarkeit: {
+    tabelle: verfuegbarkeit,
+    schluessel: ["installationId", "stunde"],
+    zeit: verfuegbarkeit.stunde,
+  },
+  supportZugaenge: { tabelle: supportZugaenge, schluessel: ["zugangId"], zeit: undefined },
   manifeste: { tabelle: manifeste, schluessel: ["app", "version"], zeit: undefined, global: true },
   benachrichtigungEinstellungen: {
     tabelle: benachrichtigungEinstellungen,

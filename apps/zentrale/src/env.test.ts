@@ -183,4 +183,21 @@ describe("parseEnv", () => {
         "STEUERZENTRALE_REGISTRY_HTTP is for tests only",
       );
   });
+
+  // Z-704: the check from outside runs unless switched off (e2e, whose hosts are made up)
+  it("checks from outside unless STEUERZENTRALE_AUSSEN_PRUEFUNG is aus", () => {
+    const basis = {
+      STEUERZENTRALE_SECRET_KEY: KEY,
+      STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: AGENT_,
+    };
+    expect(parseEnv(basis).aussenPruefung).toBe(true);
+    expect(parseEnv({ ...basis, STEUERZENTRALE_AUSSEN_PRUEFUNG: "an" }).aussenPruefung).toBe(true);
+    expect(parseEnv({ ...basis, STEUERZENTRALE_AUSSEN_PRUEFUNG: "aus" }).aussenPruefung).toBe(
+      false,
+    );
+    expect(fehlerVon({ ...basis, STEUERZENTRALE_AUSSEN_PRUEFUNG: "nein" })).toContain(
+      "STEUERZENTRALE_AUSSEN_PRUEFUNG",
+    );
+  });
 });

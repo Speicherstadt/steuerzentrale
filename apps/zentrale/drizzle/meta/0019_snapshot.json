@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9512eb83-7eef-4864-af43-06dae7c0d1d1",
+  "id": "f1e7fc03-7a18-4708-b50a-29b52f667adb",
   "prevId": "d2318c88-6bc0-4b99-a419-81b0bc314c6d",
   "tables": {
     "audit_log": {
@@ -2308,81 +2308,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "benachrichtigung_einstellungen": {
-      "name": "benachrichtigung_einstellungen",
-      "columns": {
-        "betreiber_id": {
-          "name": "betreiber_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "smtp_host": {
-          "name": "smtp_host",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "smtp_port": {
-          "name": "smtp_port",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "smtp_sicherheit": {
-          "name": "smtp_sicherheit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "smtp_benutzer": {
-          "name": "smtp_benutzer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "absender": {
-          "name": "absender",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "ruhe_von": {
-          "name": "ruhe_von",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "ruhe_bis": {
-          "name": "ruhe_bis",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "geaendert_am": {
-          "name": "geaendert_am",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "empfaenger": {
-      "name": "empfaenger",
+    "support_zugaenge": {
+      "name": "support_zugaenge",
       "columns": {
         "betreiber_id": {
           "name": "betreiber_id",
@@ -2391,135 +2318,64 @@
           "notNull": true,
           "autoincrement": false
         },
-        "empfaenger_id": {
-          "name": "empfaenger_id",
+        "zugang_id": {
+          "name": "zugang_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "art": {
-          "name": "art",
+        "installation_id": {
+          "name": "installation_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "anzeige": {
-          "name": "anzeige",
+        "nutzer_id": {
+          "name": "nutzer_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "ab_schwere": {
-          "name": "ab_schwere",
+        "grund": {
+          "name": "grund",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "geheim": {
-          "name": "geheim",
+        "beginn": {
+          "name": "beginn",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ende": {
+          "name": "ende",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "beendet_am": {
+          "name": "beendet_am",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "beendet_von": {
+          "name": "beendet_von",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "angelegt_am": {
-          "name": "angelegt_am",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "empfaenger_betreiber_id_empfaenger_id_pk": {
-          "columns": ["betreiber_id", "empfaenger_id"],
-          "name": "empfaenger_betreiber_id_empfaenger_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "zustellungen": {
-      "name": "zustellungen",
-      "columns": {
-        "betreiber_id": {
-          "name": "betreiber_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "zustellung_id": {
-          "name": "zustellung_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "ereignis_id": {
-          "name": "ereignis_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "empfaenger_id": {
-          "name": "empfaenger_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "schwere": {
-          "name": "schwere",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "zustand": {
-          "name": "zustand",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "versuche": {
-          "name": "versuche",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "faellig_am": {
-          "name": "faellig_am",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "fehler": {
-          "name": "fehler",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "angelegt_am": {
-          "name": "angelegt_am",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "erledigt_am": {
-          "name": "erledigt_am",
+        "ende_gemeldet_am": {
+          "name": "ende_gemeldet_am",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -2527,27 +2383,32 @@
         }
       },
       "indexes": {
-        "zustellungen_faellig": {
-          "name": "zustellungen_faellig",
-          "columns": ["zustand", "faellig_am"],
+        "support_zugaenge_nutzer": {
+          "name": "support_zugaenge_nutzer",
+          "columns": ["betreiber_id", "nutzer_id", "installation_id", "ende"],
           "isUnique": false
         },
-        "zustellungen_angelegt": {
-          "name": "zustellungen_angelegt",
-          "columns": ["betreiber_id", "angelegt_am"],
-          "isUnique": false
-        },
-        "zustellungen_ereignis": {
-          "name": "zustellungen_ereignis",
-          "columns": ["betreiber_id", "ereignis_id"],
+        "support_zugaenge_beginn": {
+          "name": "support_zugaenge_beginn",
+          "columns": ["betreiber_id", "beginn"],
           "isUnique": false
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "support_zugaenge_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
+          "name": "support_zugaenge_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
+          "tableFrom": "support_zugaenge",
+          "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
+          "columnsTo": ["betreiber_id", "installation_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
-        "zustellungen_betreiber_id_zustellung_id_pk": {
-          "columns": ["betreiber_id", "zustellung_id"],
-          "name": "zustellungen_betreiber_id_zustellung_id_pk"
+        "support_zugaenge_betreiber_id_zugang_id_pk": {
+          "columns": ["betreiber_id", "zugang_id"],
+          "name": "support_zugaenge_betreiber_id_zugang_id_pk"
         }
       },
       "uniqueConstraints": {},

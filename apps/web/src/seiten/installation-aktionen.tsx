@@ -14,13 +14,14 @@ import {
 } from "../daten/installationen.ts";
 import { Fehler, felder } from "./anmeldung-teile.tsx";
 import { installationsFehler } from "./installieren-texte.ts";
-import { MitInstallationsRecht } from "./recht.tsx";
+import { MitInstallationsRecht, MitRechtOderZugang } from "./recht.tsx";
 
 /*
  * The actions of an installation (BAULISTE.md Z-405; mockup, installation page and "Log-Auszug";
  * docs/plan.md, "Aktionen einer Installation"): only the actions its manifest offers, each with a
- * reason for the audit log. Restart and "nur lesen" only for owner and technik, the log excerpt for
- * every role. A log excerpt is a job: the dialog asks the Zentrale every second for its lines until
+ * reason for the audit log. Owner and technik see every action; support sees log excerpt and
+ * restart while its own support access to the installation runs (Z-802), never "nur lesen". A log
+ * excerpt is a job: the dialog asks the Zentrale every second for its lines until
  * the agent sent them, and shows them.
  */
 
@@ -271,13 +272,13 @@ const SchreibendeAktion = (props: { a: Angaben; aktion: Schreibend; neu: () => v
 
 /**
  * The buttons of the actions the manifest offers, for a running installation; `neu` after a job
- * was made, so the page shows it
+ * was made, so the page shows it; `mitZugang` while the member's own support access runs
  */
-export const Aktionen = (props: { a: Angaben; neu: () => void }) => {
+export const Aktionen = (props: { a: Angaben; mitZugang: boolean; neu: () => void }) => {
   const [logOffen, setLogOffen] = createSignal(false);
   let angefordert = false;
   return (
-    <>
+    <MitRechtOderZugang zugang={props.mitZugang}>
       <Show when={props.a.aktionen.log_auszug}>
         <Button onClick={() => setLogOffen(true)}>
           <Icon icon={FileText} />
@@ -296,10 +297,10 @@ export const Aktionen = (props: { a: Angaben; neu: () => void }) => {
           }}
         />
       </Show>
+      <SchreibendeAktion a={props.a} aktion="neustart" neu={() => props.neu()} />
       <MitInstallationsRecht>
-        <SchreibendeAktion a={props.a} aktion="neustart" neu={() => props.neu()} />
         <SchreibendeAktion a={props.a} aktion="nur_lesen" neu={() => props.neu()} />
       </MitInstallationsRecht>
-    </>
+    </MitRechtOderZugang>
   );
 };

@@ -1,13 +1,16 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { SchreibDb } from "../../db/oeffnen.ts";
 import {
+  type AUSSEN_ZUSTAENDE,
   auftraege,
+  aussenPruefungen,
   type BEWERTUNGEN,
   fakten,
   heartbeats,
   installationen,
   installationVerlauf,
   server,
+  verfuegbarkeit,
 } from "../../db/schema.ts";
 
 /*
@@ -16,7 +19,9 @@ import {
  * not actions of anyone, and an audit entry for each would bury the entries that matter; so is the
  * step a running job reports (Z-305), whose state changes go through `schreiben`, and the rating of
  * an installation with its history (Z-403), whose faults go through `schreiben`. Only the tables
- * and columns written here; the rows are kept 30 days, the history of ratings 90
+ * and columns written here; so is the check from outside with its hourly count for the
+ * availability (Z-704), whose events go through `schreiben`. The rows are kept 30 days, the history
+ * of ratings 90, the hourly counts 13 months
  * (src/modules/aufbewahrung), and deleting them goes through `schreiben` again.
  */
 export type Heartbeat = typeof heartbeats.$inferInsert;
@@ -114,5 +119,51 @@ export const bewertungSetzen = (schreibDb: SchreibDb, z: BewertungZeile): void =
         })
         .onConflictDoNothing()
         .run();
+  });
+};
+
+export type AussenZeile = {
+  betreiberId: string;
+  installationId: string;
+  zustand: (typeof AUSSEN_ZUSTAENDE)[number];
+  /** JSON `{ code, werte }` */
+  grund: string;
+  seit: number;
+  geprueftAm: number;
+  /** JSON of what each step answered */
+  ergebnis: string;
+};
+
+/**
+ * Keeps an installation's newest check from outside (Z-704) and counts it, red or not, into the
+ * slice of its UTC hour (`stunde`), in one transaction (docs/plan.md, "Verfügbarkeit")
+ */
+export const aussenSetzen = (schreibDb: SchreibDb, z: AussenZeile, stunde: number): void => {
+  const rot = z.zustand === "rot" ? 1 : 0;
+  const { betreiberId, installationId } = z;
+  schreibDb.verbindung.transaction((tx) => {
+    tx.insert(aussenPruefungen)
+      .values(z)
+      .onConflictDoUpdate({
+        target: [aussenPruefungen.betreiberId, aussenPruefungen.installationId],
+        set: {
+          zustand: z.zustand,
+          grund: z.grund,
+          seit: z.seit,
+          geprueftAm: z.geprueftAm,
+          ergebnis: z.ergebnis,
+        },
+      })
+      .run();
+    tx.insert(verfuegbarkeit)
+      .values({ betreiberId, installationId, stunde, gemessen: 1, rot })
+      .onConflictDoUpdate({
+        target: [verfuegbarkeit.betreiberId, verfuegbarkeit.installationId, verfuegbarkeit.stunde],
+        set: {
+          gemessen: sql`${verfuegbarkeit.gemessen} + 1`,
+          rot: sql`${verfuegbarkeit.rot} + ${rot}`,
+        },
+      })
+      .run();
   });
 };

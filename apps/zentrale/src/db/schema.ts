@@ -317,6 +317,8 @@ export const auftraege = sqliteTable(
   ],
 );
 
+// The check from outside and the availability per hour (Z-704)
+export * from "./schema-aussen.ts";
 // The S3 target, the installations' own accesses and the runs of their backups (Z-601)
 export * from "./schema-backups.ts";
 // Notifications: mail server, recipients and the outbox of deliveries (Z-703)
@@ -325,5 +327,7 @@ export * from "./schema-benachrichtigungen.ts";
 export * from "./schema-installationen.ts";
 // The imported manifests, for every operator (Z-501)
 export * from "./schema-manifeste.ts";
+// Support accesses to installations (Z-802)
+export * from "./schema-support.ts";
 // The updates of installations (Z-503)
 export * from "./schema-updates.ts";

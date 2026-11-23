@@ -415,12 +415,15 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: eine Störung, die 10 Prüfungen lang besteht, eine Mail erzeugt (Mailpit) und ihre
   Behebung eine zweite, eine gefälschte Signatur im Test-Empfänger auffällt und eine Zustellung nach
   Ausfall des Empfängers wiederholt wird.
-- [ ] **Z-704 Überwachung von außen und Verfügbarkeit** – die Zentrale prüft jede öffentliche Adresse
+- [x] **Z-704 Überwachung von außen und Verfügbarkeit** – die Zentrale prüft jede öffentliche Adresse
   (DNS, Zertifikat, Pforte, Health) unabhängig vom Agenten; Verfügbarkeit je Installation und Monat;
   `/health` der Zentrale für einen externen Prüfdienst.
   nach: Z-407
   Fertig, wenn: „Agent grün, außen rot“ ein Ereignis erzeugt und die Verfügbarkeit aus einer
-  Testreihe mit bekannten Ausfällen richtig berechnet wird (Test).
+  Testreihe mit bekannten Ausfällen richtig berechnet wird (Test); dazu (Tests): 5 Minuten rot
+  von außen sind eine Störung, die erst grün innen und außen beendet; Monate in `Europe/Berlin` über
+  Monatsende und Zeitumstellung; kein Betreiber sieht die Prüfungen eines anderen; `/health` antwortet
+  503, wenn die Datenbank nicht antwortet; kein Test fragt einen echten Nameserver.
 - [ ] **Z-604 Kündigung und Löschung** – Vertragsende, 30 Tage nur lesen (wenn angeboten) und Export
   bzw. letztes Backup für den Kunden als zeitlich begrenzter, vorsignierter S3-Link, den die
   Oberfläche dem Betreiber zeigt; Löschung von Installation, Repository, S3-Zugang und
@@ -430,7 +433,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: der Ablauf mit der Beispiel-App in Playwright läuft, vor Ablauf der Frist nichts
   gelöscht wird, der Link nach seiner Frist abgelehnt wird und nach der Löschung weder Repository
   noch DNS-Eintrag noch Linux-Nutzer existieren (Test).
-- [ ] **Z-802 Support-Zugang** – zeitlich begrenzt (Vorgabe 2 h), mit Grund; erlaubt Log-Auszug,
+- [x] **Z-802 Support-Zugang** – zeitlich begrenzt (Vorgabe 2 h), mit Grund; erlaubt Log-Auszug,
   Neustart und die Aktionen der Rolle Support; endet von selbst; erscheint in den Ereignissen des
   Kunden.
   Fertig, wenn: nach Ablauf jeder Zugriff abgelehnt wird (Test) und der Zugang im Audit-Log mit Grund

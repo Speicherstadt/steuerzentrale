@@ -4,6 +4,7 @@ import { getLocale } from "@steuerzentrale/ui";
 import { createRouter, RouterProvider } from "@tanstack/solid-router";
 import { sitzungsZustand, waechterEinsetzen } from "./anmeldung/sitzung.ts";
 import { apiApps, appsQuelleEinsetzen } from "./daten/apps.ts";
+import { apiAussen, aussenQuelleEinsetzen } from "./daten/aussen.ts";
 import { apiBackups, backupQuelleEinsetzen } from "./daten/backups.ts";
 import {
   apiBenachrichtigungen,
@@ -19,11 +20,12 @@ import { apiMitglieder, mitgliederQuelleEinsetzen } from "./daten/mitglieder.ts"
 import { bestandEinsetzen, ohneDemo } from "./daten/quelle.ts";
 import { apiRolle, rollenQuelleEinsetzen } from "./daten/rolle.ts";
 import { apiServer, serverQuelleEinsetzen } from "./daten/server.ts";
+import { apiSupport, supportQuelleEinsetzen } from "./daten/support.ts";
 import { aktuellesThema, wendeThemaAn } from "./rahmen/theme.ts";
 import { routeTree } from "./routeTree.gen.ts";
 
 // The shell needs a signed-in account with its second factor, and everything the pages show comes
-// from the Zentrale (Z-801, Z-304, Z-402, Z-406, Z-601, Z-703), no datum of the demo beside it; only
+// from the Zentrale (Z-801, Z-304, Z-402, Z-406, Z-601, Z-802, Z-703), no datum of the demo beside it; only
 // `bun run dev:demo`, the fixtures without any Zentrale, sets VITE_OHNE_ANMELDUNG, skips the check
 // (the server checks anyway) and keeps the demo sources
 if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
@@ -35,11 +37,13 @@ if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
   dnsQuelleEinsetzen(apiDns);
   backupQuelleEinsetzen(apiBackups);
   benachrichtigungsQuelleEinsetzen(apiBenachrichtigungen);
+  aussenQuelleEinsetzen(apiAussen);
   appsQuelleEinsetzen(apiApps);
   rollenQuelleEinsetzen(apiRolle);
   betriebQuelleEinsetzen(apiBetrieb);
   ichQuelleEinsetzen(apiIch);
   mitgliederQuelleEinsetzen(apiMitglieder);
+  supportQuelleEinsetzen(apiSupport);
   bestandEinsetzen(ohneDemo);
 }
 

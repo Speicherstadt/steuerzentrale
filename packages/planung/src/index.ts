@@ -1,5 +1,6 @@
-// The rating of an installation, update waves, freeze windows, maintenance windows, server
-// checks and the quiet hours of notifications as pure functions (docs/plan.md, "Projektstruktur").
+// The rating of an installation, the check from outside and availability, update waves, freeze
+// windows, maintenance windows, server checks and the quiet hours of notifications as pure
+// functions (docs/plan.md, "Projektstruktur").
 
 export {
   type AgentServer,
@@ -8,6 +9,24 @@ export {
   agentUpdatePruefen,
   VERSUCH_PAUSE_MS,
 } from "./agent.ts";
+export {
+  AUSSEN_FRIST_MS,
+  type AussenErgebnis,
+  type AussenGrund,
+  type AussenGrundCode,
+  type AussenStand,
+  type AussenZustand,
+  aussenBewerten,
+  aussenFortschreiben,
+  aussenJetzt,
+  aussenMeldungPruefen,
+  type DnsAntwort,
+  type DnsSoll,
+  type Erwartung,
+  type HttpAntwort,
+  type Probe,
+  type TlsAntwort,
+} from "./aussen.ts";
 export {
   type Aktiv,
   type Bewertung,
@@ -24,7 +43,6 @@ export {
   type Meldung,
   nachFrist,
   STOERUNG_NACH_MS,
-  stoerungPruefen,
 } from "./bewertung.ts";
 
 export {
@@ -70,6 +88,23 @@ export {
   schwereReicht,
   zustellbarAb,
 } from "./ruhezeit.ts";
+export { rotSeit5Min, type Seite, stoerungPruefen } from "./stoerung.ts";
+export {
+  imMonat,
+  inScheiben,
+  letzteMonate,
+  type Monat,
+  type MonatsVerfuegbarkeit,
+  monatsGrenzen,
+  monatVon,
+  PRUEF_MINUTEN,
+  type Pruefergebnis,
+  STUNDE_MS,
+  scheibeFortschreiben,
+  stundeVon,
+  verfuegbarkeitImMonat,
+  type Zeitscheibe,
+} from "./verfuegbarkeit.ts";
 export {
   type AngeboteneVersion,
   angeboteneVersionen,

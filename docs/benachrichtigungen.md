@@ -31,8 +31,8 @@ Jeder Empfänger bekommt Ereignisse ab einer Schwere:
 | Warnung (`warn`) | dazu stille Agenten, gelbe Befunde, Fehler bei DNS und Registries, SSH-Anmeldungen |
 | Hinweis (`info`) | alles, auch gelungene Wiederherstellungen und Updates |
 
-Eine Behebung (`…_behoben`) hat selbst die Schwere `info`, geht aber mit der Schwere des Ereignisses
-raus, das sie behebt: wer die Störung bekam, bekommt auch ihr Ende. Ein neuer Empfänger bekommt keine
+Eine Behebung (`…_behoben`, und `aussen_gruen` nach `aussen_rot` der Prüfung von außen) hat selbst
+die Schwere `info`, geht aber mit der Schwere des Ereignisses raus, das sie behebt: wer die Störung bekam, bekommt auch ihr Ende. Ein neuer Empfänger bekommt keine
 Ereignisse, die vor ihm geschrieben wurden.
 
 Empfänger legen Inhaber und Technik unter **Einstellungen → Benachrichtigungen** an, mit Grund;

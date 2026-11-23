@@ -1,13 +1,5 @@
 import { Icon, m } from "@steuerzentrale/ui";
-import {
-  Archive,
-  CalendarX,
-  ChartNoAxesColumn,
-  Globe,
-  LifeBuoy,
-  Lock,
-  Radar,
-} from "@steuerzentrale/ui/icons";
+import { Archive, CalendarX, LifeBuoy } from "@steuerzentrale/ui/icons";
 import { Show } from "solid-js";
 import {
   appVon,
@@ -15,24 +7,23 @@ import {
   kundeVon,
   linuxNutzer,
   loeschungAm,
-  monatVon,
   serverVon,
 } from "../daten/ableitungen.ts";
 import type { HealthDerZentrale } from "../daten/bewertung.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { welleVon } from "../daten/wellen.ts";
-import { ZERTIFIKAT_TAGE } from "../daten/zustand.ts";
-import { gb, prozent } from "../format/zahl.ts";
+import { gb } from "../format/zahl.ts";
 import { datum, zeitpunkt } from "../format/zeit.ts";
 import { welleName } from "../rahmen/texte.ts";
 import { Angaben, Hinweisbox, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { Pruefzeile } from "../teile/listen.tsx";
 import { ZuKunde, ZuServer } from "../teile/verweise.tsx";
+import { VonAussen } from "./installation-aussen.tsx";
 import { UnitsUndHealth } from "./installation-health.tsx";
 
 /**
  * The tab "Zustand" of an installation the demo knows: units and health from the Zentrale (Z-403)
- * with the demo's backup, facts, the check from outside
+ * with the demo's backup and facts, and the check from outside (Z-704) from its source
  */
 
 const Fakten = (props: { b: Bestand; i: Installation }) => {
@@ -84,42 +75,6 @@ const Fakten = (props: { b: Bestand; i: Installation }) => {
   );
 };
 
-const VonAussen = (props: { b: Bestand; i: Installation }) => {
-  const sv = () => serverVon(props.b, props.i.server);
-  const verfuegbar = () => props.i.verfuegbarkeit[monatVon(props.b.jetzt)] ?? 100;
-  return (
-    <Karte>
-      <KartenKopf titel={m.inst_aussen()} text={m.inst_aussen_text()} />
-      <KartenInhalt class="grid gap-3 sm:grid-cols-2">
-        <Pruefzeile
-          icon={Globe}
-          name={m.inst_dns()}
-          detail={`${props.i.adresse} → ${[sv().ipv4, sv().ipv6].filter(Boolean).join(", ")}`}
-          ok
-        />
-        <Pruefzeile
-          icon={Lock}
-          name={m.inst_zertifikat()}
-          detail={m.inst_zertifikat_tage({ tage: sv().zertifikatTage })}
-          ok={sv().zertifikatTage > ZERTIFIKAT_TAGE}
-        />
-        <Pruefzeile
-          icon={Radar}
-          name={m.inst_von_aussen()}
-          detail={props.i.health === "rot" ? m.inst_aussen_rot() : m.inst_aussen_ok()}
-          ok={props.i.health !== "rot"}
-        />
-        <Pruefzeile
-          icon={ChartNoAxesColumn}
-          name={m.inst_verfuegbarkeit()}
-          detail={prozent(verfuegbar(), 2)}
-          ok={verfuegbar() >= 99.9}
-        />
-      </KartenInhalt>
-    </Karte>
-  );
-};
-
 const Backup = (props: { b: Bestand; i: Installation }) => (
   <Pruefzeile
     icon={Archive}
@@ -153,7 +108,7 @@ export const InstallationZustand = (props: {
           </Hinweisbox>
         )}
       </Show>
-      <VonAussen b={props.b} i={props.i} />
+      <VonAussen id={props.i.id} host={props.i.adresse} />
       <Hinweisbox icon={<Icon icon={LifeBuoy} />} titel={m.nav_support()}>
         {m.inst_support_text()}
       </Hinweisbox>

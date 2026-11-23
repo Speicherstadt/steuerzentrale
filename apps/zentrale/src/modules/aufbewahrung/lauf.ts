@@ -7,6 +7,7 @@ import {
   heartbeats,
   installationVerlauf,
   logAuszuege,
+  verfuegbarkeit,
   zustellungen,
 } from "../../db/schema.ts";
 import { schreiben } from "../audit/index.ts";
@@ -27,6 +28,7 @@ const betreiberMitDaten = (db: Db): Set<string> =>
       ereignisse,
       backups,
       zustellungen,
+      verfuegbarkeit,
     ].flatMap((tabelle) =>
       db
         .selectDistinct({ betreiberId: tabelle.betreiberId })
@@ -48,6 +50,7 @@ export const aufbewahren = (db: Db, schreibDb: SchreibDb, jetzt: number): Geloes
     ereignisse: 0,
     backups: 0,
     pruefRestores: 0,
+    verfuegbarkeit: 0,
   };
   for (const betreiberId of betreiberMitDaten(db)) {
     const kontext = { betreiberId, akteur: "system", jetzt, grund: "Aufbewahrung (docs/plan.md)" };

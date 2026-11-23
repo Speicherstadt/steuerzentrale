@@ -24,6 +24,7 @@ import { apiMitglieder, mitgliederQuelleEinsetzen } from "./daten/mitglieder.ts"
 import { bestand, bestandEinsetzen, ohneDemo } from "./daten/quelle.ts";
 import { apiRolle, rolleLesen, rollenQuelleEinsetzen } from "./daten/rolle.ts";
 import { apiServer, serverQuelle, serverQuelleEinsetzen } from "./daten/server.ts";
+import { apiSupport, supportQuelle, supportQuelleEinsetzen } from "./daten/support.ts";
 import { aufraeumen, oeffne, warten } from "./seiten/test-dom.tsx";
 
 /*
@@ -54,6 +55,7 @@ const LEER: Record<string, unknown> = {
   "/api/v1/apps": { apps: [] },
   "/api/v1/updates": { installationen: [] },
   "/api/v1/benachrichtigungen": { smtp: null, ruhezeit: null, empfaenger: [], zustellungen: [] },
+  "/api/v1/support-zugaenge": { zugaenge: [] },
 };
 
 /** Names of the demo operator (src/demo/) that must not show */
@@ -97,6 +99,7 @@ const vorher = {
   backups: backupQuelle(),
   benachrichtigungen: benachrichtigungsQuelle(),
   apps: appsQuelle(),
+  support: supportQuelle(),
 };
 
 beforeAll(() => {
@@ -112,6 +115,7 @@ beforeAll(() => {
   backupQuelleEinsetzen(apiBackups);
   benachrichtigungsQuelleEinsetzen(apiBenachrichtigungen);
   appsQuelleEinsetzen(apiApps);
+  supportQuelleEinsetzen(apiSupport);
 });
 
 afterAll(() => {
@@ -124,6 +128,7 @@ afterAll(() => {
   backupQuelleEinsetzen(vorher.backups);
   benachrichtigungsQuelleEinsetzen(vorher.benachrichtigungen);
   appsQuelleEinsetzen(vorher.apps);
+  supportQuelleEinsetzen(vorher.support);
 });
 
 beforeEach(() => {
@@ -168,11 +173,20 @@ describe("signed in, against a Zentrale without data", () => {
   });
 
   it("says which item brings a page without an API", async () => {
-    const { root } = await oeffne("/support");
+    const { root } = await oeffne("/leistungen");
     await vi.waitFor(() => {
-      if (!root.textContent?.includes("kommt mit Z-802")) throw new Error("not yet");
+      if (!root.textContent?.includes("kommt mit Z-804")) throw new Error("not yet");
     });
     expect((await rolleLesen()).ok).toBe(true);
+  });
+
+  it("shows the support accesses of the Zentrale: none yet (Z-802)", async () => {
+    const { root } = await oeffne("/support");
+    await vi.waitFor(() => {
+      if (!root.textContent?.includes("Gerade kein Zugang aktiv.")) throw new Error("not yet");
+    });
+    expect(root.textContent).toContain("Noch keiner beendet.");
+    expect(root.textContent).not.toContain("Z-802");
   });
 
   it("shows the updates of the Zentrale: none yet, without a word of Z-503", async () => {

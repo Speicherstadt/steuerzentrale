@@ -1,6 +1,4 @@
 import { isIPv4, isIPv6 } from "node:net";
-import { istOeffentlicheIpv4 } from "@steuerzentrale/manifest";
-import { istOeffentlicheIpv6 } from "../dns/plan.ts";
 import { SIGNATUR_HEADER, signieren, ZUSTELLUNG_HEADER } from "./signatur.ts";
 import type { Gesendet } from "./smtp.ts";
 
@@ -29,13 +27,6 @@ export type WebhookDeps = {
 };
 
 export type WebhookZiel = { url: string; schluessel: string };
-
-/** A public unicast address: IPv4 outside the private, loopback, CGNAT, link-local, 0/8 and class D/E ranges, IPv6 in 2000::/3 */
-export const istOeffentlicheAdresse = (ip: string): boolean => {
-  if (isIPv6(ip)) return istOeffentlicheIpv6(ip);
-  const erster = Number(ip.split(".")[0]);
-  return isIPv4(ip) && erster !== 0 && erster < 224 && istOeffentlicheIpv4(ip);
-};
 
 /** The addresses of a host; an IP literal stands for itself */
 const adressenVon = async (deps: WebhookDeps, host: string): Promise<string[]> => {

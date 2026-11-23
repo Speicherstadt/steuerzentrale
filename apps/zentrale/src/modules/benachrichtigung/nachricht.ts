@@ -2,7 +2,7 @@ import type { Schwere } from "@steuerzentrale/planung";
 import { ZEITZONE } from "@steuerzentrale/planung";
 import type { ereignisse } from "../../db/schema.ts";
 import type { Mail } from "./smtp.ts";
-import { BEHOBEN } from "./zuordnen.ts";
+import { behobeneArt } from "./zuordnen.ts";
 
 /*
  * What a delivery says (BAULISTE.md Z-703; docs/benachrichtigungen.md): a mail in German with the
@@ -22,7 +22,7 @@ const ART: Record<Schwere, string> = { fehler: "Störung", warn: "Warnung", info
 
 /** The word before the subject: a fix is "Behoben", else the severity's name */
 export const meldungsArt = (e: Ereignis, schwere: Schwere): string =>
-  e.art.endsWith(BEHOBEN) ? "Behoben" : ART[schwere];
+  behobeneArt(e.art) === undefined ? ART[schwere] : "Behoben";
 
 const BETREFF_MAX = 150;
 

@@ -1,7 +1,8 @@
 import { lookup } from "node:dns/promises";
 import type { Planer } from "../aufbewahrung/index.ts";
+import { istOeffentlicheAdresse } from "../dns/plan.ts";
 import { mailSenden, type SmtpOptionen } from "./smtp.ts";
-import { istOeffentlicheAdresse, webhookSenden } from "./webhook.ts";
+import { webhookSenden } from "./webhook.ts";
 import { zustellungenAnlegen } from "./zuordnen.ts";
 import { type Versand, type ZustellDeps, zustellungenSenden } from "./zustellen.ts";
 
