@@ -51,6 +51,22 @@ describe("backup_stand", () => {
     expect(fehlerVon(vomAgentenLesen(JSON.stringify(lang)))).toContain("fehler");
   });
 
+  it("keeps the size of a part (Z-804) and reads a part without it, as an older agent sends", () => {
+    const teil = { tag: "volume:daten", ok: true, snapshot: "a".repeat(64), bytes: 1_048_576 };
+    const r = vomAgentenLesen(JSON.stringify({ ...STAND, teile: [teil] }));
+    expect(r).toMatchObject({ ok: true, nachricht: { teile: [{ bytes: 1_048_576 }] } });
+    const { bytes: _, ...ohne } = teil;
+    expect(vomAgentenLesen(JSON.stringify({ ...STAND, teile: [ohne] }))).toMatchObject({
+      ok: true,
+    });
+    for (const falsch of [-1, 1.5, "12"])
+      expect(
+        fehlerVon(
+          vomAgentenLesen(JSON.stringify({ ...STAND, teile: [{ ...teil, bytes: falsch }] })),
+        ),
+      ).toContain("teile.0.bytes");
+  });
+
   it("names its installation and run", () => {
     const { lauf: _, ...ohneLauf } = STAND as Record<string, unknown>;
     expect(fehlerVon(vomAgentenLesen(JSON.stringify(ohneLauf)))).toContain("lauf");

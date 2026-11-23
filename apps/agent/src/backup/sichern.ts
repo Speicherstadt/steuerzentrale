@@ -3,6 +3,7 @@ import type { Planer } from "../verbindung/verbinden.ts";
 import type { BackupDatei, Lauf } from "./datei.ts";
 import {
   anlegenArgv,
+  bytesAus,
   forgetArgv,
   type Repo,
   resticGrund,
@@ -137,7 +138,8 @@ const teilSichern = async (
   }
   if (a.code !== 0) return fehlgeschlagen(t.tag, resticGrund(a.code), snapshot);
   if (snapshot === undefined) return fehlgeschlagen(t.tag, "restic nannte keinen Snapshot");
-  return { tag: t.tag, ok: true, snapshot };
+  const bytes = bytesAus(a.aus);
+  return { tag: t.tag, ok: true, snapshot, ...(bytes === undefined ? {} : { bytes }) };
 };
 
 const aufbewahren = async (
