@@ -148,6 +148,13 @@
       "when": 1795447699367,
       "tag": "0020_aussen",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1795450481367,
+      "tag": "0021_benachrichtigungen",
+      "breakpoints": true
     }
   ]
 }

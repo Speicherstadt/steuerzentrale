@@ -4,17 +4,13 @@ import { bestand } from "../daten/quelle.ts";
 import { AppWerte } from "../seiten/einstellungen-apps.tsx";
 import { BackupZielReiter } from "../seiten/einstellungen-backup.tsx";
 import { Dns } from "../seiten/einstellungen-dns.tsx";
-import {
-  Benachrichtigungen,
-  Darstellung,
-  Konten,
-  Zentrale,
-} from "../seiten/einstellungen-teile.tsx";
+import { Benachrichtigungen } from "../seiten/einstellungen-melden.tsx";
+import { Darstellung, Konten, Zentrale } from "../seiten/einstellungen-teile.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
 
 /**
  * The operator's values per app (Z-404: a form from each app's manifest), backup target (Z-601),
- * DNS (Z-407), notifications, accounts, the Zentrale, the look
+ * DNS (Z-407), notifications (Z-703), accounts, the Zentrale, the look
  */
 
 const REITER = ["werte", "backup", "dns", "melden", "konten", "zentrale", "darstellung"] as const;
@@ -41,7 +37,7 @@ const Einstellungen = () => {
           },
           { id: "backup", label: m.einst_backup(), content: () => <BackupZielReiter /> },
           { id: "dns", label: m.einst_dns(), content: () => <Dns /> },
-          { id: "melden", label: m.einst_melden(), content: () => <Benachrichtigungen b={b} /> },
+          { id: "melden", label: m.einst_melden(), content: () => <Benachrichtigungen /> },
           { id: "konten", label: m.einst_konten(), content: () => <Konten /> },
           { id: "zentrale", label: m.app_name(), content: () => <Zentrale b={b} /> },
           { id: "darstellung", label: m.einst_darstellung(), content: () => <Darstellung /> },

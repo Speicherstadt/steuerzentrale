@@ -1,5 +1,6 @@
-// The rating of an installation, the check from outside and availability, update waves, freeze windows, maintenance windows and server
-// checks as pure functions (docs/plan.md, "Projektstruktur").
+// The rating of an installation, the check from outside and availability, update waves, freeze
+// windows, maintenance windows, server checks and the quiet hours of notifications as pure
+// functions (docs/plan.md, "Projektstruktur").
 
 export {
   type AgentServer,
@@ -78,6 +79,15 @@ export {
   UHR_GRENZE_MS,
   ZERTIFIKAT_FRIST_MS,
 } from "./pruefungen.ts";
+export {
+  meldeSchwere,
+  type Ruhezeit,
+  ruhezeitEnde,
+  SCHWEREN,
+  type Schwere,
+  schwereReicht,
+  zustellbarAb,
+} from "./ruhezeit.ts";
 export { rotSeit5Min, type Seite, stoerungPruefen } from "./stoerung.ts";
 export {
   imMonat,

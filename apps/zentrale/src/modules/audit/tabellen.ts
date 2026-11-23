@@ -5,9 +5,11 @@ import {
   backups,
   backupZiele,
   backupZugaenge,
+  benachrichtigungEinstellungen,
   betreiber,
   dnsEinstellungen,
   einladungen,
+  empfaenger,
   ereignisse,
   fakten,
   geheimnisse,
@@ -28,6 +30,7 @@ import {
   verfuegbarkeit,
   vertraege,
   wiederherstellungen,
+  zustellungen,
 } from "../../db/schema.ts";
 
 /**
@@ -94,6 +97,17 @@ export const tabellen = {
   },
   supportZugaenge: { tabelle: supportZugaenge, schluessel: ["zugangId"], zeit: undefined },
   manifeste: { tabelle: manifeste, schluessel: ["app", "version"], zeit: undefined, global: true },
+  benachrichtigungEinstellungen: {
+    tabelle: benachrichtigungEinstellungen,
+    schluessel: [] as string[],
+    zeit: undefined,
+  },
+  empfaenger: { tabelle: empfaenger, schluessel: ["empfaengerId"], zeit: undefined },
+  zustellungen: {
+    tabelle: zustellungen,
+    schluessel: ["zustellungId"],
+    zeit: zustellungen.angelegtAm,
+  },
 } satisfies Record<
   string,
   { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined; global?: true }
@@ -115,6 +129,7 @@ export const verschluesselteSpalten: Partial<Record<TabellenName, readonly strin
   appEinstellungen: ["wertVerschluesselt"],
   installationKonfigurationen: ["geheim"],
   backupZugaenge: ["geheim"],
+  empfaenger: ["geheim"],
 };
 /**
  * Columns the audit log records only as set: a job's manifest text and signature (Z-305) would put

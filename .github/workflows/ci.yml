@@ -49,6 +49,15 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
+    # BAULISTE.md Z-703: Mailpit stands in for a mail server (docs/plan.md, "Was sich in der CI nicht
+    # echt testen lässt"); modules/benachrichtigung/mailpit.test.ts sends through SMTP and reads its
+    # API. v1.33.1 by digest (registry-1.docker.io, axllent/mailpit, queried 2026-11-23)
+    services:
+      mailpit:
+        image: docker.io/axllent/mailpit@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+        ports:
+          - 1025:1025
+          - 8025:8025
     steps:
       - uses: actions/checkout@v7
         with:
@@ -72,7 +81,11 @@ jobs:
       - if: github.event_name == 'pull_request'
         run: bunx checks pr
       - run: shellcheck --shell=sh install/install.sh
+      # with CI=true the Mailpit test fails instead of skipping when these are missing
       - run: bun run test
+        env:
+          SZ_TEST_MAILPIT_SMTP: 127.0.0.1:1025
+          SZ_TEST_MAILPIT_API: http://127.0.0.1:8025
       - run: bun run build
       # Zentrale and agent as one binary each for both server architectures (docs/plan.md, "Technologie")
       - run: ls -l apps/zentrale/dist/steuerzentrale-linux-{x64,arm64} apps/agent/dist/steuerzentrale-agent-linux-{x64,arm64}

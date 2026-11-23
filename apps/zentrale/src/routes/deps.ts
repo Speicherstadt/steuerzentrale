@@ -4,6 +4,7 @@ import type { Auth } from "../auth/auth.ts";
 import type { Db, SchreibDb } from "../db/oeffnen.ts";
 import type { Schluesselbund } from "../db/schluessel.ts";
 import type { LogSink } from "../log.ts";
+import type { Versand } from "../modules/benachrichtigung/index.ts";
 import type { Auslieferung } from "../modules/server/index.ts";
 import type { Verbindungen } from "../modules/verbindung/verbindungen.ts";
 import type { Versionen } from "../modules/versionen/index.ts";
@@ -34,6 +35,8 @@ export type RoutenDeps = {
   dnsAnstossen?: () => void;
   /** Starts making or deleting the S3 accesses that are due (modules/backups, Z-601) */
   backupAnstossen?: () => void;
+  /** How notifications go out, for the test message (modules/benachrichtigung, Z-703) */
+  versand?: Versand;
 };
 
 /** The request's JSON body parsed against `schema`, or undefined */

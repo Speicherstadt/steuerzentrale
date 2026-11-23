@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { DnsEintrag } from "./cloudflare.ts";
-import { istOeffentlicheIpv6, loeschPlan, naechsterVersuch, setzPlan, sollAus } from "./plan.ts";
+import {
+  istOeffentlicheAdresse,
+  istOeffentlicheIpv6,
+  loeschPlan,
+  naechsterVersuch,
+  setzPlan,
+  sollAus,
+} from "./plan.ts";
 
 // Z-407: what the Zentrale does to the records of a name, decided from what is there
 
@@ -38,6 +45,34 @@ describe("the addresses of the records", () => {
       expect(istOeffentlicheIpv6(ip)).toBe(true);
     for (const ip of ["::1", "fe80::1", "fd12::1", "ff02::1", "::", "203.0.113.1"])
       expect(istOeffentlicheIpv6(ip)).toBe(false);
+  });
+});
+
+describe("istOeffentlicheAdresse", () => {
+  // One rule for webhooks (Z-703) and the check from outside (Z-704), with the cases of both
+  it("allows public unicast addresses only", () => {
+    for (const ja of ["203.0.113.7", "8.8.8.8", "2a01:4f8::1"])
+      expect(istOeffentlicheAdresse(ja), ja).toBe(true);
+    for (const nein of [
+      "127.0.0.1",
+      "10.1.2.3",
+      "172.16.0.1",
+      "192.168.0.1",
+      "192.168.1.1",
+      "100.64.0.1",
+      "169.254.1.1",
+      "169.254.169.254",
+      "0.1.2.3",
+      "0.0.0.0",
+      "224.0.0.1",
+      "::1",
+      "fe80::1",
+      "fc00::1",
+      "fd00::1",
+      "::ffff:127.0.0.1",
+      "kein",
+    ])
+      expect(istOeffentlicheAdresse(nein), nein).toBe(false);
   });
 });
 

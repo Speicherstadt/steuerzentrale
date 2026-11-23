@@ -18,12 +18,6 @@ export const demo: Bestand = {
     werte: { ELSTER_HERSTELLER_ID: "12345", BELEGT_TRUSTED_PROXIES: "127.0.0.1" },
     geheimGesetzt: ["ANTHROPIC_API_KEY"],
     s3: "s3.example.net/sz-beispiel-hosting",
-    benachrichtigung: {
-      smtp: "smtp.beispiel-hosting.de:587",
-      an: "betrieb@beispiel-hosting.de",
-      webhook: "https://chat.example/hooks/sz",
-      ruhezeit: "22:00–07:00",
-    },
   },
   konto: konten[0] ?? { name: "", rolle: "inhaber", faktor: "passkey", zuletzt: JETZT },
   apps,

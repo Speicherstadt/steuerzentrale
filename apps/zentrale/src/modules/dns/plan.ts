@@ -1,3 +1,4 @@
+import { isIPv4, isIPv6 } from "node:net";
 import { istOeffentlicheIpv4 } from "@steuerzentrale/manifest";
 import type { DnsEintrag } from "./cloudflare.ts";
 
@@ -28,6 +29,17 @@ export type Schritt =
 export const istOeffentlicheIpv6 = (ip: string): boolean => {
   const erster = Number.parseInt(ip.split(":")[0] ?? "", 16);
   return ip.includes(":") && erster >= 0x2000 && erster <= 0x3fff;
+};
+
+/**
+ * A public unicast address: the one rule for every address an operator's input leads the Zentrale
+ * to (the check from outside, Z-704; webhooks, Z-703): IPv4 outside the private, loopback, CGNAT, link-local, 0/8 and class D/E ranges,
+ * IPv6 in 2000::/3
+ */
+export const istOeffentlicheAdresse = (ip: string): boolean => {
+  if (isIPv6(ip)) return istOeffentlicheIpv6(ip);
+  const erster = Number(ip.split(".")[0]);
+  return isIPv4(ip) && erster !== 0 && erster < 224 && istOeffentlicheIpv4(ip);
 };
 
 /** The addresses the records should point to, from the server's facts */

@@ -2,6 +2,11 @@ import { setLocale } from "@steuerzentrale/ui";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiApps, appsQuelle, appsQuelleEinsetzen } from "./daten/apps.ts";
 import { apiBackups, backupQuelle, backupQuelleEinsetzen } from "./daten/backups.ts";
+import {
+  apiBenachrichtigungen,
+  benachrichtigungsQuelle,
+  benachrichtigungsQuelleEinsetzen,
+} from "./daten/benachrichtigungen.ts";
 import { apiBetrieb, betriebQuelle, betriebQuelleEinsetzen } from "./daten/betrieb.ts";
 import {
   apiEinstellungen,
@@ -49,6 +54,7 @@ const LEER: Record<string, unknown> = {
   "/api/v1/backup-ziel": { endpunkt: null, region: null, bucket: null, zugangGesetzt: false },
   "/api/v1/apps": { apps: [] },
   "/api/v1/updates": { installationen: [] },
+  "/api/v1/benachrichtigungen": { smtp: null, ruhezeit: null, empfaenger: [], zustellungen: [] },
   "/api/v1/support-zugaenge": { zugaenge: [] },
 };
 
@@ -91,6 +97,7 @@ const vorher = {
   kunden: kundenQuelle(),
   einstellungen: einstellungenQuelle(),
   backups: backupQuelle(),
+  benachrichtigungen: benachrichtigungsQuelle(),
   apps: appsQuelle(),
   support: supportQuelle(),
 };
@@ -106,6 +113,7 @@ beforeAll(() => {
   ichQuelleEinsetzen(apiIch);
   mitgliederQuelleEinsetzen(apiMitglieder);
   backupQuelleEinsetzen(apiBackups);
+  benachrichtigungsQuelleEinsetzen(apiBenachrichtigungen);
   appsQuelleEinsetzen(apiApps);
   supportQuelleEinsetzen(apiSupport);
 });
@@ -118,6 +126,7 @@ afterAll(() => {
   kundenQuelleEinsetzen(vorher.kunden);
   einstellungenQuelleEinsetzen(vorher.einstellungen);
   backupQuelleEinsetzen(vorher.backups);
+  benachrichtigungsQuelleEinsetzen(vorher.benachrichtigungen);
   appsQuelleEinsetzen(vorher.apps);
   supportQuelleEinsetzen(vorher.support);
 });

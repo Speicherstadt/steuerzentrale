@@ -1,6 +1,5 @@
-import type { JSX } from "@solidjs/web";
 import { getLocale, type Locale, locales, m, setLocale } from "@steuerzentrale/ui";
-import { createMemo, createUniqueId, For, Loading, Show } from "solid-js";
+import { createMemo, createUniqueId, For, Loading } from "solid-js";
 import { mitgliederLesen } from "../daten/mitglieder.ts";
 import { mitDemo } from "../daten/quelle.ts";
 import type { Bestand } from "../daten/typen.ts";
@@ -8,47 +7,17 @@ import { datum } from "../format/zeit.ts";
 import { rolleName } from "../rahmen/texte.ts";
 import { aktuellesThema, THEMEN, type Thema, waehleThema } from "../rahmen/theme.ts";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
-import { KommtNoch } from "../teile/kommt-noch.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 
 /**
  * The tabs of the settings, read-only until their items let them be changed (each change with a
  * reason, DESIGN.md); the operator's values per app are in einstellungen-apps.tsx (Z-404), the
- * backup target in einstellungen-backup.tsx (Z-601), DNS in einstellungen-dns.tsx (Z-407);
- * "Darstellung" is the viewer's own and takes effect at once. The accounts are the operator's
- * members from the Zentrale (Z-406); notifications come with Z-703, so signed in their tab says so
- * and only the demo shows values.
+ * backup target in einstellungen-backup.tsx (Z-601), DNS in einstellungen-dns.tsx (Z-407),
+ * notifications in einstellungen-melden.tsx (Z-703); "Darstellung" is the viewer's own and takes
+ * effect at once. The accounts are the operator's members from the Zentrale (Z-406).
  */
 
-/** A tab of the demo, or signed in the item that brings it */
-const ErstMit = (props: { punkt: string; text: string; children: JSX.Element }) => (
-  <Show when={mitDemo()} fallback={<KommtNoch punkt={props.punkt} text={props.text} />}>
-    {props.children}
-  </Show>
-);
-
 const mono = (text: string) => <span class="font-mono text-xs">{text}</span>;
-
-export const Benachrichtigungen = (props: { b: Bestand }) => (
-  <ErstMit punkt="Z-703" text={m.einst_melden_text()}>
-    <Karte>
-      <KartenKopf titel={m.einst_melden()} text={m.einst_melden_text()} />
-      <KartenInhalt>
-        <Angaben
-          zeilen={[
-            { name: m.einst_smtp(), wert: mono(props.b.betreiber.benachrichtigung.smtp) },
-            { name: m.einst_an(), wert: mono(props.b.betreiber.benachrichtigung.an) },
-            { name: m.einst_webhook(), wert: mono(props.b.betreiber.benachrichtigung.webhook) },
-            {
-              name: m.einst_ruhezeit(),
-              wert: m.einst_ruhezeit_wert({ zeit: props.b.betreiber.benachrichtigung.ruhezeit }),
-            },
-          ]}
-        />
-      </KartenInhalt>
-    </Karte>
-  </ErstMit>
-);
 
 /** The operator's members with their roles, from the Zentrale (GET /api/v1/mitglieder) */
 export const Konten = () => {
