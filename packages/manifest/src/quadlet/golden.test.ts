@@ -15,7 +15,8 @@ import {
 
 /*
  * Golden files (Z-205): every app of manifeste/ and the example app, alone and with each option,
- * rendered into packages/manifest/test/quadlets/<app>[+option]/. The agent test runs Podman's
+ * rendered into packages/manifest/test/quadlets/<app>[@version][+option]/ (the version only for an
+ * app with several, Z-1003). The agent test runs Podman's
  * generator over each units/ folder (apps/agent/test/quadlets.agent.test.ts).
  * `GOLDEN=schreiben bun run test` writes them anew after a deliberate change; then read the diff.
  */
@@ -30,18 +31,24 @@ const ordner = (pfad: string) =>
     .map((e) => e.name)
     .sort();
 
-const manifeste = (): Manifest[] => [
+/** Each manifest with its case's name: `<app>`, or `<app>@<version>` for an app with several */
+const manifeste = (): { m: Manifest; name: string }[] => [
   ...ordner(MANIFESTE)
     .filter((app) => app !== "beispiel")
-    .flatMap((app) =>
-      ordner(join(MANIFESTE, app)).map((v) =>
-        testManifest(readFileSync(join(MANIFESTE, app, v, "manifest.yml"), "utf8")),
-      ),
-    ),
-  beispielManifest(readFileSync(join(MANIFESTE, "beispiel/manifest.vorlage.yml"), "utf8")),
+    .flatMap((app) => {
+      const versionen = ordner(join(MANIFESTE, app));
+      return versionen.map((v) => ({
+        m: testManifest(readFileSync(join(MANIFESTE, app, v, "manifest.yml"), "utf8")),
+        name: versionen.length > 1 ? `${app}@${v}` : app,
+      }));
+    }),
+  {
+    m: beispielManifest(readFileSync(join(MANIFESTE, "beispiel/manifest.vorlage.yml"), "utf8")),
+    name: "beispiel",
+  },
 ];
 
-const faelle = manifeste().flatMap((m) => testFaelle(m).map((f) => ({ ...f, m })));
+const faelle = manifeste().flatMap(({ m, name }) => testFaelle(m, name).map((f) => ({ ...f, m })));
 
 const erwartet = (m: Manifest, optionen: string[]): Record<string, string> => {
   const r = quadletsRendern(testAnfrage(m, optionen));

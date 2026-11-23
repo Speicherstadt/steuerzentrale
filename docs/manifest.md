@@ -215,7 +215,9 @@ für jede Angabe und für jedes Image Registry, Tag und Datum der Abfrage. Die C
 `deploy/quadlet/` der App oder, wo es keine gibt, aus ihrer Compose-Datei bzw. Doku; der eigene
 Caddy und die Backup-Container einer App entfallen, weil Pforte und Steuerzentrale das übernehmen.
 Ein Image ohne veröffentlichte Version steht als `noch_nicht_veroeffentlicht` im Manifest, eine
-Aktion, die eine App nicht kann, als `nicht_unterstuetzt`.
+Aktion, die eine App nicht kann, als `nicht_unterstuetzt`. Von Schreibzeug (0.1.25, 0.1.26) und
+Haben (0.12.0-rc.1, 0.12.0) liegen zwei Versionen dort, damit die CI ein Update mit den echten
+Images prüft ([Updates](updates.md)).
 
 Bis der Inhaber sie mit dem echten Schlüssel signiert, liegt neben jedem Manifest die Signatur des
 Test-Schlüssels (`bun run manifeste:signieren`, `scripts/manifeste-signieren.ts`).
