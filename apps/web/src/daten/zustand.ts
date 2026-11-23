@@ -68,6 +68,6 @@ export const zaehler = (b: Bestand) => ({
     ),
   ).length,
   auftraege: b.auftraege.filter((a) => a.zustand === "laeuft").length,
-  support: b.zugaenge.filter((z) => z.restMinuten !== undefined).length,
+  support: b.zugaenge.filter((z) => z.aktiv).length,
   ereignisse: b.ereignisse.filter((e) => e.schwere !== "info").length,
 });

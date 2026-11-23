@@ -2,12 +2,13 @@ import { Button, Icon, m } from "@steuerzentrale/ui";
 import { Building2, CalendarX, Pencil, Undo2 } from "@steuerzentrale/ui/icons";
 import { createFileRoute, useNavigate } from "@tanstack/solid-router";
 import { createMemo, createSignal, Loading, Match, refresh, Show, Switch } from "solid-js";
-import { loeschungAm, monatVon, supportMinuten } from "../daten/ableitungen.ts";
+import { loeschungAm, monatVon, supportMinutenAus } from "../daten/ableitungen.ts";
 import { desKunden, einmal } from "../daten/installation-ansicht.ts";
 import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { kundenQuelle } from "../daten/kunden.ts";
-import { bestand, mitDemo } from "../daten/quelle.ts";
-import type { Bestand, Kunde } from "../daten/typen.ts";
+import { bestand } from "../daten/quelle.ts";
+import { supportQuelle } from "../daten/support.ts";
+import type { Kunde } from "../daten/typen.ts";
 import { minuten } from "../format/zahl.ts";
 import { datum } from "../format/zeit.ts";
 import { slaName, slaText, welleName } from "../rahmen/texte.ts";
@@ -28,7 +29,7 @@ import { Marke } from "../teile/zeichen.tsx";
 
 /**
  * One customer: contract, contact, its installations and their events (Z-801, Z-406), all from the
- * Zentrale. Support accesses come with Z-802; until then only the demo counts their minutes.
+ * Zentrale, and the minutes of its support accesses this month (Z-802).
  */
 
 const initialen = (name: string) =>
@@ -118,7 +119,7 @@ const Kopf = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => (
   </div>
 );
 
-const VertragsKarte = (props: { b: Bestand; k: Kunde }) => (
+const VertragsKarte = (props: { k: Kunde; supportMinuten: number }) => (
   <Karte>
     <KartenKopf titel={m.kunde_vertrag()} />
     <KartenInhalt>
@@ -133,12 +134,7 @@ const VertragsKarte = (props: { b: Bestand; k: Kunde }) => (
             wert:
               props.k.vertrag.ende === null ? m.kunde_ungekuendigt() : datum(props.k.vertrag.ende),
           },
-          {
-            name: m.kunde_support_monat(),
-            wert: mitDemo()
-              ? minuten(supportMinuten(props.b, props.k.id, monatVon(props.b.jetzt)))
-              : m.kommt_mit({ punkt: "Z-802" }),
-          },
+          { name: m.kunde_support_monat(), wert: minuten(props.supportMinuten) },
         ]}
       />
     </KartenInhalt>
@@ -215,6 +211,12 @@ const Detail = (props: { k: Kunde; gespeichert: () => void }) => {
     const a = antwort();
     return a.ok ? desKunden(a.daten.installationen, props.k.id) : [];
   };
+  // the support accesses to its installations (Z-802): their minutes this month in Berlin
+  const zugaenge = createMemo(() => supportQuelle().liste({ kundeId: props.k.id }));
+  const supportDiesenMonat = () => {
+    const z = zugaenge();
+    return z.ok ? supportMinutenAus(z.daten, props.k.id, monatVon(b.jetzt), b.jetzt) : 0;
+  };
   return (
     <div class="grid gap-4">
       <Kopf k={props.k} oeffne={setOffen} />
@@ -229,7 +231,7 @@ const Detail = (props: { k: Kunde; gespeichert: () => void }) => {
         )}
       </Show>
       <div class="grid gap-4 lg:grid-cols-2">
-        <VertragsKarte b={b} k={props.k} />
+        <VertragsKarte k={props.k} supportMinuten={supportDiesenMonat()} />
         <KontaktKarte k={props.k} />
       </div>
       <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>

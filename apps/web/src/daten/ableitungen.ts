@@ -1,5 +1,5 @@
 import { berlinTag, tageSpaeter } from "../format/zeit.ts";
-import type { Bestand, Installation, Kunde, Manifest, Server, Sperrzeit } from "./typen.ts";
+import type { Bestand, Installation, Kunde, Manifest, Server, Sperrzeit, Zugang } from "./typen.ts";
 
 /*
  * Lookups and facts derived from the data, pure: data in, data out. The pages call these instead of
@@ -76,13 +76,27 @@ export const sperrzeitAktiv = (z: Sperrzeit, jetzt: number) => {
   return tag >= z.von && tag <= z.bis;
 };
 
-/** Minutes of support a customer got in a month ("2026-11"), from the support accesses */
-export const supportMinuten = (b: Bestand, kunde: string, monat: string) => {
-  const ids = new Set(installationenVon(b, kunde).map((i) => i.id));
-  return b.zugaenge
-    .filter((z) => ids.has(z.installation) && monatVon(z.start) === monat)
-    .reduce((summe, z) => summe + z.minuten, 0);
-};
+/** Minutes an access lasted, or has lasted so far */
+export const zugangsMinuten = (z: Zugang, jetzt: number) =>
+  Math.round((Math.max(z.beginn, Math.min(z.endetAm, jetzt)) - z.beginn) / 60_000);
+
+/**
+ * Minutes of support a customer got in a month ("2026-11", by the start in Berlin), from these
+ * support accesses (Z-802)
+ */
+export const supportMinutenAus = (
+  zugaenge: Zugang[],
+  kunde: string,
+  monat: string,
+  jetzt: number,
+) =>
+  zugaenge
+    .filter((z) => z.kundeId === kunde && monatVon(z.beginn) === monat)
+    .reduce((summe, z) => summe + zugangsMinuten(z, jetzt), 0);
+
+/** Minutes of support a customer got in a month, from the demo's support accesses */
+export const supportMinuten = (b: Bestand, kunde: string, monat: string) =>
+  supportMinutenAus(b.zugaenge, kunde, monat, b.jetzt);
 
 /** The month of an instant in Berlin, as "2026-11" */
 export const monatVon = (instant: number) =>

@@ -1,39 +1,54 @@
 import { Icon, m } from "@steuerzentrale/ui";
-import { Timer } from "@steuerzentrale/ui/icons";
+import { SquareTerminal, Timer } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
-import { For, Show } from "solid-js";
-import { installationVon, titel } from "../daten/ableitungen.ts";
-import { bestand, mitDemo } from "../daten/quelle.ts";
-import type { Bestand, Zugang } from "../daten/typen.ts";
+import { createMemo, For, Loading, refresh, Show } from "solid-js";
+import { zugangsMinuten } from "../daten/ableitungen.ts";
+import { titelVon } from "../daten/installation-ansicht.ts";
+import { uebersichtLaden } from "../daten/installationen-laden.ts";
+import { bestand } from "../daten/quelle.ts";
+import { supportQuelle } from "../daten/support.ts";
+import type { Zugang } from "../daten/typen.ts";
 import { minuten } from "../format/zahl.ts";
 import { zeitpunkt } from "../format/zeit.ts";
-import { rolleName } from "../rahmen/texte.ts";
+import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
+import { installationsRecht } from "../seiten/recht.tsx";
+import {
+  restMinuten,
+  type Wahl,
+  wasGeschah,
+  ZugangBeenden,
+  ZugangStarten,
+} from "../seiten/support-zugang.tsx";
 import { Balken } from "../teile/balken.tsx";
 import { Karte, KartenInhalt, KartenKopf, Seitenkopf } from "../teile/karte.tsx";
-import { NochNicht } from "../teile/kommt-noch.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
-import { ZielVerweis } from "../teile/verweise.tsx";
+import { ZuInstallation } from "../teile/verweise.tsx";
 import { Marke } from "../teile/zeichen.tsx";
 
-/** Time-limited access to an installation, with a reason, logged (BAULISTE.md, Z-802) */
+/**
+ * Time-limited access to an installation, with a reason, logged (BAULISTE.md Z-802; mockup,
+ * "Support-Zugänge"): the running ones with their time left, the ended ones with what happened, and
+ * "Zugang starten". Its holder ends an access, owner and technik also another's.
+ */
 
-const VORGABE_MINUTEN = 120;
+type Titel = (installationId: string) => string;
 
-const Aktiv = (props: { b: Bestand; z: Zugang }) => {
-  const rest = () => props.z.restMinuten ?? 0;
+const Aktiv = (props: { z: Zugang; titel: Titel; darfAlle: boolean; neu: () => void }) => {
+  const jetzt = () => bestand().jetzt;
+  const dauer = () => props.z.endetAm - props.z.beginn;
+  const verbraucht = () => Math.round(((jetzt() - props.z.beginn) / dauer()) * 100);
   return (
     <Karte>
       <KartenKopf
-        titel={titel(props.b, installationVon(props.b, props.z.installation))}
-        text={m.sup_wer({
-          wer: props.z.wer,
-          rolle: rolleName(props.z.rolle),
-          seit: zeitpunkt(props.z.start, props.b.jetzt),
+        titel={props.titel(props.z.installationId)}
+        text={m.sup_wer_seit({
+          wer: props.z.nutzer.name,
+          seit: zeitpunkt(props.z.beginn, jetzt()),
         })}
         aktion={
           <Marke class="tabular-nums">
             <Icon icon={Timer} size={14} />
-            {m.sup_rest({ minuten: rest() })}
+            {m.sup_rest({ minuten: restMinuten(props.z, jetzt()) })}
           </Marke>
         }
       />
@@ -42,25 +57,76 @@ const Aktiv = (props: { b: Bestand; z: Zugang }) => {
           <span class="text-muted-foreground">{m.sup_grund()}</span> {props.z.grund}
         </p>
         <Balken
-          name={m.sup_verbraucht({ id: props.z.id })}
-          wert={Math.round(((VORGABE_MINUTEN - rest()) / VORGABE_MINUTEN) * 100)}
+          name={m.sup_verbraucht({ id: props.z.zugangId })}
+          wert={verbraucht()}
           class="mt-3"
         />
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <ZuInstallation
+            id={props.z.installationId}
+            class="inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium"
+          >
+            <Icon icon={SquareTerminal} />
+            {m.sup_zur_installation()}
+          </ZuInstallation>
+          <Show when={props.z.eigen || props.darfAlle}>
+            <ZugangBeenden zugang={props.z} beendet={() => props.neu()} />
+          </Show>
+        </div>
       </KartenInhalt>
     </Karte>
   );
 };
 
-const SupportDemo = () => {
-  const b = bestand();
-  const aktiv = b.zugaenge.filter((z) => z.restMinuten !== undefined);
-  const beendet = b.zugaenge.filter((z) => z.restMinuten === undefined);
+const Beendete = (props: { zugaenge: Zugang[]; titel: Titel }) => (
+  <Karte class="overflow-hidden">
+    <KartenKopf titel={m.sup_beendet()} />
+    <div class="border-t">
+      <Tabelle
+        name={m.sup_beendet()}
+        rahmen={false}
+        minBreite={800}
+        leer={m.sup_keine_beendet()}
+        anzahl={props.zugaenge.length}
+        spalten={[
+          { name: m.bak_spalte_installation() },
+          { name: m.sup_spalte_wer() },
+          { name: m.sup_spalte_grund() },
+          { name: m.auftraege_spalte_start() },
+          { name: m.sup_spalte_dauer() },
+          { name: m.sup_spalte_ergebnis() },
+        ]}
+      >
+        <For each={props.zugaenge}>
+          {(z) => (
+            <Reihe>
+              <td>
+                <ZuInstallation id={z.installationId}>
+                  {props.titel(z.installationId)}
+                </ZuInstallation>
+              </td>
+              <td class="text-xs">{z.nutzer.name}</td>
+              <td class="text-xs">{z.grund}</td>
+              <td class="text-xs tabular-nums">{zeitpunkt(z.beginn, bestand().jetzt)}</td>
+              <td class="text-xs tabular-nums">{minuten(zugangsMinuten(z, bestand().jetzt))}</td>
+              <td class="text-xs text-muted-foreground">{wasGeschah(z)}</td>
+            </Reihe>
+          )}
+        </For>
+      </Tabelle>
+    </div>
+  </Karte>
+);
+
+const Liste = (props: { zugaenge: Zugang[]; wahl: Wahl[]; neu: () => void }) => {
+  const darfAlle = installationsRecht();
+  const titel: Titel = (id) => props.wahl.find((w) => w.id === id)?.titel ?? id;
+  const aktiv = () => props.zugaenge.filter((z) => z.aktiv);
   return (
-    <div class="grid gap-4">
-      <Seitenkopf titel={m.nav_support()} text={m.sup_text()} />
+    <>
       <div class="mt-2 grid gap-4 lg:grid-cols-2">
         <For
-          each={aktiv}
+          each={aktiv()}
           fallback={
             <Karte>
               <KartenInhalt class="pt-5">
@@ -69,65 +135,52 @@ const SupportDemo = () => {
             </Karte>
           }
         >
-          {(z) => <Aktiv b={b} z={z} />}
+          {(z) => <Aktiv z={z} titel={titel} darfAlle={darfAlle()} neu={() => props.neu()} />}
         </For>
       </div>
-      <Karte class="overflow-hidden">
-        <KartenKopf titel={m.sup_beendet()} />
-        <div class="border-t">
-          <Tabelle
-            name={m.sup_beendet()}
-            rahmen={false}
-            minBreite={800}
-            leer={m.sup_keine_beendet()}
-            anzahl={beendet.length}
-            spalten={[
-              { name: m.bak_spalte_installation() },
-              { name: m.sup_spalte_wer() },
-              { name: m.sup_spalte_grund() },
-              { name: m.auftraege_spalte_start() },
-              { name: m.sup_spalte_dauer() },
-              { name: m.sup_spalte_ergebnis() },
-            ]}
-          >
-            <For each={beendet}>
-              {(z) => (
-                <Reihe>
-                  <td>
-                    <ZielVerweis ziel={{ art: "installation", id: z.installation }} />
-                  </td>
-                  <td class="text-xs">{z.wer}</td>
-                  <td class="text-xs">{z.grund}</td>
-                  <td class="text-xs tabular-nums">{zeitpunkt(z.start, b.jetzt)}</td>
-                  <td class="text-xs tabular-nums">{minuten(z.minuten)}</td>
-                  <td class="text-xs text-muted-foreground">{z.ergebnis}</td>
-                </Reihe>
-              )}
-            </For>
-          </Tabelle>
-        </div>
-      </Karte>
-    </div>
+      <Beendete zugaenge={props.zugaenge.filter((z) => !z.aktiv)} titel={titel} />
+    </>
   );
 };
 
-/**
- * Signed in, nothing of the demo: the page waits for Z-802 (docs/plan.md, "Echte Daten (Z-406)")
- */
-const Support = () => (
-  <Show
-    when={mitDemo()}
-    fallback={
-      <NochNicht
+const Support = () => {
+  const antwort = createMemo(() => supportQuelle().liste());
+  const installationen = createMemo(() => uebersichtLaden());
+  const wahl = (): Wahl[] => {
+    const a = installationen();
+    return a.ok
+      ? a.daten.installationen
+          .filter((i) => i.zustand !== "entfernt")
+          .map((i) => ({ id: i.id, titel: titelVon(i) }))
+      : [];
+  };
+  const zugaenge = () => {
+    const a = antwort();
+    return a.ok ? a.daten : [];
+  };
+  const fehler = () => {
+    const a = antwort();
+    return a.ok ? "" : fehlerText(a);
+  };
+  const neu = () => refresh(antwort);
+  return (
+    <div class="grid gap-4">
+      <Seitenkopf
         titel={m.nav_support()}
         text={m.sup_text()}
-        punkt="Z-802"
-        hinweis={m.support_spaeter()}
+        aktion={
+          <Loading fallback={null}>
+            <ZugangStarten installationen={wahl()} gestartet={neu} />
+          </Loading>
+        }
       />
-    }
-  >
-    <SupportDemo />
-  </Show>
-);
+      <Loading fallback={<p class="text-muted-foreground">{m.sup_laden()}</p>}>
+        <Show when={antwort().ok} fallback={<Fehler text={fehler()} />}>
+          <Liste zugaenge={zugaenge()} wahl={wahl()} neu={neu} />
+        </Show>
+      </Loading>
+    </div>
+  );
+};
 
 export const Route = createFileRoute("/support")({ component: Support });

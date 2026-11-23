@@ -101,7 +101,6 @@ mit welchem Punkt sie kommen:
 
 | Seite oder Teil | kommt mit |
 | --- | --- |
-| Support-Zugänge, Support-Minuten eines Kunden | Z-802 |
 | Leistungen | Z-804 |
 | Einstellungen → DNS | Z-407 |
 | Einstellungen → Benachrichtigungen | Z-703 |
