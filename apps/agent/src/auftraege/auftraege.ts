@@ -116,6 +116,15 @@ const MAX_FEHLER = 2000;
 const bestaetigt = (auftragId: string) =>
   schreiben(Bestaetigt, { typ: "bestaetigt", protokoll: PROTOKOLL_VERSION, auftragId });
 
+const ergebnisNachricht = (auftragId: string, ergebnis: Ergebnis, zeit: number) =>
+  schreiben(ErgebnisNachricht, {
+    typ: "ergebnis",
+    protokoll: PROTOKOLL_VERSION,
+    auftragId,
+    zeit,
+    ergebnis,
+  });
+
 /** The lines of a log excerpt, sent before its result (docs/plan.md, "Log-Auszug") */
 const auszugSender =
   (auftragId: string, senden: (text: string) => void) =>
@@ -214,24 +223,39 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
   return { ausfuehren, aufraeumen };
 };
 
+/**
+ * Its own update while it runs: a job that comes meanwhile waits for its end, since the restart
+ * after it would end that job halfway (and after a failed one, it runs)
+ */
+const updateWache = () => {
+  let laufend: { auftragId: string; ende: Promise<void> } | undefined;
+  return {
+    abwarten: async (auftragId: string) => {
+      while (laufend && laufend.auftragId !== auftragId) await laufend.ende;
+    },
+    halten: async (auftragId: string, lauf: Promise<void>) => {
+      const dieses = { auftragId, ende: lauf.catch(() => {}) };
+      laufend = dieses;
+      try {
+        await lauf;
+      } finally {
+        if (laufend === dieses) laufend = undefined;
+      }
+    },
+  };
+};
+
 export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const schreibe = standSchreiber(deps.dateien, deps.pfad, deps.jetzt);
   let geladen: Promise<Geladen> | undefined;
   const laufend = new Set<string>();
   // its own update holds: the restart comes, and a job sent now is sent again to the new agent
   let neustartFolgt = false;
+  const eigenesUpdate = updateWache();
   const { ausfuehren: planAusfuehren, aufraeumen } = ausfuehrer(deps);
 
   const ergebnisSenden = (auftragId: string, ergebnis: Ergebnis, senden: (t: string) => void) =>
-    senden(
-      schreiben(ErgebnisNachricht, {
-        typ: "ergebnis",
-        protokoll: PROTOKOLL_VERSION,
-        auftragId,
-        zeit: deps.jetzt(),
-        ergebnis,
-      }),
-    );
+    senden(ergebnisNachricht(auftragId, ergebnis, deps.jetzt()));
 
   /** Keeps the result, then sends it: a result never leaves before it is recorded */
   const abschliessen = async (
@@ -282,6 +306,7 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   };
 
   const empfangen: Auftraege["empfangen"] = async (n, senden) => {
+    await eigenesUpdate.abwarten(n.auftragId);
     if (neustartFolgt) return deps.log("job left for the new agent", { auftragId: n.auftragId });
     geladen ??= standLaden(deps.dateien, deps.pfad);
     const record = await geladen;
@@ -308,7 +333,10 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
     // running when the agent stopped: it may have done part of its work
     if (bekannt?.zustand === "laeuft" && !geprueft.plan.idempotent)
       return abschliessen(stand, n.auftragId, { ok: false, fehler: NEU_GESTARTET }, senden);
-    return starten(stand, n, geprueft.plan, senden);
+    const laeuft = starten(stand, n, geprueft.plan, senden);
+    return geprueft.plan.art === "agent_update"
+      ? eigenesUpdate.halten(n.auftragId, laeuft)
+      : laeuft;
   };
 
   return { empfangen, aufraeumen };
