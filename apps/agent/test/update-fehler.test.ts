@@ -96,6 +96,29 @@ describe("an update is refused and touches nothing", () => {
     nichtsAngefasst(a);
   });
 
+  it("without the snapshot of a part its backup knows, also when the new version adds one", async () => {
+    // the new version adds the volume `anhang` to its backup; backup.json knows only `daten`
+    const mitAnhang = ersetzen(
+      ersetzen(
+        NEU,
+        "    volumes: [{ name: daten, pfad: /daten }]\n    env:",
+        "    volumes: [{ name: daten, pfad: /daten }, { name: anhang, pfad: /anhang }]\n    env:",
+      ),
+      "  - { art: volume, volume: daten }\n",
+      "  - { art: volume, volume: daten }\n  - { art: volume, volume: anhang }\n",
+    );
+    const a = await eingerichtet();
+    await a.empfangen(
+      update({
+        manifest: mitAnhang,
+        signatur: signiert(mitAnhang),
+        argumente: { "snapshot:volume:anhang": "c".repeat(64) },
+      }),
+    );
+    expect(fehler(a)).toBe("abgelehnt: kein Snapshot von volume:daten");
+    nichtsAngefasst(a);
+  });
+
   it("for a manifest with a bad signature", async () => {
     const a = await eingerichtet();
     await a.empfangen(update({ signatur: signiert(MANIFEST) }));

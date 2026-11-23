@@ -146,6 +146,32 @@ describe("the arguments of an update", () => {
       "the run has no snapshot of volume:daten",
     );
   });
+
+  it("leave out a part the new version adds, which the backup before does not name", () => {
+    const zwei = beispielManifest(
+      VORLAGE.replace(
+        "    volumes: [{ name: daten, pfad: /daten }]\n",
+        "    volumes: [{ name: daten, pfad: /daten }, { name: anhang, pfad: /anhang }]\n",
+      ).replace(
+        BACKUP,
+        "backup:\n  - { art: volume, volume: daten }\n  - { art: volume, volume: anhang }\n",
+      ),
+    );
+    const lauf = [{ tag: "volume:daten", snapshot: A }];
+    const r = updateArgumente(zwei, "beispiel-x7k2p9", lauf);
+    expect(r).toEqual({ ok: true, argumente: { "snapshot:volume:daten": A } });
+    // a part the run names without a snapshot is a failed backup of it
+    expect(
+      grund(
+        updateArgumente(zwei, "beispiel-x7k2p9", [
+          ...lauf,
+          { tag: "volume:anhang", snapshot: null },
+        ]),
+      ),
+    ).toBe("the run has no snapshot of volume:anhang");
+    if (!r.ok) return;
+    expect(grund(updateAuftragPruefen(zwei, anfrage({ argumente: r.argumente })))).toBe("ok");
+  });
 });
 
 describe("the agent's data of an update", () => {

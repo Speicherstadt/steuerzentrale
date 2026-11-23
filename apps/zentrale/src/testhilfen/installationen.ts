@@ -40,6 +40,7 @@ export type Testmanifest =
   | "update-ohne-health"
   | "update-dringend"
   | "update-teile"
+  | "update-neuer-teil"
   | "kaputt";
 
 export const signiert = (app: Testmanifest) => ({

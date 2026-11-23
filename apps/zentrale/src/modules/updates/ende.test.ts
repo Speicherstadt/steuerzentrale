@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { auditLog, ereignisse, installationKonfigurationen } from "../../db/schema.ts";
 import { minioNachbau } from "../../testhilfen/minio.ts";
+import { SNAPSHOT } from "../../testhilfen/pruef-restore.ts";
 import { updateUmgebung } from "../../testhilfen/updates.ts";
 import { spalteEntschluesseln } from "../geheim/spalten.ts";
 import { installationLesen } from "../installationen/index.ts";
@@ -186,5 +187,24 @@ describe("the end of an update", () => {
     const davor = zurueck.u.agent.length;
     zurueck.u.beendet(zurueck.id, { ergebnis: "zurueckgenommen", grund: "rot" });
     expect(zurueck.u.agent.slice(davor)).toEqual([]);
+  });
+
+  it("sends an update whose new version adds a part to back up, with the old parts' snapshots", async () => {
+    // docs/plan.md, "Folgeaufträge nach einem Update (Z-503)": a new version may name other parts;
+    // the backup before knows only the old ones, and a part the new version adds held no data yet
+    const u = updateUmgebung(minio);
+    const id = await u.eingerichtet();
+    u.versionen("update-neuer-teil");
+    const r = u.anlegen(id, { version: "1.3.4" });
+    if (!r.ok) throw new Error(r.grund);
+    u.gesichert(id);
+    expect(u.updateAuftraege(id).update?.zustand).not.toBe("abgebrochen");
+    expect(updateStand(u.db, "b1", id).letzter?.phase).toBe("aktualisieren");
+    const gesendet = u.agent.find(
+      (n) => (n as { aktion?: string }).aktion === "installation_update",
+    );
+    expect((gesendet as { argumente?: unknown } | undefined)?.argumente).toEqual({
+      "snapshot:volume:daten": SNAPSHOT,
+    });
   });
 });
