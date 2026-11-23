@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -94,6 +94,36 @@ describe("echteHausDateien", () => {
     await echteHausDateien.schreiben(pfad, "geschrieben", 0o600, ich);
     expect(readFileSync(ziel, "utf8")).toBe("unberuehrt");
     expect(readFileSync(pfad, "utf8")).toBe("geschrieben");
+  });
+
+  // two setup jobs at once (the agent tests run their files in parallel, each with its own agent)
+  // both make sure the Pforte runs: neither may fail because the other makes the same folder or
+  // writes the same unit at the same moment (Z-503, CI run 45134053414)
+  it("makes the same folder twice at once", async () => {
+    const pfad = join(ordner, "zugleich");
+    const r = await Promise.allSettled([
+      echteHausDateien.verzeichnis(pfad, 0o700, ich),
+      echteHausDateien.verzeichnis(pfad, 0o700, ich),
+    ]);
+    expect(r).toEqual([
+      { status: "fulfilled", value: undefined },
+      { status: "fulfilled", value: undefined },
+    ]);
+    expect(statSync(pfad).mode & 0o777).toBe(0o700);
+  });
+
+  it("writes the same file twice at once", async () => {
+    const pfad = join(ordner, "zugleich.container");
+    const r = await Promise.allSettled([
+      echteHausDateien.schreiben(pfad, "[Container]\n", 0o600, ich),
+      echteHausDateien.schreiben(pfad, "[Container]\n", 0o600, ich),
+    ]);
+    expect(r).toEqual([
+      { status: "fulfilled", value: undefined },
+      { status: "fulfilled", value: undefined },
+    ]);
+    expect(readFileSync(pfad, "utf8")).toBe("[Container]\n");
+    expect(readdirSync(ordner).filter((n) => n.startsWith("zugleich.container."))).toEqual([]);
   });
 
   it("refuses a symlink in the place of a folder", async () => {
