@@ -3,6 +3,10 @@ import {
   AKTION_ZEITLIMIT_S,
   type ArgumentWert,
   aktionsAuftragPruefen,
+  BACKUP_AKTIONEN,
+  BACKUP_ZEITLIMIT_S,
+  type BackupFeld,
+  backupAuftragPruefen,
   befehlFuellen,
   befehlZurAktion,
   EINRICHTUNG_ZEITLIMIT_S,
@@ -10,6 +14,7 @@ import {
   einrichtungAuftragPruefen,
   INSTALLATIONS_NAME,
   istAktionsAuftrag,
+  istBackupAktion,
   istEinrichtungAktion,
   istPforteAktion,
   type Manifest,
@@ -36,7 +41,9 @@ import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
  * (Z-402, einrichtung/auftraege.ts), checked with the installation's data, which the row does not
  * keep: it is taken from the installation when the job is sent (zustellen.ts). Restart and log
  * excerpt of an installation (Z-405, aktionen.ts) are built in too, without arguments, and only for
- * a manifest that offers them.
+ * a manifest that offers them, and so are the backup jobs (Z-601, backup.ts), only for a manifest
+ * with parts to back up; setting up backups is checked with its field `backup`, which the row does
+ * not keep either.
  */
 
 export type NeuerAuftrag = {
@@ -54,6 +61,8 @@ export type NeuerAuftrag = {
   auftragId?: string;
   /** Only to check `installation_einrichten`; not stored with the job */
   einrichtung?: Einrichtung;
+  /** Only to check `installation_backup_einrichten` (Z-601); not stored with the job */
+  backup?: BackupFeld;
 };
 
 export type AnlageFehler =
@@ -100,6 +109,13 @@ const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
     return pforte.ok
       ? { ok: true, manifest: geprueft.manifest, zeitlimitS: PFORTE_ZEITLIMIT_S }
       : { ok: false, grund: "argumente_ungueltig", detail: pforte.grund };
+  }
+  if (istBackupAktion(neu.aktion)) {
+    const backup = backupAuftragPruefen(geprueft.manifest, neu);
+    const art = neu.aktion === BACKUP_AKTIONEN.einrichten ? "einrichten" : "jetzt";
+    return backup.ok
+      ? { ok: true, manifest: geprueft.manifest, zeitlimitS: BACKUP_ZEITLIMIT_S[art] }
+      : { ok: false, grund: "argumente_ungueltig", detail: backup.grund };
   }
   if (istAktionsAuftrag(neu.aktion)) {
     const aktion = aktionsAuftragPruefen(geprueft.manifest, neu);
@@ -178,7 +194,7 @@ export const auftragVorbereiten = (
   };
   // a job the protocol cannot carry (an id or a manifest too long) would stay ready for ever
   try {
-    auftragNachricht(zeile, neu.einrichtung);
+    auftragNachricht(zeile, { einrichtung: neu.einrichtung, backup: neu.backup });
   } catch (fehler) {
     return { ok: false, grund: "nachricht_ungueltig", detail: String(fehler).slice(0, 500) };
   }

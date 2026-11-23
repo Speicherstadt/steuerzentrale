@@ -1,5 +1,7 @@
 import {
   AKTIONS_AUFTRAEGE,
+  BACKUP_AKTIONEN,
+  type BackupFeld,
   EINRICHTUNG_AKTIONEN,
   type Einrichtung,
   manifestPruefen,
@@ -15,6 +17,7 @@ import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import type { Schluesselbund } from "../../db/schluessel.ts";
 import type { LogSink } from "../../log.ts";
 import { schreiben } from "../audit/index.ts";
+import { backupFeldFuer } from "../backups/feld.ts";
 import { einrichtungFuer } from "../installationen/einrichtung.ts";
 import { konfigurationFuer } from "../installationen/konfiguration.ts";
 import type { Verbindungen } from "../verbindung/verbindungen.ts";
@@ -27,7 +30,9 @@ import { type Auftrag, offeneAuftraege } from "./lesen.ts";
  * the id), so a job sent twice runs once. A setup job (`installation_einrichten`, Z-402) gets the
  * installation's data only here, with its secrets decrypted from the installation's row: the job's
  * row and the audit log never hold them. A job `installation_konfigurieren` (Z-404) gets the values
- * it asked for, from their own row (modules/installationen/konfiguration.ts).
+ * it asked for, from their own row (modules/installationen/konfiguration.ts). A job
+ * `installation_backup_einrichten` (Z-601) gets the installation's S3 access and restic password
+ * only here, and only if the installation stands on the job's server (modules/backups/feld.ts).
  */
 
 export type AuftragDeps = {
@@ -40,10 +45,15 @@ export type AuftragDeps = {
   schluessel: Schluesselbund;
   /** Starts setting or deleting DNS records now that some are due (modules/dns, Z-407) */
   dnsAnstossen?: () => void;
+  /** Starts making or deleting S3 accesses of installations that are due (modules/backups, Z-601) */
+  backupAnstossen?: () => void;
 };
 
+/** What only some jobs carry: the installation's data, its backup access (both added when sent) */
+export type Zusatz = { einrichtung?: Einrichtung | undefined; backup?: BackupFeld | undefined };
+
 /** The `auftrag` message: the manifest's exact text and signature, which the agent checks */
-export const auftragNachricht = (a: Auftrag, einrichtung?: Einrichtung): string =>
+export const auftragNachricht = (a: Auftrag, zusatz: Zusatz = {}): string =>
   nachrichtSchreiben(AuftragNachricht, {
     typ: "auftrag",
     protokoll: PROTOKOLL_VERSION,
@@ -54,7 +64,8 @@ export const auftragNachricht = (a: Auftrag, einrichtung?: Einrichtung): string 
     manifest: a.manifest,
     signatur: a.signatur,
     zeitlimitS: a.zeitlimitS,
-    ...(einrichtung ? { einrichtung } : {}),
+    ...(zusatz.einrichtung ? { einrichtung: zusatz.einrichtung } : {}),
+    ...(zusatz.backup ? { backup: zusatz.backup } : {}),
   });
 
 /** The installation's data for a setup job, or undefined for a job without */
@@ -66,12 +77,20 @@ const einrichtungVon = (deps: AuftragDeps, a: Auftrag) => {
   return undefined;
 };
 
-/** The message of a job; for a setup job with the installation's data, or why there is none */
+/**
+ * The message of a job; for a setup job with the installation's data, for setting up backups with
+ * the installation's access, or why there is none
+ */
 const nachrichtFuer = (deps: AuftragDeps, a: Auftrag): string => {
+  if (a.aktion === BACKUP_AKTIONEN.einrichten) {
+    const feld = backupFeldFuer(deps, a.betreiberId, a.installationId, a.serverId);
+    if (!feld.ok) throw new Error(feld.grund);
+    return auftragNachricht(a, { backup: feld.backup });
+  }
   const einrichtung = einrichtungVon(deps, a);
   if (!einrichtung) return auftragNachricht(a);
   if (!einrichtung.ok) throw new Error(einrichtung.grund);
-  return auftragNachricht(a, einrichtung.einrichtung);
+  return auftragNachricht(a, { einrichtung: einrichtung.einrichtung });
 };
 
 /** The jobs that restart an app: configuring anew (Z-404) and the restart itself (Z-405) */

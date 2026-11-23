@@ -17,4 +17,4 @@ export {
   TOKEN_GEHEIMNIS,
 } from "./einstellungen.ts";
 export { dnsFuerNeueInstallation, dnsNachEntfernen } from "./installation.ts";
-export { DNS_FEHLER_ART, kommentarFuer, TTL } from "./plan.ts";
+export { DNS_FEHLER_ART, kommentarFuer, naechsterVersuch, TTL } from "./plan.ts";

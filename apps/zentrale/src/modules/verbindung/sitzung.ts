@@ -11,6 +11,7 @@ import {
 import type { LogSink } from "../../log.ts";
 import { heartbeatAnfuegen, schreiben } from "../audit/index.ts";
 import { offeneZustellen } from "../auftraege/index.ts";
+import { backupStandAnnehmen } from "../backups/stand.ts";
 import { zustandAnnehmen } from "../bewertung/index.ts";
 import type { BeitrittDeps } from "../server/beitritt.ts";
 import {
@@ -32,7 +33,8 @@ import type { Sockel, Verbindungen } from "./verbindungen.ts";
  * (Z-304) are kept (meldungen.ts), the state of the installations is rated (Z-403,
  * src/modules/bewertung). After `willkommen` the agent gets its open jobs, and its reports
  * about them move them on (Z-305, src/modules/auftraege); the lines of a log excerpt are kept for
- * a log job of this server (Z-405, auftraege/log-auszug.ts), any other dropped and logged.
+ * a log job of this server (Z-405, auftraege/log-auszug.ts), any other dropped and logged. The
+ * runs of backups (Z-601) are kept for installations of this server (src/modules/backups).
  */
 export type SitzungDeps = BeitrittDeps & {
   verbindungen: Verbindungen;
@@ -71,8 +73,38 @@ const ZUSTAND_ABSTAND_MS = 5_000;
 const SSH_VORRAT = 100;
 const SSH_NACHSCHUB_MS = 60_000;
 
+/**
+ * Runs of backups become rows, audit entries and, when failed, events: a backlog of this many at
+ * once (runs while the Zentrale was away), then one a minute more, the rest is dropped; the agent
+ * sends the newest again after it reconnects
+ */
+const BACKUP_VORRAT = 100;
+const BACKUP_NACHSCHUB_MS = 60_000;
+
 /** The close reason is at most 123 bytes (RFC 6455, 5.5); ours are short and ASCII */
 const kurz = (grund: string) => grund.slice(0, 100);
+
+type Eingang<T extends NachrichtVomAgenten["typ"]> = (
+  server: Server,
+  n: Extract<NachrichtVomAgenten, { typ: T }>,
+  jetzt: number,
+) => void;
+
+/** An SSH login of the agent, an event while the bucket allows it (Z-304) */
+const sshEingang =
+  (deps: SitzungDeps, erlaubt: (jetzt: number) => boolean): Eingang<"ssh_anmeldung"> =>
+  (server, n, jetzt) => {
+    if (erlaubt(jetzt)) sshAnmeldungSchreiben(deps.db, deps.schreibDb, server, n, jetzt);
+    else deps.log(JSON.stringify({ msg: "ssh login dropped", serverId: server.serverId }));
+  };
+
+/** A backup run of the agent, kept while the bucket allows it (Z-601) */
+const backupEingang =
+  (deps: SitzungDeps, erlaubt: (jetzt: number) => boolean): Eingang<"backup_stand"> =>
+  (server, n, jetzt) => {
+    if (erlaubt(jetzt)) backupStandAnnehmen(deps, server, n, jetzt);
+    else deps.log(JSON.stringify({ msg: "backup report dropped", serverId: server.serverId }));
+  };
 
 const senden = (sockel: Sockel, nachricht: NachrichtVonDerZentrale) =>
   sockel.senden(nachrichtSchreiben(VonDerZentrale, nachricht));
@@ -89,8 +121,9 @@ export const sitzung = (
   const heartbeatErlaubt = mindestabstand(HEARTBEAT_ABSTAND_MS);
   const faktenErlaubt = mindestabstand(FAKTEN_ABSTAND_MS);
   const zustandErlaubt = mindestabstand(ZUSTAND_ABSTAND_MS);
-  // whether one more SSH login may become an event, as a bucket refilled one a minute
-  const sshErlaubt = eimer(SSH_VORRAT, SSH_NACHSCHUB_MS);
+  // whether one more SSH login or backup run may be kept, as a bucket refilled one a minute
+  const sshAnmeldung = sshEingang(deps, eimer(SSH_VORRAT, SSH_NACHSCHUB_MS));
+  const backupStand = backupEingang(deps, eimer(BACKUP_VORRAT, BACKUP_NACHSCHUB_MS));
 
   const hallo = (n: Extract<NachrichtVomAgenten, { typ: "hallo" }>, s: Sockel, jetzt: number) => {
     if (n.agentVersion !== server.agentVersion || n.architektur !== server.architektur)
@@ -171,13 +204,8 @@ export const sitzung = (
         return faktenErlaubt(jetzt) ? faktenSpeichern(deps.schreibDb, server, n, jetzt) : undefined;
       if (n.typ === "zustand")
         return zustandErlaubt(jetzt) ? zustandAnnehmen(deps, server, n, jetzt) : undefined;
-      if (n.typ === "ssh_anmeldung") {
-        if (!sshErlaubt(jetzt)) {
-          deps.log(JSON.stringify({ msg: "ssh login dropped", serverId }));
-          return;
-        }
-        return sshAnmeldungSchreiben(deps.db, deps.schreibDb, server, n, jetzt);
-      }
+      if (n.typ === "backup_stand") return backupStand(server, n, jetzt);
+      if (n.typ === "ssh_anmeldung") return sshAnmeldung(server, n, jetzt);
     },
     zu: () => {
       if (sockel) deps.verbindungen.abmelden(betreiberId, serverId, sockel);

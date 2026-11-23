@@ -26,6 +26,9 @@ const ANWEISUNGEN = {
   audit: ["lesen"],
   // the operator's domain, zone and Cloudflare token (Z-407); the token itself is never read back
   dns: ["lesen", "schreiben"],
+  // backups (Z-601): the runs of each installation and the S3 target, whose admin access is never
+  // read back; writing sets the target and starts "Backup jetzt"
+  backups: ["lesen", "schreiben"],
 } as const;
 
 export const zugriff = createAccessControl(ANWEISUNGEN);
@@ -49,6 +52,7 @@ export const ROLLEN_ZUGRIFF = {
     installationen: ["lesen", "schreiben", "log_auszug"],
     audit: ["lesen"],
     dns: ["lesen", "schreiben"],
+    backups: ["lesen", "schreiben"],
   }),
   // servers, installations and updates (later items); sees who else works on the operator; takes
   // on customers and their contracts, which installing an app starts from (docs/plan.md, "Kunden")
@@ -61,6 +65,7 @@ export const ROLLEN_ZUGRIFF = {
     installationen: ["lesen", "schreiben", "log_auszug"],
     audit: ["lesen"],
     dns: ["lesen", "schreiben"],
+    backups: ["lesen", "schreiben"],
   }),
   // support access to customers (later items); sees who else works on the operator, whom it
   // helps, the servers and installations they run on, but changes no customer, contract, server
@@ -75,6 +80,7 @@ export const ROLLEN_ZUGRIFF = {
     installationen: ["lesen", "log_auszug"],
     audit: [],
     dns: ["lesen"],
+    backups: ["lesen"],
   }),
 } as const;
 

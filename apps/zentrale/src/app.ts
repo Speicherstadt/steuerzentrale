@@ -8,6 +8,7 @@ import type { Auslieferung } from "./modules/server/index.ts";
 import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { aktionenRouten } from "./routes/aktionen.ts";
+import { backupRouten } from "./routes/backups.ts";
 import { betriebRouten } from "./routes/betrieb.ts";
 import { dnsRouten } from "./routes/dns.ts";
 import { einladungRouten } from "./routes/einladungen.ts";
@@ -48,6 +49,8 @@ export type AppDeps = {
   verbindungen: Verbindungen;
   /** Starts setting or deleting the DNS records that are due (modules/dns, Z-407) */
   dnsAnstossen?: () => void;
+  /** Starts making or deleting the S3 accesses that are due (modules/backups, Z-601) */
+  backupAnstossen?: () => void;
 };
 
 const AUTH_BASIS = "/api/auth";
@@ -101,6 +104,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   einstellungenRouten(route, deps);
   betriebRouten(route, deps);
   dnsRouten(route, deps);
+  backupRouten(route, deps);
   agentRouten(route, deps);
   verbindungRouten(route, deps);
 

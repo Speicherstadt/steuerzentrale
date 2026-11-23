@@ -1,5 +1,6 @@
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import {
+  backups,
   betreiber,
   ereignisse,
   fakten,
@@ -16,7 +17,7 @@ export type Geloescht = Record<AufbewahrteTabelle, number>;
 /** Every operator with rows, also one already deleted from `betreiber`: its old rows go too */
 const betreiberMitDaten = (db: Db): Set<string> =>
   new Set(
-    [betreiber, heartbeats, fakten, logAuszuege, installationVerlauf, ereignisse].flatMap(
+    [betreiber, heartbeats, fakten, logAuszuege, installationVerlauf, ereignisse, backups].flatMap(
       (tabelle) =>
         db
           .selectDistinct({ betreiberId: tabelle.betreiberId })
@@ -35,6 +36,7 @@ export const aufbewahren = (db: Db, schreibDb: SchreibDb, jetzt: number): Geloes
     logAuszuege: 0,
     installationVerlauf: 0,
     ereignisse: 0,
+    backups: 0,
   };
   for (const betreiberId of betreiberMitDaten(db)) {
     const kontext = { betreiberId, akteur: "system", jetzt, grund: "Aufbewahrung (docs/plan.md)" };
