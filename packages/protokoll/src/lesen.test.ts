@@ -264,6 +264,26 @@ describe("facts", () => {
     expect(vomAgentenLesen(JSON.stringify(nichts))).toEqual({ ok: true, nachricht: nichts });
   });
 
+  // Z-702: open ports, certificates and the time service came after the first agents; an agent
+  // without them still sends valid facts, the Zentrale takes them as not read
+  it("reads facts without the fields of the checks", () => {
+    const {
+      portsOffen: _p,
+      zertifikate: _z,
+      uhrSynchron: _u,
+      ...ohne
+    } = VOM_AGENTEN_V1.find((n) => n.typ === "fakten") ?? {};
+    expect(vomAgentenLesen(JSON.stringify(ohne))).toEqual({ ok: true, nachricht: ohne });
+  });
+
+  it("refuses a certificate without a host or a port out of range", () => {
+    const fakten = VOM_AGENTEN_V1.find((n) => n.typ === "fakten") ?? {};
+    const ohneHost = { ...fakten, zertifikate: [{ host: "", gueltigBis: 1 }] };
+    expect(vomAgentenLesen(JSON.stringify(ohneHost)).ok).toBe(false);
+    const port = { ...fakten, portsOffen: [{ port: 70000, proto: "tcp" }] };
+    expect(vomAgentenLesen(JSON.stringify(port)).ok).toBe(false);
+  });
+
   it("refuses a fact left out instead of null", () => {
     const { podman: _weg, ...ohne } = VOM_AGENTEN_V1.find((n) => n.typ === "fakten") ?? {};
     expect(vomAgentenLesen(JSON.stringify(ohne))).toMatchObject({

@@ -36,6 +36,12 @@ export const VOM_AGENTEN_V1: readonly Record<string, unknown>[] = [
     portsBelegt: [{ port: 443, proto: "tcp" }],
     port25Ausgehend: false,
     uhrzeitAbweichungMs: 12,
+    portsOffen: [
+      { port: 22, proto: "tcp" },
+      { port: 443, proto: "tcp" },
+    ],
+    zertifikate: [{ host: "haben.mueller.apps.example.org", gueltigBis: 1_800_000_000_000 }],
+    uhrSynchron: true,
   },
   {
     typ: "zustand",

@@ -81,7 +81,7 @@ export const backupsDerInstallation = (db: Db, i: Installation): BackupsDerInsta
   stand(db, i, LAEUFE_MAX);
 
 /** The newest successful run's time */
-const letzterErfolg = (db: Db, i: Installation): number | null =>
+export const letzterErfolg = (db: Db, i: Installation): number | null =>
   db
     .select({ zeitpunkt: backups.zeitpunkt })
     .from(backups)

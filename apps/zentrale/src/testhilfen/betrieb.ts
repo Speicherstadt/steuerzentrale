@@ -59,6 +59,7 @@ export const auftragEinfuegen = (
     angelegtAm: number;
     zustand?: "gescheitert" | "bereit" | "erfolgreich";
     installationId?: string;
+    aktion?: string;
   },
 ) =>
   schreiben(schreibDb, kontext(betreiberId, teil.angelegtAm), "test.auftrag", (w) =>
@@ -67,7 +68,7 @@ export const auftragEinfuegen = (
       auftragId: randomUUID(),
       serverId,
       installationId: teil.installationId ?? null,
-      aktion: "migrieren",
+      aktion: teil.aktion ?? "migrieren",
       app: "probe",
       version: "1.0.0",
       manifestHash: "0".repeat(64),
