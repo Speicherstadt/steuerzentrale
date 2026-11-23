@@ -111,6 +111,27 @@ const backupEingang =
     else deps.log(JSON.stringify({ msg: "backup report dropped", serverId: server.serverId }));
   };
 
+/** Version and architecture of `hallo` at the server, a changed version as an event (Z-504) */
+const agentMerken = (
+  deps: SitzungDeps,
+  server: Server,
+  n: Extract<NachrichtVomAgenten, { typ: "hallo" }>,
+  jetzt: number,
+): Server => {
+  if (n.agentVersion === server.agentVersion && n.architektur === server.architektur) return server;
+  const { betreiberId, serverId } = server;
+  return schreiben(
+    deps.schreibDb,
+    { betreiberId, akteur: `server:${serverId}`, jetzt, grund: "Agent meldet sich" },
+    "server.agent",
+    (w) => {
+      agentVersionFortschreiben(w, server, n.agentVersion, jetzt);
+      const { agentVersion, architektur } = n;
+      return w.aendern("server", { serverId }, { agentVersion, architektur });
+    },
+  );
+};
+
 const senden = (sockel: Sockel, nachricht: NachrichtVonDerZentrale, protokoll: number) =>
   sockel.senden(fuerVersion(nachrichtSchreiben(VonDerZentrale, nachricht), protokoll));
 
@@ -133,20 +154,7 @@ export const sitzung = (
   const backupStand = backupEingang(deps, eimer(BACKUP_VORRAT, BACKUP_NACHSCHUB_MS));
 
   const hallo = (n: Extract<NachrichtVomAgenten, { typ: "hallo" }>, s: Sockel, jetzt: number) => {
-    if (n.agentVersion !== server.agentVersion || n.architektur !== server.architektur)
-      server = schreiben(
-        deps.schreibDb,
-        { betreiberId, akteur: `server:${serverId}`, jetzt, grund: "Agent meldet sich" },
-        "server.agent",
-        (w) => {
-          agentVersionFortschreiben(w, server, n.agentVersion, jetzt);
-          return w.aendern(
-            "server",
-            { serverId },
-            { agentVersion: n.agentVersion, architektur: n.architektur },
-          );
-        },
-      );
+    server = agentMerken(deps, server, n, jetzt);
     gegruesst = true;
     protokoll = Math.min(n.protokoll, PROTOKOLL_VERSION);
     senden(

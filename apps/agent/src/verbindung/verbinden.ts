@@ -95,6 +95,15 @@ const zertifikatAnfrage = (csr: string) =>
 
 export type Schleife = { stoppen: () => void };
 
+/** At `willkommen`: an update of the agent to this version is confirmed (Z-504) */
+const bestaetigen = (
+  deps: VerbindenDeps,
+  log: (msg: string, mehr?: Record<string, unknown>) => void,
+) =>
+  deps
+    .verbunden?.()
+    .catch((fehler) => log("agent update not confirmed", { fehler: String(fehler) }));
+
 /**
  * The certificate's care over one connection: in its last 30 days, at willkommen or on a later
  * beat, the agent asks for a new one and keeps the key until it comes; a connection that ends
@@ -163,9 +172,7 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
     if (n.typ === "willkommen") {
       versuch = 0;
       log("connected");
-      deps
-        .verbunden?.()
-        .catch((fehler) => log("agent update not confirmed", { fehler: String(fehler) }));
+      void bestaetigen(deps, log);
       herzschlag(s, n.zertifikatGueltigBis);
       meldungen.starten(
         (text) => s.senden(text),

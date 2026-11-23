@@ -1,8 +1,12 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { AGENT_UPDATE_AKTION } from "@steuerzentrale/manifest";
 import { afterAll, describe, expect, it } from "vitest";
 import { TEST_SCHLUESSEL } from "../../testhilfen/installationen.ts";
 import { minioNachbau } from "../../testhilfen/minio.ts";
 import { updateUmgebung } from "../../testhilfen/updates.ts";
 import { schreiben } from "../audit/index.ts";
+import { auftragAnlegen } from "../auftraege/index.ts";
 import { backupAbgleichen } from "../backups/index.ts";
 import { updateStand } from "./lesen.ts";
 import { updatePlanLesen, WARTUNGSFENSTER_VORGABE, wartungsfensterLesen } from "./plan.ts";
@@ -107,6 +111,26 @@ describe("the planning of updates", () => {
     u.gesichert(gestartet);
     u.beendet(gestartet, { ergebnis: "aktualisiert", dauerMs: 1000 });
     expect(await planen()).toEqual({ angelegt: [andere] });
+  });
+
+  it("counts an update of the server's agent as the one update of the server (Z-504)", async () => {
+    const { u, planen } = await umgebung();
+    const id = await u.eingerichtet();
+    u.versionen("update-1.3.0");
+    u.uhr.ms = SONNTAG_IM_FENSTER;
+    const test = join(import.meta.dirname, "../../../../../packages/manifest/test");
+    const agent = auftragAnlegen(u.deps, u.kontext("b1"), {
+      serverId: "s1",
+      installationId: null,
+      aktion: AGENT_UPDATE_AKTION,
+      argumente: { version: "0.0.1" },
+      manifest: readFileSync(join(test, "SHA256SUMS"), "utf8"),
+      signatur: readFileSync(join(test, "SHA256SUMS.minisig"), "utf8"),
+    });
+    expect(agent.ok).toBe(true);
+    expect(await planen()).toEqual({ angelegt: [] });
+    u.melden(agent.ok ? agent.auftrag.auftragId : "", true);
+    expect(await planen()).toEqual({ angelegt: [id] });
   });
 
   it("never updates an app without health; by hand it can be", async () => {

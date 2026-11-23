@@ -375,9 +375,18 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   angehalten und ein Ereignis da; kein automatisches Update in einer Sperrzeit oder außerhalb des
   Wartungsfensters, ein dringendes sofort; höchstens ein Update je Server zugleich; ein Update von
   Hand mit Grund (Playwright); kein Betreiber erreicht Updates eines anderen (Test je Endpunkt).
-- [ ] **Z-504 Updates des Agenten** – Agent lädt neue Version, prüft Prüfsumme und minisign-Signatur,
+- [x] **Z-504 Updates des Agenten** – Agent lädt neue Version, prüft Prüfsumme und minisign-Signatur,
   startet sich im Wartungsfenster neu; die Zentrale versteht `n-1`.
-  Fertig, wenn: ein Agent in der CI sich aktualisiert und eine falsche Signatur abgelehnt wird.
+  Fertig, wenn: ein Agent in der CI sich aktualisiert und eine falsche Signatur abgelehnt wird
+  (Incus-VM: der neue Agent läuft, meldet sich mit der neuen Version, das alte Binary liegt daneben;
+  bei der falschen Signatur läuft der alte weiter und die Zentrale hat ein Ereignis); dazu (Tests):
+  Signatur eines fremden Schlüssels, falsche Prüfsumme, fehlende Zeile in `SHA256SUMS`, eine nicht
+  neuere Version und der Test-Schlüssel außerhalb des Testmodus werden abgelehnt, ohne etwas zu
+  ersetzen; die feste Form des Auftrags (keine Adresse, keine Installation) prüfen Zentrale und Agent;
+  geplant nur im Wartungsfenster des Servers, nie neben einem offenen Auftrag, je Version höchstens
+  ein Versuch am Tag; ein neuer Agent, der seine Zentrale nicht erreicht, wird vom alten ersetzt; die
+  Zentrale liest die eingefrorenen Beispiele der vorigen Protokollversion und schreibt einem Agenten
+  in dessen Version.
 
 ## Phase 7 – Server-Pflege, Kündigung, Support, Release
 
