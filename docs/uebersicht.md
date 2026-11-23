@@ -106,7 +106,7 @@ mit welchem Punkt sie kommen:
 | Support-Zugänge, Support-Minuten eines Kunden | Z-802 |
 | Leistungen | Z-804 |
 | Einstellungen → DNS | Z-407 |
-| Auslastung eines Servers, Prüfungen des Betriebssystems (Kernel, Sicherheitsupdates, Neustart) | Z-701 |
+| Auslastung eines Servers (CPU, RAM), Pakete mit Namen; das Betriebssystem steht seit Z-701 in der Karte „Wartung“ | noch ohne Punkt |
 
 Die Beschreibungen der acht Apps (Seite „Apps“, Sperrzeiten in der Seitenleiste) stammen aus
 `manifeste/`, bis die Zentrale Manifeste importiert (Z-501). Unter Einstellungen → Konten stehen die

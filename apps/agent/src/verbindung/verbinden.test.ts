@@ -282,6 +282,9 @@ describe("facts and SSH logins (Z-304)", () => {
     ptr: {},
     portsBelegt: null,
     port25Ausgehend: null,
+    bootId: null,
+    gestartetAm: null,
+    unattendedUpgrades: null,
   };
   const mitMeldungen = () => {
     const abweichungen: (number | null)[] = [];

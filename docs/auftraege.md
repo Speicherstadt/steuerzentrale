@@ -175,6 +175,17 @@ das neue Binary die Version des Auftrags nennt, und tauscht es aus. Er lehnt ihn
 anderer Auftrag bei ihm läuft, und meldet gelungen `{ version, vorher }`; danach nimmt er keinen
 Auftrag mehr an und startet neu. Nach einem Neustart mittendrin wird er nicht wiederholt.
 
+Der Neustart des Servers (`server_neustart`, siehe [Betriebssystem und Neustarts](betriebssystem.md))
+ist ebenso eingebaut und trägt nichts Signiertes: An der Stelle von Manifest und Signatur steht je
+`-`, das einzige Argument ist `bootId`, die Boot-ID aus den Fakten; keine Installation, kein Feld
+`einrichtung` oder `backup`, Zeitlimit höchstens 600 Sekunden. Der Agent prüft nach dem Schlüssel die
+feste Form (`serverNeustartAuftragPruefen` in `packages/manifest`, die auch die Zentrale nutzt),
+startet nur aus dem Boot des Auftrags neu (`systemctl reboot`), lehnt neben einem laufenden Auftrag
+ab und nimmt danach keinen mehr an. Den Auftrag, den er beim Neustart als „läuft“ in seiner Datei
+hat, meldet er nach dem Wiederverbinden erfolgreich, wenn seine Boot-ID eine andere ist, sonst
+gescheitert. Die Zentrale bricht einen Neustart, den der Agent noch nicht bestätigt hat, ab, wenn
+seine Zeit vorbei ist (der neue Übergang `abbrechen` von `bereit` und `zugestellt`).
+
 Nach Schlüssel und Signatur prüft der Agent die feste Form der Einrichtungsaufträge (Name der Installation, Ports von 1024 bis 65535, nur Optionen des
 Manifests, keine Argumente) und rendert die Units selbst aus dem signierten Manifest. Die Angaben
 zur Installation (Feld `einrichtung`) trägt nur ein Einrichtungsauftrag; jeden anderen Auftrag mit

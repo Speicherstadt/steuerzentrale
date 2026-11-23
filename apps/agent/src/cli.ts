@@ -17,6 +17,7 @@ import { dienstPruefen } from "./dienst.ts";
 import { echteHausDateien } from "./einrichtung/echt.ts";
 import { type Gedaechtnis, gedaechtnisOeffnen } from "./einrichtung/gedaechtnis.ts";
 import { type NutzerLesen, nutzerAusPasswd } from "./einrichtung/nutzer.ts";
+import { bootIdLesen } from "./fakten/betriebssystem.ts";
 import { type FaktenNachricht, faktenLesen } from "./fakten/lesen.ts";
 import { echteQuellen } from "./fakten/quellen.ts";
 import { type Pfade, pfadeIn } from "./pfade.ts";
@@ -147,6 +148,12 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
     agentUpdate: agentUpdateDeps(zentrale, pfade, architektur),
     // the result is kept and sent; systemd (Restart=always) starts the new binary
     neustarten: () => planen(() => process.exit(0), 2000),
+    // the reboot of the server (Z-701): `systemctl reboot` as root, the agent's own user
+    neustart: {
+      bootId: () => bootIdLesen(echteQuellen()),
+      spawn: echtSpawn,
+      warten: (ms) => Bun.sleep(ms),
+    },
   });
   // a copy of a Prüf-Restore (Z-602) or a restore (Z-603) the agent did not finish before it stopped
   void auftraege.aufraeumen();

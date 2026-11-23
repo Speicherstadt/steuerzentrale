@@ -7,6 +7,7 @@ import {
 import { agentUpdateFortschreiben } from "../agent-update/ende.ts";
 import { fortschrittSetzen, schreiben } from "../audit/index.ts";
 import { installationFortschreiben } from "../installationen/zustand.ts";
+import { neustartFortschreiben } from "../neustart/ende.ts";
 import { pruefRestoreAbschliessen } from "../pruef-restore/ende.ts";
 import type { Server } from "../server/index.ts";
 import { updateFortschreiben, updateSnapshotsSetzen } from "../updates/ende.ts";
@@ -25,7 +26,8 @@ import { type AuftragDeps, zustellen } from "./zustellen.ts";
  * frees its copy's ports and keeps its result (Z-602), and the end of a restore or of the backup
  * before it keeps the restore's result (Z-603). The end of an update or of the backup before it
  * keeps the update's result and, for a successful backup, gives the update its snapshots (Z-503).
- * An update of the agent that does not succeed becomes an event of its server (Z-504).
+ * An update of the agent that does not succeed becomes an event of its server (Z-504), and so does
+ * the end of a reboot of the server, or of a backup before it that did not succeed (Z-701).
  */
 
 export type AuftragsMeldung = Extract<
@@ -78,6 +80,7 @@ export const auftragMelden = (
     pruefRestoreAbschliessen(w, deps.db, a, u.zustand, ergebnis, jetzt);
     wiederherstellenFortschreiben(w, deps.db, a, u.zustand, ergebnis, jetzt);
     agentUpdateFortschreiben(w, a, u.zustand, ergebnis, jetzt);
+    neustartFortschreiben(w, deps.db, a, u.zustand, ergebnis, jetzt);
     const folge = updateFortschreiben(w, deps, a, u.zustand, ergebnis, jetzt);
     const nachfolger = nachfolgerFortschreiben(
       w,

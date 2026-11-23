@@ -20,6 +20,7 @@ const beispiel: ServerDerZentrale = {
   agent: { zustand: "verbunden", letzterHeartbeat: JETZT - 10 },
   fakten: null,
   faktenAm: null,
+  neustart: { noetig: null, plan: { art: "warten", grund: "unbekannt" }, letzter: null },
 };
 
 describe("the API source of the servers", () => {

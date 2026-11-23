@@ -61,6 +61,20 @@ export const Fakten = z.object({
   portsBelegt: ports.nullable(),
   port25Ausgehend: z.boolean().nullable(),
   uhrzeitAbweichungMs: z.number().int().nullable(),
+  // Z-701, still in protocol 1: a message without them (an agent before Z-701) reads as null
+  /** The kernel's id of this boot (/proc/sys/kernel/random/boot_id): another one after a reboot */
+  bootId: z.string().min(1).max(100).nullable().default(null),
+  /** When the server booted (`btime` of /proc/stat) */
+  gestartetAm: zeitpunkt.nullable().default(null),
+  /** Whether unattended-upgrades is installed and on, and when it last ran */
+  unattendedUpgrades: z
+    .object({
+      installiert: z.boolean(),
+      aktiv: z.boolean().nullable(),
+      letzterLauf: zeitpunkt.nullable(),
+    })
+    .nullable()
+    .default(null),
   // For the checks (Z-702), still in protocol 1 (docs/plan.md, "Nachrichten vor dem ersten
   // Release"); optional, so an agent from before them still sends valid facts
   /** Listening sockets reachable from the network: not on loopback or a Podman bridge */

@@ -64,4 +64,19 @@ describe("testserver.ts", () => {
       offen.schliessen();
     }
   }, 30_000);
+
+  it("tells where the reboot of a server stands (Z-701)", () => {
+    const daten = mkdtempSync(join(tmpdir(), "sz-testserver-"));
+    ordner.push(daten);
+    const { serverId } = JSON.parse(ausfuehren(daten, "anlegen", "debian/13")) as {
+      serverId: string;
+    };
+    expect(JSON.parse(ausfuehren(daten, "neustart", serverId))).toEqual({
+      neustart: null,
+      fakten: null,
+      faktenAm: null,
+      letzterHeartbeat: null,
+      ereignisse: [],
+    });
+  }, 30_000);
 });

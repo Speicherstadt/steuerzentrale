@@ -22,6 +22,7 @@ import { schreiben } from "../audit/index.ts";
 import { backupFeldFuer } from "../backups/feld.ts";
 import { einrichtungFuer } from "../installationen/einrichtung.ts";
 import { konfigurationFuer } from "../installationen/konfiguration.ts";
+import { neustartDarfHinaus } from "../neustart/sperrzeiten.ts";
 import { kopieEinrichtungFuer } from "../pruef-restore/kopie.ts";
 import type { Verbindungen } from "../verbindung/verbindungen.ts";
 import { type Auftrag, offeneAuftraege } from "./lesen.ts";
@@ -39,7 +40,9 @@ import { type Auftrag, offeneAuftraege } from "./lesen.ts";
  * A test restore (Z-602) gets the copy's data only here: the installation's settings with the
  * copy's ports, again only for the server the installation stands on (modules/pruef-restore).
  * An update (Z-503) gets the installation's values for the new version like configuring anew, from
- * their own row (modules/updates).
+ * their own row (modules/updates). A reboot of the server (Z-701) its agent has not acknowledged goes
+ * out only outside every freeze window of the apps on it, and one of the plan only in its maintenance
+ * window (modules/neustart).
  */
 
 export type AuftragDeps = {
@@ -127,7 +130,7 @@ const inSperrzeit = (a: Auftrag, jetzt: number): boolean => {
 export const zustellen = (deps: AuftragDeps, liste: readonly Auftrag[]): void => {
   for (const a of liste) {
     if (a.zustand !== "bereit" && !BEIM_AGENTEN.has(a.zustand)) continue;
-    if (inSperrzeit(a, deps.now())) continue;
+    if (inSperrzeit(a, deps.now()) || !neustartDarfHinaus(deps.db, a, deps.now())) continue;
     let text: string;
     try {
       text = nachrichtFuer(deps, a);

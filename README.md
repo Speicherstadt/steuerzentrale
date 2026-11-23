@@ -78,6 +78,14 @@ meldet sich der neue Agent nicht binnen 5 Minuten bei der Zentrale, kehrt der al
 Signatur oder Prüfsumme ändert nichts und wird ein Ereignis; die Zentrale versteht Agenten einer
 Protokollversion zurück ([Updates des Agenten](docs/agent-updates.md)).
 
+**Betriebssystem und Neustarts:** die Seite eines Servers zeigt, ob unattended-upgrades läuft und wann
+zuletzt, wie viele Pakete ausstehen und ob ein Neustart nötig ist. Den Neustart plant die Zentrale im
+Wartungsfenster des Servers, nie in einer Sperrzeit einer App auf ihm, höchstens einen am Tag und nur
+nach einem Backup jeder laufenden Installation; der Agent startet nur aus dem Boot neu, für den der
+Auftrag gilt, und meldet ihn erst mit einer neuen Boot-ID als erledigt. Inhaber und Technik starten
+einen Server auch von Hand mit Grund neu, nie in einer Sperrzeit
+([Betriebssystem und Neustarts](docs/betriebssystem.md)).
+
 **Adressen und DNS:** jeder Kunde hat ein Kürzel, und der Dialog schlägt die Adresse
 `<app>.<kürzel>.<domain>` vor. Unter Einstellungen → DNS setzt der Betreiber Domain, Cloudflare-Zone und
 API-Token; der Token liegt verschlüsselt in der Zentrale, erscheint nur als „gesetzt“ und erreicht nie

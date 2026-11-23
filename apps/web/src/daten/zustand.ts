@@ -12,8 +12,9 @@ import type { Bestand, Server } from "./typen.ts";
  * The checks of a server and the sidebar counters, as data; the pages turn them into text; what
  * needs attention comes from the Zentrale (GET /api/v1/uebersicht). The checks of Z-702 (disk,
  * certificates, backups, open ports, clock) come from the Zentrale's API with the limits of
- * packages/planung; the demo computes them with the same function from its values. Kernel, updates,
- * reboot and Podman stay demo only until Z-701.
+ * packages/planung; the demo computes them with the same function from its values. The checks of
+ * kernel, updates, reboot and Podman are the demo's; the real operating system shows in the card
+ * "Wartung" (Z-701, seiten/server-wartung.tsx).
  */
 
 export const PLATTE_WARNUNG = PLATTE_WARNUNG_PROZENT;
@@ -27,7 +28,7 @@ export type Pruefung =
   | { art: "neustart"; ok: boolean; wartung: string }
   | { art: "podman"; ok: true; version: string };
 
-/** The checks of the operating system the demo shows, until Z-701 */
+/** The checks of the operating system the demo shows (the API has them in the card "Wartung") */
 export const pruefungen = (sv: Server): Pruefung[] => [
   { art: "kernel", ok: sv.kernel.laeuft === sv.kernel.installiert, ...sv.kernel },
   { art: "sicherheitsupdates", ok: sv.sicherheitsupdates === 0, anzahl: sv.sicherheitsupdates },

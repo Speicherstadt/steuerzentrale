@@ -282,6 +282,43 @@ jobs:
           agent() { bun apps/zentrale/src/testhilfen/testserver.ts agent "$SERVER_ID"; }
           for i in $(seq 1 30); do test "$(agent | jq -r .version)" = 0.0.0 && break; sleep 2; done
           test "$(agent | jq -r .version)" = 0.0.0
+      # Z-701: the VM needs a reboot (/run is a tmpfs, so the mark is gone after it, as after a real
+      # kernel update); the agent, restarted, sends fresh facts; in the window opened for the whole
+      # day the planning (every minute) reboots the server, which has no installation to back up.
+      # Before the update of the agent: no reboot may meet its check timer, and the day's pause
+      # after this one keeps any other away
+      - name: The server reboots in its window and comes back
+        run: |
+          neustart() { bun apps/zentrale/src/testhilfen/testserver.ts neustart "$SERVER_ID"; }
+          stand="$RUNNER_TEMP/neustart.json"
+          vorher="$(sudo incus exec "$VM" -- cat /proc/sys/kernel/random/boot_id)"
+          sudo incus exec "$VM" -- touch /var/run/reboot-required
+          sudo incus exec "$VM" -- systemctl restart steuerzentrale-agent
+          for i in $(seq 1 30); do neustart > "$stand"; test "$(jq -r .fakten.bootId "$stand")" = "$vorher" && test "$(jq -r .fakten.neustartNoetig "$stand")" = true && break; sleep 2; done
+          jq . "$stand"
+          test "$(jq -r .fakten.neustartNoetig "$stand")" = true
+          bun apps/zentrale/src/testhilfen/testserver.ts wartungsfenster "$SERVER_ID"
+          for i in $(seq 1 60); do neustart > "$stand"; test "$(jq -r .neustart.zustand "$stand")" = erfolgreich && break; sleep 5; done
+          jq . "$stand"
+          # the job named the boot of the facts and ended once the agent reported from another one
+          test "$(jq -r .neustart.zustand "$stand")" = erfolgreich
+          test "$(jq -r .neustart.argumente "$stand" | jq -r .bootId)" = "$vorher"
+          jq -e '.ereignisse | any(.art == "server_neu_gestartet")' "$stand"
+          # the VM really booted anew, without the mark, and its agent runs
+          for i in $(seq 1 60); do sudo incus exec "$VM" -- true 2>/dev/null && break; sleep 2; done
+          nachher="$(sudo incus exec "$VM" -- cat /proc/sys/kernel/random/boot_id)"
+          echo "boot before: $vorher, after: $nachher"
+          test -n "$nachher" && test "$nachher" != "$vorher"
+          test "$(jq -r .neustart.ergebnis "$stand" | jq -r .daten.bootId)" = "$nachher"
+          sudo incus exec "$VM" -- test ! -e /var/run/reboot-required
+          sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
+          # connected again: the facts of the new boot and a heartbeat after the job's end
+          ende="$(jq -r .neustart.geaendertAm "$stand")"
+          verbunden() { test "$(jq -r .fakten.bootId "$stand")" = "$nachher" && test "$(jq -r '.letzterHeartbeat // 0' "$stand")" -gt "$ende"; }
+          for i in $(seq 1 30); do neustart > "$stand"; verbunden && break; sleep 2; done
+          jq . "$stand"
+          verbunden
+          test "$(jq -r .fakten.neustartNoetig "$stand")" = false
       # Z-504: a newer agent (0.0.1, the same code with another version, scripts/compile.ts) in the
       # agent files; the maintenance window is the whole day, the planning runs every minute
       - name: The agent updates itself
@@ -337,6 +374,7 @@ jobs:
         run: |
           cat "$RUNNER_TEMP/zentrale.log" || true
           cat "$RUNNER_TEMP/pforte.log" || true
+          cat "$RUNNER_TEMP/neustart.json" || true
           sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent --no-pager -n 100 || true
           sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent-pruefen --no-pager -n 50 || true
 

@@ -14,6 +14,7 @@ const EREIGNISSE: AuftragEreignis[] = [
   { art: "vorgaenger_erfolgreich" },
   { art: "vorgaenger_gescheitert" },
   { art: "zugestellt" },
+  { art: "abbrechen" },
   { art: "bestaetigt" },
   { art: "fortschritt" },
   { art: "ergebnis", ok: true },
@@ -84,6 +85,18 @@ describe("a job", () => {
       ok: false,
       grund: `${e.art} is not possible for a job that is ${von}`,
     });
+  });
+
+  it("is cancelled by the Zentrale only before its agent acknowledged it (Z-701)", () => {
+    expect(lauf("bereit", [{ art: "abbrechen" }])).toBe("abgebrochen");
+    expect(lauf("zugestellt", [{ art: "abbrechen" }])).toBe("abgebrochen");
+    for (const von of ["wartend", "bestaetigt", "laeuft"] as const)
+      expect(uebergang(von, { art: "abbrechen" })).toEqual({
+        ok: false,
+        grund: `abbrechen is not possible for a job that is ${von}`,
+      });
+    // an agent that acknowledges it afterwards changes nothing
+    expect(uebergang("abgebrochen", { art: "bestaetigt" }).ok).toBe(false);
   });
 
   it("never leaves an end state, whatever comes", () => {

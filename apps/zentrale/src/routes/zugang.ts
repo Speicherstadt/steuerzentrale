@@ -68,6 +68,7 @@ export const ROUTEN = {
   "GET /api/v1/server/:serverId": recht("server:lesen"),
   "POST /api/v1/server": recht("server:anlegen"),
   "POST /api/v1/server/:serverId/sperren": recht("server:sperren"),
+  "POST /api/v1/server/:serverId/neustart": recht("server:neustart"),
   "GET /api/v1/installationen": recht("installationen:lesen"),
   "GET /api/v1/installationen/:installationId": recht("installationen:lesen"),
   // the dialog's preview: reads only, so it takes no reason
