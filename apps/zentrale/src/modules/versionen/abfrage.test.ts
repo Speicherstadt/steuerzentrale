@@ -153,4 +153,38 @@ describe("a failing registry", () => {
     );
     expect(r).toMatchObject({ ok: false, fehler: expect.stringMatching(/Token-Adresse/) });
   });
+
+  it("follows no redirect off the registry's HTTPS origin", async () => {
+    const anderswo: string[] = [];
+    const fremd = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      fetch: (a) => {
+        anderswo.push(a.url);
+        return Response.json({ tags: ["9.9.9"] });
+      },
+    });
+    // stands in for https://registry.example.org, which sends the tag list to plain HTTP elsewhere
+    const umleitend = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      fetch: () => Response.redirect(`http://localhost:${fremd.port}/v2/probe/tags/list`, 307),
+    });
+    try {
+      const alsHttps = ((url: string, init?: RequestInit) =>
+        fetch(
+          url.replace("https://registry.example.org", `http://127.0.0.1:${umleitend.port}`),
+          init,
+        )) as typeof fetch;
+      const r = await tagsAbfragen(
+        { registry: "registry.example.org", name: "probe" },
+        { fetch: alsHttps },
+      );
+      expect(anderswo).toEqual([]);
+      expect(r).toMatchObject({ ok: false });
+    } finally {
+      umleitend.stop(true);
+      fremd.stop(true);
+    }
+  });
 });
