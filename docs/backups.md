@@ -369,7 +369,9 @@ ihren Labels), ihr Backup bei ihm eingerichtet ist (`backup.json`) und der Auftr
 `volume` und `pg_dump` genau einen Snapshot nennt; sonst meldet er „abgelehnt: …“ und fasst nichts
 an. Dann, als Nutzer der Installation und nacheinander mit den Einrichtungsaufträgen:
 
-1. stoppt er `sz_backup.timer`; läuft gerade ein Backup (`sz_backup.service`), scheitert der Auftrag;
+1. stoppt er `sz_backup.timer`; läuft gerade ein Backup (`sz_backup.service`), scheitert der Auftrag
+   (der Agent liest den Zustand mit `systemctl --user is-active`: ein laufender `oneshot` steht auf
+   `activating`, nur `inactive` und `failed` gelten als kein Lauf);
 2. stoppt er die Units: alle, wenn ein Volume zurückgespielt wird, sonst alle außer den
    Datenbank-Containern der Dumps;
 3. leert er jedes Volume eines Teils: `podman volume rm --force <installation>-<volume>`, dann legt

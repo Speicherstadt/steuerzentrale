@@ -8,7 +8,7 @@ import { installationVomManifest, type ManifestAngaben } from "../aktionen/gehei
 import type { Ergebnis } from "../auftraege/ausfuehren.ts";
 import { fertigeInstallation } from "../backup/auftrag.ts";
 import { type EinrichtungsDeps, mitZeitlimit } from "../einrichtung/auftrag.ts";
-import { sindAktiv, unitsStarten } from "../einrichtung/einrichten.ts";
+import { unitsStarten } from "../einrichtung/einrichten.ts";
 import { type Lauf, laeufer } from "../einrichtung/lauf.ts";
 import { neustarten } from "../einrichtung/neustarten.ts";
 import { alsNutzer, type Nutzer } from "../einrichtung/nutzer.ts";
@@ -102,6 +102,18 @@ const volumesLeeren = async (lauf: Lauf, n: Nutzer, a: Wiederherstellen) => {
   );
 };
 
+/**
+ * Whether a run of the backup goes on, or may: sz_backup.service is Type=oneshot, which systemd
+ * shows `activating` while its run goes on, and `systemctl is-active` exits 3 for that state
+ * (systemctl(1), is-active; systemd.service(5)), so its exit code alone does not tell. Only
+ * `inactive` and `failed` count as no run; any other answer, or none, as one.
+ */
+const backupLaeuft = async (deps: WiederherstellenDeps, n: Nutzer, signal: AbortSignal) => {
+  const argv = alsNutzer(n, ["systemctl", "--user", "is-active", BACKUP_SERVICE]);
+  const r = await deps.lesen(argv, signal).catch(() => ({ code: null, aus: "" }));
+  return !["inactive", "failed"].includes(r.aus.trim());
+};
+
 type Ablauf = { grund?: string; teile: TeilErgebnis[] };
 
 /** Stopped, emptied, played back, started and checked; the first step that fails ends it */
@@ -117,7 +129,7 @@ const ablauf = async (
   const systemctl = (...argv: string[]) => alsNutzer(inst.n, ["systemctl", "--user", ...argv]);
   const timer = await lauf("systemctl --user stop", systemctl("stop", BACKUP_TIMER));
   if (!timer.ok) return { grund: timer.grund, teile: vorher };
-  if (await sindAktiv(lauf, inst.n, [BACKUP_SERVICE]))
+  if (await backupLaeuft(deps, inst.n, signal))
     return { grund: `ein Backup von ${a.name} läuft gerade`, teile: vorher };
   const stoppen = zuStoppen(a, inst.units);
   if (stoppen.length > 0) {

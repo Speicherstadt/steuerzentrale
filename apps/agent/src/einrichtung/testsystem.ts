@@ -258,6 +258,14 @@ const nutzerAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string }
   }
   if (a.argv[1] === "sichern")
     return { code: 0, aus: '{"msg":"repository","ok":true,"repository":"angelegt"}\n' };
+  // `systemctl --user is-active <units>` prints each unit's state, as the restore reads it (Z-603)
+  if (a.argv[0] === "systemctl" && a.argv[2] === "is-active") {
+    const laufend = z.aktiv.get(a.als) ?? new Set<string>();
+    const units = a.argv.slice(3).filter((w) => !w.startsWith("-"));
+    const zustaende = units.map((u) => (laufend.has(u) ? "active" : "inactive"));
+    const code = zustaende.includes("active") ? 0 : 3;
+    return { code, aus: zustaende.map((s) => `${s}\n`).join("") };
+  }
   // a part played back by the agent's binary as the target's user (Z-602), from a snapshot: the
   // newest, or the one asked for when restoring, in a transient unit of the user (Z-603)
   if (imBinary(a.argv)[1] === "zurueckspielen") {

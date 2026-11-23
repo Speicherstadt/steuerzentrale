@@ -58,7 +58,7 @@ describe("installation_wiederherstellen", () => {
     const ablauf = alsInstallation(a).map((l) => imBinary(l.argv).slice(0, 5).join(" "));
     expect(ablauf).toEqual([
       `systemctl --user stop ${BACKUP_TIMER}`,
-      "systemctl --user is-active --quiet sz_backup.service",
+      "systemctl --user is-active sz_backup.service",
       `systemctl --user stop ${UNIT_APP}`,
       `podman volume rm --force ${NAME}-daten`,
       `systemctl --user restart ${VOLUME_UNIT}`,
@@ -132,7 +132,7 @@ describe("installation_wiederherstellen", () => {
     ]);
     expect(systemctl(a)).toEqual([
       `stop ${BACKUP_TIMER}`,
-      "is-active --quiet sz_backup.service",
+      "is-active sz_backup.service",
       // the app's container only: the database's keeps running for pg_restore
       `stop ${UNIT_APP}`,
       `start ${NAME}-network.service`,
