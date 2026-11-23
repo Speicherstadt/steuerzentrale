@@ -41,12 +41,17 @@ const schritte = (
 ): Promise<Schrittergebnis> => {
   const lauf = laeufer(deps, signal);
   const alle = [...new Set([...a.units, ...v.units])];
+  // a part the new version added has no snapshot: it held no data of the old version
+  const daten = {
+    ...a,
+    teile: a.teile.filter((t) => t.art === "befehl" || a.snapshots[t.tag] !== undefined),
+  };
   return nacheinander([
     () => lauf("systemctl --user stop", alsNutzer(v.n, ["systemctl", "--user", "stop", ...alle])),
     () => standZurueck(deps, lauf, v.n, v.alt, Object.keys(a.quadlets.secrets)),
     () => neuLaden(lauf, v.n),
     ...(mitDaten
-      ? [async () => ok(await datenZurueckspielen(deps, a, v.n, ende, signal), "Daten: ")]
+      ? [async () => ok(await datenZurueckspielen(deps, daten, v.n, ende, signal), "Daten: ")]
       : []),
     () => neustarten(deps, lauf, v.n, v.units, signal),
     async () => {

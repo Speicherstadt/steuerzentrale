@@ -1,8 +1,7 @@
 import {
-  WIEDERHERSTELLEN_AKTION,
+  snapshotArgumente,
+  snapshotsLesen,
   WIEDERHERSTELLEN_ZEITLIMIT_S,
-  wiederherstellenArgumente,
-  wiederherstellenAuftragPruefen,
   zurueckspielbar,
 } from "../backup/wiederherstellen.ts";
 import { type RestoreTeil, restoreTeile } from "../backup/zurueckspielen.ts";
@@ -23,10 +22,12 @@ import {
  * the installation's data (`einrichtung`), from which the new units are rendered exactly as when
  * reconfiguring (einrichtungAuftragPruefen), so a new version that lacks a required value is refused
  * here. It names, as `snapshot:<tag>`, the snapshot of each played-back part of the backup the
- * Zentrale made just before (checked as a restore's, wiederherstellenAuftragPruefen): if the new
- * version turns red, the agent rolls back to the old units and plays these snapshots back. Without
- * such a backup an update could not be rolled back, so a manifest without a played-back part is
- * refused. The agent reads the repository and its password from the installation's own backup.json,
+ * Zentrale made just before (checked as a restore's, snapshotsLesen): if the new version turns red,
+ * the agent rolls back to the old units and plays these snapshots back. A part the new version adds
+ * was not in that backup and held no data before, so it may lack a snapshot, but not every part
+ * may: the agent checks against the installation's backup.json that each part the backup knows has
+ * one (update/auftrag.ts). Without such a backup an update could not be rolled back, so a manifest
+ * without a played-back part is refused. The agent reads the repository and its password from the installation's own backup.json,
  * so the job carries no field `backup`. Pure: the Zentrale checks a job with it when it makes one,
  * the agent again after key and signature, and then that the installation's units were rendered
  * from the previous manifest (their labels).
@@ -67,7 +68,7 @@ export type UpdateAuftrag = {
   netz: { name: string; unit: string };
   /** All parts of the manifest's `backup`, a command's among them */
   teile: RestoreTeil[];
-  /** The snapshot of each played-back part of the backup before, by its tag */
+  /** The snapshot of each played-back part of the backup before, by its tag; not of a new part */
   snapshots: Record<string, string>;
 };
 
@@ -97,12 +98,11 @@ export const updateAuftragPruefen = (m: Manifest, a: UpdateAnfrage): UpdateGepru
   });
   if (!neu.ok) return neu;
   if (neu.auftrag.art !== "konfigurieren") return nein("the new version could not be rendered");
-  const zurueck = wiederherstellenAuftragPruefen(m, {
-    aktion: WIEDERHERSTELLEN_AKTION,
-    installationId: name,
-    argumente: a.argumente,
-  });
-  if (!zurueck.ok) return zurueck;
+  const r = restoreTeile(m, name);
+  if (!r.ok) return r;
+  // a part the new version adds was not in the backup before: it has no data to roll back to
+  const s = snapshotsLesen(a.argumente, r.teile, true);
+  if (!s.ok) return s;
   return {
     ok: true,
     auftrag: {
@@ -111,23 +111,29 @@ export const updateAuftragPruefen = (m: Manifest, a: UpdateAnfrage): UpdateGepru
       quadlets: neu.auftrag.quadlets,
       units: neu.auftrag.units,
       schritte: m.schritte.nach_update,
-      netz: zurueck.auftrag.netz,
-      teile: zurueck.auftrag.teile,
-      snapshots: zurueck.auftrag.snapshots,
+      netz: r.netz,
+      teile: r.teile,
+      snapshots: s.snapshots,
     },
   };
 };
 
 /**
  * The arguments of an update from the parts of the backup made just before, as the agent reported
- * them (tag and snapshot): the same as a restore's from that run
+ * them (tag and snapshot): a restore's from that run, except that a part of the new manifest the
+ * run does not name at all is left out (the new version adds it; nothing to roll back to). A part
+ * the run names without a snapshot, or a run with none of the parts, is no backup to roll back to.
  */
 export const updateArgumente = (
   m: Manifest,
   name: string,
   lauf: readonly { tag: string; snapshot: string | null }[],
-): { ok: true; argumente: Record<string, string> } | { ok: false; grund: string } =>
-  wiederherstellenArgumente(m, name, lauf);
+): { ok: true; argumente: Record<string, string> } | { ok: false; grund: string } => {
+  const r = restoreTeile(m, name);
+  if (!r.ok) return r;
+  const bekannt = r.teile.filter((t) => lauf.some((l) => l.tag === t.tag));
+  return snapshotArgumente(zurueckspielbar(bekannt).length > 0 ? bekannt : r.teile, lauf);
+};
 
 /** What an update reports in `daten`: whether it holds, or was rolled back and why */
 export type UpdateDaten = (

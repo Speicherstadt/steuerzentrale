@@ -120,9 +120,11 @@ Prüf-Restore.
 Das Update (`installation_update`, siehe [Updates](updates.md)) ist ebenso eingebaut: Es trägt das
 signierte Manifest der neuen Version, das Feld `einrichtung` wie `installation_konfigurieren` und
 je Teil `volume` und `pg_dump` den Snapshot des Backups unmittelbar davor als Argument
-`snapshot:<tag>` wie das Wiederherstellen; Zeitlimit höchstens 18 300 Sekunden. Beide Seiten prüfen
+`snapshot:<tag>` wie das Wiederherstellen; einem Teil, den erst die neue Version nennt, fehlt er,
+aber nie allen. Zeitlimit höchstens 18 300 Sekunden. Beide Seiten prüfen
 ihn mit `updateAuftragPruefen` in `packages/manifest`. Der Agent nimmt ihn nur für eine
-Installation an, die er fertig eingerichtet hat, deren Backup bei ihm eingerichtet ist und deren
+Installation an, die er fertig eingerichtet hat, deren Backup bei ihm eingerichtet ist (mit einem
+Snapshot für jeden Teil `volume` und `pg_dump`, den ihre `backup.json` kennt) und deren
 Units alle aus einer älteren Version derselben App gerendert sind (Labels), und lässt ihn
 nacheinander mit den Einrichtungsaufträgen laufen. Als Nutzer der Installation:
 

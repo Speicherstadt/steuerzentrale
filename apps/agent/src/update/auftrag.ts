@@ -86,6 +86,15 @@ const vorabPruefen = async (
     };
   const q = await quelleLesen(deps.haus, inst.n, a.name);
   if (!q.ok) return q;
+  // only a part the new version adds may lack a snapshot: each the backup knows is rolled back
+  const ohne = q.datei.teile.filter(
+    (t) =>
+      t.art !== "befehl" &&
+      a.teile.some((x) => x.tag === t.tag) &&
+      a.snapshots[t.tag] === undefined,
+  );
+  if (ohne.length > 0)
+    return { ok: false, grund: `kein Snapshot von ${ohne.map((t) => t.tag).join(", ")}` };
   return { ok: true, inst };
 };
 
