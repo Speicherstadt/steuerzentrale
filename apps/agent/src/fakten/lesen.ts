@@ -1,4 +1,5 @@
 import { type Fakten, PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
+import { bootIdLesen, gestartetAm, unattendedUpgrades } from "./betriebssystem.ts";
 import { adressen, port25Ausgehend, ptrLesen } from "./netz.ts";
 import { podmanVersion, updatesAusstehend } from "./pakete.ts";
 import { platten } from "./platten.ts";
@@ -13,13 +14,23 @@ import { architektur, cpuKerne, kernel, neustartNoetig, osLesen, ramMb } from ".
 
 export type FaktenNachricht = typeof Fakten._output;
 
+/** The boot and unattended-upgrades (Z-701) */
+const bootLesen = async (q: FaktenQuellen) => {
+  const [bootId, seit, unattended] = await Promise.all([
+    bootIdLesen(q),
+    gestartetAm(q),
+    unattendedUpgrades(q),
+  ]);
+  return { bootId, gestartetAm: seit, unattendedUpgrades: unattended };
+};
+
 export const faktenLesen = async (
   q: FaktenQuellen,
   angaben: { jetzt: number; uhrzeitAbweichungMs: number | null },
 ): Promise<FaktenNachricht> => {
   const netz = adressen(q);
   const k = await kernel(q);
-  const [kerne, ram, plattenListe, os, neustart, updates, podman, ptr, ports, port25] =
+  const [kerne, ram, plattenListe, os, neustart, updates, podman, ptr, ports, port25, boot] =
     await Promise.all([
       cpuKerne(q),
       ramMb(q),
@@ -31,6 +42,7 @@ export const faktenLesen = async (
       ptrLesen(q, [...netz.ipv4, ...netz.ipv6]),
       belegtePorts(q),
       port25Ausgehend(q),
+      bootLesen(q),
     ]);
   return {
     typ: "fakten",
@@ -51,6 +63,7 @@ export const faktenLesen = async (
     portsBelegt: ports,
     port25Ausgehend: port25,
     uhrzeitAbweichungMs: angaben.uhrzeitAbweichungMs,
+    ...boot,
   };
 };
 

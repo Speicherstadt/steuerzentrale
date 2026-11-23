@@ -9,15 +9,18 @@ export const testQuellen = (
     dateien?: Record<string, string>;
     ordner?: Record<string, string[]>;
     befehle?: Record<string, { code: number; aus: string }>;
+    /** When a file was last changed */
+    zeiten?: Record<string, number>;
   } & Partial<FaktenQuellen> = {},
 ): FaktenQuellen & { aufrufe: string[][] } => {
   const aufrufe: string[][] = [];
-  const { dateien = {}, ordner = {}, befehle = {}, ...rest } = teile;
+  const { dateien = {}, ordner = {}, befehle = {}, zeiten = {}, ...rest } = teile;
   return {
     aufrufe,
     lesen: async (pfad) => dateien[pfad],
     liste: async (pfad) => ordner[pfad],
     gibtEs: async (pfad) => pfad in dateien || pfad in ordner,
+    geaendertAm: async (pfad) => zeiten[pfad],
     platz: async () => undefined,
     ausfuehren: async (argv) => {
       aufrufe.push([...argv]);

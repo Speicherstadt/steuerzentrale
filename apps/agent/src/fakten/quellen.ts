@@ -1,5 +1,5 @@
 import { promises as dns } from "node:dns";
-import { access, readdir, readFile, statfs } from "node:fs/promises";
+import { access, readdir, readFile, stat, statfs } from "node:fs/promises";
 import { connect } from "node:net";
 import { machine, type NetworkInterfaceInfo, networkInterfaces } from "node:os";
 
@@ -26,6 +26,8 @@ export type FaktenQuellen = {
   /** The names in a directory, undefined when it is missing or unreadable */
   liste: (ordner: string) => Promise<string[] | undefined>;
   gibtEs: (pfad: string) => Promise<boolean>;
+  /** When a file was last changed, in milliseconds; undefined when it is missing */
+  geaendertAm: (pfad: string) => Promise<number | undefined>;
   /** Size and space available to unprivileged users of a mounted file system, in MiB */
   platz: (mount: string) => Promise<{ gesamtMb: number; freiMb: number } | undefined>;
   ausfuehren: Ausfuehren;
@@ -80,6 +82,11 @@ export const echteQuellen = (): FaktenQuellen => ({
     access(pfad).then(
       () => true,
       () => false,
+    ),
+  geaendertAm: (pfad) =>
+    stat(pfad).then(
+      (s) => Math.floor(s.mtimeMs),
+      () => undefined,
     ),
   platz: async (mount) => {
     try {

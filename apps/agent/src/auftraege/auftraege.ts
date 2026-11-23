@@ -16,6 +16,12 @@ import { einrichtungAusfuehren, installationsNutzer } from "../einrichtung/auftr
 import { type Gedaechtnis, gedaechtnisOeffnen } from "../einrichtung/gedaechtnis.ts";
 import type { HausDateien } from "../einrichtung/haus.ts";
 import type { NutzerLesen } from "../einrichtung/nutzer.ts";
+import {
+  type NeustartDeps,
+  neustartAblehnen,
+  neustartAusloesen,
+  neustartEnde,
+} from "../neustart/neustart.ts";
 import { type PforteDeps, pforteAusfuehren } from "../pforte/ausfuehren.ts";
 import {
   type PruefRestoreDeps,
@@ -32,6 +38,7 @@ import {
   type AuftragNachricht,
   auftragPruefen,
   type JederPlan,
+  type ServerNeustartPlan,
   type Vertrauen,
 } from "./pruefen.ts";
 import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.ts";
@@ -42,7 +49,8 @@ import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.
  * through its admin API, src/pforte; a setup job by src/einrichtung; a restart or log excerpt by
  * src/aktionen, whose lines go out as `log_auszug` before the result; a backup job by src/backup;
  * a restore by src/wiederherstellen; an update by src/update; its own update by src/agent-update,
- * after which it takes no job and restarts) and reports the result.
+ * after which it takes no job and restarts; the reboot of its server by src/neustart, after which it
+ * takes no job, and which it reports by the boot id once it runs again) and reports the result.
  * Idempotent by the job's
  * id through its record (zustand.ts): a finished job sent again gets its stored result, a running
  * one only an acknowledgement. A job that was running when the agent stopped is reported failed
@@ -95,6 +103,8 @@ export type AuftraegeDeps = {
   agentUpdate?: AgentUpdateDeps;
   /** Ends the service once its own update holds; systemd starts the new binary */
   neustarten?: () => void;
+  /** The reboot of the server (Z-701), without in tests that do not need it */
+  neustart?: NeustartDeps;
 };
 
 export type Auftraege = {
@@ -147,7 +157,10 @@ const reihe = () => {
 };
 
 /** Runs a checked plan by its kind: a command as the installation's user, or a built-in job */
-const ausfuehrer = (deps: AuftraegeDeps) => {
+const ausfuehrer = (
+  deps: AuftraegeDeps,
+  serverNeustarten: (plan: ServerNeustartPlan) => Promise<Ergebnis>,
+) => {
   const pforteReihe = reihe();
   // one setup after the other: two would write the Pforte's unit or one installation at once; the
   // actions of an installation (Z-405) wait in the same line, so none meets a setup half done
@@ -200,6 +213,7 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
       return deps.agentUpdate
         ? agentAktualisieren(deps.agentUpdate, auftragId, plan.auftrag)
         : { ok: false, fehler: "abgelehnt: this agent cannot update itself" };
+    if (plan.art === "server_neustart") return serverNeustarten(plan);
     if (plan.art === "pruef_restore") return pruefReihe(() => pruefRestoreAusfuehren(pruef, plan));
     if (plan.art === "pforte") return pforteReihe(() => pforteAusfuehren(deps, plan));
     if (plan.art === "einrichtung")
@@ -249,10 +263,23 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const schreibe = standSchreiber(deps.dateien, deps.pfad, deps.jetzt);
   let geladen: Promise<Geladen> | undefined;
   const laufend = new Set<string>();
-  // its own update holds: the restart comes, and a job sent now is sent again to the new agent
+  // its own update holds or the server reboots: a job sent now is sent again after the restart
   let neustartFolgt = false;
   const eigenesUpdate = updateWache();
-  const { ausfuehren: planAusfuehren, aufraeumen } = ausfuehrer(deps);
+  const ohneNeustart: Ergebnis = { ok: false, fehler: "abgelehnt: this agent cannot reboot" };
+  /** Out of the job's boot only; from asking systemd on, no job starts until it failed */
+  const serverNeustarten = async (plan: ServerNeustartPlan): Promise<Ergebnis> => {
+    if (!deps.neustart) return ohneNeustart;
+    const abgelehnt = await neustartAblehnen(deps.neustart, plan.auftrag);
+    if (abgelehnt) return abgelehnt;
+    neustartFolgt = true;
+    try {
+      return await neustartAusloesen(deps.neustart);
+    } finally {
+      neustartFolgt = false;
+    }
+  };
+  const { ausfuehren: planAusfuehren, aufraeumen } = ausfuehrer(deps, serverNeustarten);
 
   const ergebnisSenden = (auftragId: string, ergebnis: Ergebnis, senden: (t: string) => void) =>
     senden(ergebnisNachricht(auftragId, ergebnis, deps.jetzt()));
@@ -292,9 +319,10 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
           zeit: deps.jetzt(),
         }),
       );
-      // the restart after its own update would end any other job halfway
+      // the restart after its own update, and a reboot, would end any other job halfway
+      const allein = plan.art === "agent_update" || plan.art === "server_neustart";
       const ergebnis =
-        plan.art === "agent_update" && laufend.size > 1
+        allein && laufend.size > 1
           ? { ok: false as const, fehler: "abgelehnt: other jobs run on the agent" }
           : await planAusfuehren(plan, n.auftragId, auszugSender(n.auftragId, senden));
       if (plan.art === "agent_update" && ergebnis.ok) neustartFolgt = true;
@@ -330,6 +358,11 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
         { ok: false, fehler: `abgelehnt: ${geprueft.grund}` },
         senden,
       );
+    // a reboot running when the agent stopped: the boot id tells whether it came (Z-701)
+    if (bekannt?.zustand === "laeuft" && geprueft.plan.art === "server_neustart") {
+      const ende = deps.neustart ? neustartEnde(deps.neustart, geprueft.plan.auftrag) : undefined;
+      return abschliessen(stand, n.auftragId, (await ende) ?? ohneNeustart, senden);
+    }
     // running when the agent stopped: it may have done part of its work
     if (bekannt?.zustand === "laeuft" && !geprueft.plan.idempotent)
       return abschliessen(stand, n.auftragId, { ok: false, fehler: NEU_GESTARTET }, senden);

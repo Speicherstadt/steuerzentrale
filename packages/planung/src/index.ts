@@ -35,6 +35,14 @@ export {
   type Wartungsfenster,
 } from "./fenster.ts";
 export {
+  NEUSTART_PAUSE_MS,
+  type NeustartEntscheid,
+  type NeustartServer,
+  type NeustartWartegrund,
+  neustartPruefen,
+  neustartZustellbar,
+} from "./neustart.ts";
+export {
   type AngeboteneVersion,
   angeboteneVersionen,
   istVorabversion,

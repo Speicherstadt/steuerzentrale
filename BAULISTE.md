@@ -395,7 +395,14 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Server.
   nach: Z-305, Z-502
   Fertig, wenn: die Planung den Neustart verschiebt, wenn eine Sperrzeit läuft, und ein Neustart in
-  einer Incus-VM der CI ausgeführt und der Server danach wieder verbunden ist.
+  einer Incus-VM der CI ausgeführt und der Server danach wieder verbunden ist; dazu (Tests): Status
+  von unattended-upgrades, ausstehende Pakete, „Neustart nötig“ und Boot-ID kommen mit den Fakten und
+  stehen auf der Serverseite; vor dem Neustart ein Backup jeder laufenden Installation des Servers,
+  scheitert eines, kein Neustart; nur im Wartungsfenster (Zeitumstellung), nie neben einem offenen
+  Auftrag des Servers, höchstens einer am Tag; die feste Form des Auftrags prüfen Zentrale und
+  Agent, und der Agent startet für einen Auftrag nie zweimal neu (Boot-ID); erfolgreich erst, wenn
+  sich der Agent mit einer neuen Boot-ID meldet; ein Neustart von Hand mit Grund (Playwright), nie in
+  einer Sperrzeit; kein Betreiber erreicht Neustarts eines anderen (Test je Endpunkt).
 - [ ] **Z-702 Prüfungen** – Platte über 80/90 %, Zertifikat in 14 Tagen, Backup älter als 26 h,
   Port offen, der in keinem Manifest steht, Uhrzeit.
   nach: Z-601, Z-401

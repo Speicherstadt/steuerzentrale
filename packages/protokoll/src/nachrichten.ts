@@ -60,6 +60,20 @@ export const Fakten = z.object({
     .nullable(),
   port25Ausgehend: z.boolean().nullable(),
   uhrzeitAbweichungMs: z.number().int().nullable(),
+  // Z-701, still in protocol 1: a message without them (an agent before Z-701) reads as null
+  /** The kernel's id of this boot (/proc/sys/kernel/random/boot_id): another one after a reboot */
+  bootId: z.string().min(1).max(100).nullable().default(null),
+  /** When the server booted (`btime` of /proc/stat) */
+  gestartetAm: zeitpunkt.nullable().default(null),
+  /** Whether unattended-upgrades is installed and on, and when it last ran */
+  unattendedUpgrades: z
+    .object({
+      installiert: z.boolean(),
+      aktiv: z.boolean().nullable(),
+      letzterLauf: zeitpunkt.nullable(),
+    })
+    .nullable()
+    .default(null),
 });
 
 // The ActiveState values of systemd (`systemctl --state=help`; "refreshing" since systemd 257),
