@@ -22,10 +22,10 @@ scheitert, ist der Grund:
 
 | Schritt | Prüfung | Rot, wenn … | Zeitlimit |
 | --- | --- | --- | --- |
-| DNS | A und AAAA des Hosts, gefragt bei den Nameservern aus `/etc/resolv.conf` (kein lokaler Cache) | der Name nicht auflöst; oder, wenn die Zentrale die Einträge gesetzt hat ([Adressen und DNS](dns.md)), A oder AAAA nicht genau auf die öffentlichen Adressen des Servers zeigen | 5 s |
+| DNS | A und AAAA des Hosts, gefragt bei den Nameservern aus `/etc/resolv.conf` (kein lokaler Cache) | der Name nicht auflöst; eine Adresse nicht öffentlich ist (Loopback, privat, Link-Local, CGNAT, `0.0.0.0/8`, Multicast; IPv6 außerhalb von `2000::/3`), dann verbindet sich die Zentrale gar nicht; oder, wenn die Zentrale die Einträge gesetzt hat ([Adressen und DNS](dns.md)), A oder AAAA nicht genau auf die öffentlichen Adressen des Servers zeigen | 5 s |
 | Zertifikat | TLS zur ersten Adresse mit dem Host als SNI, gegen die Zertifizierungsstellen des Systems | das Zertifikat abgelaufen, nicht vertrauenswürdig oder für einen anderen Namen ist | 10 s |
 | Pforte | dieselbe Verbindung | keine Verbindung zustande kommt | 10 s |
-| Health | `GET https://<host><pfad>`, ohne Weiterleitungen zu folgen | der Status nicht 200 bis 399 ist oder keine Antwort kommt | 10 s |
+| Health | `GET https://<host><pfad>` an dieselbe Adresse wie das Zertifikat (der Name wird nicht noch einmal aufgelöst), ohne Weiterleitungen zu folgen | der Status nicht 200 bis 399 ist oder keine Antwort kommt | 10 s |
 
 Der Pfad ist der aus `health` im Manifest, wenn die Prüfung `http` auf dem Dienst und Port von
 `netz.http` ist, wie der Agent sie innen macht. Sonst (`tcp`, `befehl`, `keine` oder ein anderer

@@ -1,13 +1,18 @@
+import { isIPv4, isIPv6 } from "node:net";
 import { connect } from "node:tls";
+import { istOeffentlicheIpv4 } from "@steuerzentrale/manifest";
 import type { DnsAntwort, HttpAntwort, Probe, TlsAntwort } from "@steuerzentrale/planung";
+import { istOeffentlicheIpv6 } from "../dns/plan.ts";
 
 /*
  * The steps of a check from outside, on the network (BAULISTE.md Z-704; docs/plan.md, "Prüfung von
  * außen"): resolve A and AAAA with the resolver handed in (in the Zentrale node:dns's `Resolver`,
  * which asks the name servers itself, no local cache), connect with TLS to the first address with
- * the host as SNI and the system's trust (a CA only in tests), and GET the path through the
- * public host without following redirects. Each step has its own time limit; the first that fails
- * ends the check. What they answered is rated by packages/planung (`aussenBewerten`).
+ * the host as SNI and the system's trust (a CA only in tests), and GET the path for the host from
+ * that same address without following redirects. Each step has its own time limit; the first that
+ * fails ends the check. The host is the operator's input: an address that is not public (loopback,
+ * private, link-local, CGNAT, the Zentrale's own network) ends the check before any connection, and
+ * no step resolves the name again, so a second answer cannot point elsewhere. What they answered is rated by packages/planung (`aussenBewerten`).
  */
 
 export type Aufloeser = {
@@ -22,6 +27,8 @@ export type SondenDeps = {
   /** A CA to trust instead of the system's, only in tests */
   ca?: string;
   zeitlimitMs: { dns: number; tls: number; http: number };
+  /** Which addresses the check may connect to; public ones only, anything else only in tests */
+  adresseErlaubt?: (ip: string) => boolean;
 };
 
 export type Sonde = (host: string, pfad: string) => Promise<Probe>;
@@ -74,6 +81,13 @@ export const dnsFragen = async (
   return mitZeitlimit(frage, ms, { ok: false, fehler: "Zeitlimit" });
 };
 
+/** A public unicast address: IPv4 outside the private, loopback, CGNAT, link-local, 0/8 and class D/E ranges, IPv6 in 2000::/3 */
+export const istOeffentlicheAdresse = (ip: string): boolean => {
+  if (isIPv6(ip)) return istOeffentlicheIpv6(ip);
+  const erster = Number(ip.split(".")[0]);
+  return isIPv4(ip) && erster !== 0 && erster < 224 && istOeffentlicheIpv4(ip);
+};
+
 export const tlsFragen = (
   ip: string,
   host: string,
@@ -107,18 +121,22 @@ export const tlsFragen = (
     });
   });
 
+/** GETs the path for the host from the address `ip`: Host header and SNI name the host */
 export const httpFragen = async (
+  ip: string,
   host: string,
   pfad: string,
   deps: Pick<SondenDeps, "port" | "ca" | "zeitlimitMs">,
 ): Promise<HttpAntwort> => {
   const start = performance.now();
-  const ort = deps.port === 443 ? host : `${host}:${deps.port}`;
+  const port = deps.port === 443 ? "" : `:${deps.port}`;
+  const adresse = isIPv6(ip) ? `[${ip}]` : ip;
   try {
-    const antwort = await fetch(`https://${ort}${pfad}`, {
+    const antwort = await fetch(`https://${adresse}${port}${pfad}`, {
+      headers: { host: `${host}${port}` },
       redirect: "manual",
       signal: AbortSignal.timeout(deps.zeitlimitMs.http),
-      ...(deps.ca ? { tls: { ca: deps.ca } } : {}),
+      tls: { serverName: host, ...(deps.ca ? { ca: deps.ca } : {}) },
     });
     await antwort.body?.cancel();
     return { ok: true, status: antwort.status, ms: Math.round(performance.now() - start) };
@@ -128,14 +146,19 @@ export const httpFragen = async (
   }
 };
 
-/** The check of one host: DNS, then TLS to its first address, then the path */
+/** The check of one host: DNS, then TLS to its first address, then the path from that address */
 export const sonde =
   (deps: SondenDeps): Sonde =>
   async (host, pfad) => {
     const dns = await dnsFragen(deps.aufloeser, host, deps.zeitlimitMs.dns);
-    const ip = dns.ok ? (dns.a[0] ?? dns.aaaa[0]) : undefined;
+    if (!dns.ok) return { dns };
+    const erlaubt = deps.adresseErlaubt ?? istOeffentlicheAdresse;
+    const fremd = [...dns.a, ...dns.aaaa].find((ip) => !erlaubt(ip));
+    if (fremd !== undefined)
+      return { dns: { ok: false, fehler: `keine öffentliche Adresse: ${fremd}` } };
+    const ip = dns.a[0] ?? dns.aaaa[0];
     if (ip === undefined) return { dns };
     const tls = await tlsFragen(ip, host, deps);
     if (!tls.ok) return { dns, tls };
-    return { dns, tls, http: await httpFragen(host, pfad, deps) };
+    return { dns, tls, http: await httpFragen(ip, host, pfad, deps) };
   };
