@@ -15,14 +15,16 @@ import {
   istBackupAktion,
   istEinrichtungAktion,
   istPforteAktion,
-  istPruefRestoreAktion,
   type Manifest,
   type OeffentlicherSchluessel,
   PFORTE_ZEITLIMIT_S,
   type PforteAuftrag,
+  PRUEF_RESTORE_AKTION,
+  PRUEF_RESTORE_KOPIE,
   PRUEF_RESTORE_ZEITLIMIT_S,
   pforteAuftragPruefen,
   pruefRestoreAuftragPruefen,
+  restoreTeile,
   STANDARD_ZEITLIMIT_S,
   schluesselVertrauen,
   signiertesManifestLaden,
@@ -206,6 +208,9 @@ const pruefRestorePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
   const a = geprueft.auftrag;
   // pruefRestoreAuftragPruefen refuses one without it already
   if (n.einrichtung === undefined) return { ok: false, grund: "einrichtung is missing" };
+  // the parts as they are played back into the copy, from the same signed manifest
+  const teile = restoreTeile(m, a.kopie);
+  if (!teile.ok) return teile;
   const kopie: Einrichten = {
     art: "einrichten",
     name: a.kopie,
@@ -225,8 +230,8 @@ const pruefRestorePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
         art: "pruef_restore",
         original: a.original,
         kopie,
-        teile: a.teile,
-        netz: a.netz,
+        teile: teile.teile,
+        netz: teile.netz,
         manifest: { id: m.id, version: m.version, geheim: kopie.geheim },
       },
       zeitlimitMs: Math.min(n.zeitlimitS, PRUEF_RESTORE_ZEITLIMIT_S) * 1000,
@@ -250,6 +255,9 @@ const schrittFuellen = (m: Manifest, name: string): Schritt | string => {
 };
 
 const einrichtungsAuftrag = (m: Manifest, n: AuftragNachricht) => {
+  // the agent tears down what is left of a test restore's copy by its name (src/pruef-restore)
+  if (n.installationId !== null && PRUEF_RESTORE_KOPIE.test(n.installationId))
+    return { ok: false as const, grund: `${n.installationId} names the copy of a test restore` };
   const geprueft = einrichtungAuftragPruefen(m, n);
   if (!geprueft.ok) return geprueft;
   const a = geprueft.auftrag;
@@ -299,7 +307,7 @@ export const auftragPruefen = (n: AuftragNachricht, vertrauen: Vertrauen): Gepru
   if (n.backup !== undefined && n.aktion !== BACKUP_AKTIONEN.einrichten)
     return { ok: false, grund: "only installation_backup_einrichten carries backup data (backup)" };
   if (istBackupAktion(n.aktion)) return backupPlan(geladen.manifest, n);
-  if (istPruefRestoreAktion(n.aktion)) return pruefRestorePlan(geladen.manifest, n);
+  if (n.aktion === PRUEF_RESTORE_AKTION) return pruefRestorePlan(geladen.manifest, n);
   if (istEinrichtungAktion(n.aktion)) return einrichtungPlan(geladen.manifest, n);
   // the installation's data and its secrets belong to a setup job (and a copy's), and only there
   if (n.einrichtung !== undefined)

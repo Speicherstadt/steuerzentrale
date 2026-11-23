@@ -3,8 +3,8 @@ import {
   type BackupZugang,
   type Einrichtung,
   PRUEF_RESTORE_AKTION,
+  pruefRestoreDatenLesen,
 } from "@steuerzentrale/manifest";
-import { PruefRestoreDaten } from "@steuerzentrale/protokoll";
 import { expect } from "vitest";
 import type { AuftragNachricht } from "../src/auftraege/pruefen.ts";
 import {
@@ -87,10 +87,22 @@ export const eingerichtet = async (
 
 export type Agent = Awaited<ReturnType<typeof eingerichtet>>;
 
-export const daten = (a: Agent) => {
-  const e = a.ergebnis() as { ok: boolean; daten?: unknown; fehler?: string };
+type Ergebnis = { ok: boolean; daten?: unknown; fehler?: string };
+
+/** A succeeded test restore's data, exactly as the Zentrale reads them (pruefRestoreDatenLesen) */
+export const daten = (a: Pick<Agent, "ergebnis">) => {
+  const e = a.ergebnis() as Ergebnis;
   if (!e.ok) throw new Error(e.fehler);
-  return PruefRestoreDaten.parse(e.daten);
+  const gelesen = pruefRestoreDatenLesen(e.daten);
+  expect(e.daten).toEqual(gelesen);
+  return gelesen;
+};
+
+/** A failed test restore reports only its reason */
+export const fehler = (a: Pick<Agent, "ergebnis">): string => {
+  const e = a.ergebnis() as Ergebnis;
+  expect(e).toEqual({ ok: false, fehler: expect.any(String) });
+  return e.fehler ?? "";
 };
 
 /** Nothing of the copy is left; the original is set up, untouched */

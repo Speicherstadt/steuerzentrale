@@ -1,5 +1,10 @@
-import { KOPIE, PRUEF_RESTORE_HEALTH_S, type RestoreTeil } from "@steuerzentrale/manifest";
-import type { PruefRestoreDaten } from "@steuerzentrale/protokoll";
+import {
+  PRUEF_RESTORE_HEALTH_S,
+  PRUEF_RESTORE_KOPIE,
+  type PruefRestoreDaten,
+  type PruefRestoreTeil,
+  type RestoreTeil,
+} from "@steuerzentrale/manifest";
 import { installationVomManifest, type ManifestAngaben } from "../aktionen/geheimnisse.ts";
 import type { Ergebnis } from "../auftraege/ausfuehren.ts";
 import { fertigeInstallation } from "../backup/auftrag.ts";
@@ -34,9 +39,9 @@ import {
  * and is forgotten once it is torn down; it is never `fertig`, so no check, backup or action sees
  * it. If the agent stops in the middle, the copy stays `angelegt`: when the agent starts again,
  * and before every Prüf-Restore, resteAbbauen tears down every copy left `angelegt`. No
- * installation can have a copy's name (einrichtungAuftragPruefen refuses it). A Prüf-Restore that
- * ran is a successful job whose data say whether it succeeded (PruefRestoreDaten); the job fails
- * only when it was refused.
+ * installation can have a copy's name (the agent refuses a setup job with one, pruefen.ts). A
+ * Prüf-Restore that succeeded reports its parts and duration (PruefRestoreDaten, read by the
+ * Zentrale with pruefRestoreDatenLesen); one that failed or was refused reports only its reason.
  */
 
 export type PruefRestore = {
@@ -74,7 +79,7 @@ export const resteAbbauen = async (
   const g = await deps.gedaechtnis.lesen();
   if (!g.ok) return g;
   const reste = [...g.stand]
-    .filter(([name, e]) => KOPIE.test(name) && e.zustand === "angelegt")
+    .filter(([name, e]) => PRUEF_RESTORE_KOPIE.test(name) && e.zustand === "angelegt")
     .map(([name]) => name);
   for (const name of reste) {
     const weg = await abbauen(deps, name, []);
@@ -148,11 +153,22 @@ const kopieLaufen = async (
   return { teile: z.teile, health };
 };
 
+/** A part as the Zentrale reads it (pruefRestoreDatenLesen): its snapshot, played back or why not */
+const gemeldet = (t: TeilErgebnis): PruefRestoreTeil => ({
+  tag: t.tag,
+  snapshot: t.snapshot ?? null,
+  zurueckgespielt: t.ergebnis === "zurueckgespielt",
+  grund:
+    t.ergebnis === "uebersprungen"
+      ? "die Ausgabe eines Befehls ist ein Export, kein Restore"
+      : (t.grund ?? null),
+});
+
 const durchfuehren = async (
   deps: PruefRestoreDeps,
   a: PruefRestore,
   zeitlimitMs: number,
-): Promise<PruefRestoreDaten> => {
+): Promise<Ergebnis> => {
   const beginn = deps.jetzt();
   // recorded before useradd: a copy the agent made is always one its record names
   await deps.gedaechtnis.setzen(a.kopie.name, "angelegt");
@@ -169,19 +185,12 @@ const durchfuehren = async (
     ...(l.grund === undefined ? [] : [l.grund]),
     ...(weg.ok ? [] : [`Abbau unvollständig: ${weg.grund}`]),
   ];
-  const ende = deps.jetzt();
-  return {
-    installation: a.original,
-    kopie: a.kopie.name,
-    gelungen: gruende.length === 0,
-    ...(gruende.length === 0 ? {} : { grund: gruende.join("; ").slice(0, 1500) }),
-    beginn,
-    ende,
-    dauerMs: Math.max(0, ende - beginn),
-    teile: l.teile,
-    ...(l.health ? { health: { ...l.health, grund: l.health.grund.slice(0, 500) } } : {}),
-    abgebaut: weg.ok,
+  if (gruende.length > 0) return fehler(`Prüf-Restore gescheitert: ${gruende.join("; ")}`);
+  const daten: PruefRestoreDaten = {
+    teile: l.teile.map(gemeldet),
+    dauerMs: Math.max(0, deps.jetzt() - beginn),
   };
+  return { ok: true, daten };
 };
 
 export const pruefRestoreAusfuehren = async (
@@ -193,7 +202,7 @@ export const pruefRestoreAusfuehren = async (
     if (!reste.ok) return fehler(`abgelehnt: Reste eines Prüf-Restores: ${reste.grund}`);
     const grund = await vorabPruefen(deps, plan.auftrag);
     if (grund !== undefined) return fehler(`abgelehnt: ${grund}`);
-    return { ok: true, daten: await durchfuehren(deps, plan.auftrag, plan.zeitlimitMs) };
+    return await durchfuehren(deps, plan.auftrag, plan.zeitlimitMs);
   } catch (e) {
     // the record could not be written: say so rather than leave the job running
     return fehler(`Prüf-Restore: ${String(e).slice(0, 500)}`);

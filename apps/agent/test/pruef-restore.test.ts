@@ -6,6 +6,7 @@ import {
   alsKopie,
   daten,
   eingerichtet,
+  fehler,
   GEHEIM,
   KOPIE,
   KOPIE_NUTZER,
@@ -38,23 +39,16 @@ describe("installation_pruef_restore", () => {
     });
     await a.empfangen(pruefRestore());
     const d = daten(a);
-    expect(d).toMatchObject({
-      installation: NAME,
-      kopie: KOPIE,
-      gelungen: true,
-      teile: [
-        {
-          tag: "volume:daten",
-          art: "volume",
-          ergebnis: "zurueckgespielt",
-          snapshot: TEST_SNAPSHOT,
-        },
-        { tag: "befehl:export", art: "befehl", ergebnis: "uebersprungen" },
-      ],
-      health: { zustand: "gruen", grund: "HTTP 200" },
-      abgebaut: true,
-    });
-    expect(d).not.toHaveProperty("grund");
+    expect(d.teile).toEqual([
+      { tag: "volume:daten", snapshot: TEST_SNAPSHOT, zurueckgespielt: true, grund: null },
+      {
+        tag: "befehl:export",
+        snapshot: null,
+        zurueckgespielt: false,
+        grund: "die Ausgabe eines Befehls ist ein Export, kein Restore",
+      },
+    ]);
+    expect(d.dauerMs).toBeGreaterThanOrEqual(0);
     expect(geholt).toEqual(["http://127.0.0.1:20011/health"]);
     const ablauf = alsKopie(a);
     const index = (s: string) => ablauf.findIndex((x) => x.startsWith(s));
@@ -88,7 +82,7 @@ describe("installation_pruef_restore", () => {
   it("hands the backup's access to the copy's user only on standard input, never in an argv, result or log", async () => {
     const a = await eingerichtet();
     await a.empfangen(pruefRestore());
-    expect(daten(a).gelungen).toBe(true);
+    expect(daten(a).teile[0]?.zurueckgespielt).toBe(true);
     const spielen = a.seither().filter((l) => l.argv[1] === "zurueckspielen");
     expect(spielen.map((l) => [l.als, l.argv])).toEqual([
       [KOPIE_NUTZER, ["/usr/local/bin/steuerzentrale-agent", "zurueckspielen", KOPIE]],
@@ -118,12 +112,7 @@ describe("installation_pruef_restore", () => {
     const a = await eingerichtet({ manifest });
     await a.empfangen(pruefRestore({ manifest, signatur: signiert(manifest) }));
     expect(daten(a).teile).toEqual([
-      {
-        tag: "pg_dump:app:beispiel",
-        art: "pg_dump",
-        ergebnis: "zurueckgespielt",
-        snapshot: TEST_SNAPSHOT,
-      },
+      { tag: "pg_dump:app:beispiel", snapshot: TEST_SNAPSHOT, zurueckgespielt: true, grund: null },
     ]);
     const ablauf = a.seither().filter((l) => l.als === KOPIE_NUTZER);
     const i = (f: (l: Aufgerufen) => boolean) => ablauf.findIndex(f);
@@ -190,10 +179,8 @@ describe("a Prüf-Restore that fails is torn down all the same", () => {
   ] as const)("after %s", async (_was, scheitern, grund) => {
     const a = await eingerichtet({ scheitern });
     await a.empfangen(pruefRestore());
-    const d = daten(a);
-    expect(d.gelungen).toBe(false);
-    expect(d.grund).toContain(grund);
-    expect(d.abgebaut).toBe(true);
+    expect(fehler(a)).toContain(`Prüf-Restore gescheitert: ${grund}`);
+    expect(fehler(a)).not.toContain("Abbau");
     kopieWeg(a);
   });
 
@@ -202,13 +189,11 @@ describe("a Prüf-Restore that fails is torn down all the same", () => {
       installationen: { holen: async () => new Response(null, { status: 503 }) },
     });
     await a.empfangen(pruefRestore());
-    const d = daten(a);
-    expect(d).toMatchObject({ gelungen: false, grund: "Health: HTTP 503", abgebaut: true });
-    expect(d.health).toEqual({ zustand: "rot", grund: "HTTP 503" });
+    expect(fehler(a)).toBe("Prüf-Restore gescheitert: Health: HTTP 503");
     kopieWeg(a);
   });
 
-  it("names a part's reason from the binary and the parts not tried", async () => {
+  it("names a part's reason from the binary", async () => {
     const manifest = ersetzen(
       MANIFEST,
       "  - { art: volume, volume: daten }\n  - { art: befehl, befehl: export }",
@@ -223,19 +208,9 @@ describe("a Prüf-Restore that fails is torn down all the same", () => {
           : undefined,
     });
     await a.empfangen(pruefRestore({ manifest, signatur: signiert(manifest) }));
-    expect(daten(a)).toMatchObject({
-      gelungen: false,
-      grund: "Zurückspielen: volume:daten: restic dump: restic endete mit Code 1",
-      teile: [
-        {
-          tag: "volume:daten",
-          ergebnis: "gescheitert",
-          grund: "restic dump: restic endete mit Code 1",
-          snapshot: TEST_SNAPSHOT,
-        },
-        { tag: "pg_dump:app:b", ergebnis: "nicht_versucht" },
-      ],
-    });
+    expect(fehler(a)).toBe(
+      "Prüf-Restore gescheitert: Zurückspielen: volume:daten: restic dump: restic endete mit Code 1",
+    );
     kopieWeg(a);
   });
 });

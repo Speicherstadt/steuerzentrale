@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { AuftragNachricht } from "../src/auftraege/pruefen.ts";
-import { einrichtungsAgent, MANIFEST, NAME } from "../src/einrichtung/testauftraege.ts";
+import {
+  einrichtenAuftrag,
+  einrichtungsAgent,
+  MANIFEST,
+  NAME,
+} from "../src/einrichtung/testauftraege.ts";
 import { PFORTE } from "../src/einrichtung/testsystem.ts";
 import { ersetzen, signiert } from "./einrichtung-hilfen.ts";
 import {
@@ -27,8 +32,8 @@ describe("a Prüf-Restore is refused and makes nothing", () => {
   };
 
   it.each([
-    ["a copy named otherwise", { argumente: { kopie: "beispiel-a1b2c3" } }, "argumente.kopie"],
-    ["the original as copy", { argumente: { kopie: NAME } }, "argumente.kopie"],
+    ["a copy named otherwise", { argumente: { kopie: "beispiel-a1b2c3" } }, "kopie: restore-<6"],
+    ["the original as copy", { argumente: { kopie: NAME } }, "kopie: restore-<6"],
     ["no data of the copy", { einrichtung: undefined }, "einrichtung"],
   ] as const)("for %s", async (_was, teil, grund) => {
     const a = await eingerichtet();
@@ -97,6 +102,18 @@ describe("a Prüf-Restore is refused and makes nothing", () => {
   });
 });
 
+describe("the name of a copy", () => {
+  it("is refused for a setup job: the agent tears down copies by their name", async () => {
+    const a = einrichtungsAgent();
+    await a.empfangen(einrichtenAuftrag({ installationId: KOPIE }));
+    expect(a.ergebnis()).toEqual({
+      ok: false,
+      fehler: `abgelehnt: ${KOPIE} names the copy of a test restore`,
+    });
+    expect(a.sys.laeufe).toEqual([]);
+  });
+});
+
 describe("a copy left by a stop of the agent", () => {
   /** The copy as a stop of the agent leaves it: its user made, the record says `angelegt` */
   const liegenGeblieben = async () => {
@@ -131,10 +148,7 @@ describe("a copy left by a stop of the agent", () => {
     });
     const neu = einrichtungsAgent({}, a.fs, a.sys);
     await neu.empfangen(pruefRestore());
-    expect(daten({ ...a, ergebnis: neu.ergebnis })).toMatchObject({
-      gelungen: true,
-      abgebaut: true,
-    });
+    expect(daten(neu).teile[0]).toMatchObject({ tag: "volume:daten", zurueckgespielt: true });
     const nutzerLaeufe = a.seither().filter((l) => l.argv.at(-1) === KOPIE_NUTZER);
     // the test's own useradd, the teardown of what was left, the new copy and its teardown
     expect(nutzerLaeufe.map((l) => l.argv[0])).toEqual([

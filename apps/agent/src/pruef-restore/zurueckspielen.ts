@@ -1,5 +1,4 @@
 import type { RestoreTeil } from "@steuerzentrale/manifest";
-import type { PruefRestoreTeil } from "@steuerzentrale/protokoll";
 import { z } from "zod";
 import { imContainer } from "../auftraege/ausfuehren.ts";
 import type { BackupDatei } from "../backup/datei.ts";
@@ -22,7 +21,17 @@ import type { Gespielt, SpielEingabe } from "./spielen.ts";
  * will play back into the installation itself.
  */
 
-export type TeilErgebnis = z.output<typeof PruefRestoreTeil>;
+/**
+ * A part after playing back: `zurueckgespielt`, `uebersprungen` (a command's export),
+ * `gescheitert` with its reason, or `nicht_versucht` after an earlier part failed
+ */
+export type TeilErgebnis = {
+  tag: string;
+  art: RestoreTeil["art"];
+  ergebnis: "zurueckgespielt" | "uebersprungen" | "gescheitert" | "nicht_versucht";
+  snapshot?: string;
+  grund?: string;
+};
 
 export type Zurueckgespielt = { ok: boolean; teile: TeilErgebnis[]; grund?: string };
 

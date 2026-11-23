@@ -5,8 +5,8 @@ import {
   EINRICHTUNG_AKTIONEN,
   type Einrichtung,
   PRUEF_RESTORE_AKTION,
+  pruefRestoreDatenLesen,
 } from "@steuerzentrale/manifest";
-import { PruefRestoreDaten } from "@steuerzentrale/protokoll";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AUSGABE } from "../../../scripts/beispiel-images.ts";
 import { sha256Hex, signieren } from "../../zentrale/src/modules/backups/sigv4.ts";
@@ -159,8 +159,7 @@ describe.skipIf(!bereit)("Prüf-Restore of the example app from MinIO (Z-602)", 
       einrichtung: einrichtung(port),
       zeitlimitS: 3600,
     });
-    if (!r.ok) throw new Error(r.fehler);
-    return { kopie, daten: PruefRestoreDaten.parse(r.daten) };
+    return { kopie, r };
   };
 
   beforeAll(async () => {
@@ -211,18 +210,14 @@ describe.skipIf(!bereit)("Prüf-Restore of the example app from MinIO (Z-602)", 
   }, 900_000);
 
   it("plays the snapshot back into a copy that serves the entry, then tears the copy down", async () => {
-    const { kopie, daten } = await pruefRestore("pruef", PORT.kopie);
-    expect(daten).toMatchObject({
-      installation: K,
-      kopie,
-      gelungen: true,
-      health: { zustand: "gruen" },
-      abgebaut: true,
-    });
-    expect(daten.teile.map((t) => [t.tag, t.ergebnis])).toEqual([
-      ["volume:daten", "zurueckgespielt"],
-      ["befehl:export", "uebersprungen"],
+    const { kopie, r } = await pruefRestore("pruef", PORT.kopie);
+    if (!r.ok) throw new Error(r.fehler);
+    const daten = pruefRestoreDatenLesen(r.daten);
+    expect(daten.teile.map((t) => [t.tag, t.zurueckgespielt])).toEqual([
+      ["volume:daten", true],
+      ["befehl:export", false],
     ]);
+    expect(daten.dauerMs).toBeGreaterThan(0);
     expect(daten.teile[0]?.snapshot).toMatch(/^[0-9a-f]{64}$/);
     const seen = gesehen.find((g) => g.kopie === kopie);
     expect(seen?.eintraege).toContain(EINTRAG);
@@ -245,11 +240,11 @@ describe.skipIf(!bereit)("Prüf-Restore of the example app from MinIO (Z-602)", 
         200,
       );
     const vorher = gesehen.length;
-    const { kopie, daten } = await pruefRestore("kaputt", PORT.kaputt);
-    expect(daten.gelungen).toBe(false);
-    expect(daten.grund).toContain("Zurückspielen: volume:daten:");
-    expect(daten.abgebaut).toBe(true);
-    expect(daten.teile[0]?.ergebnis).toBe("gescheitert");
+    const { kopie, r } = await pruefRestore("kaputt", PORT.kaputt);
+    expect(r.ok).toBe(false);
+    expect(r.fehler).toContain("Prüf-Restore gescheitert: Zurückspielen: volume:daten:");
+    // torn down: no "Abbau unvollständig" beside the reason
+    expect(r.fehler).not.toContain("Abbau");
     expect(gesehen).toHaveLength(vorher);
     expect(lauf(["id", "-u", `sz-${kopie}`]).code).not.toBe(0);
     expect(lauf(["sudo", "-n", "test", "-e", `/home/sz-${kopie}`]).code).not.toBe(0);

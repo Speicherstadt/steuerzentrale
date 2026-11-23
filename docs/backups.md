@@ -269,6 +269,54 @@ Technik), unabhängig vom Wochenrhythmus. Dieselben Bedingungen gelten: `409 nic
 Prüf-Restore auf dem Server), `409 kein_platz` (mit den Gründen der Platzierung in `gruende`),
 `409 keine_ports`.
 
+#### Auf dem Server
+
+Der Agent nimmt `installation_pruef_restore` nur an, wenn die Kopie `restore-<6 Zeichen a–z 0–9>`
+heißt, das Manifest Teile unter `backup` nennt, er die Installation selbst fertig eingerichtet hat,
+ihre Units aus genau diesem Manifest gerendert sind (App und Version in ihren Labels), ihr Backup bei
+ihm eingerichtet ist und es Nutzer und Home der Kopie noch nicht gibt; sonst meldet er „abgelehnt: …“
+und legt nichts an. Dann:
+
+1. richtet er die Kopie wie eine Installation ein ([Apps installieren](installieren.md)): Nutzer
+   `sz-restore-<6>`, Units, Secrets, Images; aber ohne `schritte.einrichten`, ohne sie zu starten
+   und ohne die Pforte anzufassen;
+2. spielt er den neuesten Snapshot jedes Teils der Installation in die Kopie zurück (unten);
+3. startet er alle Units der Kopie, wartet, bis sie aktiv sind, und prüft ihre Health nach dem
+   Manifest auf den Ports der Kopie, höchstens fünf Minuten lang, bis sie nicht mehr rot ist (ohne
+   Prüfung im Manifest zählen die aktiven Units);
+4. baut er die Kopie vollständig ab: Units stoppen, Linger aus, `loginctl terminate-user`,
+   `userdel --remove`, mit Home, Volumes und Containern. Das geschieht immer, auch nach einem Fehler
+   in einem der Schritte oder nach dem Zeitlimit des Auftrags.
+
+Zurückgespielt wird als Nutzer der Kopie, mit dem Agent-Binary:
+`steuerzentrale-agent zurueckspielen <kopie>`. Der Agent liest dafür `backup.json` der Installation
+als root und nur lesend (ohne einem Symlink zu folgen) und gibt dem Binary Repository, Zugang und
+Passwort über seine Standardeingabe, eine Pipe ohne Namen; restic bekommt sie wie beim Sichern als
+Deskriptoren 3 und 4. restic läuft im Netz der Kopie und sucht mit
+`restic ls --json latest --host <installation> --tag <tag>` den neuesten Snapshot des Teils. Je
+Teil:
+
+| Teil | Was zurückgespielt wird |
+| --- | --- |
+| `volume` | vor dem Start jedes Containers: `restic dump --archive tar <snapshot>:/sicherung/<volume> /` in `podman volume import <kopie>-<volume> -`, danach Eigentümer und Rechte der Wurzel des Volumes wie im Snapshot (`podman unshare chown`, `chmod`) |
+| `pg_dump` | nur der Container der Datenbank wird gestartet; sobald `pg_isready -h 127.0.0.1` antwortet (höchstens zwei Minuten), `restic dump <snapshot> /<container>-<datenbank>.dump` in `podman exec -i <kopie>-<container> pg_restore --clean --if-exists -d <datenbank> -U <nutzer>` |
+| `befehl` | nichts: die Ausgabe eines Befehls ist ein Export, kein Restore; im Ergebnis mit diesem Grund |
+
+Zuerst die Volumes, dann die Datenbanken; der erste Teil, der scheitert, beendet das Zurückspielen.
+Ein Grund nennt den Schritt und einen Exit-Code, nie Ausgabe von restic, Podman oder der App.
+Gelungen meldet der Agent `{ teile: [{ tag, snapshot, zurueckgespielt, grund }], dauerMs }`,
+gescheitert nur den Grund („Prüf-Restore gescheitert: Zurückspielen: volume:daten: …“, dazu
+„Abbau unvollständig: …“, falls auch der Abbau scheiterte).
+
+Die Kopie steht während des Laufs als `angelegt` im Gedächtnis der Installationen, eingetragen vor
+`useradd`, und wird nach dem Abbau vergessen; `fertig` wird sie nie, also sehen Health-Prüfung,
+Backups und Aktionen sie nicht. Startet der Agent mitten in einem Prüf-Restore neu, bleibt sie
+`angelegt`: beim Start des Agenten und vor jedem Prüf-Restore baut er jede Kopie ab, die noch
+`angelegt` ist. Ein Prüf-Restore läuft nach einem Neustart des Agenten noch einmal, denn die
+Installation wird nur gelesen. Prüf-Restores laufen auf einem Server nacheinander, neben den
+Einrichtungsaufträgen, denn einer kann Stunden dauern. Einen Einrichtungsauftrag für einen Namen
+`restore-<6>` lehnt der Agent ab.
+
 ### API
 
 | Route | Wer | Körper | Antwort |
@@ -321,3 +369,11 @@ offenen Auftrag, einer je Server zugleich, das Feld `einrichtung` geht nur an de
 ein Zugang, die Ports sind nach dem Ende frei, ein gescheiterter schreibt sein Ereignis; je Endpunkt
 die Trennung der Betreiber und die Rollen (`routes/pruef-restore.test.ts`). Playwright lässt den
 Stellvertreter des Agenten einen Prüf-Restore melden, den die Seite dann zeigt.
+
+Die Seite des Agenten prüft die CI gegen Podman, systemd und MinIO
+(`apps/agent/test/pruef-restore.agent.test.ts`): die Beispiel-App mit einem Eintrag wird gesichert,
+der Prüf-Restore gelingt, und solange die Kopie läuft, steht der Eintrag in ihr (über HTTP auf ihrem
+Port gelesen, über einen Haken im Ablauf, den nur der Test setzt); danach gibt es weder Nutzer noch
+Home, Prozesse oder Laufzeitordner der Kopie, und die Installation läuft mit ihrem Eintrag weiter.
+Mit dem Admin-Zugang überschriebene Packdateien ergeben einen gescheiterten Prüf-Restore mit Grund,
+nach dem ebenfalls alles abgebaut ist.
