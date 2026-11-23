@@ -13,10 +13,13 @@ import {
 
 const oeffneSqlite = (pfad: string): Database => {
   const sqlite = new Database(pfad, { create: true, strict: true });
+  // First, before any statement reads the file: another process holding it for a moment (the
+  // running Zentrale while `sichern` opens it, a closing connection's checkpoint) is waited for,
+  // not answered with "database is locked" (sqlite.org/pragma.html#pragma_busy_timeout)
+  sqlite.run("PRAGMA busy_timeout = 5000");
   // WAL: readers do not wait for the writer (docs/plan.md, "Technologie")
   sqlite.run("PRAGMA journal_mode = WAL");
   sqlite.run("PRAGMA foreign_keys = ON");
-  sqlite.run("PRAGMA busy_timeout = 5000");
   return sqlite;
 };
 
