@@ -24,6 +24,7 @@ const aufgebaut = (
   zufall = 0,
   meldungen?: VerbindenDeps["meldungen"],
   auftraege?: VerbindenDeps["auftraege"],
+  verbunden?: VerbindenDeps["verbunden"],
 ) => {
   const uhr = { ms: JETZT };
   const plaene: { wann: number; lauf: () => void; aktiv: boolean }[] = [];
@@ -71,6 +72,7 @@ const aufgebaut = (
       }),
       ...(meldungen ? { meldungen } : {}),
       ...(auftraege ? { auftraege } : {}),
+      ...(verbunden ? { verbunden } : {}),
     },
     "https://agent.example.de",
   );
@@ -120,6 +122,18 @@ describe("the agent's connection", () => {
         zeit: JETZT,
       },
     ]);
+  });
+
+  it("confirms an update of the agent at each willkommen (Z-504)", async () => {
+    let bestaetigt = 0;
+    const a = aufgebaut(0, undefined, undefined, async () => {
+      bestaetigt += 1;
+    });
+    await a.vergehen(0);
+    expect(bestaetigt).toBe(0);
+    a.willkommen();
+    await a.vergehen(0);
+    expect(bestaetigt).toBe(1);
   });
 
   it("sends a heartbeat every 30 seconds after willkommen", async () => {

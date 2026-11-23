@@ -9,6 +9,7 @@ import { createAuth } from "./auth/auth.ts";
 import { oeffneDatenbank } from "./db/oeffnen.ts";
 import type { Schluesselbund } from "./db/schluessel.ts";
 import { parseEnv } from "./env.ts";
+import { agentUpdateSchleife } from "./modules/agent-update/index.ts";
 import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
 import { backupSchleife } from "./modules/backups/index.ts";
@@ -169,6 +170,19 @@ updateSchleife(
     dnsAnstossen: dns.anstossen,
     backupAnstossen: backup.anstossen,
     manifestSchluessel: async () => manifestSchluessel,
+  },
+  planen,
+);
+// The agents to the version of the agent files (Z-504): every minute, in each server's window
+agentUpdateSchleife(
+  {
+    db,
+    schreibDb,
+    schluessel: env.schluessel,
+    verbindungen: agenten,
+    now: Date.now,
+    log,
+    agentStand: ausgeliefert.agentStand,
   },
   planen,
 );

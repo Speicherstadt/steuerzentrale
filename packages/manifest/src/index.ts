@@ -36,6 +36,18 @@ export {
 /** The manifest schema version this build reads (docs/plan.md, "Manifest": `schema: 1`) */
 export const MANIFEST_SCHEMA = 1;
 export {
+  AGENT_APP,
+  AGENT_DATEI,
+  AGENT_UPDATE_AKTION,
+  AGENT_UPDATE_ZEITLIMIT_S,
+  AGENT_VERSION,
+  type AgentUpdateAnfrage,
+  type AgentUpdateAuftrag,
+  type AgentUpdateGeprueft,
+  agentUpdateAuftragPruefen,
+  pruefsummenLesen,
+} from "./agent-update.ts";
+export {
   AKTION_ZEITLIMIT_S,
   AKTIONS_AUFTRAEGE,
   type AktionsAnfrage,

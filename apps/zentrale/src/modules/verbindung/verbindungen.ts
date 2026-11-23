@@ -1,8 +1,11 @@
+import { fuerVersion, PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
+
 /*
  * The open agent connections of this Zentrale, in memory (BAULISTE.md Z-303): at most one per
  * server; a newer one replaces the older. A restart forgets them, and the agents connect again
  * within seconds (their backoff). Whether a connection is open is a fact of this process, not of the
- * database, so it is not written anywhere.
+ * database, so it is not written anywhere. A greeted connection keeps the agent's protocol version:
+ * what goes to it is stamped with that version (packages/protokoll, `fuerVersion`; Z-504).
  */
 
 /** What the Zentrale needs of one open connection */
@@ -16,8 +19,11 @@ export type Verbindungen = {
   anmelden: (betreiberId: string, serverId: string, sockel: Sockel, jetzt: number) => void;
   /** Forgets the connection, if it is still the server's one */
   abmelden: (betreiberId: string, serverId: string, sockel: Sockel) => void;
-  /** Marks the connection as greeted (`willkommen` sent): from now on it takes jobs */
-  gruessen: (betreiberId: string, serverId: string, sockel: Sockel) => void;
+  /**
+   * Marks the connection as greeted (`willkommen` sent): from now on it takes jobs, in the agent's
+   * protocol version (its `hallo`)
+   */
+  gruessen: (betreiberId: string, serverId: string, sockel: Sockel, protokoll?: number) => void;
   /** Sends to the server's greeted connection; false when there is none */
   senden: (betreiberId: string, serverId: string, text: string) => boolean;
   /** Whether the connection is still the server's one: a replaced or closed one has no say */
@@ -31,7 +37,10 @@ export type Verbindungen = {
 const schluessel = (betreiberId: string, serverId: string) => `${betreiberId}\u0000${serverId}`;
 
 export const verbindungen = (ersetztCode: number): Verbindungen => {
-  const offen = new Map<string, { sockel: Sockel; seit: number; gegruesst: boolean }>();
+  const offen = new Map<
+    string,
+    { sockel: Sockel; seit: number; gegruesst: boolean; protokoll: number }
+  >();
   const trennen: Verbindungen["trennen"] = (betreiberId, serverId, code, grund) => {
     const k = schluessel(betreiberId, serverId);
     const eintrag = offen.get(k);
@@ -43,16 +52,23 @@ export const verbindungen = (ersetztCode: number): Verbindungen => {
   return {
     anmelden: (betreiberId, serverId, sockel, jetzt) => {
       trennen(betreiberId, serverId, ersetztCode, "replaced by a newer connection");
-      offen.set(schluessel(betreiberId, serverId), { sockel, seit: jetzt, gegruesst: false });
+      offen.set(schluessel(betreiberId, serverId), {
+        sockel,
+        seit: jetzt,
+        gegruesst: false,
+        protokoll: PROTOKOLL_VERSION,
+      });
     },
-    gruessen: (betreiberId, serverId, sockel) => {
+    gruessen: (betreiberId, serverId, sockel, protokoll = PROTOKOLL_VERSION) => {
       const eintrag = offen.get(schluessel(betreiberId, serverId));
-      if (eintrag?.sockel === sockel) eintrag.gegruesst = true;
+      if (eintrag?.sockel !== sockel) return;
+      eintrag.gegruesst = true;
+      eintrag.protokoll = protokoll;
     },
     senden: (betreiberId, serverId, text) => {
       const eintrag = offen.get(schluessel(betreiberId, serverId));
       if (!eintrag?.gegruesst) return false;
-      eintrag.sockel.senden(text);
+      eintrag.sockel.senden(fuerVersion(text, eintrag.protokoll));
       return true;
     },
     abmelden: (betreiberId, serverId, sockel) => {

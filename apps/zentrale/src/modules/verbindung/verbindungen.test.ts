@@ -1,3 +1,4 @@
+import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { type Sockel, verbindungen } from "./verbindungen.ts";
 
@@ -57,5 +58,18 @@ describe("verbindungen", () => {
     // a newer connection starts ungreeted
     v.anmelden("b1", "s1", sockel().s, 20);
     expect(v.senden("b1", "s1", "x")).toBe(false);
+  });
+
+  it("writes to an agent one protocol behind in its version (Z-504)", () => {
+    const v = verbindungen(4409);
+    const gesendet: string[] = [];
+    const s: Sockel = { senden: (text) => gesendet.push(text), schliessen: () => {} };
+    v.anmelden("b1", "s1", s, 10);
+    v.gruessen("b1", "s1", s, PROTOKOLL_VERSION - 1);
+    const auftrag = { typ: "auftrag", protokoll: PROTOKOLL_VERSION, auftragId: "a" };
+    v.senden("b1", "s1", JSON.stringify(auftrag));
+    expect(gesendet.map((t) => JSON.parse(t))).toEqual([
+      { ...auftrag, protokoll: PROTOKOLL_VERSION - 1 },
+    ]);
   });
 });

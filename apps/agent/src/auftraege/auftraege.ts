@@ -7,6 +7,7 @@ import {
   PROTOKOLL_VERSION,
   schreiben,
 } from "@steuerzentrale/protokoll";
+import { type AgentUpdateDeps, agentAktualisieren } from "../agent-update/aktualisieren.ts";
 import { type AktionsDeps, aktionAusfuehren } from "../aktionen/auftrag.ts";
 import type { ZeilenLesen } from "../aktionen/journal.ts";
 import { backupAusfuehren } from "../backup/auftrag.ts";
@@ -40,7 +41,8 @@ import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.
  * reports that it runs, runs it (ausfuehren.ts as the installation's user; a job of the Pforte
  * through its admin API, src/pforte; a setup job by src/einrichtung; a restart or log excerpt by
  * src/aktionen, whose lines go out as `log_auszug` before the result; a backup job by src/backup;
- * a restore by src/wiederherstellen; an update by src/update) and reports the result.
+ * a restore by src/wiederherstellen; an update by src/update; its own update by src/agent-update,
+ * after which it takes no job and restarts) and reports the result.
  * Idempotent by the job's
  * id through its record (zustand.ts): a finished job sent again gets its stored result, a running
  * one only an acknowledgement. A job that was running when the agent stopped is reported failed
@@ -89,6 +91,10 @@ export type AuftraegeDeps = {
   planen: Planer;
   jetzt: () => number;
   log: (msg: string, mehr?: Record<string, unknown>) => void;
+  /** Its own update (Z-504), without in tests that do not need it */
+  agentUpdate?: AgentUpdateDeps;
+  /** Ends the service once its own update holds; systemd starts the new binary */
+  neustarten?: () => void;
 };
 
 export type Auftraege = {
@@ -170,8 +176,13 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
   };
   const ausfuehren = async (
     plan: JederPlan,
+    auftragId: string,
     auszugSenden: (zeilen: string[]) => void,
   ): Promise<Ergebnis> => {
+    if (plan.art === "agent_update")
+      return deps.agentUpdate
+        ? agentAktualisieren(deps.agentUpdate, auftragId, plan.auftrag)
+        : { ok: false, fehler: "abgelehnt: this agent cannot update itself" };
     if (plan.art === "pruef_restore") return pruefReihe(() => pruefRestoreAusfuehren(pruef, plan));
     if (plan.art === "pforte") return pforteReihe(() => pforteAusfuehren(deps, plan));
     if (plan.art === "einrichtung")
@@ -199,6 +210,8 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const schreibe = standSchreiber(deps.dateien, deps.pfad, deps.jetzt);
   let geladen: Promise<Geladen> | undefined;
   const laufend = new Set<string>();
+  // its own update holds: the restart comes, and a job sent now is sent again to the new agent
+  let neustartFolgt = false;
   const { ausfuehren: planAusfuehren, aufraeumen } = ausfuehrer(deps);
 
   const ergebnisSenden = (auftragId: string, ergebnis: Ergebnis, senden: (t: string) => void) =>
@@ -247,24 +260,30 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
           zeit: deps.jetzt(),
         }),
       );
-      // the lines of a log excerpt go out before its result (docs/plan.md, "Log-Auszug")
-      const ergebnis = await planAusfuehren(plan, (zeilen) =>
-        senden(
-          schreiben(LogAuszug, {
-            typ: "log_auszug",
-            protokoll: PROTOKOLL_VERSION,
-            auftragId: n.auftragId,
-            zeilen,
-          }),
-        ),
-      );
+      // the restart after its own update would end any other job halfway
+      const ergebnis =
+        plan.art === "agent_update" && laufend.size > 1
+          ? { ok: false as const, fehler: "abgelehnt: other jobs run on the agent" }
+          : await planAusfuehren(plan, n.auftragId, (zeilen) =>
+              senden(
+                schreiben(LogAuszug, {
+                  typ: "log_auszug",
+                  protokoll: PROTOKOLL_VERSION,
+                  auftragId: n.auftragId,
+                  zeilen,
+                }),
+              ),
+            );
+      if (plan.art === "agent_update" && ergebnis.ok) neustartFolgt = true;
       await abschliessen(stand, n.auftragId, ergebnis, senden);
+      if (plan.art === "agent_update" && ergebnis.ok) deps.neustarten?.();
     } finally {
       laufend.delete(n.auftragId);
     }
   };
 
   const empfangen: Auftraege["empfangen"] = async (n, senden) => {
+    if (neustartFolgt) return deps.log("job left for the new agent", { auftragId: n.auftragId });
     geladen ??= standLaden(deps.dateien, deps.pfad);
     const record = await geladen;
     if (!record.ok) {
