@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { execFileSync, spawn } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { echteQuellen, type FaktenQuellen } from "./quellen.ts";
 import { testQuellen } from "./testquellen.ts";
 import { ZERTIFIKATE, zertifikateLesen } from "./zertifikate.ts";
 
@@ -52,5 +57,65 @@ describe("certificates of the Pforte", () => {
     expect(ZERTIFIKATE).toBe(
       "/home/sz-pforte/.local/share/containers/storage/volumes/sz-pforte-daten/_data/caddy/certificates",
     );
+  });
+
+  /*
+   * The volume belongs to the rootless user sz-pforte, and Caddy inside it may write anything there;
+   * the agent reads it as root. The real file system, with the volume moved to a temporary directory.
+   */
+  describe("in storage the Pforte's user controls", () => {
+    let wurzel = "";
+    afterEach(() => rmSync(wurzel, { recursive: true, force: true }));
+
+    /** The real sources with every path under the Pforte's data moved below `nach` */
+    const umgeleitet = (nach: string): FaktenQuellen => {
+      const daten = ZERTIFIKATE.replace(/\/caddy\/certificates$/, "");
+      const pfad = (p: unknown) =>
+        typeof p === "string" && p.startsWith(daten) ? nach + p.slice(daten.length) : p;
+      return Object.fromEntries(
+        Object.entries(echteQuellen()).map(([name, f]) => [
+          name,
+          typeof f === "function"
+            ? (erstes: unknown, ...rest: unknown[]) => f(pfad(erstes), ...rest)
+            : f,
+        ]),
+      ) as FaktenQuellen;
+    };
+
+    const ablage = () => {
+      wurzel = mkdtempSync(join(tmpdir(), "sz-zertifikate-"));
+      const ordner = join(wurzel, "daten", "caddy", "certificates", LE, HOST);
+      mkdirSync(ordner, { recursive: true });
+      return { daten: join(wurzel, "daten"), datei: join(ordner, `${HOST}.crt`) };
+    };
+
+    it("does not wait on a FIFO in place of a certificate", async () => {
+      const { daten, datei } = ablage();
+      execFileSync("mkfifo", [datei]);
+      // Reading a FIFO waits for a writer, and Bun's readFile blocks the event loop meanwhile: a
+      // writer 3 s later lets a reading agent go on, so the test ends either way
+      spawn("timeout", ["10", "sh", "-c", 'sleep 3; echo x > "$1"', "sh", datei], {
+        detached: true,
+        stdio: "ignore",
+      }).unref();
+      const beginn = Date.now();
+      expect(await zertifikateLesen(umgeleitet(daten))).toEqual([]);
+      expect(Date.now() - beginn).toBeLessThan(1000);
+    });
+
+    it("does not follow a symbolic link out of the volume", async () => {
+      const { daten, datei } = ablage();
+      const draussen = join(wurzel, "draussen.crt");
+      writeFileSync(draussen, PEM);
+      symlinkSync(draussen, datei);
+      expect(await zertifikateLesen(umgeleitet(daten))).toEqual([]);
+    });
+
+    it("reads no file larger than a certificate chain", async () => {
+      const { daten, datei } = ablage();
+      // a valid certificate followed by 2 MiB: Caddy's files are a few KiB
+      writeFileSync(datei, PEM + "\n".repeat(2 * 1024 * 1024));
+      expect(await zertifikateLesen(umgeleitet(daten))).toEqual([]);
+    });
   });
 });
