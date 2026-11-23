@@ -104,6 +104,14 @@ describe("importing a manifest", () => {
     expect(manifestLesen(u.db, "probe", "1.0.0")?.text).toBe(signiert("probe").manifest);
   });
 
+  it("refuses the same version spelled with a leading zero and other content", () => {
+    const u = umgebung();
+    u.importieren();
+    // SemVer 2.0.0 forbids leading zeros; 01.0.0 would be a second 1.0.0 that compares equal
+    expect(u.importieren(signiert("probe-01.0.0"))).toMatchObject({ ok: false });
+    expect(manifesteListe(u.db).map((k) => k.version)).toEqual(["1.0.0"]);
+  });
+
   it("writes the audit entry with text and signature only as set", () => {
     const u = umgebung();
     u.importieren();

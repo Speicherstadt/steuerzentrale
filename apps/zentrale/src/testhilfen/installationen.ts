@@ -34,6 +34,7 @@ export type Testmanifest =
   | "probe-2.0.0-rc.1"
   | "probe-2.0.0"
   | "probe-anders"
+  | "probe-01.0.0"
   | "kaputt";
 
 export const signiert = (app: Testmanifest) => ({
