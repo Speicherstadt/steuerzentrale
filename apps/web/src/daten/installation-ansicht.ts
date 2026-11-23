@@ -89,3 +89,14 @@ export const titelVon = (a: Pick<InstallationAnsicht, "kundeName" | "appName">) 
   `${a.kundeName} · ${a.appName}`;
 
 export const linuxNutzerVon = (a: Pick<InstallationAnsicht, "id">) => `sz-${a.id}`;
+
+/** What stands on a server: its installations not removed (Z-406) */
+export const aufServer = (alle: InstallationAnsicht[], serverId: string) =>
+  alle.filter((i) => i.serverId === serverId && i.zustand !== "entfernt");
+
+/** A customer's installations not removed, on any server */
+export const desKunden = (alle: InstallationAnsicht[], kundeId: string) =>
+  alle.filter((i) => i.kundeId === kundeId && i.zustand !== "entfernt");
+
+/** Each once, in the order they come */
+export const einmal = (werte: string[]) => [...new Set(werte)];

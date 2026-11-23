@@ -13,8 +13,10 @@ dem signierten Manifest einer App und seine Argumente, nie eine Befehlszeile. Di
 speichert jeden Auftrag mit einer ID; der Agent des Servers bekommt ihn über seine Verbindung,
 bestätigt ihn, meldet Fortschritt und Ergebnis.
 
-Eine Oberfläche für Aufträge gibt es noch nicht: Installieren, Updates und Backups legen ihre
-Aufträge mit ihren Punkten selbst an.
+Installieren, Updates und Backups legen ihre Aufträge mit ihren Punkten selbst an. Die Seite
+„Aufträge“ listet alle, die offenen und die gescheiterten, die neuesten zuerst und seitenweise
+([Übersicht und Betrieb](uebersicht.md)); einen gescheiterten der letzten sieben Tage nennt auch
+die Übersicht.
 
 ## Zustände
 

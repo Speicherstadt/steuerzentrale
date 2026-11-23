@@ -1,10 +1,11 @@
 import { m } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
 import { createMemo, For, Loading, refresh, Show } from "solid-js";
-import { installationenAuf, kundenAuf, sperrzeitenAuf, suche } from "../daten/ableitungen.ts";
+import { sperrzeitenDer } from "../daten/ableitungen.ts";
+import { aufServer, einmal, type InstallationAnsicht } from "../daten/installation-ansicht.ts";
+import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
-import { serverQuelle } from "../daten/server.ts";
-import { ansichtZustand, type ServerAnsicht, serverAnsicht } from "../daten/server-ansicht.ts";
+import { ansichtZustand, type ServerAnsicht } from "../daten/server-ansicht.ts";
 import type { Bestand } from "../daten/typen.ts";
 import { PLATTE_WARNUNG } from "../daten/zustand.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
@@ -18,8 +19,8 @@ import { AgentZeichen, ArtZeichen, ServerZeichen } from "../teile/zeichen.tsx";
 
 /**
  * Shared servers, servers of their own and servers at the customer, each with its agent and its
- * facts (BAULISTE.md Z-304). The servers come from the Zentrale (src/daten/server.ts); their
- * installations, load and freeze windows still from the demo data by id until their items.
+ * facts (BAULISTE.md Z-304) and the installations on it (Z-406), all from the Zentrale; the freeze
+ * windows from the descriptions of the installed apps, the load only in the demo (Z-702).
  */
 
 const Leer = () => <span class="text-xs text-muted-foreground">–</span>;
@@ -46,9 +47,14 @@ const System = (props: { a: ServerAnsicht }) => (
   </>
 );
 
-const Zeile = (props: { b: Bestand; a: ServerAnsicht }) => {
-  const kunden = () => kundenAuf(props.b, props.a.id);
-  const sperren = () => sperrzeitenAuf(props.b, props.a.id);
+const Zeile = (props: { b: Bestand; a: ServerAnsicht; installationen: InstallationAnsicht[] }) => {
+  const hier = () => aufServer(props.installationen, props.a.id);
+  const kunden = () => einmal(hier().map((i) => i.kundeName));
+  const sperren = () =>
+    sperrzeitenDer(
+      props.b,
+      hier().map((i) => i.app),
+    );
   const unterzeile = () =>
     [props.a.host, props.a.os, props.a.arch].filter(Boolean).join(" · ") || m.server_keine_fakten();
   return (
@@ -80,14 +86,12 @@ const Zeile = (props: { b: Bestand; a: ServerAnsicht }) => {
       <td class="text-xs">
         <span class="font-medium tabular-nums">
           {m.server_installationen_kunden({
-            n: installationenAuf(props.b, props.a.id).length,
+            n: hier().length,
             kunden: kunden().length,
           })}
         </span>
         <span class="block max-w-[180px] truncate text-muted-foreground">
-          {kunden()
-            .map((k) => k.name)
-            .join(", ")}
+          {kunden().join(", ")}
         </span>
       </td>
       <td>
@@ -136,11 +140,12 @@ const Zeile = (props: { b: Bestand; a: ServerAnsicht }) => {
 
 const ServerListe = () => {
   const b = bestand();
-  const antwort = createMemo(() => serverQuelle().liste());
-  const liste = () => {
+  const antwort = createMemo(() => uebersichtLaden());
+  const daten = () => {
     const a = antwort();
-    return a.ok ? a.daten.map((sv) => serverAnsicht(sv, suche(b.server, sv.serverId))) : [];
+    return a.ok ? a.daten : { installationen: [], server: [] };
   };
+  const liste = () => daten().server;
   const fehler = () => {
     const a = antwort();
     return a.ok ? "" : fehlerText(a);
@@ -171,7 +176,9 @@ const ServerListe = () => {
             { name: m.server_spalte_wartung() },
           ]}
         >
-          <For each={liste()}>{(a) => <Zeile b={b} a={a} />}</For>
+          <For each={liste()}>
+            {(a) => <Zeile b={b} a={a} installationen={daten().installationen} />}
+          </For>
         </Tabelle>
       </Loading>
     </div>

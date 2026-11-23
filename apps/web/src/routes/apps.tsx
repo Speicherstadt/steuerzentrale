@@ -17,8 +17,8 @@ import {
   Server,
 } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
-import { For, Show } from "solid-js";
-import { installationenDer } from "../daten/ableitungen.ts";
+import { createMemo, For, Loading, Show } from "solid-js";
+import { installationenQuelle } from "../daten/installationen.ts";
 import { bestand } from "../daten/quelle.ts";
 import type { Ebene, Manifest, OptionaleAktion } from "../daten/typen.ts";
 import { speicher } from "../format/zahl.ts";
@@ -138,8 +138,9 @@ const Aktionen = (props: { a: Manifest }) => {
   );
 };
 
-const AppKarte = (props: { a: Manifest }) => {
-  const n = () => installationenDer(bestand(), props.a.id).length;
+/** An app with how many of the operator's installations run it (the Zentrale's, Z-406) */
+const AppKarte = (props: { a: Manifest; n: number }) => {
+  const n = () => props.n;
   return (
     <Karte>
       <div class="flex items-start gap-4 p-5 pb-3">
@@ -199,13 +200,22 @@ const AppKarte = (props: { a: Manifest }) => {
   );
 };
 
-const Apps = () => (
-  <div class="grid gap-6">
-    <Seitenkopf titel={m.nav_apps()} text={m.apps_text()} />
-    <div class="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-2">
-      <For each={bestand().apps}>{(a) => <AppKarte a={a} />}</For>
+const Apps = () => {
+  const antwort = createMemo(() => installationenQuelle().liste());
+  const anzahlDer = (app: string) => {
+    const a = antwort();
+    return a.ok ? a.daten.filter((i) => i.app === app && i.zustand !== "entfernt").length : 0;
+  };
+  return (
+    <div class="grid gap-6">
+      <Seitenkopf titel={m.nav_apps()} text={m.apps_text()} />
+      <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
+        <div class="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-2">
+          <For each={bestand().apps}>{(a) => <AppKarte a={a} n={anzahlDer(a.id)} />}</For>
+        </div>
+      </Loading>
     </div>
-  </div>
-);
+  );
+};
 
 export const Route = createFileRoute("/apps")({ component: Apps });

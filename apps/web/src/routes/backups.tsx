@@ -1,13 +1,14 @@
 import { m } from "@steuerzentrale/ui";
 import { CircleCheck, TriangleAlert } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
-import { For, Match, Switch } from "solid-js";
+import { For, Match, Show, Switch } from "solid-js";
 import { appVon, serverVon, titel } from "../daten/ableitungen.ts";
-import { bestand } from "../daten/quelle.ts";
+import { bestand, mitDemo } from "../daten/quelle.ts";
 import type { Installation } from "../daten/typen.ts";
 import { gb } from "../format/zahl.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Seitenkopf } from "../teile/karte.tsx";
+import { NochNicht } from "../teile/kommt-noch.tsx";
 import { Kennzahl } from "../teile/listen.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuInstallation } from "../teile/verweise.tsx";
@@ -29,7 +30,7 @@ const PruefZelle = (props: { i: Installation }) => (
 /** The newest snapshot's size, else nine tenths of the data as a restic repository holds it */
 const groesse = (i: Installation) => i.snapshots.find((s) => s.gb !== null)?.gb ?? i.datenGb;
 
-const Backups = () => {
+const BackupsDemo = () => {
   const b = bestand();
   const alle = b.installationen;
   const ok = alle.filter((i) => i.backup.ok);
@@ -115,5 +116,24 @@ const Backups = () => {
     </div>
   );
 };
+
+/**
+ * Signed in, nothing of the demo: the page waits for Z-601 (docs/plan.md, "Echte Daten (Z-406)")
+ */
+const Backups = () => (
+  <Show
+    when={mitDemo()}
+    fallback={
+      <NochNicht
+        titel={m.nav_backups()}
+        text={m.bak_text()}
+        punkt="Z-601"
+        hinweis={m.backups_spaeter()}
+      />
+    }
+  >
+    <BackupsDemo />
+  </Show>
+);
 
 export const Route = createFileRoute("/backups")({ component: Backups });

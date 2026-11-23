@@ -18,13 +18,14 @@ import {
   kundeVon,
   sperrzeitAktiv,
 } from "../daten/ableitungen.ts";
-import { bestand } from "../daten/quelle.ts";
+import { bestand, mitDemo } from "../daten/quelle.ts";
 import type { Bestand, Updateplan } from "../daten/typen.ts";
 import { nurVonHand, type WellenStand, type WellenZustand, wellen } from "../daten/wellen.ts";
 import { datum } from "../format/zeit.ts";
 import { welleName } from "../rahmen/texte.ts";
 import { Balken } from "../teile/balken.tsx";
 import { Hinweisbox, Karte, KartenInhalt, KartenKopf, Seitenkopf } from "../teile/karte.tsx";
+import { NochNicht } from "../teile/kommt-noch.tsx";
 import { ZuInstallation, ZuServer } from "../teile/verweise.tsx";
 import { AppZeichen, Zustand } from "../teile/zeichen.tsx";
 
@@ -223,7 +224,7 @@ const Agent = (props: { b: Bestand }) => {
   );
 };
 
-const Updates = () => {
+const UpdatesDemo = () => {
   const b = bestand();
   const sperren = alleSperrzeiten(b);
   return (
@@ -253,5 +254,24 @@ const Updates = () => {
     </div>
   );
 };
+
+/**
+ * Signed in, nothing of the demo: the page waits for Z-503 (docs/plan.md, "Echte Daten (Z-406)")
+ */
+const Updates = () => (
+  <Show
+    when={mitDemo()}
+    fallback={
+      <NochNicht
+        titel={m.nav_updates()}
+        text={m.upd_text()}
+        punkt="Z-503"
+        hinweis={m.updates_spaeter()}
+      />
+    }
+  >
+    <UpdatesDemo />
+  </Show>
+);
 
 export const Route = createFileRoute("/updates")({ component: Updates });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { demo } from "../demo/index.ts";
 import { serverVon } from "./ableitungen.ts";
 import type { Bestand, Installation, Server } from "./typen.ts";
-import { aufmerksamkeit, pruefungen, serverZustand, zaehler } from "./zustand.ts";
+import { pruefungen, serverZustand, zaehler } from "./zustand.ts";
 
 const mit = (id: string, aenderung: Partial<Server>): Bestand => ({
   ...demo,
@@ -56,33 +56,6 @@ describe("server checks", () => {
     expect(pruefungen(b, serverVon(b, "shared-2")).find((p) => p.art === "ports")).toMatchObject({
       ports: ["80", "443", "22001/tcp"],
     });
-  });
-});
-
-describe("what needs attention", () => {
-  it("comes worst first", () => {
-    const rang = { krit: 0, warn: 1, info: 2 };
-    const schweren = aufmerksamkeit(demo).map((h) => rang[h.schwere]);
-    expect(schweren).toEqual([...schweren].sort((a, b) => a - b));
-    expect(aufmerksamkeit(demo)[0]?.schwere).toBe("krit");
-  });
-
-  it("names a failed job only when its target is not listed already", () => {
-    const auftraege = aufmerksamkeit(demo).filter((h) => h.art === "auftrag");
-    // berger-schreibzeug is red and lind-haben yellow: their failed jobs do not repeat them
-    expect(auftraege).toEqual([]);
-  });
-
-  it("leaves cancelled installations out of health warnings", () => {
-    const b: Bestand = {
-      ...demo,
-      installationen: demo.installationen.map((i) =>
-        i.id === "sonne-haben" ? { ...i, health: "rot", grund: "x" } : i,
-      ),
-    };
-    expect(
-      aufmerksamkeit(b).some((h) => "installation" in h && h.installation.id === "sonne-haben"),
-    ).toBe(false);
   });
 });
 

@@ -89,9 +89,17 @@ describe("pages", () => {
   it("open the overview with what needs attention, worst first", async () => {
     const root = await oeffne("/");
     expect(ueberschrift(root)).toBe("Übersicht");
-    const erster = root.querySelector("main ul li a");
-    expect(erster?.textContent).toContain("Studio Lind");
+    // the open fault first, leading to its installation (Z-406: as GET /api/v1/uebersicht orders)
+    const erster = root.querySelector<HTMLAnchorElement>("main ul li a");
+    expect(erster?.textContent).toContain("IT Berger · Schreibzeug");
     expect(erster?.querySelector("svg")?.getAttribute("aria-label")).toBe("Störung");
+    expect(erster?.getAttribute("href")).toBe("/installationen/berger-schreibzeug");
+    const rang = { Störung: 0, Warnung: 1, Hinweis: 2 } as Record<string, number>;
+    const schweren = [
+      ...root.querySelectorAll("main ul.divide-y > li > a > span:first-child svg"),
+    ].map((s) => rang[s.getAttribute("aria-label") ?? ""] ?? 9);
+    expect(schweren.length).toBeGreaterThan(3);
+    expect(schweren).toEqual([...schweren].sort((a, b) => a - b));
   });
 
   it("show all eight apps on the apps page", async () => {

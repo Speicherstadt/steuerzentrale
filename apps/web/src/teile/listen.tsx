@@ -2,10 +2,11 @@ import type { JSX } from "@solidjs/web";
 import { Icon, m } from "@steuerzentrale/ui";
 import { CircleCheck, CircleX, type IconNode, Info, TriangleAlert } from "@steuerzentrale/ui/icons";
 import { For, Show } from "solid-js";
+import type { EreignisDerZentrale, Ereignisschwere } from "../daten/betrieb.ts";
 import { bestand } from "../daten/quelle.ts";
-import type { Ereignis, Schwere } from "../daten/typen.ts";
+import type { Schwere } from "../daten/typen.ts";
 import { zeitpunkt } from "../format/zeit.ts";
-import { ZielVerweis } from "./verweise.tsx";
+import { ZielLink } from "./verweise.tsx";
 import { Zustand } from "./zeichen.tsx";
 
 /** Lists of the pages: events, check rows and key figures (DESIGN.md, "Bausteine") */
@@ -27,34 +28,36 @@ export const SchwereSymbol = (props: { schwere: Schwere; icon?: IconNode }) => (
   </span>
 );
 
-export const Ereignisliste = (props: { ereignisse: Ereignis[] }) => {
-  const jetzt = bestand().jetzt;
-  return (
-    <Show
-      when={props.ereignisse.length > 0}
-      fallback={<p class="text-muted-foreground">{m.ereignisse_keine()}</p>}
-    >
-      <ul class="grid grid-cols-[minmax(0,1fr)] gap-4">
-        <For each={props.ereignisse}>
-          {(e) => (
-            <li class="flex min-w-0 items-start gap-3">
-              <SchwereSymbol schwere={e.schwere} />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium leading-snug">
-                  <ZielVerweis ziel={e.ziel} />
-                </p>
-                <p class="mt-0.5 text-muted-foreground">{e.text}</p>
-              </div>
-              <span class="shrink-0 text-xs tabular-nums text-muted-foreground">
-                {zeitpunkt(e.zeit, jetzt)}
-              </span>
-            </li>
-          )}
-        </For>
-      </ul>
-    </Show>
-  );
-};
+/** An event's severity in the symbols of the pages: an error is a fault */
+export const schwereDes = (s: Ereignisschwere): Schwere =>
+  s === "fehler" ? "krit" : s === "warn" ? "warn" : "info";
+
+/** Events as the Zentrale lists them (BAULISTE.md Z-406), each with its target as a link */
+export const Ereignisliste = (props: { ereignisse: EreignisDerZentrale[] }) => (
+  <Show
+    when={props.ereignisse.length > 0}
+    fallback={<p class="text-muted-foreground">{m.ereignisse_keine()}</p>}
+  >
+    <ul class="grid grid-cols-[minmax(0,1fr)] gap-4">
+      <For each={props.ereignisse}>
+        {(e) => (
+          <li class="flex min-w-0 items-start gap-3">
+            <SchwereSymbol schwere={schwereDes(e.schwere)} />
+            <div class="min-w-0 flex-1">
+              <p class="font-medium leading-snug">
+                <ZielLink ziel={e.ziel} verweis={e.verweis} />
+              </p>
+              <p class="mt-0.5 break-words text-muted-foreground">{e.text}</p>
+            </div>
+            <span class="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {zeitpunkt(e.zeitpunkt, bestand().jetzt)}
+            </span>
+          </li>
+        )}
+      </For>
+    </ul>
+  </Show>
+);
 
 /** A check: icon, name, detail, and OK or "Prüfen" (null: nothing to judge) */
 export const Pruefzeile = (props: {

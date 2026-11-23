@@ -3,6 +3,7 @@ import { m } from "@steuerzentrale/ui";
 import { Link } from "@tanstack/solid-router";
 import { Match, Switch } from "solid-js";
 import { suche, titel } from "../daten/ableitungen.ts";
+import type { ZielVerweis as Verweis } from "../daten/betrieb.ts";
 import { bestand } from "../daten/quelle.ts";
 import type { Ziel } from "../daten/typen.ts";
 
@@ -51,3 +52,21 @@ export const ZielVerweis = (props: { ziel: Ziel }) => {
     </Switch>
   );
 };
+
+/**
+ * The target of an event or audit entry as the Zentrale names it (BAULISTE.md Z-406): a link with
+ * its name where it has a page, else the target as written
+ */
+export const ZielLink = (props: { ziel: string; verweis: Verweis | null }) => (
+  <Switch fallback={<span class="break-all">{props.ziel}</span>}>
+    <Match when={props.verweis?.art === "installation" && props.verweis}>
+      {(v) => <ZuInstallation id={v().id}>{v().name}</ZuInstallation>}
+    </Match>
+    <Match when={props.verweis?.art === "server" && props.verweis}>
+      {(v) => <ZuServer id={v().id}>{v().name}</ZuServer>}
+    </Match>
+    <Match when={props.verweis?.art === "kunde" && props.verweis}>
+      {(v) => <ZuKunde id={v().id}>{v().name}</ZuKunde>}
+    </Match>
+  </Switch>
+);

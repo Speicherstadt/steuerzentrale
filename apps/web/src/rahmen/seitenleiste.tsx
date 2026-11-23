@@ -1,8 +1,9 @@
 import { Icon, m } from "@steuerzentrale/ui";
 import { CalendarClock, Radar } from "@steuerzentrale/ui/icons";
 import { Link } from "@tanstack/solid-router";
-import { For, Show } from "solid-js";
+import { createMemo, For, Loading, Show } from "solid-js";
 import { alleSperrzeiten, sperrzeitAktiv } from "../daten/ableitungen.ts";
+import { type Ich, ichLesen } from "../daten/ich.ts";
 import { bestand } from "../daten/quelle.ts";
 import { zaehler } from "../daten/zustand.ts";
 import { GRUPPEN } from "./navigation.ts";
@@ -10,11 +11,11 @@ import { rolleName } from "./texte.ts";
 
 /**
  * The sidebar (DESIGN.md, "Bausteine"): the areas in groups Betrieb, Kunden, System, counters only
- * where there is something to do; at the foot the freeze windows and the own account. Without the
- * operator switch of stage 2 (BAULISTE.md, Z-803).
+ * where there is something to do; at the foot the freeze windows and the own account, named by the
+ * Zentrale (GET /api/v1/ich, Z-406). Without the operator switch of stage 2 (BAULISTE.md, Z-803).
  */
 
-const Marke = () => (
+const Marke = (props: { ich: Ich | null }) => (
   <div class="flex h-12 items-center gap-2 p-2">
     <span class="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
       <Icon icon={Radar} />
@@ -22,7 +23,7 @@ const Marke = () => (
     <span class="grid min-w-0 flex-1 leading-tight">
       <span class="truncate font-semibold">{m.app_name()}</span>
       <span class="truncate text-xs text-muted-foreground">
-        {m.nav_betreiber({ name: bestand().betreiber.name })}
+        <Loading fallback="">{m.nav_betreiber({ name: props.ich?.betreiber.name ?? "" })}</Loading>
       </span>
     </span>
   </div>
@@ -102,47 +103,54 @@ const initialen = (name: string) =>
     .join("")
     .slice(0, 2);
 
-const Konto = () => {
-  const konto = bestand().konto;
-  return (
-    <Link
-      to="/einstellungen"
-      search={{ tab: "konten" }}
-      class="flex h-12 items-center gap-2 rounded-md p-2 hover:bg-accent"
+const Konto = (props: { ich: Ich | null }) => (
+  <Link
+    to="/einstellungen"
+    search={{ tab: "konten" }}
+    class="flex h-12 items-center gap-2 rounded-md p-2 hover:bg-accent"
+  >
+    <span
+      aria-hidden="true"
+      class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-xs font-medium"
     >
-      <span
-        aria-hidden="true"
-        class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-xs font-medium"
-      >
-        {initialen(konto.name)}
-      </span>
-      <span class="grid min-w-0 flex-1 leading-tight">
-        <span class="truncate font-medium">{konto.name}</span>
-        <span class="truncate text-xs text-muted-foreground">
-          {m.konto_rolle_faktor({
-            rolle: rolleName(konto.rolle),
-            faktor: konto.faktor === "passkey" ? m.faktor_passkey() : m.faktor_totp(),
-          })}
-        </span>
-      </span>
-    </Link>
-  );
-};
+      <Loading fallback="">{initialen(props.ich?.name ?? "")}</Loading>
+    </span>
+    <Loading fallback={<span class="flex-1" />}>
+      <Show when={props.ich}>
+        {(k) => (
+          <span class="grid min-w-0 flex-1 leading-tight">
+            <span class="truncate font-medium">{k().name}</span>
+            <span class="truncate text-xs text-muted-foreground">
+              {m.konto_rolle_faktor({
+                rolle: rolleName(k().rolle),
+                faktor: k().faktor === "passkey" ? m.faktor_passkey() : m.faktor_totp(),
+              })}
+            </span>
+          </span>
+        )}
+      </Show>
+    </Loading>
+  </Link>
+);
 
 /** The sidebar's content, on the desktop beside the page and on a phone in the drawer */
-export const Seitenleiste = () => (
-  <div class="flex h-full min-h-0 flex-col">
-    <div class="p-2">
-      <Marke />
-    </div>
-    <div class="flex min-h-0 flex-1 flex-col gap-1 overflow-auto">
-      <Bereiche />
-      <div class="mt-auto p-2">
-        <Sperrzeiten />
+export const Seitenleiste = () => {
+  // the signed-in account; null when the Zentrale does not answer
+  const ich = createMemo(() => ichLesen().then((a): Ich | null => (a.ok ? a.daten : null)));
+  return (
+    <div class="flex h-full min-h-0 flex-col">
+      <div class="p-2">
+        <Marke ich={ich()} />
+      </div>
+      <div class="flex min-h-0 flex-1 flex-col gap-1 overflow-auto">
+        <Bereiche />
+        <div class="mt-auto p-2">
+          <Sperrzeiten />
+        </div>
+      </div>
+      <div class="p-2">
+        <Konto ich={ich()} />
       </div>
     </div>
-    <div class="p-2">
-      <Konto />
-    </div>
-  </div>
-);
+  );
+};

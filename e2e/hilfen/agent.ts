@@ -13,7 +13,7 @@ import { serverAnlegen } from "./server.ts";
  * (Z-404) it reports done as the real agent does (`geaendert: "konfiguriert"`). A restart (Z-405)
  * it reports done; for a log excerpt it sends the lines (`LOG_ZEILEN`, the secrets already
  * replaced as the real agent does) and then the result with their number. It reports the state of
- * installations when a test tells it to (Z-403). No Podman, no server.
+ * installations and an SSH login when a test tells it to (Z-403, Z-406). No Podman, no server.
  */
 
 // The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite
@@ -33,6 +33,8 @@ export type TestAgent = {
   name: string;
   /** Sends the state of installations, as the agent does every 30 s */
   melden: (installationen: ZustandEintrag[]) => void;
+  /** Reports an SSH login from the journal (Z-304), which the Zentrale keeps as an event */
+  sshAnmelden: (nutzer: string) => void;
   trennen: () => void;
 };
 
@@ -174,6 +176,17 @@ export const agentVerbinden = async (
     name: server.name,
     melden: (installationen) =>
       ws.send(JSON.stringify({ typ: "zustand", protokoll: 1, zeit: Date.now(), installationen })),
+    sshAnmelden: (nutzer) =>
+      ws.send(
+        JSON.stringify({
+          typ: "ssh_anmeldung",
+          protokoll: 1,
+          zeit: Date.now(),
+          nutzer,
+          von: "10.8.0.2",
+          methode: "publickey",
+        }),
+      ),
     trennen: () => ws.close(),
   };
 };

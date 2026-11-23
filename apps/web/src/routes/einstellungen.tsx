@@ -42,7 +42,7 @@ const Einstellungen = () => {
           { id: "backup", label: m.einst_backup(), content: () => <Backup b={b} /> },
           { id: "dns", label: m.einst_dns(), content: () => <Dns b={b} /> },
           { id: "melden", label: m.einst_melden(), content: () => <Benachrichtigungen b={b} /> },
-          { id: "konten", label: m.einst_konten(), content: () => <Konten b={b} /> },
+          { id: "konten", label: m.einst_konten(), content: () => <Konten /> },
           { id: "zentrale", label: m.app_name(), content: () => <Zentrale b={b} /> },
           { id: "darstellung", label: m.einst_darstellung(), content: () => <Darstellung /> },
         ]}

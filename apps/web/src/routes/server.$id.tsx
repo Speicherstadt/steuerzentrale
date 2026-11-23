@@ -2,15 +2,9 @@ import { Icon, m } from "@steuerzentrale/ui";
 import { CircleCheck, Power } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
 import { createMemo, For, Loading, Match, Show, Switch } from "solid-js";
-import {
-  betrifft,
-  installationenAuf,
-  kundenAuf,
-  ramVergebenMb,
-  sperrzeitAktiv,
-  sperrzeitenAuf,
-  suche,
-} from "../daten/ableitungen.ts";
+import { ramDerMb, sperrzeitAktiv, sperrzeitenDer, suche } from "../daten/ableitungen.ts";
+import { aufServer, einmal, type InstallationAnsicht } from "../daten/installation-ansicht.ts";
+import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
 import { serverQuelle } from "../daten/server.ts";
 import { ansichtZustand, type ServerAnsicht, serverAnsicht } from "../daten/server-ansicht.ts";
@@ -20,18 +14,18 @@ import { zeitpunkt } from "../format/zeit.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { InstallationsListe } from "../seiten/installations-liste.tsx";
 import { agentText, pruefText } from "../seiten/server-texte.ts";
+import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { Messer } from "../teile/balken.tsx";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
-import { Ereignisliste, Pruefzeile } from "../teile/listen.tsx";
+import { Pruefzeile } from "../teile/listen.tsx";
 import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ArtZeichen, artIcon, ServerZeichen, Zustand } from "../teile/zeichen.tsx";
 
 /**
- * One server: its facts from the agent (BAULISTE.md Z-304), maintenance, installations and events.
- * The server comes from the Zentrale (src/daten/server.ts); load, the checks, the reboot job and
- * the installations still from the demo data by id until their items, so a server of the Zentrale
- * shows its facts and none of those yet.
+ * One server: its facts from the agent (BAULISTE.md Z-304), maintenance, and its installations and
+ * events from the Zentrale (Z-406). Load, the checks and the reboot job come with Z-701 and Z-702;
+ * until then only the demo shows them.
  */
 
 const Kopf = (props: { b: Bestand; a: ServerAnsicht }) => (
@@ -52,7 +46,11 @@ const Kopf = (props: { b: Bestand; a: ServerAnsicht }) => (
   </div>
 );
 
-const Auslastung = (props: { b: Bestand; a: ServerAnsicht }) => (
+type Hier = { b: Bestand; a: ServerAnsicht; installationen: InstallationAnsicht[] };
+
+const apps = (h: Hier) => h.installationen.map((i) => i.app);
+
+const Auslastung = (props: Hier) => (
   <Karte>
     <KartenKopf
       titel={m.server_auslastung()}
@@ -87,7 +85,7 @@ const Auslastung = (props: { b: Bestand; a: ServerAnsicht }) => (
         {(gb) => (
           <p class="text-xs text-muted-foreground">
             {m.server_ram_vergeben({
-              vergeben: Math.round(ramVergebenMb(props.b, props.a.id) / 1024),
+              vergeben: Math.round(ramDerMb(props.b, apps(props)) / 1024),
               gesamt: gb(),
             })}
           </p>
@@ -167,8 +165,8 @@ const System = (props: { b: Bestand; a: ServerAnsicht }) => (
   </Karte>
 );
 
-const Wartung = (props: { b: Bestand; a: ServerAnsicht }) => {
-  const sperren = () => sperrzeitenAuf(props.b, props.a.id);
+const Wartung = (props: Hier) => {
+  const sperren = () => sperrzeitenDer(props.b, apps(props));
   const geplant = () => props.b.auftraege.find((a) => a.id === props.a.demo?.neustart?.auftrag);
   return (
     <Karte>
@@ -269,39 +267,48 @@ const Pruefungen = (props: { b: Bestand; sv: Server; still: boolean }) => (
 
 const Detail = (props: { a: ServerAnsicht }) => {
   const b = bestand();
-  const installationen = () => installationenAuf(b, props.a.id);
-  const ids = () => new Set([props.a.id, ...installationen().map((i) => i.id)]);
+  const antwort = createMemo(() => uebersichtLaden());
+  const installationen = () => {
+    const a = antwort();
+    return a.ok ? aufServer(a.daten.installationen, props.a.id) : [];
+  };
+  const ziele = () => [
+    `server:${props.a.id}`,
+    ...installationen().map((i) => `installation:${i.id}`),
+  ];
   // A silent agent's last values are no check: no OK and no warning, as on the installation page
   const still = () => props.a.agent.zustand !== "verbunden";
   return (
     <div class="grid gap-4">
       <Kopf b={b} a={props.a} />
-      <div class="grid gap-4 lg:grid-cols-3">
-        <Auslastung b={b} a={props.a} />
-        <System b={b} a={props.a} />
-        <Wartung b={b} a={props.a} />
-      </div>
-      <Show when={props.a.demo}>{(d) => <Pruefungen b={b} sv={d()} still={still()} />}</Show>
-      <div class="grid gap-4 lg:grid-cols-2">
-        <Karte>
-          <KartenKopf
-            titel={m.nav_installationen()}
-            text={m.server_installationen_text({
-              n: installationen().length,
-              kunden: kundenAuf(b, props.a.id).length,
-            })}
-          />
-          <KartenInhalt>
-            <InstallationsListe installationen={installationen()} zeige="kunde" />
-          </KartenInhalt>
-        </Karte>
-        <Karte>
-          <KartenKopf titel={m.nav_ereignisse()} />
-          <KartenInhalt>
-            <Ereignisliste ereignisse={b.ereignisse.filter((e) => betrifft(e.ziel, ids()))} />
-          </KartenInhalt>
-        </Karte>
-      </div>
+      <Loading fallback={<p class="text-muted-foreground">{m.server_laden()}</p>}>
+        <div class="grid gap-4 lg:grid-cols-3">
+          <Auslastung b={b} a={props.a} installationen={installationen()} />
+          <System b={b} a={props.a} />
+          <Wartung b={b} a={props.a} installationen={installationen()} />
+        </div>
+        <Show when={props.a.demo}>{(d) => <Pruefungen b={b} sv={d()} still={still()} />}</Show>
+        <div class="grid gap-4 lg:grid-cols-2">
+          <Karte>
+            <KartenKopf
+              titel={m.nav_installationen()}
+              text={m.server_installationen_text({
+                n: installationen().length,
+                kunden: einmal(installationen().map((i) => i.kundeId)).length,
+              })}
+            />
+            <KartenInhalt>
+              <InstallationsListe installationen={installationen()} zeige="kunde" />
+            </KartenInhalt>
+          </Karte>
+          <Karte>
+            <KartenKopf titel={m.nav_ereignisse()} />
+            <KartenInhalt class="grid gap-4">
+              <ZielEreignisse ziele={ziele()} />
+            </KartenInhalt>
+          </Karte>
+        </div>
+      </Loading>
       <Show when={props.a.demo}>{(d) => <Neustart sv={d()} />}</Show>
     </div>
   );

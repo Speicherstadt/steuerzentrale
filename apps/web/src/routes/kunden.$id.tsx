@@ -2,17 +2,12 @@ import { Button, Icon, m } from "@steuerzentrale/ui";
 import { CalendarX, Pencil, Undo2 } from "@steuerzentrale/ui/icons";
 import { createFileRoute, useNavigate } from "@tanstack/solid-router";
 import { createMemo, createSignal, Loading, Match, refresh, Show, Switch } from "solid-js";
-import {
-  betrifft,
-  installationenVon,
-  loeschungAm,
-  monatVon,
-  serverVonKunde,
-  supportMinuten,
-} from "../daten/ableitungen.ts";
+import { loeschungAm, monatVon, supportMinuten } from "../daten/ableitungen.ts";
+import { desKunden, einmal } from "../daten/installation-ansicht.ts";
+import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { kundenQuelle } from "../daten/kunden.ts";
-import { bestand } from "../daten/quelle.ts";
-import type { Bestand, Ereignis, Kunde } from "../daten/typen.ts";
+import { bestand, mitDemo } from "../daten/quelle.ts";
+import type { Bestand, Kunde } from "../daten/typen.ts";
 import { minuten } from "../format/zahl.ts";
 import { datum } from "../format/zeit.ts";
 import { slaName, slaText, welleName } from "../rahmen/texte.ts";
@@ -24,36 +19,15 @@ import {
   KundeAendern,
   KundeKuendigen,
 } from "../seiten/kunden-dialoge.tsx";
+import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { Angaben, Hinweisbox, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
-import { Ereignisliste } from "../teile/listen.tsx";
 import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
 import { Marke } from "../teile/zeichen.tsx";
 
 /**
- * One customer: contract, contact, installations, events and support accesses (Z-801, Z-802).
- * The customer comes from the Zentrale (src/daten/kunden.ts); its installations, events and
- * accesses still come from the demo data until Z-406, so a customer of the Zentrale has none yet.
+ * One customer: contract, contact, its installations and their events (Z-801, Z-406), all from the
+ * Zentrale. Support accesses come with Z-802; until then only the demo counts their minutes.
  */
-
-/** Events of the customer's installations and their support accesses, newest first */
-const verlauf = (b: Bestand, k: Kunde): Ereignis[] => {
-  const ids = new Set(installationenVon(b, k.id).map((i) => i.id));
-  const zugaenge: Ereignis[] = b.zugaenge
-    .filter((z) => ids.has(z.installation))
-    .map((z) => ({
-      zeit: z.start,
-      schwere: "info",
-      ziel: { art: "installation", id: z.installation },
-      text: m.kunde_zugang({
-        wer: z.wer,
-        dauer: z.restMinuten === undefined ? minuten(z.minuten) : m.kunde_zugang_aktiv(),
-        grund: z.grund,
-      }),
-    }));
-  return [...b.ereignisse.filter((e) => betrifft(e.ziel, ids)), ...zugaenge].sort(
-    (x, y) => y.zeit - x.zeit,
-  );
-};
 
 const initialen = (name: string) =>
   name
@@ -147,7 +121,9 @@ const VertragsKarte = (props: { b: Bestand; k: Kunde }) => (
           },
           {
             name: m.kunde_support_monat(),
-            wert: minuten(supportMinuten(props.b, props.k.id, monatVon(props.b.jetzt))),
+            wert: mitDemo()
+              ? minuten(supportMinuten(props.b, props.k.id, monatVon(props.b.jetzt)))
+              : m.kommt_mit({ punkt: "Z-802" }),
           },
         ]}
       />
@@ -214,7 +190,11 @@ const Dialoge = (props: {
 const Detail = (props: { k: Kunde; gespeichert: () => void }) => {
   const b = bestand();
   const [offen, setOffen] = createSignal<Offen>();
-  const installationen = () => installationenVon(b, props.k.id);
+  const antwort = createMemo(() => uebersichtLaden());
+  const installationen = () => {
+    const a = antwort();
+    return a.ok ? desKunden(a.daten.installationen, props.k.id) : [];
+  };
   return (
     <div class="grid gap-4">
       <Kopf k={props.k} oeffne={setOffen} />
@@ -232,24 +212,26 @@ const Detail = (props: { k: Kunde; gespeichert: () => void }) => {
         <VertragsKarte b={b} k={props.k} />
         <KontaktKarte k={props.k} />
       </div>
-      <Karte>
-        <KartenKopf
-          titel={m.nav_installationen()}
-          text={m.kunde_installationen_text({
-            n: installationen().length,
-            server: serverVonKunde(b, props.k.id).length,
-          })}
-        />
-        <KartenInhalt>
-          <InstallationsListe installationen={installationen()} zeige="app" />
-        </KartenInhalt>
-      </Karte>
-      <Karte>
-        <KartenKopf titel={m.kunde_verlauf()} text={m.kunde_verlauf_text()} />
-        <KartenInhalt>
-          <Ereignisliste ereignisse={verlauf(b, props.k)} />
-        </KartenInhalt>
-      </Karte>
+      <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
+        <Karte>
+          <KartenKopf
+            titel={m.nav_installationen()}
+            text={m.kunde_installationen_text({
+              n: installationen().length,
+              server: einmal(installationen().map((i) => i.serverId)).length,
+            })}
+          />
+          <KartenInhalt>
+            <InstallationsListe installationen={installationen()} zeige="app" />
+          </KartenInhalt>
+        </Karte>
+        <Karte>
+          <KartenKopf titel={m.kunde_verlauf()} text={m.kunde_verlauf_text()} />
+          <KartenInhalt class="grid gap-4">
+            <ZielEreignisse ziele={installationen().map((i) => `installation:${i.id}`)} />
+          </KartenInhalt>
+        </Karte>
+      </Loading>
       <Dialoge k={props.k} offen={offen()} oeffne={setOffen} gespeichert={props.gespeichert} />
     </div>
   );

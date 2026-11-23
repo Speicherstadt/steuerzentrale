@@ -1,7 +1,8 @@
 /*
  * What the pages read: the operator's servers, installations, customers and what happens to them
- * (docs/plan.md, "Datenmodell"), and the manifests of the apps. Today the demo fixtures in
- * src/demo/ fill these types; Z-406 fills them from the API. Instants are UTC milliseconds (CLAUDE.md,
+ * (docs/plan.md, "Datenmodell"), and the manifests of the apps, as the demo fixtures in src/demo/
+ * hold them. Signed in, the pages read the API's own shapes from the sources in src/daten/ (Z-406);
+ * these types stay for `dev:demo` and what has no API yet. Instants are UTC milliseconds (CLAUDE.md,
  * "Times"); local times of day (maintenance windows) are written "HH:MM" in Europe/Berlin.
  */
 
