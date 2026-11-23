@@ -204,7 +204,7 @@ describe.skipIf(!bereit)("backups of the example app into MinIO (Z-601)", () => 
       ["befehl:export", true],
     ]);
     const s = snapshots(amRunner(K), PASSWORT);
-    expect(s.map((x) => [x.host, x.tags, x.id]).sort()).toEqual(
+    expect(s.map((x) => [x.hostname, x.tags, x.id]).sort()).toEqual(
       teile.map((t) => [K, [t.tag], t.snapshot]).sort(),
     );
     const export_ = resticAlsRunner(amRunner(K), PASSWORT, [

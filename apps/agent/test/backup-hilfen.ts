@@ -128,7 +128,13 @@ export const resticAlsRunner = (
   return { code: l.exitCode ?? -1, aus: l.stdout.toString(), fehler: l.stderr.toString() };
 };
 
-export type Snapshot = { id: string; time: string; host: string; tags?: string[]; paths: string[] };
+export type Snapshot = {
+  id: string;
+  time: string;
+  hostname: string;
+  tags?: string[];
+  paths: string[];
+};
 
 /** The repository's snapshots, as `snapshots --json` lists them */
 export const snapshots = (repository: string, passwort: string): Snapshot[] => {
