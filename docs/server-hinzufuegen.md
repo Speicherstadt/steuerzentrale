@@ -78,7 +78,9 @@ Minuten erlaubt; eine IPv6-Adresse zählt mit ihrem ganzen /64.
 | `/api/v1/agent/verbindung` | die Verbindung des Agenten (WebSocket, nur mit Client-Zertifikat) |
 
 Die Dateien liegen in einem Verzeichnis, das `STEUERZENTRALE_AGENT_DATEIEN` nennt: `install.sh`,
-`minisign.pub`, die beiden Binaries, `SHA256SUMS` und `SHA256SUMS.minisig`.
+`minisign.pub`, die beiden Binaries, `SHA256SUMS` und `SHA256SUMS.minisig`, dazu `VERSION` mit der
+Version der Binaries, auf die die Zentrale ältere Agenten bringt ([Updates des
+Agenten](agent-updates.md); `VERSION` liefert sie nicht aus).
 `STEUERZENTRALE_AGENT_URL` ist die Adresse, unter der die Agenten die Zentrale erreichen
 (`https://agent.<domain>`); sie steht im Befehl und im Skript und ist Pflicht.
 

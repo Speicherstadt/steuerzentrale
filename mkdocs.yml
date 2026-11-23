@@ -72,6 +72,7 @@ nav:
       - Pforte: pforte.md
       - Manifeste und Versionen: manifeste.md
       - Updates: updates.md
+      - Updates des Agenten: agent-updates.md
       - Backups: backups.md
   - Für App-Entwickler:
       - Manifest: manifest.md

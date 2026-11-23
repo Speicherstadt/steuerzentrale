@@ -116,6 +116,14 @@ const MAX_FEHLER = 2000;
 const bestaetigt = (auftragId: string) =>
   schreiben(Bestaetigt, { typ: "bestaetigt", protokoll: PROTOKOLL_VERSION, auftragId });
 
+/** The lines of a log excerpt, sent before its result (docs/plan.md, "Log-Auszug") */
+const auszugSender =
+  (auftragId: string, senden: (text: string) => void) =>
+  (zeilen: string[]): void =>
+    senden(
+      schreiben(LogAuszug, { typ: "log_auszug", protokoll: PROTOKOLL_VERSION, auftragId, zeilen }),
+    );
+
 /**
  * Runs what it is given one after another: the jobs of the Pforte read its routes, check them and
  * then write (pforte/admin.ts), and a second job in between would pass the check on stale routes
@@ -264,16 +272,7 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
       const ergebnis =
         plan.art === "agent_update" && laufend.size > 1
           ? { ok: false as const, fehler: "abgelehnt: other jobs run on the agent" }
-          : await planAusfuehren(plan, n.auftragId, (zeilen) =>
-              senden(
-                schreiben(LogAuszug, {
-                  typ: "log_auszug",
-                  protokoll: PROTOKOLL_VERSION,
-                  auftragId: n.auftragId,
-                  zeilen,
-                }),
-              ),
-            );
+          : await planAusfuehren(plan, n.auftragId, auszugSender(n.auftragId, senden));
       if (plan.art === "agent_update" && ergebnis.ok) neustartFolgt = true;
       await abschliessen(stand, n.auftragId, ergebnis, senden);
       if (plan.art === "agent_update" && ergebnis.ok) deps.neustarten?.();

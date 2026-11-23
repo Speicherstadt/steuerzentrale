@@ -56,6 +56,13 @@ Version nicht gesund, nimmt der Agent sie mit diesem Backup zurück, die Wellen 
 und ein Ereignis steht da. Inhaber und Technik aktualisieren auf der Seite „Updates“ auch von Hand,
 mit Version und Grund, in einer Sperrzeit nur der Inhaber ([Updates](docs/updates.md)).
 
+**Updates des Agenten:** liegt bei der Zentrale eine neuere Version des Agenten, als ein Server meldet,
+aktualisiert sich sein Agent im Wartungsfenster des Servers, wenn dort kein anderer Auftrag offen ist:
+er lädt das Binary von seiner Zentrale, prüft Signatur und Prüfsumme wie `install.sh` und startet neu;
+meldet sich der neue Agent nicht binnen 5 Minuten bei der Zentrale, kehrt der alte zurück. Eine falsche
+Signatur oder Prüfsumme ändert nichts und wird ein Ereignis; die Zentrale versteht Agenten einer
+Protokollversion zurück ([Updates des Agenten](docs/agent-updates.md)).
+
 **Adressen und DNS:** jeder Kunde hat ein Kürzel, und der Dialog schlägt die Adresse
 `<app>.<kürzel>.<domain>` vor. Unter Einstellungen → DNS setzt der Betreiber Domain, Cloudflare-Zone und
 API-Token; der Token liegt verschlüsselt in der Zentrale, erscheint nur als „gesetzt“ und erreicht nie
