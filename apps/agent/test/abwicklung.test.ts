@@ -98,6 +98,17 @@ describe("installation_loeschen", () => {
     expect(a.sys.laeufe.some((l) => l.argv[0] === "userdel")).toBe(false);
   });
 
+  // review of #45: CLAUDE.md, "Never": delete a customer's data without a backup
+  it("deletes nothing when the manifest has parts to back up but the backup is not set up", async () => {
+    const a = einrichtungsAgent();
+    await a.empfangen();
+    expect(a.ergebnis()).toMatchObject({ ok: true });
+    await a.empfangen(loeschen());
+    expect(a.ergebnis()).toMatchObject({ ok: false, fehler: expect.stringMatching(/^abgelehnt/) });
+    expect(a.sys.nutzer.has(NUTZER)).toBe(true);
+    expect(a.sys.laeufe.some((l) => l.argv[0] === "userdel")).toBe(false);
+  });
+
   it("refuses an installation it does not know, and a region", async () => {
     const a = einrichtungsAgent();
     await a.empfangen(loeschen());

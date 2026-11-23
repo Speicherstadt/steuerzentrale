@@ -4,6 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   abwicklungen,
   auditLog,
+  auftraege,
   backupZugaenge,
   ereignisse,
   installationen,
@@ -245,6 +246,48 @@ describe("after a contract's end", () => {
         .all()
         .map((r) => r.art),
     ).toContain("loeschung_gescheitert");
+  });
+
+  // review of #45: CLAUDE.md, "Never": delete a customer's data without a backup
+  it("deletes nothing of an installation with parts to back up whose backup is not set up", async () => {
+    const u = backupUmgebung(minio);
+    uhr.ms = u.uhr.ms;
+    u.zielSetzen();
+    const id = u.laufend("gesichert");
+    const ende = tagesbeginn(u.uhr.ms, 1);
+    const k = vertragsendeSetzen(u.db, u.schreibDb, u.kontext("b1"), "k1", ende);
+    if (!k.ok) throw new Error(k.grund);
+    u.uhr.ms = fristen(ende).loeschenAb;
+    uhr.ms = u.uhr.ms;
+    // every job the Zentrale sends goes through, so only the missing backup can hold it back
+    for (let i = 0; i < 4; i++) {
+      await abwicklungRunde({ ...u.deps, fetch });
+      for (const a of u.db.select().from(auftraege).all())
+        if (a.zustand !== "erfolgreich") u.melden(a.auftragId, true);
+    }
+    expect(u.auftrag(id, ABWICKLUNG_AKTIONEN.loeschen)).toBeUndefined();
+    expect(
+      u.db
+        .select()
+        .from(ereignisse)
+        .all()
+        .map((r) => r.art),
+    ).toContain("loeschung_gescheitert");
+  });
+
+  // review of #45: a failed installation_loeschen may have taken part of it down already
+  it("cannot take the notice back once installation_loeschen ran and failed", async () => {
+    const x = await umgebung();
+    await archiviert(x);
+    x.takt(x.loeschenAb);
+    await abwicklungRunde(deps(x));
+    melden(x, BACKUP_AKTIONEN.jetzt, true);
+    melden(x, ABWICKLUNG_AKTIONEN.loeschen, false);
+    await abwicklungRunde(deps(x));
+    expect(vertragsendeSetzen(x.u.db, x.u.schreibDb, x.u.kontext("b1"), "k1", null)).toEqual({
+      ok: false,
+      grund: "loeschung_laeuft",
+    });
   });
 
   it("drops what followed the end when the notice is taken back, not once deletion began", async () => {
