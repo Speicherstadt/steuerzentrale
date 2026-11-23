@@ -9,8 +9,10 @@ import {
 /*
  * BAULISTE.md Z-601: the S3 access of an installation reaches only its own prefix. The policy is
  * checked here as data, with a small evaluator of the IAM rules it uses (Allow, `Action`,
- * `Resource` with a trailing `*`, `StringLike` on `s3:prefix`); the test against a real MinIO runs
- * in CI with the agent (apps/agent).
+ * `Resource` with a trailing `*`, `StringLike` on `s3:prefix`). Against a real MinIO the CI checks
+ * it in apps/agent/test/backup.agent.test.ts: two accesses made by the Zentrale's admin client with
+ * this policy; one backs up into its own repository, but reading, deleting or listing the other's
+ * prefix or the prefix above is denied, and the other's objects stay as they were.
  */
 
 type Anfrage = { aktion: string; bucket: string; objekt?: string; prefix?: string };

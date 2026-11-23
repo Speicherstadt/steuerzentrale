@@ -248,4 +248,8 @@ Die Admin-API von MinIO wird in den Tests der Zentrale nachgebaut
 (`apps/zentrale/src/testhilfen/minio.ts`, ein Bun-Server im Speicher): er prüft die Signatur, öffnet
 den verschlüsselten Körper mit dem Secret Key des Admins und antwortet wie MinIO. Die Playwright-Tests
 setzen ihn als S3-Ziel. Ob ein Zugang wirklich nur sein Präfix erreicht, prüft die CI gegen ein echtes
-MinIO mit dem Agenten.
+MinIO im Agent-Test (`apps/agent/test/backup.agent.test.ts`): Der Admin-Client der Zentrale legt
+zwei Zugänge A und B mit der Policy aus `packages/manifest` an. A legt mit restic sein Repository an
+und sichert dorthin; `snapshots` und `forget` auf B's Repository, ein `DELETE` auf jedes Objekt von
+B und das Auflisten von B's Präfix, des übergeordneten Präfixes und des ganzen Buckets werden
+verweigert, und B's Objekte stehen danach unverändert da.

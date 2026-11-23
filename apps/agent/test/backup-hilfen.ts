@@ -1,13 +1,18 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { RESTIC_IMAGE } from "@steuerzentrale/manifest";
+import { backupPolicy, RESTIC_IMAGE } from "@steuerzentrale/manifest";
+import { dienstkontoAnlegen } from "../../zentrale/src/modules/backups/minio.ts";
+import { sha256Hex, signieren } from "../../zentrale/src/modules/backups/sigv4.ts";
+import { zugangErzeugen } from "../../zentrale/src/modules/backups/zugaenge.ts";
 import { hostIp, type Lauf, lauf, muss } from "./pforte-hilfen.ts";
 
 /*
  * Helpers of the backup test with real Podman, systemd and MinIO (CI only, Z-601): MinIO in a
  * container of the runner, the agent's binary built and installed where the user's service finds
  * it, and restic as the runner to look into the repository and to add snapshots of an old time.
+ * An installation's own access is made by the Zentrale's admin client (modules/backups/minio.ts)
+ * with the policy of packages/manifest; S3 requests are signed by the Zentrale's SigV4.
  */
 
 /**
@@ -22,6 +27,11 @@ export const MINIO_IMAGE =
 export const MINIO_PORT = 29401;
 export const BUCKET = "sicherung";
 export const ADMIN = { schluesselId: "szadmin", geheim: `szadmin-${crypto.randomUUID()}` };
+/** The test MinIO has no region set, so it signs in its default one, as restic assumes too */
+const REGION = "us-east-1";
+const AM_RUNNER = `http://127.0.0.1:${MINIO_PORT}`;
+
+export type S3Schluessel = { schluesselId: string; geheim: string };
 
 const sudo = (...argv: string[]) => muss(["sudo", "-n", ...argv]);
 
@@ -86,12 +96,13 @@ export const agentInstallieren = (ziel: string): { pfad: string; weg: () => void
   return { pfad: ziel, weg: () => void lauf(["sudo", "-n", "rm", "-f", "--", ziel]) };
 };
 
-/** restic as the runner on the host's network, with the admin access; values only in its environment */
+/** restic as the runner on the host's network, with the admin access or another; values only in its environment */
 export const resticAlsRunner = (
   repository: string,
   passwort: string,
   args: string[],
   eingabe?: string,
+  zugang: S3Schluessel = ADMIN,
 ): Lauf => {
   const l = Bun.spawnSync(
     [
@@ -120,8 +131,8 @@ export const resticAlsRunner = (
       env: {
         ...process.env,
         RESTIC_PASSWORD: passwort,
-        AWS_ACCESS_KEY_ID: ADMIN.schluesselId,
-        AWS_SECRET_ACCESS_KEY: ADMIN.geheim,
+        AWS_ACCESS_KEY_ID: zugang.schluesselId,
+        AWS_SECRET_ACCESS_KEY: zugang.geheim,
       },
     },
   );
@@ -141,4 +152,59 @@ export const snapshots = (repository: string, passwort: string): Snapshot[] => {
   const l = resticAlsRunner(repository, passwort, ["snapshots", "--json"]);
   if (l.code !== 0) throw new Error(`restic snapshots ended with ${l.code}: ${l.fehler}`);
   return JSON.parse(l.aus) as Snapshot[];
+};
+
+/**
+ * An installation's own access to the prefix, made as the Zentrale makes it: a service account
+ * under the admin with `backupPolicy`, through `add-service-account`, keys from `zugangErzeugen`
+ */
+export const zugangAnlegen = async (name: string, praefix: string): Promise<S3Schluessel> => {
+  const { accessKey, secretKey } = zugangErzeugen();
+  const r = await dienstkontoAnlegen(
+    {
+      fetch,
+      endpunkt: AM_RUNNER,
+      region: REGION,
+      admin: { accessKey: ADMIN.schluesselId, secretKey: ADMIN.geheim },
+      jetzt: Date.now,
+    },
+    {
+      zugang: { accessKey, secretKey },
+      policy: backupPolicy(BUCKET, praefix),
+      name,
+      beschreibung: `test ${name}`,
+    },
+  );
+  if (!r.ok) throw new Error(`add-service-account for ${name}: ${r.fehler}`);
+  return { schluesselId: accessKey, geheim: secretKey };
+};
+
+/** A request to the bucket without a body, signed with the access by the Zentrale's SigV4 */
+export const s3Anfrage = async (
+  zugang: S3Schluessel,
+  methode: "GET" | "DELETE",
+  pfad: string,
+  abfrage: Record<string, string> = {},
+): Promise<{ status: number; text: string }> => {
+  const url = new URL(`${AM_RUNNER}/${BUCKET}${pfad}`);
+  for (const [k, v] of Object.entries(abfrage)) url.searchParams.set(k, v);
+  const koepfe = await signieren({
+    methode,
+    url,
+    inhaltHash: await sha256Hex(new Uint8Array(0)),
+    zugang: { accessKey: zugang.schluesselId, secretKey: zugang.geheim },
+    region: REGION,
+    jetzt: Date.now(),
+  });
+  const a = await fetch(url, { method: methode, headers: koepfe });
+  return { status: a.status, text: await a.text() };
+};
+
+/** The keys of the objects below the prefix (ListObjectsV2, one page), as the access sees them */
+export const objekte = async (praefix: string, zugang: S3Schluessel = ADMIN): Promise<string[]> => {
+  const a = await s3Anfrage(zugang, "GET", "/", { "list-type": "2", prefix: praefix });
+  if (a.status !== 200) throw new Error(`ListObjectsV2 ${praefix}: HTTP ${a.status} ${a.text}`);
+  if (a.text.includes("<IsTruncated>true</IsTruncated>"))
+    throw new Error(`ListObjectsV2 ${praefix}: more than one page`);
+  return [...a.text.matchAll(/<Key>([^<]+)<\/Key>/g)].map((m) => m[1] as string).sort();
 };

@@ -1,7 +1,13 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BACKUP_AKTIONEN, EINRICHTUNG_AKTIONEN, type Einrichtung } from "@steuerzentrale/manifest";
+import {
+  BACKUP_AKTIONEN,
+  backupPraefix,
+  backupRepository,
+  EINRICHTUNG_AKTIONEN,
+  type Einrichtung,
+} from "@steuerzentrale/manifest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AUSGABE } from "../../../scripts/beispiel-images.ts";
 import { backupMelder } from "../src/backup/melden.ts";
@@ -13,8 +19,12 @@ import {
   MINIO_PORT,
   type Minio,
   minioStarten,
+  objekte,
   resticAlsRunner,
+  type S3Schluessel,
+  s3Anfrage,
   snapshots,
+  zugangAnlegen,
 } from "./backup-hilfen.ts";
 import {
   type EchterAgent,
@@ -38,7 +48,9 @@ import { requirePodman } from "./podman.ts";
  * the production policy 7/4/6 unchanged and no variable of the agent changes it for a test. A run
  * started directly by the user's systemd, without the agent's connection, goes through; one with a
  * wrong password writes a failed stand. A second installation with a Postgres container by digest
- * backs up `pg_dump` and `befehl`. Root's part goes through sudo (einrichtung-hilfen.ts).
+ * backs up `pg_dump` and `befehl`. Root's part goes through sudo (einrichtung-hilfen.ts). Two
+ * installations' own accesses, made by the Zentrale's admin client with `backupPolicy`, show that
+ * one cannot read, delete or list outside its own prefix.
  */
 const podman = requirePodman(process.env.CI === "true");
 if (podman !== null && process.env.CI === "true" && !EINRICHTUNG_BEREIT)
@@ -349,4 +361,49 @@ describe.skipIf(!bereit)("backups of the example app into MinIO (Z-601)", () => 
     // pg_dump's custom format starts with PGDMP (pg_backup_archiver.c)
     expect(dump.aus.startsWith("PGDMP")).toBe(true);
   }, 900_000);
+
+  it("keeps an installation's own access to its prefix: another's it can neither read nor delete", async () => {
+    const praefix = (installationId: string) => {
+      const p = backupPraefix({ bucket: BUCKET, betreiberId: "b-test", installationId });
+      if (!p.ok) throw new Error(p.grund);
+      return p.praefix;
+    };
+    const [na, nb] = [`test-a${ZUFALL}`, `test-b${ZUFALL}`];
+    const [pa, pb] = [praefix(na), praefix(nb)];
+    const a = await zugangAnlegen(na, pa);
+    const b = await zugangAnlegen(nb, pb);
+    const repo = (p: string) => backupRepository(`http://127.0.0.1:${MINIO_PORT}`, BUCKET, p);
+    // one password for both repositories: what is refused, S3 refuses, not restic's key
+    const mit = (zugang: S3Schluessel, p: string, args: string[], eingabe?: string) =>
+      resticAlsRunner(repo(p), PASSWORT, args, eingabe, zugang);
+    const sichern = ["backup", "--stdin", "--stdin-filename", "probe", "--host", "probe"];
+    for (const [zugang, p] of [
+      [a, pa],
+      [b, pb],
+    ] as const) {
+      const init = mit(zugang, p, ["init"]);
+      expect(init.code === 0 ? "ok" : init.fehler).toBe("ok");
+      const backup = mit(zugang, p, sichern, "probe\n");
+      expect(backup.code === 0 ? "ok" : backup.fehler).toBe("ok");
+    }
+    const vorher = await objekte(pb);
+    expect(vorher).toContain(`${pb}config`);
+    const [snapshotB] = snapshots(repo(pb), PASSWORT);
+
+    const lesen = mit(a, pb, ["snapshots"]);
+    expect(lesen.code).not.toBe(0);
+    expect(lesen.fehler).toContain("Access Denied");
+    const vergessen = mit(a, pb, ["forget", "--prune", snapshotB?.id ?? "?"]);
+    expect(vergessen.code).not.toBe(0);
+    expect(vergessen.fehler).toContain("Access Denied");
+    for (const objekt of vorher)
+      expect((await s3Anfrage(a, "DELETE", `/${objekt}`)).status, objekt).toBe(403);
+    expect(await objekte(pb)).toEqual(vorher);
+    expect(snapshots(repo(pb), PASSWORT).map((s) => s.id)).toEqual([snapshotB?.id]);
+
+    const auflisten = (prefix: string) => s3Anfrage(a, "GET", "/", { "list-type": "2", prefix });
+    expect(await objekte(pa, a)).toContain(`${pa}config`);
+    for (const prefix of [pb, "b-test/", ""])
+      expect((await auflisten(prefix)).status, prefix).toBe(403);
+  }, 600_000);
 });
