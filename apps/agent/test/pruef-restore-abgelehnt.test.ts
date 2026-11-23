@@ -140,6 +140,24 @@ describe("a copy left by a stop of the agent", () => {
     );
   });
 
+  it("does not stop the starting agent when its record cannot be written, and is logged", async () => {
+    const a = await liegenGeblieben();
+    // the copy is torn down, but forgetting it in the record fails (a full disk, say)
+    const voll = {
+      ...a.fs,
+      dateien: {
+        ...a.fs.dateien,
+        schreiben: async () => {
+          throw new Error("ENOSPC");
+        },
+      },
+    };
+    const neu = einrichtungsAgent({}, voll, a.sys);
+    // cli.ts starts it with `void`: a rejection would end the service (Bun exits on it)
+    await expect(neu.agent.aufraeumen()).resolves.toBeUndefined();
+    expect(neu.logs.some((l) => l.includes("pruef-restore leftovers not torn down"))).toBe(true);
+  });
+
   it("is torn down before the job runs again after the restart, which then succeeds", async () => {
     const a = await liegenGeblieben();
     a.fs.inhalt.set("/z/auftraege.json", {
