@@ -2,6 +2,7 @@ import { Fakten } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { faktenLesen, uhrAbweichung } from "./lesen.ts";
 import { testQuellen } from "./testquellen.ts";
+import { ZERTIFIKATE } from "./zertifikate.ts";
 
 describe("all facts", () => {
   it("are a valid message even when nothing is readable, with null for every fact", async () => {
@@ -25,6 +26,9 @@ describe("all facts", () => {
       portsBelegt: null,
       port25Ausgehend: null,
       uhrzeitAbweichungMs: null,
+      portsOffen: null,
+      zertifikate: null,
+      uhrSynchron: null,
     });
   });
 
@@ -37,7 +41,11 @@ describe("all facts", () => {
         "/proc/mounts": "/dev/sda1 / ext4 rw 0 0\n",
         "/proc/net/tcp": "kopf\n 0: 00000000:0016 00000000:0000 0A x\n",
       },
-      befehle: { "podman --version": { code: 0, aus: "podman version 5.4.2" } },
+      befehle: {
+        "podman --version": { code: 0, aus: "podman version 5.4.2" },
+        "timedatectl show --property=NTPSynchronized --value": { code: 0, aus: "no\n" },
+      },
+      ordner: { [ZERTIFIKATE]: [] },
       maschine: () => "aarch64",
       platz: async () => ({ gesamtMb: 10, freiMb: 4 }),
       verbinden: async () => false,
@@ -52,6 +60,9 @@ describe("all facts", () => {
       podman: "5.4.2",
       port25Ausgehend: false,
       uhrzeitAbweichungMs: -40,
+      portsOffen: [{ port: 22, proto: "tcp" }],
+      zertifikate: [],
+      uhrSynchron: false,
     });
   });
 });

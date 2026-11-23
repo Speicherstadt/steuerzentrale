@@ -1,3 +1,4 @@
+import type { PruefungName, Serverpruefung } from "@steuerzentrale/planung";
 import { m } from "@steuerzentrale/ui";
 import {
   Archive,
@@ -11,9 +12,9 @@ import {
   Power,
   ShieldCheck,
 } from "@steuerzentrale/ui/icons";
-import { titel } from "../daten/ableitungen.ts";
+import type { ServerPruefung } from "../daten/server.ts";
 import type { AgentZustand, Bestand } from "../daten/typen.ts";
-import type { Pruefung } from "../daten/zustand.ts";
+import { PLATTE_STOERUNG, PLATTE_WARNUNG, type Pruefung } from "../daten/zustand.ts";
 import { prozent, zahl } from "../format/zahl.ts";
 import { vor } from "../format/zeit.ts";
 
@@ -34,13 +35,8 @@ export const agentText = (
 
 type PruefText = { icon: IconNode; name: string; detail: string };
 
-const plattenDetail = (p: Extract<Pruefung, { art: "platte" }>) =>
-  p.grenze === null
-    ? m.pruefung_platte({ prozent: prozent(p.prozent) })
-    : m.pruefung_platte_grenze({ prozent: prozent(p.prozent), grenze: prozent(p.grenze) });
-
-/** Name, icon and detail of a check, from what the agent measured */
-export const pruefText = (b: Bestand, p: Pruefung): PruefText => {
+/** Name, icon and detail of a check of the operating system (demo only until Z-701) */
+export const pruefText = (p: Pruefung): PruefText => {
   switch (p.art) {
     case "kernel":
       return {
@@ -70,33 +66,95 @@ export const pruefText = (b: Bestand, p: Pruefung): PruefText => {
         name: m.pruefung_podman(),
         detail: m.pruefung_podman_detail({ version: p.version }),
       };
-    case "platte":
-      return { icon: HardDrive, name: m.pruefung_platte_name(), detail: plattenDetail(p) };
-    case "ports":
-      return {
-        icon: Plug,
-        name: m.pruefung_ports(),
-        detail: m.pruefung_ports_detail({ ports: p.ports.join(", ") }),
-      };
-    case "zertifikate":
-      return {
-        icon: Lock,
-        name: m.pruefung_zertifikate(),
-        detail: m.pruefung_zertifikate_detail({ tage: p.tage }),
-      };
-    case "backups":
-      return {
-        icon: Archive,
-        name: m.pruefung_backups(),
-        detail: p.ok
-          ? m.pruefung_backups_ok()
-          : m.pruefung_backups_alt({ namen: p.alt.map((i) => titel(b, i)).join(", ") }),
-      };
-    case "uhrzeit":
-      return {
-        icon: Clock,
-        name: m.pruefung_uhrzeit(),
-        detail: m.pruefung_uhrzeit_detail({ ms: zahl(p.ms) }),
-      };
   }
 };
+
+/** The icon of a check of Z-702 */
+export const PRUEFUNG_ICONS: Record<PruefungName, IconNode> = {
+  platte: HardDrive,
+  zertifikate: Lock,
+  backups: Archive,
+  ports: Plug,
+  uhrzeit: Clock,
+};
+
+/** The name of a check of Z-702 in the interface's language */
+export const pruefungName = (p: PruefungName): string =>
+  ({
+    platte: m.pruefung_platte_name,
+    zertifikate: m.pruefung_zertifikate,
+    backups: m.pruefung_backups,
+    ports: m.pruefung_ports,
+    uhrzeit: m.pruefung_uhrzeit,
+  })[p]();
+
+type Ergebnis<P extends PruefungName> = Extract<Serverpruefung, { pruefung: P }>;
+
+const TAG = 86_400_000;
+
+/** The fullest disk, with the limit it is over */
+const plattenDetail = (p: Ergebnis<"platte">): string => {
+  const voll = p.platten?.[0];
+  if (!voll) return m.pruefung_unbekannt();
+  const wert = prozent(voll.prozent, voll.prozent % 1 === 0 ? 0 : 1);
+  const grenze = p.ergebnis === "rot" ? PLATTE_STOERUNG : PLATTE_WARNUNG;
+  const text =
+    p.ergebnis === "gruen"
+      ? m.pruefung_platte({ prozent: wert })
+      : m.pruefung_platte_grenze({ prozent: wert, grenze: prozent(grenze) });
+  return voll.mount === "/" ? text : m.pruefung_platte_mount({ mount: voll.mount, text });
+};
+
+/** The certificate that expires first */
+const zertifikatDetail = (p: Ergebnis<"zertifikate">, jetzt: number): string => {
+  if (!p.zertifikate) return m.pruefung_unbekannt();
+  const z = p.zertifikate[0];
+  if (!z) return m.pruefung_zertifikate_keine();
+  if (z.gueltigBis <= jetzt) return m.pruefung_zertifikate_abgelaufen({ host: z.host });
+  return m.pruefung_zertifikate_host({
+    host: z.host,
+    tage: Math.ceil((z.gueltigBis - jetzt) / TAG),
+  });
+};
+
+const uhrDetail = (p: Ergebnis<"uhrzeit">): string => {
+  const teile: string[] = [
+    ...(p.synchron === true ? [m.pruefung_uhrzeit_synchron()] : []),
+    ...(p.synchron === false ? [m.pruefung_uhrzeit_nicht_synchron()] : []),
+    ...(p.abweichungMs === null
+      ? []
+      : [m.pruefung_uhrzeit_abweichung({ ms: zahl(p.abweichungMs) })]),
+  ];
+  return teile.length > 0 ? teile.join(", ") : m.pruefung_unbekannt();
+};
+
+const portsDetail = (p: Ergebnis<"ports">): string => {
+  if (!p.fremd) return m.pruefung_unbekannt();
+  if (p.fremd.length === 0) return m.pruefung_ports_ok();
+  return m.pruefung_ports_fremd({ ports: p.fremd.map((x) => `${x.port}/${x.proto}`).join(", ") });
+};
+
+/** What a check of Z-702 measured, as one line */
+export const pruefungDetail = (p: Serverpruefung, jetzt: number): string => {
+  switch (p.pruefung) {
+    case "platte":
+      return plattenDetail(p);
+    case "zertifikate":
+      return zertifikatDetail(p, jetzt);
+    case "backups":
+      return p.alt.length === 0
+        ? m.pruefung_backups_ok()
+        : m.pruefung_backups_alt({ namen: p.alt.map((i) => i.name).join(", ") });
+    case "ports":
+      return portsDetail(p);
+    case "uhrzeit":
+      return uhrDetail(p);
+  }
+};
+
+/** Name, icon and detail of a check of Z-702, from what the Zentrale rated */
+export const serverPruefungText = (p: ServerPruefung, jetzt: number): PruefText => ({
+  icon: PRUEFUNG_ICONS[p.pruefung],
+  name: pruefungName(p.pruefung),
+  detail: pruefungDetail(p, jetzt),
+});

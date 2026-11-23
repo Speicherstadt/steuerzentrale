@@ -102,6 +102,17 @@ describe("pages", () => {
     expect(schweren).toEqual([...schweren].sort((a, b) => a - b));
   });
 
+  // Z-702: a check red over 90 % disk is a fault, leading to its server
+  it("name a server's check on the overview, leading to the server", async () => {
+    const root = await oeffne("/");
+    const eintrag = [...root.querySelectorAll<HTMLAnchorElement>("main ul li a")].find((a) =>
+      a.textContent?.includes("Platte: 91 % belegt (Grenze 90 %)"),
+    );
+    expect(eintrag?.textContent).toContain("Studio Lind");
+    expect(eintrag?.querySelector("svg")?.getAttribute("aria-label")).toBe("Störung");
+    expect(eintrag?.getAttribute("href")).toBe("/server/lind");
+  });
+
   it("show all eight apps on the apps page, and an app only imported (Z-501)", async () => {
     const root = await oeffne("/apps");
     const namen = [...root.querySelectorAll("main section h2")].map((h) => h.textContent);
@@ -262,6 +273,47 @@ describe("servers of the Zentrale", () => {
     ])
       expect(text).toContain(teil);
     expect(text).not.toContain("Prüfungen");
+  });
+
+  // Z-702: the checks the Zentrale rated, each with what it measured; unknown is neither OK nor
+  // "Prüfen"
+  it("show the checks of the Zentrale on the server page", async () => {
+    const mitPruefungen: ServerDerZentrale = {
+      ...mitFakten,
+      serverId: "s-pruefungen",
+      pruefungen: [
+        { pruefung: "platte", ergebnis: "gelb", platten: [{ mount: "/", prozent: 85.5 }], seit: 1 },
+        { pruefung: "zertifikate", ergebnis: "unbekannt", zertifikate: null, seit: null },
+        { pruefung: "backups", ergebnis: "gruen", alt: [], seit: null },
+        {
+          pruefung: "ports",
+          ergebnis: "gelb",
+          fremd: [{ port: 5432, proto: "tcp" }],
+          seit: null,
+        },
+        { pruefung: "uhrzeit", ergebnis: "gruen", abweichungMs: 12, synchron: true, seit: null },
+      ],
+    };
+    serverQuelleEinsetzen({
+      ...serverQuelle(),
+      server: async () => ({ ok: true, status: 200, daten: mitPruefungen }),
+    });
+    const root = await oeffne("/server/s-pruefungen");
+    flush();
+    await new Promise((fertig) => setTimeout(fertig, 0));
+    const karte = [...root.querySelectorAll("section")].find((s) =>
+      s.querySelector("h2")?.textContent?.includes("Prüfungen"),
+    );
+    const text = karte?.textContent ?? "";
+    for (const teil of [
+      "Platte85,5 % belegt (Grenze 80 %)Prüfen",
+      "Zertifikatenicht gemessen",
+      "Backupsalle jünger als 26 hOK",
+      "Offene Ports5432/tcp: in keinem ManifestPrüfen",
+      "UhrzeitNTP synchron, Abweichung 12 msOK",
+    ])
+      expect(text).toContain(teil);
+    expect(text).not.toContain("Kernel");
   });
 
   it("say unknown where the agent reported nothing, and 404 for a server that is not there", async () => {

@@ -1,62 +1,84 @@
-import { installationenAuf, istGekuendigt } from "./ableitungen.ts";
-import type { Bestand, Installation, Server } from "./typen.ts";
+import {
+  PLATTE_STOERUNG_PROZENT,
+  PLATTE_WARNUNG_PROZENT,
+  type Serverpruefung,
+  serverPruefen,
+  ZERTIFIKAT_FRIST_MS,
+} from "@steuerzentrale/planung";
+import { installationenAuf, istGekuendigt, titel } from "./ableitungen.ts";
+import type { Bestand, Server } from "./typen.ts";
 
 /*
- * The checks of a server (demo only until Z-702) and the sidebar counters, as data; the pages turn
- * them into text; what needs attention comes from the Zentrale (GET /api/v1/uebersicht). Limits
- * from BAULISTE.md, Z-702: disk over 80/90 %, a certificate within 14 days, a backup older than 26 h.
+ * The checks of a server and the sidebar counters, as data; the pages turn them into text; what
+ * needs attention comes from the Zentrale (GET /api/v1/uebersicht). The checks of Z-702 (disk,
+ * certificates, backups, open ports, clock) come from the Zentrale's API with the limits of
+ * packages/planung; the demo computes them with the same function from its values. Kernel, updates,
+ * reboot and Podman stay demo only until Z-701.
  */
 
-export const PLATTE_WARNUNG = 80;
-export const PLATTE_STOERUNG = 90;
-export const ZERTIFIKAT_TAGE = 14;
-const UHR_GRENZE_MS = 500;
+export const PLATTE_WARNUNG = PLATTE_WARNUNG_PROZENT;
+export const PLATTE_STOERUNG = PLATTE_STOERUNG_PROZENT;
+const TAG = 86_400_000;
+export const ZERTIFIKAT_TAGE = ZERTIFIKAT_FRIST_MS / TAG;
 
 export type Pruefung =
   | { art: "kernel"; ok: boolean; laeuft: string; installiert: string }
   | { art: "sicherheitsupdates"; ok: boolean; anzahl: number }
   | { art: "neustart"; ok: boolean; wartung: string }
-  | { art: "podman"; ok: true; version: string }
-  | { art: "platte"; ok: boolean; prozent: number; grenze: number | null }
-  | { art: "ports"; ok: true; ports: string[] }
-  | { art: "zertifikate"; ok: boolean; tage: number }
-  | { art: "backups"; ok: boolean; alt: Installation[] }
-  | { art: "uhrzeit"; ok: boolean; ms: number };
+  | { art: "podman"; ok: true; version: string };
 
-const grenzeVon = (prozent: number) =>
-  prozent >= PLATTE_STOERUNG ? PLATTE_STOERUNG : prozent >= PLATTE_WARNUNG ? PLATTE_WARNUNG : null;
+/** The checks of the operating system the demo shows, until Z-701 */
+export const pruefungen = (sv: Server): Pruefung[] => [
+  { art: "kernel", ok: sv.kernel.laeuft === sv.kernel.installiert, ...sv.kernel },
+  { art: "sicherheitsupdates", ok: sv.sicherheitsupdates === 0, anzahl: sv.sicherheitsupdates },
+  { art: "neustart", ok: !sv.neustart, wartung: sv.wartung.von },
+  { art: "podman", ok: true, version: sv.podman },
+];
 
-/** The checks the agent runs on a server, every five minutes */
-export const pruefungen = (b: Bestand, sv: Server): Pruefung[] => {
-  const installationen = installationenAuf(b, sv.id);
-  const ports = installationen.flatMap((i) => b.apps.find((a) => a.id === i.app)?.ports ?? []);
-  const alt = installationen.filter((i) => !i.backup.ok);
-  return [
-    { art: "kernel", ok: sv.kernel.laeuft === sv.kernel.installiert, ...sv.kernel },
-    { art: "sicherheitsupdates", ok: sv.sicherheitsupdates === 0, anzahl: sv.sicherheitsupdates },
-    { art: "neustart", ok: !sv.neustart, wartung: sv.wartung.von },
-    { art: "podman", ok: true, version: sv.podman },
-    {
-      art: "platte",
-      ok: sv.platte < PLATTE_WARNUNG,
-      prozent: sv.platte,
-      grenze: grenzeVon(sv.platte),
+/**
+ * The checks of Z-702 for a demo server, as the Zentrale computes them (packages/planung): its disk
+ * as a root of 1000 MiB with its share in use, one certificate per installation with its days
+ * left, the last good backup of each installation, SSH and the Pforte open, its clock in sync
+ */
+export const pruefungenDerDemo = (b: Bestand, sv: Server): Serverpruefung[] => {
+  const installationen = installationenAuf(b, sv.id).filter((i) => !istGekuendigt(b, i));
+  return serverPruefen({
+    jetzt: b.jetzt,
+    fakten: {
+      am: b.jetzt,
+      platten: [{ mount: "/", gesamtMb: 1000, freiMb: 1000 - sv.platte * 10 }],
+      portsOffen: [22, 80, 443].map((port) => ({ port, proto: "tcp" as const })),
+      zertifikate: installationen.map((i) => ({
+        host: i.adresse,
+        gueltigBis: b.jetzt + sv.zertifikatTage * TAG,
+      })),
+      uhrzeitAbweichungMs: sv.uhrAbweichungMs,
+      uhrSynchron: true,
     },
-    { art: "ports", ok: true, ports: [...new Set(["80", "443", ...ports])] },
-    { art: "zertifikate", ok: sv.zertifikatTage > ZERTIFIKAT_TAGE, tage: sv.zertifikatTage },
-    { art: "backups", ok: alt.length === 0, alt },
-    { art: "uhrzeit", ok: sv.uhrAbweichungMs < UHR_GRENZE_MS, ms: sv.uhrAbweichungMs },
-  ];
+    hosts: installationen.map((i) => i.adresse),
+    erlaubtePorts: [],
+    backups: installationen.map((i) => ({
+      installationId: i.id,
+      name: titel(b, i),
+      letzterErfolg: i.backup.zeitpunkt,
+      eingerichtetAm: i.backup.zeitpunkt,
+    })),
+  });
 };
+
+/** Whether a check of Z-702 needs a look: yellow or red */
+export const auffaellig = (p: Pick<Serverpruefung, "ergebnis">): boolean =>
+  p.ergebnis === "gelb" || p.ergebnis === "rot";
 
 export type ServerZustand = "ok" | "neustart" | "platte" | "pruefen" | "agent";
 
 /** One word for a server: the worst of agent, disk, reboot and the other checks */
 export const serverZustand = (b: Bestand, sv: Server): ServerZustand => {
   if (sv.agent.zustand !== "verbunden") return "agent";
-  if (sv.platte >= PLATTE_STOERUNG) return "platte";
+  const z702 = pruefungenDerDemo(b, sv);
+  if (z702.some((p) => p.pruefung === "platte" && p.ergebnis === "rot")) return "platte";
   if (sv.neustart) return "neustart";
-  return pruefungen(b, sv).every((p) => p.ok) ? "ok" : "pruefen";
+  return pruefungen(sv).every((p) => p.ok) && !z702.some(auffaellig) ? "ok" : "pruefen";
 };
 
 /** The counters of the sidebar: only where there is something to do (DESIGN.md, "Bausteine") */

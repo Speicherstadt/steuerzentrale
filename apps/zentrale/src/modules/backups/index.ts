@@ -9,6 +9,7 @@ export {
 export {
   type BackupAusgeloest,
   backupEingerichtet,
+  backupEingerichtetAm,
   backupJetzt,
 } from "./auftraege.ts";
 export { backupFeldFuer } from "./feld.ts";
@@ -18,6 +19,7 @@ export {
   backupUebersicht,
   LAEUFE_MAX,
   type Lauf,
+  letzterErfolg,
   type Teil,
   type UebersichtZeile,
 } from "./lesen.ts";

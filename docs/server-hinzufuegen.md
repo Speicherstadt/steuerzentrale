@@ -165,13 +165,17 @@ startet nur Befehle mit festen Argumenten, keine Shell:
 | IPv4, IPv6 | die Adressen der Netzwerkschnittstellen ohne Loopback, Link-Local und Podmans Netze |
 | PTR | Rückwärtsauflösung jeder öffentlichen Adresse |
 | belegte Ports | `/proc/net/tcp`, `tcp6`, `udp`, `udp6` |
+| offene Ports | dieselben Tabellen, ohne Loopback und Podmans Brücken ([Prüfungen](pruefungen.md)) |
+| Zertifikate | Ende jedes Zertifikats der Pforte, aus Caddys Speicher im Volume `sz-pforte-daten` |
 | ausgehender Port 25 | eine TCP-Verbindung zu `gmail-smtp-in.l.google.com:25`, höchstens 5 Sekunden, ohne SMTP |
 | Uhrzeit | Abweichung von der Uhr der Zentrale, gemessen an `willkommen` |
+| Zeitdienst synchron | `timedatectl show --property=NTPSynchronized --value` |
 
 Die Zentrale zeigt die neuesten Fakten am Server (Oberfläche und `GET /api/v1/server`) und bewahrt
-ihren Verlauf 30 Tage auf. Die Platzierung rechnet mit genau diesen Werten; als Platte zählt die,
-auf der die Home-Verzeichnisse der Installationen liegen. Zum Nachsehen auf dem Server zeigt
-`steuerzentrale-agent fakten` dieselben Fakten.
+ihren Verlauf 30 Tage auf. Die Platzierung und die [Prüfungen](pruefungen.md) rechnen mit genau
+diesen Werten; für die Platzierung zählt als Platte die, auf der die Home-Verzeichnisse der
+Installationen liegen. Zum Nachsehen auf dem Server zeigt `steuerzentrale-agent fakten` dieselben
+Fakten.
 
 ### SSH-Anmeldungen
 

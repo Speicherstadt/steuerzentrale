@@ -181,6 +181,7 @@ export {
   ramBedarf,
   WARNSCHWELLE,
 } from "./platzierung.ts";
+export { type OffenerPort, veroeffentlichtePorts } from "./ports.ts";
 export { LABEL as QUADLET_LABEL } from "./quadlet/container.ts";
 export { HOST, INSTALLATIONS_NAME } from "./quadlet/eingabe.ts";
 export { type PforteRoute, STREAM_SCHLIESSEN_NACH } from "./quadlet/pforte.ts";

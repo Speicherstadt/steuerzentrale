@@ -1,6 +1,7 @@
 import { TRENNUNG } from "@steuerzentrale/protokoll";
 import { z } from "zod";
 import { kundeLesen } from "../modules/kunden/index.ts";
+import { pruefungenLesen } from "../modules/pruefungen/index.ts";
 import {
   ARTEN,
   letzteHeartbeats,
@@ -108,7 +109,11 @@ export const serverRouten = (route: Registrar, deps: RoutenDeps): void => {
     const serverId = c.req.param("serverId") ?? "";
     const sv = serverLesen(deps.db, betreiberId, serverId);
     if (!sv) return c.json({ fehler: "kein_server" }, 404);
-    return c.json(antwort(sv, letzteHeartbeats(deps.db, betreiberId, serverId).get(serverId)));
+    return c.json({
+      ...antwort(sv, letzteHeartbeats(deps.db, betreiberId, serverId).get(serverId)),
+      // its checks (Z-702), only on its own page: each reads its installations and backups
+      pruefungen: pruefungenLesen(deps.db, sv, deps.now()),
+    });
   });
 
   // Revoking (Z-303): the certificate is refused from now on, and a running connection ends now

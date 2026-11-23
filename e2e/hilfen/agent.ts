@@ -97,6 +97,12 @@ const fakten = (zeit: number) => ({
   portsBelegt: [{ port: 443, proto: "tcp" }],
   port25Ausgehend: false,
   uhrzeitAbweichungMs: 12,
+  portsOffen: [
+    { port: 22, proto: "tcp" },
+    { port: 443, proto: "tcp" },
+  ],
+  zertifikate: [],
+  uhrSynchron: true,
 });
 
 /** What the stand-in agent reads from the journal of every installation */
@@ -212,7 +218,7 @@ const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   if (host?.startsWith("laeuft")) ws.send(ergebnis(auftragId, { ok: true, daten: {} }));
 };
 
-const verbinden = (zertifikat: string): Promise<WebSocket> =>
+const verbinden = (zertifikat: string, anders: Record<string, unknown> = {}): Promise<WebSocket> =>
   new Promise((bereit, fehler) => {
     const ws = new NodeWebSocket(`ws://${ZENTRALE}/api/v1/agent/verbindung`, {
       headers: { [FINGERABDRUCK_HEADER]: fingerabdruck(zertifikat) },
@@ -230,7 +236,7 @@ const verbinden = (zertifikat: string): Promise<WebSocket> =>
     ws.onmessage = (event) => {
       const n = JSON.parse(String(event.data)) as Nachricht;
       if (n.typ === "willkommen") {
-        ws.send(JSON.stringify(fakten(Date.now())));
+        ws.send(JSON.stringify({ ...fakten(Date.now()), ...anders }));
         bereit(ws);
       }
       if (n.typ === "auftrag") auftragNehmen(ws, n);
@@ -238,13 +244,17 @@ const verbinden = (zertifikat: string): Promise<WebSocket> =>
     ws.onerror = () => fehler(new Error("the agent's connection failed"));
   });
 
-/** A shared server of the first owner's operator whose agent is connected and reported its facts */
+/**
+ * A shared server of the first owner's operator whose agent is connected and reported its facts;
+ * `anders` replaces some of them (Z-702: a full disk, a port no manifest names)
+ */
 export const agentVerbinden = async (
   request: APIRequestContext,
   name: string,
+  anders: Record<string, unknown> = {},
 ): Promise<TestAgent> => {
   const server = await serverAnlegen(request, name);
-  const ws = await verbinden(await beitreten(server.befehl));
+  const ws = await verbinden(await beitreten(server.befehl), anders);
   await expect
     .poll(async () => {
       const s = await request.get(`/api/v1/server/${server.serverId}`);
