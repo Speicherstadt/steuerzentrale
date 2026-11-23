@@ -162,6 +162,7 @@ export const VersandFormular = (props: { b: Benachrichtigungen; gespeichert: () 
       <div class="grid gap-4 sm:grid-cols-2">
         <Input
           label={m.melden_ruhe_von()}
+          // i18n-ignore: the form field name aenderung() reads, no text
           name="von"
           type="time"
           value={props.b.ruhezeit?.von ?? ""}
