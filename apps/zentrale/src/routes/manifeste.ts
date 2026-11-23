@@ -6,7 +6,7 @@ import {
   manifestImportieren,
   manifestLesen,
 } from "../modules/manifeste/index.ts";
-import { type AppVersion, angeboteFuer, appsUebersicht } from "../modules/versionen/index.ts";
+import { type AppVersion, appsUebersicht } from "../modules/versionen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
@@ -126,8 +126,4 @@ export const manifesteRouten = (route: Registrar, deps: RoutenDeps): void => {
     await deps.versionen.abfragen();
     return c.json({ apps: apps(c.get("betreiberId")) });
   });
-
-  route("GET /api/v1/updates", (c) =>
-    c.json({ installationen: angeboteFuer(deps.db, c.get("betreiberId")) }),
-  );
 };

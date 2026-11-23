@@ -15,8 +15,8 @@ import { auftragsUmgebung } from "./auftraege.ts";
  * (testhilfen/manifeste/), the key install.sh hands the agents in tests; `gesperrt` is `probe`
  * with a freeze window (Z-404), `aktionen` with "nur lesen" and without restart (Z-405),
  * `gesichert` with two parts to back up (Z-601), the versions of probe of Z-501 (testhilfen/
- * manifeste.ts). An installation is made from an imported manifest (Z-501): `bereit` imports one,
- * and since the variants of probe are all version 1.0.0, a test imports only the one it installs.
+ * manifeste.ts), the newer versions of `gesichert` an update goes to (`update-…`, Z-503). An
+ * installation is made from an imported manifest (Z-501): `bereit` imports one, and since the variants of probe are all version 1.0.0, a test imports only the one it installs.
  */
 const ORDNER = join(import.meta.dirname, "manifeste");
 const REPO = join(import.meta.dirname, "../../../..");
@@ -35,6 +35,12 @@ export type Testmanifest =
   | "probe-2.0.0"
   | "probe-anders"
   | "probe-01.0.0"
+  | "update-1.3.0"
+  | "update-pflicht"
+  | "update-ohne-health"
+  | "update-dringend"
+  | "update-teile"
+  | "update-neuer-teil"
   | "kaputt";
 
 export const signiert = (app: Testmanifest) => ({

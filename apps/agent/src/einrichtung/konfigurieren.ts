@@ -4,13 +4,8 @@ import { type Lauf, laeufer } from "./lauf.ts";
 import { neustarten } from "./neustarten.ts";
 import { alsNutzer, type Nutzer } from "./nutzer.ts";
 import { secretsLesen } from "./secrets.ts";
-import {
-  gelungen,
-  gescheitert,
-  type Konfigurieren,
-  type Schrittergebnis,
-  type SystemDeps,
-} from "./typen.ts";
+import { type AlteDatei, type AlterStand, secretsErsetzen, standZurueck } from "./stand.ts";
+import { gescheitert, type Konfigurieren, type Schrittergebnis, type SystemDeps } from "./typen.ts";
 
 /*
  * Reconfiguring an installation on its server (BAULISTE.md Z-404; docs/plan.md, "Neu
@@ -29,8 +24,6 @@ import {
 
 const SCHRITT_MS = 60_000;
 
-type AlterStand = { dateien: HausPlan["dateien"]; secrets: ReadonlyMap<string, string> };
-
 export type Konfiguriert = { ok: true } | { ok: false; fehler: string };
 
 const nein = (fehler: string): Konfiguriert => ({ ok: false, fehler });
@@ -40,9 +33,9 @@ const dateienSichern = async (
   deps: SystemDeps,
   plan: HausPlan,
   n: Nutzer,
-): Promise<{ ok: true; dateien: HausPlan["dateien"] } | { ok: false; fehlt: string }> => {
+): Promise<{ ok: true; dateien: AlteDatei[] } | { ok: false; fehlt: string }> => {
   for (const v of plan.verzeichnisse) await deps.haus.verzeichnis(v.pfad, v.modus, n);
-  const dateien: HausPlan["dateien"] = [];
+  const dateien: AlteDatei[] = [];
   for (const d of plan.dateien) {
     const inhalt = await deps.haus.dateiLesen(d.pfad);
     if (inhalt === undefined) return { ok: false, fehlt: d.pfad };
@@ -52,8 +45,8 @@ const dateienSichern = async (
 };
 
 /** daemon-reload, then reset-failed, restart and staying active (neustarten.ts) */
-const neuLadenUndStarten = (
-  deps: SystemDeps,
+export const neuLadenUndStarten = (
+  deps: Pick<SystemDeps, "warten">,
   lauf: Lauf,
   n: Nutzer,
   units: readonly string[],
@@ -67,11 +60,6 @@ const neuLadenUndStarten = (
       ),
     () => neustarten(deps, lauf, n, units, auftrag),
   ]);
-
-const secretAnlegen = (lauf: Lauf, n: Nutzer, name: string, wert: string) => () =>
-  lauf(`podman secret create ${name}`, alsNutzer(n, ["podman", "secret", "create", name, "-"]), {
-    eingabe: wert,
-  });
 
 const anwenden = async (
   deps: SystemDeps,
@@ -87,25 +75,9 @@ const anwenden = async (
     return gescheitert(String(fehler).slice(0, 500));
   }
   return nacheinander([
-    ...[...alt.secrets.keys()].map(
-      (name) => () =>
-        lauf(`podman secret rm ${name}`, alsNutzer(n, ["podman", "secret", "rm", name])),
-    ),
-    ...Object.entries(a.quadlets.secrets).map(([name, wert]) => secretAnlegen(lauf, n, name, wert)),
+    () => secretsErsetzen(lauf, n, alt.secrets.keys(), a.quadlets.secrets),
     () => neuLadenUndStarten(deps, lauf, n, a.units, auftrag),
   ]);
-};
-
-/** Each step runs even when one before failed; the first failure is the answer */
-const alleVersuchen = async (
-  laeufe: (() => Promise<Schrittergebnis>)[],
-): Promise<Schrittergebnis> => {
-  let erster: Schrittergebnis = gelungen;
-  for (const l of laeufe) {
-    const r = await l();
-    if (!r.ok && erster.ok) erster = r;
-  }
-  return erster;
 };
 
 const wiederherstellen = async (
@@ -116,24 +88,7 @@ const wiederherstellen = async (
 ): Promise<Schrittergebnis> => {
   const lauf: Lauf = (schritt, argv, o = {}) =>
     laeufer(deps)(schritt, argv, { zeitlimitMs: SCHRITT_MS, ...o });
-  const dateien = alt.dateien.map((d) => async () => {
-    try {
-      await deps.haus.schreiben(d.pfad, d.inhalt, d.modus, n);
-      return gelungen;
-    } catch (fehler) {
-      return gescheitert(String(fehler).slice(0, 500));
-    }
-  });
-  const namen = [...new Set([...alt.secrets.keys(), ...Object.keys(a.quadlets.secrets)])];
-  const weg = () =>
-    namen.length === 0
-      ? Promise.resolve(gelungen)
-      : lauf(
-          "podman secret rm --ignore",
-          alsNutzer(n, ["podman", "secret", "rm", "--ignore", ...namen]),
-        );
-  const secrets = [...alt.secrets].map(([name, wert]) => secretAnlegen(lauf, n, name, wert));
-  const gesetzt = await alleVersuchen([...dateien, weg, ...secrets]);
+  const gesetzt = await standZurueck(deps, lauf, n, alt, Object.keys(a.quadlets.secrets));
   // started again even when something could not be brought back: as much of the app as can run
   const gestartet = await neuLadenUndStarten(deps, lauf, n, a.units);
   return gesetzt.ok ? gestartet : gesetzt;

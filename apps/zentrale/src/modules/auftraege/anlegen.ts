@@ -25,7 +25,12 @@ import {
   PRUEF_RESTORE_ZEITLIMIT_S,
   pforteAuftragPruefen,
   pruefRestoreAuftragPruefen,
+  restoreTeile,
   STANDARD_ZEITLIMIT_S,
+  UPDATE_AKTION,
+  UPDATE_ZEITLIMIT_S,
+  updateArgumente,
+  updateAuftragPruefen,
   WIEDERHERSTELLEN_AKTION,
   WIEDERHERSTELLEN_ZEITLIMIT_S,
   wiederherstellenAuftragPruefen,
@@ -52,7 +57,10 @@ import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
  * with parts to back up; setting up backups is checked with its field `backup`, which the row does
  * not keep either. The test restore (Z-602, backup/pruef-restore.ts) is checked with the copy's data
  * in `einrichtung`, like a setup. A restore (Z-603, backup/wiederherstellen.ts) names a snapshot per
- * part that is played back and nothing else.
+ * part that is played back and nothing else. An update (Z-503, einrichtung/update.ts) is checked with
+ * the installation's data for the new version in `einrichtung`, like a setup; the snapshots of the
+ * backup just before it are not known when it is made (modules/updates, ende.ts sets them), so it
+ * is checked with a stand-in for each until then.
  */
 
 export type NeuerAuftrag = {
@@ -102,6 +110,19 @@ export type Vorbereitet = { ok: true; zeile: Auftrag } | Fehler;
 /** A job written in the same change, not yet visible to the read-only connection */
 export type VorabAuftrag = Pick<Auftrag, "auftragId" | "zustand" | "wartetAuf">;
 
+/** A snapshot ID that stands in for one the backup before an update has not made yet */
+const STELLVERTRETER = "0".repeat(64);
+
+/** An update's arguments, or with no snapshots yet a stand-in for each part played back */
+const mitSnapshots = (m: Manifest, neu: NeuerAuftrag): Record<string, ArgumentWert> => {
+  if (Object.keys(neu.argumente).length > 0 || neu.installationId === null) return neu.argumente;
+  const teile = restoreTeile(m, neu.installationId);
+  if (!teile.ok) return neu.argumente;
+  const lauf = teile.teile.map((t) => ({ tag: t.tag, snapshot: STELLVERTRETER }));
+  const a = updateArgumente(m, neu.installationId, lauf);
+  return a.ok ? a.argumente : neu.argumente;
+};
+
 /** The job against its manifest: a command it names, with arguments that fit */
 const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
   const geprueft = manifestPruefen(neu.manifest);
@@ -124,6 +145,15 @@ const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
     return zurueck.ok
       ? { ok: true, manifest: geprueft.manifest, zeitlimitS: WIEDERHERSTELLEN_ZEITLIMIT_S }
       : { ok: false, grund: "argumente_ungueltig", detail: zurueck.grund };
+  }
+  if (neu.aktion === UPDATE_AKTION) {
+    const update = updateAuftragPruefen(geprueft.manifest, {
+      ...neu,
+      argumente: mitSnapshots(geprueft.manifest, neu),
+    });
+    return update.ok
+      ? { ok: true, manifest: geprueft.manifest, zeitlimitS: UPDATE_ZEITLIMIT_S }
+      : { ok: false, grund: "argumente_ungueltig", detail: update.grund };
   }
   if (istPforteAktion(neu.aktion)) {
     const pforte = pforteAuftragPruefen(geprueft.manifest, neu);

@@ -27,6 +27,13 @@ export type HausDateien = {
    * the file is complete or not there
    */
   schreiben: (pfad: string, inhalt: string, modus: number, besitzer: Besitzer) => Promise<void>;
+  /**
+   * The names of the entries directly in a folder, sorted; none when it is missing, throws when it
+   * is something else (Z-503: the units before an update)
+   */
+  dateienIn: (ordner: string) => Promise<string[]>;
+  /** Removes a file, or a symlink itself, never what it points to; a missing one is no error */
+  entfernen: (pfad: string) => Promise<void>;
 };
 
 export type HausPlan = {
@@ -39,7 +46,8 @@ export const UNITS = ".config/containers/systemd";
 export const SYSTEMD_NUTZER = ".config/systemd/user";
 
 const VERZEICHNIS = 0o700;
-const UNIT = 0o600;
+/** A unit and the slice: only the user reads them */
+export const UNIT_MODUS = 0o600;
 const DATEI = 0o644;
 
 /** a/b/c → a, a/b, a/b/c; a relative path of names without "." or ".." */
@@ -58,12 +66,12 @@ export const hausPlan = (home: string, q: Quadlets): HausPlan => {
     ...Object.entries(q.units).map(([n, inhalt]) => ({
       relativ: `${UNITS}/${n}`,
       inhalt,
-      modus: UNIT,
+      modus: UNIT_MODUS,
     })),
     ...Object.entries(q.systemd).map(([n, inhalt]) => ({
       relativ: `${SYSTEMD_NUTZER}/${n}`,
       inhalt,
-      modus: UNIT,
+      modus: UNIT_MODUS,
     })),
     ...Object.entries(q.dateien).map(([n, inhalt]) => ({
       relativ: `${DATEIEN_VERZEICHNIS}/${n}`,

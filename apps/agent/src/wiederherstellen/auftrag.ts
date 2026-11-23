@@ -1,29 +1,21 @@
-import {
-  BACKUP_SERVICE,
-  BACKUP_TIMER,
-  type RestoreTeil,
-  type WiederherstellenDaten,
-} from "@steuerzentrale/manifest";
+import type { RestoreTeil, WiederherstellenDaten } from "@steuerzentrale/manifest";
 import { installationVomManifest, type ManifestAngaben } from "../aktionen/geheimnisse.ts";
 import type { Ergebnis } from "../auftraege/ausfuehren.ts";
 import { fertigeInstallation } from "../backup/auftrag.ts";
 import { type EinrichtungsDeps, mitZeitlimit } from "../einrichtung/auftrag.ts";
 import { unitsStarten } from "../einrichtung/einrichten.ts";
-import { type Lauf, laeufer } from "../einrichtung/lauf.ts";
-import { neustarten } from "../einrichtung/neustarten.ts";
+import { laeufer } from "../einrichtung/lauf.ts";
 import { alsNutzer, type Nutzer } from "../einrichtung/nutzer.ts";
-import { gelungen, type Schrittergebnis } from "../einrichtung/typen.ts";
 import { gemeldet, healthAbwarten } from "../pruef-restore/auftrag.ts";
 import { quelleLesen } from "../pruef-restore/quelle.ts";
 import {
   type TeilErgebnis,
   teileVorher,
   type ZurueckDeps,
-  zurueckspielen,
 } from "../pruef-restore/zurueckspielen.ts";
 import type { PruefDeps } from "../zustand/pruefen.ts";
 import type { PruefZiel } from "../zustand/ziel.ts";
-import { inEigenerUnit, restSekunden, WIEDERHERSTELLEN_UNIT } from "./unit.ts";
+import { backupAnhalten, datenZurueckspielen, timerStarten, wiederStarten } from "./daten.ts";
 
 /*
  * Restoring an installation on the agent (BAULISTE.md Z-603; docs/plan.md, "Wiederherstellen auf
@@ -62,9 +54,6 @@ export type WiederherstellenDeps = EinrichtungsDeps &
 
 type Installation = { n: Nutzer; units: string[]; ziel: PruefZiel };
 
-/** Each step of starting the units again, apart from the job's time limit, which may be over */
-const SCHRITT_MS = 60_000;
-
 const fehler = (text: string): Ergebnis => ({ ok: false, fehler: text });
 
 const vorabPruefen = async (
@@ -87,33 +76,6 @@ const zuStoppen = (a: Wiederherstellen, units: readonly string[]): string[] => {
   return units.filter((u) => !datenbanken.includes(u));
 };
 
-/** Each volume removed and made anew by its unit, so that the snapshot goes into an empty one */
-const volumesLeeren = async (lauf: Lauf, n: Nutzer, a: Wiederherstellen) => {
-  const volumes = a.teile.flatMap((t) => (t.art === "volume" ? [t] : []));
-  if (volumes.length === 0) return gelungen;
-  const weg = await lauf(
-    "podman volume rm",
-    alsNutzer(n, ["podman", "volume", "rm", "--force", ...volumes.map((t) => t.volume)]),
-  );
-  if (!weg.ok) return weg;
-  return lauf(
-    "systemctl --user restart",
-    alsNutzer(n, ["systemctl", "--user", "restart", ...volumes.map((t) => t.unit)]),
-  );
-};
-
-/**
- * Whether a run of the backup goes on, or may: sz_backup.service is Type=oneshot, which systemd
- * shows `activating` while its run goes on, and `systemctl is-active` exits 3 for that state
- * (systemctl(1), is-active; systemd.service(5)), so its exit code alone does not tell. Only
- * `inactive` and `failed` count as no run; any other answer, or none, as one.
- */
-const backupLaeuft = async (deps: WiederherstellenDeps, n: Nutzer, signal: AbortSignal) => {
-  const argv = alsNutzer(n, ["systemctl", "--user", "is-active", BACKUP_SERVICE]);
-  const r = await deps.lesen(argv, signal).catch(() => ({ code: null, aus: "" }));
-  return !["inactive", "failed"].includes(r.aus.trim());
-};
-
 type Ablauf = { grund?: string; teile: TeilErgebnis[] };
 
 /** Stopped, emptied, played back, started and checked; the first step that fails ends it */
@@ -126,64 +88,23 @@ const ablauf = async (
 ): Promise<Ablauf> => {
   const vorher = teileVorher(a.teile);
   const lauf = laeufer(deps, signal);
-  const systemctl = (...argv: string[]) => alsNutzer(inst.n, ["systemctl", "--user", ...argv]);
-  const timer = await lauf("systemctl --user stop", systemctl("stop", BACKUP_TIMER));
-  if (!timer.ok) return { grund: timer.grund, teile: vorher };
-  if (await backupLaeuft(deps, inst.n, signal))
-    return { grund: `ein Backup von ${a.name} läuft gerade`, teile: vorher };
+  const angehalten = await backupAnhalten(deps, lauf, inst.n, a.name, signal);
+  if (!angehalten.ok) return { grund: angehalten.grund, teile: vorher };
   const stoppen = zuStoppen(a, inst.units);
   if (stoppen.length > 0) {
-    const r = await lauf("systemctl --user stop", systemctl("stop", ...stoppen));
+    const r = await lauf(
+      "systemctl --user stop",
+      alsNutzer(inst.n, ["systemctl", "--user", "stop", ...stoppen]),
+    );
     if (!r.ok) return { grund: r.grund, teile: vorher };
   }
-  const leer = await volumesLeeren(lauf, inst.n, a);
-  if (!leer.ok) return { grund: leer.grund, teile: vorher };
-  const z = await zurueckspielen(
-    deps,
-    {
-      quelle: a.name,
-      ziel: a.name,
-      teile: a.teile,
-      netz: a.netz,
-      snapshots: a.snapshots,
-      inUnit: (argv) => inEigenerUnit(restSekunden(ende, deps.jetzt()), argv),
-    },
-    signal,
-  );
+  const z = await datenZurueckspielen(deps, a, inst.n, ende, signal);
   if (!z.ok) return { grund: z.grund ?? "Zurückspielen gescheitert", teile: z.teile };
   const start = await unitsStarten(deps, lauf, inst.n, inst.units, signal);
   if (!start.ok) return { grund: `Start: ${start.grund}`, teile: z.teile };
   const health = await healthAbwarten(deps, { ziel: inst.ziel, name: a.name }, inst.n, signal);
   if (health.zustand === "rot") return { grund: `Health: ${health.grund}`, teile: z.teile };
   return { teile: z.teile };
-};
-
-/** Every step runs, each with its own time limit; the first failure is the answer */
-const alleVersuchen = async (
-  schritte: (() => Promise<Schrittergebnis>)[],
-): Promise<Schrittergebnis> => {
-  let erster: Schrittergebnis = gelungen;
-  for (const s of schritte) {
-    const r = await s();
-    if (!r.ok && erster.ok) erster = r;
-  }
-  return erster;
-};
-
-/** After a failure: the transient unit with all its processes gone, the units and the timer up */
-const wiederStarten = (deps: WiederherstellenDeps, inst: Installation) => {
-  const lauf: Lauf = (schritt, argv, o = {}) =>
-    laeufer(deps)(schritt, argv, { zeitlimitMs: SCHRITT_MS, ...o });
-  const systemctl = (...argv: string[]) => alsNutzer(inst.n, ["systemctl", "--user", ...argv]);
-  return alleVersuchen([
-    // a unit that already ended is gone (--collect): stop then fails, which tells nothing
-    async () => {
-      await lauf("systemctl --user stop", systemctl("stop", WIEDERHERSTELLEN_UNIT));
-      return gelungen;
-    },
-    () => neustarten(deps, lauf, inst.n, inst.units),
-    () => lauf("systemctl --user start", systemctl("start", BACKUP_TIMER)),
-  ]);
 };
 
 const durchfuehren = async (
@@ -202,17 +123,13 @@ const durchfuehren = async (
     l = { grund: String(e).slice(0, 500), teile: teileVorher(a.teile) };
   }
   if (l.grund !== undefined) {
-    const zurueck = await wiederStarten(deps, inst);
+    const zurueck = await wiederStarten(deps, inst.n, inst.units);
     const units = zurueck.ok
       ? "Units wieder gestartet"
       : `Units nicht wieder gestartet: ${zurueck.grund}`;
     return fehler(`Wiederherstellen gescheitert: ${l.grund}; ${units}`);
   }
-  const timer = await laeufer(deps)(
-    "systemctl --user start",
-    alsNutzer(inst.n, ["systemctl", "--user", "start", BACKUP_TIMER]),
-    { zeitlimitMs: SCHRITT_MS },
-  );
+  const timer = await timerStarten(deps, inst.n);
   if (!timer.ok) return fehler(`Wiederherstellen: Backup-Timer nicht gestartet: ${timer.grund}`);
   const daten: WiederherstellenDaten = {
     teile: l.teile.map(gemeldet),

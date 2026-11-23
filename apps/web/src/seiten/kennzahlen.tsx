@@ -1,10 +1,12 @@
 import { m } from "@steuerzentrale/ui";
 import { createMemo, Loading, Show } from "solid-js";
+import { appsQuelle } from "../daten/apps.ts";
 import { backupQuelle } from "../daten/backups.ts";
 import { anzeige, type InstallationAnsicht } from "../daten/installation-ansicht.ts";
 import { bestand, mitDemo } from "../daten/quelle.ts";
 import type { ServerAnsicht } from "../daten/server-ansicht.ts";
 import type { Bestand } from "../daten/typen.ts";
+import { updateMisslungen } from "../daten/update-texte.ts";
 import { planStand } from "../daten/wellen.ts";
 import { welleName } from "../rahmen/texte.ts";
 import { Kennzahl } from "../teile/listen.tsx";
@@ -12,8 +14,8 @@ import { Marke } from "../teile/zeichen.tsx";
 
 /**
  * The four key figures of the overview (DESIGN.md, "Bausteine"): servers and installations from
- * the Zentrale (BAULISTE.md Z-406), backups too (Z-601); updates have no API yet, so signed in they
- * say which item brings them (Z-503) and only the demo shows its figures
+ * the Zentrale (BAULISTE.md Z-406), backups too (Z-601), updates too (Z-503); the demo shows its
+ * own waves
  */
 
 export const ServerZahl = (props: { server: ServerAnsicht[] }) => {
@@ -87,24 +89,39 @@ const UpdateDemo = (props: { b: Bestand }) => {
   );
 };
 
-/** A figure the Zentrale cannot give yet: no number, the item that brings it */
-const KommtNoch = (props: { name: string; punkt: string; text: string }) => (
-  <Kennzahl
-    name={props.name}
-    wert="–"
-    marke={<Marke>{m.kommt_mit({ punkt: props.punkt })}</Marke>}
-    zeile1={props.text}
-    zeile2={m.kommt_mit_text()}
-  />
-);
+/**
+ * Signed in, from GET /api/v1/updates (Z-503): how many installations run the newest version they
+ * are offered, how many updates are under way, how many get a newer version and how many last
+ * ended without it
+ */
+const UpdateZentrale = () => {
+  const antwort = createMemo(() => appsQuelle().angebote());
+  const liste = () => {
+    const a = antwort();
+    return a.ok ? a.daten : [];
+  };
+  const aktuell = () => liste().filter((i) => i.angeboten.length === 0).length;
+  return (
+    <Loading fallback={null}>
+      <Kennzahl
+        name={m.nav_updates()}
+        wert={`${aktuell()}/${liste().length}`}
+        marke={
+          <Marke class="tabular-nums">
+            {m.uebersicht_updates_laufend({ n: liste().filter((i) => i.update.laeuft).length })}
+          </Marke>
+        }
+        zeile1={m.uebersicht_updates_offen({ n: liste().length - aktuell() })}
+        zeile2={m.uebersicht_updates_zurueck({
+          n: liste().filter((i) => updateMisslungen(i.update)).length,
+        })}
+      />
+    </Loading>
+  );
+};
 
 export const UpdateZahl = () => (
-  <Show
-    when={mitDemo()}
-    fallback={
-      <KommtNoch name={m.nav_updates()} punkt="Z-503" text={m.uebersicht_updates_spaeter()} />
-    }
-  >
+  <Show when={mitDemo()} fallback={<UpdateZentrale />}>
     <UpdateDemo b={bestand()} />
   </Show>
 );

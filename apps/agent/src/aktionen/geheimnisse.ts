@@ -97,6 +97,33 @@ export const installationVomManifest = async (
   return vonDiesemManifest(gelesen.units, m) ? { ok: true } : { ok: false, grund: nichtVon(m) };
 };
 
+/**
+ * The app and version every unit of the installation names in its labels, the same in all (Z-503:
+ * the version an update starts from)
+ */
+export const installationsVersion = async (
+  deps: GeheimDeps,
+  n: Nutzer,
+  units: readonly string[],
+): Promise<{ ok: true; id: string; version: string } | { ok: false; grund: string }> => {
+  let gelesen: Awaited<ReturnType<typeof unitsLesen>>;
+  try {
+    gelesen = await unitsLesen(deps, n, units);
+  } catch (fehler) {
+    return { ok: false, grund: String(fehler).slice(0, 500) };
+  }
+  if (!gelesen.ok) return gelesen;
+  const id = gelesen.units[0]?.labels.get(`${QUADLET_LABEL}.app`);
+  const version = gelesen.units[0]?.labels.get(`${QUADLET_LABEL}.version`);
+  if (
+    id === undefined ||
+    version === undefined ||
+    !vonDiesemManifest(gelesen.units, { id, version, geheim: [] })
+  )
+    return { ok: false, grund: "die Units nennen nicht dieselbe App und Version" };
+  return { ok: true, id, version };
+};
+
 /** The names from the record, or from the manifest the units were rendered from */
 const namenVon = (
   eintrag: InstallationsEintrag,

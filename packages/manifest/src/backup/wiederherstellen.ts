@@ -63,13 +63,18 @@ export type WiederherstellenGeprueft =
 
 const nein = (grund: string): WiederherstellenGeprueft => ({ ok: false, grund });
 
-const zurueckspielbar = (teile: readonly RestoreTeil[]): string[] =>
+/** The tags of the parts that are played back (`volume`, `pg_dump`); a command's export is not */
+export const zurueckspielbar = (teile: readonly RestoreTeil[]): string[] =>
   teile.flatMap((t) => (t.art === "befehl" ? [] : [t.tag]));
 
-/** The snapshot of each part from the arguments, or why they are not one per part */
-const snapshotsLesen = (
+/**
+ * The snapshot of each part from the arguments, or why they are not one per part; with `teilweise`
+ * (an update's rollback, einrichtung/update.ts) some parts may lack one, but not all
+ */
+export const snapshotsLesen = (
   argumente: Readonly<Record<string, unknown>>,
   teile: readonly RestoreTeil[],
+  teilweise = false,
 ): { ok: true; snapshots: Record<string, string> } | { ok: false; grund: string } => {
   const tags = zurueckspielbar(teile);
   const snapshots: Record<string, string> = {};
@@ -87,7 +92,7 @@ const snapshotsLesen = (
     snapshots[tag] = wert;
   }
   const fehlt = tags.filter((t) => snapshots[t] === undefined);
-  if (fehlt.length > 0)
+  if (fehlt.length > 0 && (!teilweise || fehlt.length === tags.length))
     return { ok: false, grund: `no snapshot for ${fehlt.map(snapshotArgument).join(", ")}` };
   return { ok: true, snapshots };
 };
@@ -130,9 +135,16 @@ export const wiederherstellenArgumente = (
   lauf: readonly { tag: string; snapshot: string | null }[],
 ): { ok: true; argumente: Record<string, string> } | { ok: false; grund: string } => {
   const r = restoreTeile(m, name);
-  if (!r.ok) return r;
+  return r.ok ? snapshotArgumente(r.teile, lauf) : r;
+};
+
+/** One argument per part of `teile` that is played back, with its snapshot from the run */
+export const snapshotArgumente = (
+  teile: readonly RestoreTeil[],
+  lauf: readonly { tag: string; snapshot: string | null }[],
+): { ok: true; argumente: Record<string, string> } | { ok: false; grund: string } => {
   const argumente: Record<string, string> = {};
-  for (const tag of zurueckspielbar(r.teile)) {
+  for (const tag of zurueckspielbar(teile)) {
     const snapshot = lauf.find((t) => t.tag === tag)?.snapshot;
     if (typeof snapshot !== "string" || !SNAPSHOT.test(snapshot))
       return { ok: false, grund: `the run has no snapshot of ${tag}` };

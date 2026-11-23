@@ -154,15 +154,23 @@ describe("signed in, against a Zentrale without data", () => {
     });
     expect(root.textContent).toContain("Keine Ereignisse.");
     expect(root.textContent).toContain("Keine Aufträge.");
-    expect(root.textContent).toContain("kommt mit Z-503");
+    expect(root.textContent).toContain("0 Installationen bekommen eine neuere Version");
     expect(root.textContent).toContain("Letzter Lauf erfolgreich0/0");
   });
 
   it("says which item brings a page without an API", async () => {
-    const { root } = await oeffne("/updates");
+    const { root } = await oeffne("/support");
     await vi.waitFor(() => {
-      if (!root.textContent?.includes("kommt mit Z-503")) throw new Error("not yet");
+      if (!root.textContent?.includes("kommt mit Z-802")) throw new Error("not yet");
     });
     expect((await rolleLesen()).ok).toBe(true);
+  });
+
+  it("shows the updates of the Zentrale: none yet, without a word of Z-503", async () => {
+    const { root } = await oeffne("/updates");
+    await vi.waitFor(() => {
+      if (!root.textContent?.includes("Noch keine Installation.")) throw new Error("not yet");
+    });
+    expect(root.textContent).not.toContain("Z-503");
   });
 });

@@ -112,6 +112,18 @@ export {
   istEinrichtungAktion,
 } from "./einrichtung/auftraege.ts";
 export {
+  UPDATE_AKTION,
+  UPDATE_HEALTH_S,
+  UPDATE_ZEITLIMIT_S,
+  type UpdateAnfrage,
+  type UpdateAuftrag,
+  type UpdateDaten,
+  type UpdateGeprueft,
+  updateArgumente,
+  updateAuftragPruefen,
+  updateDatenLesen,
+} from "./einrichtung/update.ts";
+export {
   alleOptionen,
   befundeText,
   einstellungenPruefen,

@@ -6,6 +6,7 @@ import {
   type Einrichtung,
   manifestPruefen,
   PRUEF_RESTORE_AKTION,
+  UPDATE_AKTION,
 } from "@steuerzentrale/manifest";
 import { sperrzeitAm } from "@steuerzentrale/planung";
 import {
@@ -37,6 +38,8 @@ import { type Auftrag, offeneAuftraege } from "./lesen.ts";
  * only here, and only if the installation stands on the job's server (modules/backups/feld.ts).
  * A test restore (Z-602) gets the copy's data only here: the installation's settings with the
  * copy's ports, again only for the server the installation stands on (modules/pruef-restore).
+ * An update (Z-503) gets the installation's values for the new version like configuring anew, from
+ * their own row (modules/updates).
  */
 
 export type AuftragDeps = {
@@ -76,7 +79,7 @@ export const auftragNachricht = (a: Auftrag, zusatz: Zusatz = {}): string =>
 const einrichtungVon = (deps: AuftragDeps, a: Auftrag) => {
   if (a.aktion === EINRICHTUNG_AKTIONEN.einrichten)
     return einrichtungFuer(deps, a.betreiberId, a.installationId);
-  if (a.aktion === EINRICHTUNG_AKTIONEN.konfigurieren)
+  if (a.aktion === EINRICHTUNG_AKTIONEN.konfigurieren || a.aktion === UPDATE_AKTION)
     return konfigurationFuer(deps, a.betreiberId, a);
   if (a.aktion === PRUEF_RESTORE_AKTION) return kopieEinrichtungFuer(deps, a);
   return undefined;

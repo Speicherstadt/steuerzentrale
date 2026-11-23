@@ -23,6 +23,7 @@ import {
   pruefRestores,
   server,
   tokens,
+  updates,
   vertraege,
   wiederherstellungen,
 } from "../../db/schema.ts";
@@ -83,6 +84,7 @@ export const tabellen = {
     schluessel: ["auftragId"],
     zeit: undefined,
   },
+  updates: { tabelle: updates, schluessel: ["auftragId"], zeit: undefined },
   manifeste: { tabelle: manifeste, schluessel: ["app", "version"], zeit: undefined, global: true },
 } satisfies Record<
   string,

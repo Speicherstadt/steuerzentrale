@@ -56,6 +56,13 @@ export const mitBackup = () =>
     "    volumes: [{ name: daten, pfad: /daten }]\n    env: [PROBE_TITEL",
   )}backup:\n  - { art: volume, volume: daten }\n`;
 
+/**
+ * The probe manifest with a volume to back up under an app id of its own in `version`, so an update
+ * (Z-503) has a newer version to go to that no other test's installation is offered
+ */
+export const mitBackupAls = (app: string, version: string) =>
+  mitBackup().replace("id: probe", `id: ${app}`).replace("version: 1.0.1", `version: ${version}`);
+
 /** The probe manifest without the restart (Z-405): the page must not offer it; version 1.0.2 */
 export const ohneNeustart = () =>
   PROBE.replace("version: 1.0.0", "version: 1.0.2").replace(

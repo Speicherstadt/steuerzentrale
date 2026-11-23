@@ -13,8 +13,11 @@ Zeitpunkt; alle Zeiten gelten in `Europe/Berlin`.
 
 Welche Versionen es gibt, sagen die importierten Manifeste und die Registries ([Manifeste und
 Versionen](manifeste.md)). Die Seite **Updates** zeigt je Installation die Versionen, die sie
-bekommen kann; eine Vorabversion nur eine Installation eines internen Kunden. Ausführen lassen sich
-Updates mit Z-503.
+bekommen kann (eine Vorabversion nur eine Installation eines internen Kunden), wo der Plan für sie
+steht (Welle und nächster Termin oder warum sie wartet) und ihr letztes Update mit seinem Ausgang.
+Alle 5 Minuten startet die Zentrale, was nach dem Plan fällig ist; auf jedem Server läuft höchstens
+ein Update zugleich. Geplant wird jede laufende Installation auf die neueste Version, die ihr
+angeboten wird.
 
 ## Wellen
 
@@ -31,6 +34,43 @@ Freigabe von Hand: „intern“ ohne Installation wäre kein Test. Eine Vorabver
 Eine **Störung** (Health innen oder außen länger als 5 Minuten rot oder eine Rückkehr nach einem
 Update) hält beide Wellen an, auch ein dringendes Update. Apps ohne Health (`health: keine`) werden
 in keiner Welle aktualisiert, nur von Hand mit Grund.
+
+## Ein Update
+
+Ein Update besteht aus zwei Aufträgen. Zuerst sichert der Agent den Ist-Zustand
+(`installation_backup`, wie „Backup jetzt“). Erst wenn dieses Backup gelingt, bekommt der Auftrag
+`installation_update` die Snapshots dieses Laufs und geht zum Agenten, mit dem signierten Manifest
+der neuen Version und den Werten der Installation dafür. Scheitert das Backup, wird das Update
+abgebrochen und auf dem Server ändert sich nichts. Ebenso, wenn das Backup erst in einer Sperrzeit
+der App endet, außer der Inhaber hat sie für dieses Update übergangen; die Planung versucht es
+danach mit einem neuen Backup wieder. Nennt die neue Version einen Backup-Teil, den es vorher nicht
+gab, hat er keinen Snapshot: Er hielt noch keine Daten der alten Version.
+
+Der Agent zieht die neuen Images per Digest, schreibt die neuen Units, startet neu, führt die
+Schritte nach dem Update aus dem Manifest aus (`schritte.nach_update`) und wartet höchstens 5 Minuten
+auf grüne Health. Wird sie nicht grün oder scheitert ein Schritt, nimmt er das Update zurück: die
+alten Units und die Daten aus dem Backup unmittelbar davor.
+
+| Ausgang | Was die Zentrale tut |
+| --- | --- |
+| aktualisiert | die Installation läuft mit der neuen Version, ihrem Manifest und ihren Werten; Ereignis `update_gelungen` |
+| zurückgenommen | die Version bleibt die alte; Ereignis `update_zurueckgenommen` (Fehler); die Wellen der Version halten an |
+| Rücknahme unvollständig | wie zurückgenommen, Ereignis `update_ruecknahme_unvollstaendig`; die Installation braucht einen Menschen |
+| gescheitert | der Agent lehnte ab, brach ab oder meldete keinen Ausgang; wie zurückgenommen, Ereignis `update_gescheitert` |
+| abgebrochen | das Backup davor scheiterte; nichts geändert, Ereignis `update_abgebrochen` (Warnung), keine Welle hält an |
+
+Fehlt der neuen Version ein Pflichtwert, den die Installation nicht hat, legt die Zentrale kein
+Update an und sagt es; erst die Einstellungen ergänzen. Neue erzeugte Werte (`auto`) macht sie
+einmal, die bisherigen behält sie. Nennt die neue Version andere Backup-Teile oder einen anderen
+HTTP-Dienst, richtet die Zentrale nach dem Update die Backups bzw. die Route der Pforte neu ein.
+
+## Update von Hand
+
+Inhaber und Technik aktualisieren eine Installation auf der Seite **Updates** mit **Update**: Version
+wählen (die neueste steht oben) und einen Grund angeben, der im Audit-Log steht. So auch Apps ohne
+Health, die keine Welle aktualisiert. In einer Sperrzeit der App darf nur der Inhaber; das Update
+gilt dann als Freigabe und die Zentrale vermerkt es. Über die API: `POST
+/api/v1/installationen/:id/update` mit `version` und `grund`.
 
 ## Wartungsfenster
 

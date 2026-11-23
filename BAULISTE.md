@@ -364,13 +364,17 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: Tests Sperrzeiten über den Monatswechsel, Zeitumstellung, Wartungsfenster über
   Mitternacht, eine gestoppte Welle nach einer Störung und ein dringendes Update abdecken und Haben
   nie zwischen dem 7. und 12. aktualisiert wird, außer mit Freigabe.
-- [ ] **Z-503 Update mit Rückkehr** – Backup, Pull per Digest, `schritte.nach_update`, Neustart,
+- [x] **Z-503 Update mit Rückkehr** – Backup, Pull per Digest, `schritte.nach_update`, Neustart,
   Health; bei Rot zurück auf die alte Version und das Backup; Welle anhalten; Ereignis; Apps mit
   `health: keine` nur von Hand.
   nach: Z-501, Z-502, Z-603
   Fertig, wenn: in der CI die Beispiel-App von Version 1 auf 2 kommt, die kaputte Version
   automatisch zurückgenommen wird, mit den Daten von vorher, und eine App ohne Health in keiner
-  Welle automatisch aktualisiert wird.
+  Welle automatisch aktualisiert wird; dazu (Tests): vor jedem Update entsteht ein Backup, scheitert
+  es, wird nicht aktualisiert; `schritte.nach_update` laufen; nach einer Rücknahme ist die Welle
+  angehalten und ein Ereignis da; kein automatisches Update in einer Sperrzeit oder außerhalb des
+  Wartungsfensters, ein dringendes sofort; höchstens ein Update je Server zugleich; ein Update von
+  Hand mit Grund (Playwright); kein Betreiber erreicht Updates eines anderen (Test je Endpunkt).
 - [ ] **Z-504 Updates des Agenten** – Agent lädt neue Version, prüft Prüfsumme und minisign-Signatur,
   startet sich im Wartungsfenster neu; die Zentrale versteht `n-1`.
   Fertig, wenn: ein Agent in der CI sich aktualisiert und eine falsche Signatur abgelehnt wird.
