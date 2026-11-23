@@ -10,7 +10,11 @@ import {
   vomAgentenLesen,
 } from "@steuerzentrale/protokoll";
 import type { LogSink } from "../../log.ts";
-import { agentVersionFortschreiben } from "../agent-update/ende.ts";
+import {
+  agentVersionFortschreiben,
+  rueckkehrFortschreiben,
+  rueckkehrOhneHallo,
+} from "../agent-update/ende.ts";
 import { heartbeatAnfuegen, schreiben } from "../audit/index.ts";
 import { offeneZustellen } from "../auftraege/index.ts";
 import { backupStandAnnehmen } from "../backups/stand.ts";
@@ -118,8 +122,19 @@ const agentMerken = (
   n: Extract<NachrichtVomAgenten, { typ: "hallo" }>,
   jetzt: number,
 ): Server => {
-  if (n.agentVersion === server.agentVersion && n.architektur === server.architektur) return server;
   const { betreiberId, serverId } = server;
+  if (n.agentVersion === server.agentVersion && n.architektur === server.architektur) {
+    // the new agent of an update never said hallo: its check put this one back (Z-504)
+    const zurueck = rueckkehrOhneHallo(deps.db, server, n.agentVersion);
+    if (zurueck)
+      schreiben(
+        deps.schreibDb,
+        { betreiberId, akteur: `server:${serverId}`, jetzt, grund: "Agent meldet sich" },
+        "server.agent",
+        (w) => rueckkehrFortschreiben(w, server, zurueck, n.agentVersion, jetzt),
+      );
+    return server;
+  }
   return schreiben(
     deps.schreibDb,
     { betreiberId, akteur: `server:${serverId}`, jetzt, grund: "Agent meldet sich" },
