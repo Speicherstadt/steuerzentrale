@@ -4,8 +4,9 @@ import {
   type ArgumentWert,
   aktionsAuftragPruefen,
   BACKUP_AKTIONEN,
+  BACKUP_EINRICHTEN_ZEITLIMIT_S,
   BACKUP_ZEITLIMIT_S,
-  type BackupFeld,
+  type BackupZugang,
   backupAuftragPruefen,
   befehlFuellen,
   befehlZurAktion,
@@ -62,7 +63,7 @@ export type NeuerAuftrag = {
   /** Only to check `installation_einrichten`; not stored with the job */
   einrichtung?: Einrichtung;
   /** Only to check `installation_backup_einrichten` (Z-601); not stored with the job */
-  backup?: BackupFeld;
+  backup?: BackupZugang;
 };
 
 export type AnlageFehler =
@@ -112,9 +113,13 @@ const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
   }
   if (istBackupAktion(neu.aktion)) {
     const backup = backupAuftragPruefen(geprueft.manifest, neu);
-    const art = neu.aktion === BACKUP_AKTIONEN.einrichten ? "einrichten" : "jetzt";
+    // a run gets the service's limit and two minutes to report (apps/agent, auftraege/pruefen.ts)
+    const zeitlimitS =
+      neu.aktion === BACKUP_AKTIONEN.einrichten
+        ? BACKUP_EINRICHTEN_ZEITLIMIT_S
+        : BACKUP_ZEITLIMIT_S + 120;
     return backup.ok
-      ? { ok: true, manifest: geprueft.manifest, zeitlimitS: BACKUP_ZEITLIMIT_S[art] }
+      ? { ok: true, manifest: geprueft.manifest, zeitlimitS }
       : { ok: false, grund: "argumente_ungueltig", detail: backup.grund };
   }
   if (istAktionsAuftrag(neu.aktion)) {

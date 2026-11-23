@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt } from "node:crypto";
+import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
 import { type APIRequestContext, expect } from "@playwright/test";
 import { testAnfrage } from "../../apps/zentrale/src/testhilfen/agent.ts";
 import { serverAnlegen } from "./server.ts";
@@ -105,15 +105,35 @@ const ergebnis = (auftragId: string, e: Record<string, unknown>) =>
   JSON.stringify({ typ: "ergebnis", protokoll: 1, auftragId, zeit: Date.now(), ergebnis: e });
 
 /** A run of the installation's backup as the agent reports it, one part with its snapshot */
-const backupStand = (installationId: unknown) =>
-  JSON.stringify({
-    typ: "backup_stand",
-    protokoll: 1,
-    installationId,
-    zeit: Date.now(),
-    ok: true,
-    teile: [{ tag: "volume-daten", snapshotId: randomBytes(4).toString("hex") }],
-  });
+const backupLauf = (installationId: unknown) => ({
+  typ: "backup_stand",
+  protokoll: 1,
+  installationId,
+  lauf: randomUUID(),
+  beginn: Date.now() - 1000,
+  ende: Date.now(),
+  ok: true,
+  teile: [{ tag: "volume:daten", ok: true, snapshot: randomBytes(32).toString("hex") }],
+});
+
+/** "Backup jetzt": the run as `backup_stand`, then the result (apps/agent, backup/auftrag.ts) */
+const backupJetzt = (ws: WebSocket, n: Nachricht) => {
+  const lauf = backupLauf(n.installationId);
+  ws.send(JSON.stringify(lauf));
+  const daten = { installation: n.installationId, lauf: lauf.lauf, teile: lauf.teile };
+  ws.send(ergebnis(n.auftragId as string, { ok: true, daten }));
+};
+
+/** Setting up backups done, as the agent reports it for a repository it made */
+const backupEingerichtet = (n: Nachricht) => ({
+  ok: true,
+  daten: {
+    installation: n.installationId,
+    repository: "angelegt",
+    teile: ["volume:daten"],
+    timer: "sz_backup.timer",
+  },
+});
 
 /** Done as the real agent reports configuring anew (apps/agent, Z-404) */
 const konfiguriert = (n: Nachricht) => ({
@@ -132,12 +152,11 @@ const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   const host = einrichtung?.installation?.host ?? (n.argumente as { host?: string }).host;
   if (n.aktion === "installation_konfigurieren")
     return ws.send(ergebnis(auftragId, konfiguriert(n)));
-  if (n.aktion === "installation_neustart" || n.aktion === "installation_backup_einrichten")
+  if (n.aktion === "installation_neustart")
     return ws.send(ergebnis(auftragId, { ok: true, daten: { installation: n.installationId } }));
-  if (n.aktion === "installation_backup") {
-    ws.send(backupStand(n.installationId));
-    return ws.send(ergebnis(auftragId, { ok: true, daten: { installation: n.installationId } }));
-  }
+  if (n.aktion === "installation_backup_einrichten")
+    return ws.send(ergebnis(auftragId, backupEingerichtet(n)));
+  if (n.aktion === "installation_backup") return backupJetzt(ws, n);
   if (n.aktion === "installation_log_auszug") {
     ws.send(JSON.stringify({ typ: "log_auszug", protokoll: 1, auftragId, zeilen: LOG_ZEILEN }));
     return ws.send(ergebnis(auftragId, { ok: true, daten: { zeilen: LOG_ZEILEN.length } }));

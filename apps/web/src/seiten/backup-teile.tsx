@@ -1,7 +1,7 @@
 import { m } from "@steuerzentrale/ui";
 import { CircleCheck, TriangleAlert } from "@steuerzentrale/ui/icons";
 import { Show } from "solid-js";
-import type { BackupLauf, BackupTeil, BackupZeile } from "../daten/backups.ts";
+import type { BackupLauf, BackupTeil, BackupZeile, LaufTeil } from "../daten/backups.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Zustand } from "../teile/zeichen.tsx";
 
@@ -13,6 +13,10 @@ import { Zustand } from "../teile/zeichen.tsx";
 /** "volume daten, befehl sichern" */
 export const teileText = (teile: BackupTeil[]): string =>
   teile.length === 0 ? m.bak_keine_teile() : teile.map((t) => `${t.art} ${t.name}`).join(", ");
+
+/** A part of a run: its tag with the snapshot's short id as restic shows it, or why it failed */
+export const laufTeilText = (t: LaufTeil): string =>
+  `${t.tag}: ${t.snapshot ? t.snapshot.slice(0, 8) : (t.fehler ?? "–")}`;
 
 /** Where the installation's backups stand before and after its first run */
 export const zugangText = (b: Pick<BackupZeile, "zugang" | "eingerichtet">): string => {

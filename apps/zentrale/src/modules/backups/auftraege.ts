@@ -1,4 +1,4 @@
-import { BACKUP_AKTIONEN, type BackupFeld } from "@steuerzentrale/manifest";
+import { BACKUP_AKTIONEN, type BackupZugang } from "@steuerzentrale/manifest";
 import { ENDZUSTAENDE } from "@steuerzentrale/protokoll";
 import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "../../db/oeffnen.ts";
@@ -27,7 +27,7 @@ export const backupAuftragVorbereiten = (
   kontext: Kontext,
   i: Installation,
   aktion: BackupAktion,
-  backup?: BackupFeld,
+  backup?: BackupZugang,
 ): Vorbereitet =>
   auftragVorbereiten(deps, kontext, {
     serverId: i.serverId,

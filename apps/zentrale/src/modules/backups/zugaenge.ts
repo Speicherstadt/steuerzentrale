@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { hatBackup, manifestPruefen } from "@steuerzentrale/manifest";
+import { manifestPruefen } from "@steuerzentrale/manifest";
 import { and, eq } from "drizzle-orm";
 import type { Db } from "../../db/oeffnen.ts";
 import { backupZugaenge } from "../../db/schema.ts";
@@ -83,7 +83,7 @@ export const zugangNachEinrichten = (
   zufall?: Zufall,
 ): void => {
   const m = manifestPruefen(i.manifest);
-  if (!m.ok || !hatBackup(m.manifest)) return;
+  if (!m.ok || m.manifest.backup.length === 0) return;
   if (w.vorhanden("backupZugaenge", { installationId: i.installationId })) return;
   w.einfuegen("backupZugaenge", {
     betreiberId: i.betreiberId,

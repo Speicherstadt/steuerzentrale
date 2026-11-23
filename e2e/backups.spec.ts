@@ -88,7 +88,7 @@ test.describe("backups", { tag: "@phone" }, () => {
       await page.getByRole("tab", { name: "Backups" }).click();
       const laeufe = page.getByRole("region", { name: "Läufe" });
       await expect(laeufe.getByText("erfolgreich")).toBeVisible();
-      await expect(laeufe.getByText(/volume-daten: [0-9a-f]{8}/)).toBeVisible();
+      await expect(laeufe.getByText(/volume:daten: [0-9a-f]{8}/)).toBeVisible();
       await expect(page.getByText("Teile aus dem Manifest: volume daten")).toBeVisible();
       await ohneBefund(page);
 

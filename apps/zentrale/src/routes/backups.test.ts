@@ -22,6 +22,7 @@ type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 type Antwort = { status: number; daten: Record<string, unknown> };
 
 const minio = minioNachbau();
+const SNAPSHOT = "4f2a9c1e".repeat(8);
 let server: TestServer;
 let teufel: Person;
 let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
@@ -230,14 +231,21 @@ describe("the backups of an installation", () => {
 
   it("show the runs the agent reported, here and on the page Backups", async () => {
     const s = { betreiberId: teufel.betreiberId, serverId, name: "Server A" } as Server;
-    const lauf = (zeit: number, ok: boolean) => ({
+    const lauf = (ende: number, ok: boolean) => ({
       typ: "backup_stand" as const,
       protokoll: 1,
       installationId,
-      zeit,
+      lauf: crypto.randomUUID(),
+      beginn: ende - 60_000,
+      ende,
       ok,
-      teile: ok ? [{ tag: "volume-daten", snapshotId: "4f2a9c1e" }] : [],
-      ...(ok ? {} : { grund: "befehl-sichern: exit 1" }),
+      teile: [
+        { tag: "volume:daten", ok: true, snapshot: SNAPSHOT },
+        ok
+          ? { tag: "befehl:sichern", ok: true, snapshot: SNAPSHOT }
+          : { tag: "befehl:sichern", ok: false, fehler: "die Quelle endete mit Code 1" },
+      ],
+      ...(ok ? {} : { fehler: "befehl:sichern: die Quelle endete mit Code 1" }),
     });
     backupStandAnnehmen(server.deps, s, lauf(server.jetzt() - 7_200_000, true), server.jetzt());
     backupStandAnnehmen(server.deps, s, lauf(server.jetzt() - 3_600_000, false), server.jetzt());
@@ -246,15 +254,10 @@ describe("the backups of an installation", () => {
       {
         zeitpunkt: server.jetzt() - 3_600_000,
         ok: false,
-        grund: "befehl-sichern: exit 1",
-        teile: [],
+        grund: "befehl:sichern: die Quelle endete mit Code 1",
+        teile: lauf(0, false).teile,
       },
-      {
-        zeitpunkt: server.jetzt() - 7_200_000,
-        ok: true,
-        grund: null,
-        teile: [{ tag: "volume-daten", snapshotId: "4f2a9c1e" }],
-      },
+      { zeitpunkt: server.jetzt() - 7_200_000, ok: true, grund: null, teile: lauf(0, true).teile },
     ]);
     const { daten } = await json(support, "/api/v1/backups");
     expect(daten.installationen).toEqual([
@@ -265,7 +268,7 @@ describe("the backups of an installation", () => {
         serverName: "Server A",
         zugang: "angelegt",
         eingerichtet: true,
-        letzter: expect.objectContaining({ ok: false, grund: "befehl-sichern: exit 1" }),
+        letzter: expect.objectContaining({ ok: false, grund: expect.stringContaining("Code 1") }),
         letzterErfolg: server.jetzt() - 7_200_000,
       }),
     ]);
@@ -273,9 +276,9 @@ describe("the backups of an installation", () => {
 
   it("never put an access or a password into an answer, the log or the database file", () => {
     const job = auftragVon(BACKUP_AKTIONEN.einrichten) as unknown as {
-      backup: { zugang: { secretKey: string }; passwort: string };
+      backup: { zugang: { geheim: string }; passwort: string };
     };
-    for (const geheim of [TEST_ADMIN.secretKey, job.backup.zugang.secretKey, job.backup.passwort]) {
+    for (const geheim of [TEST_ADMIN.secretKey, job.backup.zugang.geheim, job.backup.passwort]) {
       expect(JSON.stringify(antworten)).not.toContain(geheim);
       expect(server.log.join("\n")).not.toContain(geheim);
       expect(dateiInhalt(server.pfad)).not.toContain(geheim);

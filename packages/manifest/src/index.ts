@@ -63,9 +63,9 @@ export {
 } from "./backup/auftraege.ts";
 export { AGENT_BINARY, BACKUP_SERVICE, BACKUP_TIMER, backupUnits } from "./backup/units.ts";
 export {
-  BUCKET,
   type BackupOrt,
   type BackupPolicy,
+  BUCKET,
   backupPolicy,
   backupPraefix,
   backupRepository,

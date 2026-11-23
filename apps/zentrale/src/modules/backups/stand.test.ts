@@ -19,15 +19,20 @@ afterAll(() => minio.stoppen());
 const server = (serverId = "s1", betreiberId = "b1") =>
   ({ betreiberId, serverId, name: serverId }) as Server;
 
+const SNAPSHOT = "4f2a9c1e".repeat(8);
+
+/** A run as the agent sends it (packages/protokoll, `BackupStand`) */
 const stand = (installationId: string, teil: Record<string, unknown> = {}) => ({
   typ: "backup_stand" as const,
   protokoll: 1,
   installationId,
-  zeit: 1_800_000_000_000 - 5_000,
+  lauf: crypto.randomUUID(),
+  beginn: 1_800_000_000_000 - 65_000,
+  ende: 1_800_000_000_000 - 5_000,
   ok: true,
   teile: [
-    { tag: "volume-daten", snapshotId: "4f2a9c1e" },
-    { tag: "befehl-sichern", snapshotId: "b7d3e8f0" },
+    { tag: "volume:daten", ok: true, snapshot: SNAPSHOT },
+    { tag: "befehl:sichern", ok: true, snapshot: "b7d3e8f0".repeat(8) },
   ],
   ...teil,
 });
@@ -61,24 +66,33 @@ describe("a backup report", () => {
   it("of a failed run makes the event backup_gescheitert", () => {
     const u = backupUmgebung(minio);
     const id = u.laufend();
-    const n = stand(id, { ok: false, grund: "befehl-sichern: exit 1", teile: [] });
+    const n = stand(id, {
+      ok: false,
+      fehler: "befehl:sichern: die Quelle endete mit Code 1",
+      teile: [
+        { tag: "volume:daten", ok: true, snapshot: SNAPSHOT },
+        { tag: "befehl:sichern", ok: false, fehler: "die Quelle endete mit Code 1" },
+      ],
+    });
     backupStandAnnehmen(u.deps, server(), n, u.uhr.ms);
     expect(u.db.select().from(ereignisse).all()).toEqual([
       expect.objectContaining({
         art: "backup_gescheitert",
         schwere: "fehler",
         ziel: `installation:${id}`,
-        text: `Backup von ${id} gescheitert: befehl-sichern: exit 1`,
+        text: `Backup von ${id} gescheitert: befehl:sichern: die Quelle endete mit Code 1`,
       }),
     ]);
   });
 
-  it("sent twice stays one row and one event, at a time never later than its arrival", () => {
+  it("sent again at the next connection stays one row and one event, at its arrival at the latest", () => {
     const u = backupUmgebung(minio);
     const id = u.laufend();
-    const n = stand(id, { ok: false, grund: "kaputt", zeit: u.uhr.ms + 60_000 });
+    const n = stand(id, { ok: false, fehler: "kaputt", ende: u.uhr.ms + 60_000 });
     backupStandAnnehmen(u.deps, server(), n, u.uhr.ms);
+    u.uhr.ms += 3_600_000;
     expect(backupStandAnnehmen(u.deps, server(), n, u.uhr.ms)).toEqual({ ok: true, neu: false });
+    u.uhr.ms -= 3_600_000;
     expect(
       u.db
         .select()

@@ -22,7 +22,7 @@ export type Lauf = {
   zeitpunkt: number;
   ok: boolean;
   grund: string | null;
-  teile: { tag: string; snapshotId: string }[];
+  teile: { tag: string; ok: boolean; snapshot?: string; fehler?: string }[];
 };
 
 export type BackupsDerInstallation = {

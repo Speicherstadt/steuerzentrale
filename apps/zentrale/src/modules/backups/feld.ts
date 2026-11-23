@@ -1,4 +1,4 @@
-import { type BackupFeld, backupPraefix, backupRepository } from "@steuerzentrale/manifest";
+import { type BackupZugang, backupPraefix, backupRepository } from "@steuerzentrale/manifest";
 import type { Db } from "../../db/oeffnen.ts";
 import type { Schluesselbund } from "../../db/schluessel.ts";
 import { installationLesen } from "../installationen/lesen.ts";
@@ -13,7 +13,7 @@ import { type ZugangGeheim, zugangGeheim, zugangLesen } from "./zugaenge.ts";
  * goes to: a server gets the password of its own installations, never of another's.
  */
 
-export type FeldGelesen = { ok: true; backup: BackupFeld } | { ok: false; grund: string };
+export type FeldGelesen = { ok: true; backup: BackupZugang } | { ok: false; grund: string };
 
 /** The field from the target's endpoint and bucket, the installation's prefix and its secrets */
 export const feldAus = (
@@ -21,9 +21,9 @@ export const feldAus = (
   bucket: string,
   praefix: string,
   g: ZugangGeheim,
-): BackupFeld => ({
+): BackupZugang => ({
   repository: backupRepository(endpunkt, bucket, praefix),
-  zugang: { accessKey: g.accessKey, secretKey: g.secretKey },
+  zugang: { schluesselId: g.accessKey, geheim: g.secretKey },
   passwort: g.passwort,
 });
 

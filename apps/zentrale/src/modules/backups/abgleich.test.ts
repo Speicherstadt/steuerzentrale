@@ -64,7 +64,7 @@ describe("an installation's own S3 access", () => {
     expect(job).toMatchObject({ serverId: "s1", argumente: "{}", zustand: "zugestellt" });
     const { backup } = bekommen(u, id);
     expect(backup.repository).toBe(`s3:${minio.url}/${BUCKET}/b1/${id}`);
-    expect(backup.zugang).toEqual({ accessKey: k?.accessKey, secretKey: k?.secretKey });
+    expect(backup.zugang).toEqual({ schluesselId: k?.accessKey, geheim: k?.secretKey });
     expect(backup.passwort).toMatch(/^[A-Za-z0-9]{48}$/);
     expect(await backupAbgleichen(u.deps)).toBe(0);
   });
@@ -218,7 +218,11 @@ describe("a server", () => {
       aktion: BACKUP_AKTIONEN.einrichten,
       argumente: {},
       ...signiert("gesichert"),
-      backup: { repository: "s3:x", zugang: { accessKey: "a", secretKey: "b" }, passwort: "c" },
+      backup: {
+        repository: "s3:https://s3.example.de/backups/fremd",
+        zugang: { schluesselId: "fremd", geheim: "fremd-geheim" },
+        passwort: "p".repeat(20),
+      },
     });
     expect(angelegt.ok).toBe(true);
     expect(zweiter.filter((n) => n.typ === "auftrag")).toEqual([]);
@@ -237,7 +241,7 @@ describe("the admin access, the S3 secret and the restic password", () => {
     u.uhr.ms += 60_000;
     await backupAbgleichen(u.deps);
     const job = bekommen(u, id);
-    const geheim = [TEST_ADMIN.secretKey, job.backup.zugang.secretKey ?? "", job.backup.passwort];
+    const geheim = [TEST_ADMIN.secretKey, job.backup.zugang.geheim ?? "", job.backup.passwort];
     const zeile = u.db.select().from(backupZugaenge).all()[0];
     expect(zeile?.geheim).toMatch(/^v\d+\.[0-9a-f]{8}\./);
     const anderswo = [

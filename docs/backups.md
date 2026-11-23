@@ -2,8 +2,8 @@
 title: Backups
 description: >-
   Wie jede Installation täglich in ihr eigenes restic-Repository auf dem S3-Ziel des Betreibers
-  gesichert wird: was der Agent auf dem Server einrichtet, wie ein Lauf abläuft und wie die
-  Zentrale davon erfährt.
+  gesichert wird: was der Agent auf dem Server einrichtet, wie ein Lauf abläuft, wie die Zentrale
+  davon erfährt, und in der Zentrale S3-Ziel, eigene Zugänge je Installation und „Backup jetzt“.
 ---
 
 # Backups
@@ -144,7 +144,7 @@ Sobald `installation_einrichten` einer Installation gelingt, erzeugt die Zentral
 | --- | --- |
 | Präfix | `<betreiber>/<installation>/` im Bucket |
 | Repository | `s3:<endpunkt>/<bucket>/<betreiber>/<installation>` |
-| S3-Zugang | ein Service-Account `sz-<installation>` mit eigenem Access Key und Secret Key |
+| S3-Zugang | ein Service-Account `sz-<installation>` mit eigenem Access Key (im Auftrag `schluesselId`) und Secret Key (`geheim`) |
 | restic-Passwort | 48 zufällige Zeichen |
 
 Zugang und Passwort liegen verschlüsselt in `backup_zugaenge`, bevor MinIO sie kennt. Dann legt die
@@ -194,11 +194,13 @@ bleibt; Repository und Passwort löscht erst die Kündigung (Z-604).
 
 ### Läufe
 
-Nach jedem Lauf meldet der Agent der Zentrale `backup_stand`: Zeitpunkt, jeden Teil mit Tag und
-restic-Snapshot-ID, Erfolg oder Grund. Die Zentrale nimmt eine Meldung nur für eine Installation
-dieses Servers und Betreibers an; jede andere verwirft sie und schreibt das ins Log. Jeder Lauf wird
-eine Zeile in `backups` (13 Monate aufbewahrt), ein zweimal gemeldeter bleibt eine. Ein gescheiterter
-Lauf schreibt das Ereignis `backup_gescheitert` (Schwere `fehler`) mit seinem Grund.
+Jeden Lauf meldet der Agent als `backup_stand` (siehe oben): seine ID `lauf`, Beginn und Ende,
+jeden Teil mit Tag und Snapshot oder Grund, Erfolg oder Grund des Laufs. Die Zentrale nimmt eine
+Meldung nur für eine Installation dieses Servers und Betreibers an; jede andere verwirft sie und
+schreibt das ins Log. Jeder Lauf wird eine Zeile in `backups` (13 Monate aufbewahrt), mit seinem Ende
+als Zeitpunkt, höchstens dem Zeitpunkt der Ankunft. Den neuesten Lauf, den der Agent bei jeder neuen
+Verbindung noch einmal schickt, erkennt sie an `lauf`: er bleibt eine Zeile. Ein gescheiterter Lauf
+schreibt das Ereignis `backup_gescheitert` (Schwere `fehler`) mit seinem Grund, einmal je Lauf.
 
 Die Seite **Backups** zeigt jede Installation mit ihren Teilen, dem letzten Lauf (gescheitert mit
 Grund und dem letzten Erfolg), den Snapshots des letzten Laufs und dem Stand: Zugang wird angelegt,

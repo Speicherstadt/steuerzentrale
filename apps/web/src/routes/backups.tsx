@@ -5,7 +5,7 @@ import { type BackupZeile, backupQuelle } from "../daten/backups.ts";
 import { bestand } from "../daten/quelle.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
-import { LaufText, teileText, zugangText } from "../seiten/backup-teile.tsx";
+import { LaufText, laufTeilText, teileText, zugangText } from "../seiten/backup-teile.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
 import { Kennzahl } from "../teile/listen.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
@@ -93,9 +93,7 @@ const Liste = (props: { zeilen: BackupZeile[] }) => (
           <td class="text-xs">
             <LetzterLauf z={z} />
           </td>
-          <td class="font-mono text-xs">
-            {z.letzter?.ok ? z.letzter.teile.map((t) => t.snapshotId).join(", ") : "–"}
-          </td>
+          <td class="font-mono text-xs">{z.letzter?.teile.map(laufTeilText).join(", ") || "–"}</td>
           <td class="text-xs">{z.teile.length > 0 ? zugangText(z) : "–"}</td>
           <td class="text-xs">
             <ZuServer id={z.serverId}>{z.serverName}</ZuServer>

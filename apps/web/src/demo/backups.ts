@@ -40,12 +40,23 @@ export const BACKUP_TEILE: Readonly<Record<string, BackupTeil[]>> = {
   soll: [{ art: "volume", name: "daten" }],
 };
 
-/** A restic snapshot id of eight hex digits, the same for the same part and run */
-const snapshotId = (text: string): string => {
+/** Eight hex digits of FNV-1a, the same for the same text */
+const fnv = (text: string): string => {
   let h = 2166136261;
   for (const c of text) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
   return h.toString(16).padStart(8, "0");
 };
+
+/** A restic snapshot id (64 hex digits), the same for the same part and run */
+const snapshot = (text: string): string =>
+  Array.from({ length: 8 }, (_, n) => fnv(`${n}:${text}`)).join("");
+
+/**
+ * The tag the agent gives a part (packages/manifest, backup/auftraege.ts); the database of a dump
+ * is named like its app in the manifests of Haben and Belegt
+ */
+const tagVon = (app: string, t: BackupTeil): string =>
+  t.art === "pg_dump" ? `pg_dump:${t.name}:${app}` : `${t.art}:${t.name}`;
 
 const laeufeVon = (i: Installation): BackupLauf[] =>
   i.snapshots.map((s) => {
@@ -54,12 +65,11 @@ const laeufeVon = (i: Installation): BackupLauf[] =>
       zeitpunkt: s.zeitpunkt,
       ok,
       grund: ok ? null : (i.grund ?? "restic exit 1"),
-      teile: ok
-        ? (BACKUP_TEILE[i.app] ?? []).map((t) => ({
-            tag: `${t.art}-${t.name}`,
-            snapshotId: snapshotId(`${i.id}:${t.name}:${s.zeitpunkt}`),
-          }))
-        : [],
+      teile: (BACKUP_TEILE[i.app] ?? []).map((t) =>
+        ok
+          ? { tag: tagVon(i.app, t), ok, snapshot: snapshot(`${i.id}:${t.name}:${s.zeitpunkt}`) }
+          : { tag: tagVon(i.app, t), ok, fehler: i.grund ?? "restic exit 1" },
+      ),
     };
   });
 

@@ -1,7 +1,7 @@
 import {
   AKTIONS_AUFTRAEGE,
   BACKUP_AKTIONEN,
-  type BackupFeld,
+  type BackupZugang,
   EINRICHTUNG_AKTIONEN,
   type Einrichtung,
   manifestPruefen,
@@ -50,7 +50,7 @@ export type AuftragDeps = {
 };
 
 /** What only some jobs carry: the installation's data, its backup access (both added when sent) */
-export type Zusatz = { einrichtung?: Einrichtung | undefined; backup?: BackupFeld | undefined };
+export type Zusatz = { einrichtung?: Einrichtung | undefined; backup?: BackupZugang | undefined };
 
 /** The `auftrag` message: the manifest's exact text and signature, which the agent checks */
 export const auftragNachricht = (a: Auftrag, zusatz: Zusatz = {}): string =>

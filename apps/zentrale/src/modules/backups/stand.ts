@@ -13,8 +13,9 @@ import type { Server } from "../server/index.ts";
  * dem Server (Z-601)"): each run as a row in `backups` of the operator, through the audit log; a
  * failed run also as the event `backup_gescheitert` (severity `fehler`). Only for an installation
  * of this server and operator: any other report is dropped and logged, as the state of an
- * installation is (Z-403). A run reported twice (the agent reconnected before it kept that it sent
- * it) stays one row; its time is the agent's, never later than now.
+ * installation is (Z-403). The agent sends the newest run again at every connection: a run is known
+ * by its `lauf`, so it stays one row and one event; its time is its end on the agent, never later
+ * than now.
  */
 
 type BackupStand = Extract<NachrichtVomAgenten, { typ: "backup_stand" }>;
@@ -27,7 +28,7 @@ export type StandAngenommen = { ok: true; neu: boolean } | { ok: false; grund: s
 
 const backupIdVon = (serverId: string, n: BackupStand) =>
   `backup-${createHash("sha256")
-    .update(JSON.stringify([serverId, n.installationId, n.zeit]))
+    .update(JSON.stringify([serverId, n.installationId, n.lauf]))
     .digest("hex")
     .slice(0, 32)}`;
 
@@ -58,8 +59,8 @@ export const backupStandAnnehmen = (
   }
   const backupId = backupIdVon(serverId, n);
   if (vorhanden(deps.db, betreiberId, backupId)) return { ok: true, neu: false };
-  const zeitpunkt = Math.min(n.zeit, jetzt);
-  const grund = n.ok ? null : (n.grund ?? "ohne Grund");
+  const zeitpunkt = Math.min(n.ende, jetzt);
+  const grund = n.ok ? null : (n.fehler ?? "ohne Grund");
   const kontext = {
     betreiberId,
     akteur: `server:${serverId}`,

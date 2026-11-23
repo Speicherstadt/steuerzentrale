@@ -55,10 +55,11 @@ export const backupZugaenge = sqliteTable(
 );
 
 /**
- * One run of an installation's backup as its agent reported it (`backup_stand`): when it ran (the
- * agent's time, never later than its arrival), whether it succeeded, the parts that landed (JSON
- * `[{ tag, snapshotId }]`) and, for a failed run, why. `backup_id` comes from server,
- * installation and time, so a run reported twice stays one row. Kept 13 months like events.
+ * One run of an installation's backup as its agent reported it (`backup_stand`): when it ended (the
+ * agent's time, never later than its arrival), whether it succeeded, its parts (JSON
+ * `[{ tag, ok, snapshot?, fehler? }]`) and, for a failed run, why. `backup_id` comes from server,
+ * installation and the run's own id (`lauf`), so a run reported again stays one row. Kept 13
+ * months like events.
  */
 export const backups = sqliteTable(
   "backups",

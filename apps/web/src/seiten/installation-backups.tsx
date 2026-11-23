@@ -9,7 +9,7 @@ import { zeitpunkt } from "../format/zeit.ts";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { Fehler, fehlerText, felder } from "./anmeldung-teile.tsx";
-import { Ergebnis, teileText, zugangText } from "./backup-teile.tsx";
+import { Ergebnis, laufTeilText, teileText, zugangText } from "./backup-teile.tsx";
 
 /*
  * The backups of one installation (BAULISTE.md Z-601; mockup, installation page, tab "Backups" and
@@ -51,9 +51,7 @@ const Laeufe = (props: { b: BackupsDerInstallation }) => (
           <td>
             <Ergebnis lauf={lauf} />
           </td>
-          <td class="font-mono text-xs">
-            {lauf.teile.map((t) => `${t.tag}: ${t.snapshotId}`).join(", ") || "–"}
-          </td>
+          <td class="font-mono text-xs">{lauf.teile.map(laufTeilText).join(", ") || "–"}</td>
         </Reihe>
       )}
     </For>

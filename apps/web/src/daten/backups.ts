@@ -28,12 +28,15 @@ export type BackupZielAenderung = {
 /** A part the manifest backs up, with the container, volume or command it names */
 export type BackupTeil = { art: "pg_dump" | "volume" | "befehl"; name: string };
 
+/** A part of a run: its restic tag and snapshot, or why it failed */
+export type LaufTeil = { tag: string; ok: boolean; snapshot?: string; fehler?: string };
+
 /** One run as the agent reported it */
 export type BackupLauf = {
   zeitpunkt: number;
   ok: boolean;
   grund: string | null;
-  teile: { tag: string; snapshotId: string }[];
+  teile: LaufTeil[];
 };
 
 export type ZugangsZustand = "anlegen" | "angelegt" | "loeschen" | "geloescht";
