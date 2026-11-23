@@ -219,6 +219,34 @@ describe("the Pforte, before an app behind it is set up", () => {
     expect(a.programme().filter((p) => p.startsWith("sz-pforte:"))).toEqual([
       "sz-pforte: systemctl --user daemon-reload",
       "sz-pforte: systemctl --user start",
+      "sz-pforte: systemctl --user is-active",
+    ]);
+  });
+
+  it("is loaded before its start when another job wrote it and it does not run yet", async () => {
+    // two jobs at once (CI run 45134053414): the other one wrote the unit, but its daemon-reload
+    // has not finished, so systemd does not know sz-pforte.service yet and a bare start fails
+    const a = einrichtungsAgent();
+    const units = `${PFORTE.home}/.config/containers/systemd`;
+    for (const ordner of [".config", ".config/containers", ".config/containers/systemd"])
+      a.sys.dateien.set(`${PFORTE.home}/${ordner}`, {
+        art: "verzeichnis",
+        modus: 0o700,
+        uid: PFORTE.uid,
+        gid: PFORTE.gid,
+      });
+    a.sys.dateien.set(`${units}/${PFORTE_UNIT}`, {
+      art: "datei",
+      inhalt: pforteUnit(),
+      modus: 0o600,
+      uid: PFORTE.uid,
+      gid: PFORTE.gid,
+    });
+    await a.empfangen();
+    expect(a.ergebnis()).toMatchObject({ ok: true });
+    expect(a.programme().filter((p) => p.startsWith("sz-pforte:"))).toEqual([
+      "sz-pforte: systemctl --user is-active",
+      "sz-pforte: systemctl --user daemon-reload",
       "sz-pforte: systemctl --user start",
     ]);
   });
