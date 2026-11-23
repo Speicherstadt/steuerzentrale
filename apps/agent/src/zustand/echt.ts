@@ -1,5 +1,6 @@
+import { closeSync } from "node:fs";
 import { createConnection } from "node:net";
-import { gruppeBeiAbbruch } from "../auftraege/ausfuehren.ts";
+import { eingabeRohr, gruppeBeiAbbruch } from "../auftraege/ausfuehren.ts";
 import { PATH } from "../einrichtung/nutzer.ts";
 import type { SpawnMitAusgabe, Verbinden } from "./pruefen.ts";
 
@@ -41,21 +42,29 @@ const ausgabeLesen = async (
 };
 
 /**
- * Bun's spawn as in auftraege/ausfuehren.ts (no shell, no input, only PATH, a session of its own
- * whose process group the signal kills, runuser's child with it), its output read
+ * Bun's spawn as in auftraege/ausfuehren.ts (no shell, an input only through a pipe, only PATH,
+ * a session of its own whose process group the signal kills, runuser's child with it), its output
+ * read
  */
-export const echtLesen: SpawnMitAusgabe = async (argv, signal) => {
-  const lauf = Bun.spawn([...argv], {
-    stdin: "ignore",
-    stdout: "pipe",
-    stderr: "ignore",
-    cwd: "/",
-    detached: true,
-    env: { PATH, LC_ALL: "C" },
-  });
+export const echtLesen: SpawnMitAusgabe = async (argv, signal, o = {}) => {
+  // an input through a named pipe without a name (auftraege/ausfuehren.ts), never in an argv
+  const rohr = o.eingabe === undefined ? undefined : eingabeRohr(o.eingabe);
+  let lauf: ReturnType<typeof Bun.spawn>;
+  try {
+    lauf = Bun.spawn([...argv], {
+      stdin: rohr ?? "ignore",
+      stdout: "pipe",
+      stderr: "ignore",
+      cwd: "/",
+      detached: true,
+      env: { PATH, LC_ALL: "C" },
+    });
+  } finally {
+    if (rohr !== undefined) closeSync(rohr);
+  }
   const aufheben = gruppeBeiAbbruch(lauf, signal);
   try {
-    const aus = await ausgabeLesen(lauf.stdout, signal);
+    const aus = await ausgabeLesen(lauf.stdout as ReadableStream<Uint8Array>, signal);
     return { code: (await lauf.exited) ?? null, aus };
   } finally {
     aufheben();

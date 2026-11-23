@@ -29,6 +29,12 @@ const deps = (eingabe = ""): CliDeps & { gesendet: unknown[]; gestartet: unknown
         planen: () => () => {},
       },
     },
+    spielen: {
+      uid: () => 0,
+      eingabe: async () => eingabe,
+      restic: async () => ({ code: 0, aus: "" }),
+      lesen: async () => ({ code: 0, aus: "" }),
+    },
     gesendet,
   };
 };

@@ -6,7 +6,7 @@ import { auftraegeAnnehmen } from "./auftraege/auftraege.ts";
 import { echtSpawn } from "./auftraege/ausfuehren.ts";
 import type { Vertrauen } from "./auftraege/pruefen.ts";
 import { type SichernBefehlDeps, sichernBefehl } from "./backup/befehl.ts";
-import { echtRestic } from "./backup/echt.ts";
+import { echtRestic, eigenLesen } from "./backup/echt.ts";
 import { backupMelder } from "./backup/melden.ts";
 import { beitreten } from "./beitritt/beitreten.ts";
 import { type Dateien, echteDateien } from "./dateien.ts";
@@ -18,6 +18,7 @@ import { type FaktenNachricht, faktenLesen } from "./fakten/lesen.ts";
 import { echteQuellen } from "./fakten/quellen.ts";
 import { type Pfade, pfadeIn } from "./pfade.ts";
 import { adminUeberSocket, PFORTE_ADMIN_SOCKET } from "./pforte/admin.ts";
+import { type SpielBefehlDeps, spielenBefehl } from "./pruef-restore/spielen.ts";
 import { anmeldungenFolgen } from "./ssh/anmeldungen.ts";
 import { echtFolgen } from "./ssh/journal.ts";
 import { echtOeffnen } from "./verbindung/sockel.ts";
@@ -38,6 +39,7 @@ export const USAGE = [
   "       steuerzentrale-agent dienst",
   "       steuerzentrale-agent fakten",
   "       steuerzentrale-agent sichern <installation> [--repository-anlegen]",
+  "       steuerzentrale-agent zurueckspielen <installation> < teil.json",
 ].join("\n");
 
 export type CliDeps = {
@@ -57,6 +59,8 @@ export type CliDeps = {
   fakten: () => Promise<FaktenNachricht>;
   /** A backup run as the installation's user (src/backup, Z-601), what its service starts */
   sichern: SichernBefehlDeps;
+  /** A part played back as the target installation's user (src/pruef-restore, Z-602) */
+  spielen: SpielBefehlDeps;
   /** Other directories than /etc/steuerzentrale and /var/lib/steuerzentrale, for tests */
   konfig?: string;
   zustand?: string;
@@ -90,6 +94,33 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
   // one record of installations for jobs and checks, so a finished setup is checked at once
   const gedaechtnis = gedaechtnisOeffnen(echteDateien, pfade.installationen, Date.now);
   const nutzer = nutzerAusPasswd(echteHausDateien.lesen);
+  const auftraege = auftraegeAnnehmen({
+    dateien: echteDateien,
+    pfad: pfade.auftraege,
+    vertrauen,
+    spawn: echtSpawn,
+    // 80 and 443, certificates by ACME (docs/plan.md, "Pforte")
+    pforte: {
+      admin: adminUeberSocket((url, init) => fetch(url, init), PFORTE_ADMIN_SOCKET),
+      grund: pforteGrundkonfiguration(),
+    },
+    installationen: {
+      pfad: pfade.installationen,
+      gedaechtnis,
+      haus: echteHausDateien,
+      nutzer,
+      lesen: echtLesen,
+      journal: echtZeilenLesen,
+      warten: (ms) => Bun.sleep(ms),
+      holen: (url, init) => fetch(url, init),
+      verbinden: echtVerbinden,
+    },
+    planen,
+    jetzt: Date.now,
+    log: jsonLog,
+  });
+  // a copy of a Prüf-Restore the agent did not finish before it stopped (Z-602)
+  void auftraege.aufraeumen();
   verbindungsSchleife(
     {
       oeffnen: echtOeffnen,
@@ -120,29 +151,7 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
           log: jsonLog,
         }),
       },
-      auftraege: auftraegeAnnehmen({
-        dateien: echteDateien,
-        pfad: pfade.auftraege,
-        vertrauen,
-        spawn: echtSpawn,
-        // 80 and 443, certificates by ACME (docs/plan.md, "Pforte")
-        pforte: {
-          admin: adminUeberSocket((url, init) => fetch(url, init), PFORTE_ADMIN_SOCKET),
-          grund: pforteGrundkonfiguration(),
-        },
-        installationen: {
-          pfad: pfade.installationen,
-          gedaechtnis,
-          haus: echteHausDateien,
-          nutzer,
-          lesen: echtLesen,
-          journal: echtZeilenLesen,
-          warten: (ms) => Bun.sleep(ms),
-        },
-        planen,
-        jetzt: Date.now,
-        log: jsonLog,
-      }),
+      auftraege,
     },
     zentrale,
   );
@@ -160,6 +169,12 @@ const echteDeps = (): CliDeps => ({
     home: homedir,
     dateien: echteDateien,
     sichern: { restic: echtRestic(), jetzt: Date.now, id: () => crypto.randomUUID(), planen },
+  },
+  spielen: {
+    uid: () => process.getuid?.() ?? 0,
+    eingabe: () => Bun.stdin.text(),
+    restic: echtRestic(),
+    lesen: eigenLesen,
   },
 });
 
@@ -222,5 +237,7 @@ export const runCli = async (args: string[], deps: CliDeps = echteDeps()): Promi
     return { code: 0, out: JSON.stringify(await deps.fakten(), null, 2) };
   // the backup's service as the installation's user, without the Zentrale (docs/plan.md, Z-601)
   if (befehl === "sichern") return sichernBefehl(rest, deps.sichern);
+  // a part of a backup played back as the target's user, started by the agent (Z-602)
+  if (befehl === "zurueckspielen") return spielenBefehl(rest, deps.spielen);
   return { code: 2, out: USAGE };
 };

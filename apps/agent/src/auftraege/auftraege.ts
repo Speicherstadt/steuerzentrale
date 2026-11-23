@@ -16,17 +16,18 @@ import { type Gedaechtnis, gedaechtnisOeffnen } from "../einrichtung/gedaechtnis
 import type { HausDateien } from "../einrichtung/haus.ts";
 import type { NutzerLesen } from "../einrichtung/nutzer.ts";
 import { type PforteDeps, pforteAusfuehren } from "../pforte/ausfuehren.ts";
-import type { Planer } from "../verbindung/verbinden.ts";
-import type { SpawnMitAusgabe } from "../zustand/pruefen.ts";
-import { ausfuehren, type Ergebnis, type Spawn } from "./ausfuehren.ts";
 import {
-  type AktionPlan,
+  type PruefRestoreDeps,
+  pruefRestoreAusfuehren,
+  resteAbbauen,
+} from "../pruef-restore/auftrag.ts";
+import type { Planer } from "../verbindung/verbinden.ts";
+import type { PruefDeps, SpawnMitAusgabe } from "../zustand/pruefen.ts";
+import { ausfuehren as befehlAusfuehren, type Ergebnis, type Spawn } from "./ausfuehren.ts";
+import {
   type AuftragNachricht,
   auftragPruefen,
-  type BackupPlan,
-  type EinrichtungPlan,
-  type PfortePlan,
-  type Plan,
+  type JederPlan,
   type Vertrauen,
 } from "./pruefen.ts";
 import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.ts";
@@ -61,8 +62,16 @@ export type InstallationenDeps = {
   /** Reads the journal for a log excerpt (Z-405, aktionen/journal.ts) */
   journal: ZeilenLesen;
   warten: (ms: number) => Promise<void>;
-  /** The agent's binary the backup's service runs (Z-601); AGENT_BINARY without, other in tests */
+  /**
+   * The agent's binary the backup's service runs (Z-601) and a Prüf-Restore plays back with
+   * (Z-602); AGENT_BINARY without, other in tests
+   */
   agent?: string;
+  /** The health check of a Prüf-Restore's copy (Z-602), as the checks make it (src/zustand) */
+  holen: PruefDeps["holen"];
+  verbinden: PruefDeps["verbinden"];
+  /** Only in the agent test: reads the copy of a Prüf-Restore while it runs (pruef-restore/auftrag.ts) */
+  waehrendKopie?: PruefRestoreDeps["waehrendKopie"];
 };
 
 export type AuftraegeDeps = {
@@ -82,6 +91,11 @@ export type AuftraegeDeps = {
 export type Auftraege = {
   /** Handles a job; `senden` reaches the Zentrale over the current connection, if any */
   empfangen: (n: AuftragNachricht, senden: (text: string) => void) => Promise<void>;
+  /**
+   * Tears down what a Prüf-Restore left when the agent stopped in its middle (Z-602): called once
+   * when the service starts, in the line of the Prüf-Restores
+   */
+  aufraeumen: () => Promise<void>;
 };
 
 export const NEU_GESTARTET = "Agent neu gestartet";
@@ -105,8 +119,6 @@ const reihe = () => {
   };
 };
 
-type JederPlan = Plan | PfortePlan | EinrichtungPlan | AktionPlan | BackupPlan;
-
 /** Runs a checked plan by its kind: a command as the installation's user, or a built-in job */
 const ausfuehrer = (deps: AuftraegeDeps) => {
   const pforteReihe = reihe();
@@ -122,7 +134,27 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
       gedaechtnisOeffnen(deps.dateien, deps.installationen.pfad, deps.jetzt),
   };
   const backup = { ...system, agent: deps.installationen.agent ?? AGENT_BINARY, jetzt: deps.jetzt };
-  return async (plan: JederPlan, auszugSenden: (zeilen: string[]) => void): Promise<Ergebnis> => {
+  const { holen, verbinden, waehrendKopie } = deps.installationen;
+  const pruef: PruefRestoreDeps = {
+    ...backup,
+    holen,
+    verbinden,
+    ...(waehrendKopie ? { waehrendKopie } : {}),
+  };
+  // one Prüf-Restore at a time, beside the setups: it may take hours and changes no installation
+  const pruefReihe = reihe();
+  const aufraeumen = () =>
+    pruefReihe(async () => {
+      const r = await resteAbbauen(system);
+      if (!r.ok) deps.log("pruef-restore leftovers not torn down", { grund: r.grund });
+      else if (r.abgebaut.length > 0)
+        deps.log("pruef-restore leftovers torn down", { kopien: r.abgebaut });
+    });
+  const ausfuehren = async (
+    plan: JederPlan,
+    auszugSenden: (zeilen: string[]) => void,
+  ): Promise<Ergebnis> => {
+    if (plan.art === "pruef_restore") return pruefReihe(() => pruefRestoreAusfuehren(pruef, plan));
     if (plan.art === "pforte") return pforteReihe(() => pforteAusfuehren(deps, plan));
     if (plan.art === "einrichtung")
       return einrichtungReihe(() => einrichtungAusfuehren(system, plan));
@@ -135,15 +167,16 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
         : backupAusfuehren(backup, plan);
     const als = await installationsNutzer(system, plan.installationId);
     if (!als.ok) return { ok: false, fehler: `abgelehnt: ${als.grund}` };
-    return ausfuehren(deps, plan, als.nutzer);
+    return befehlAusfuehren(deps, plan, als.nutzer);
   };
+  return { ausfuehren, aufraeumen };
 };
 
 export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const schreibe = standSchreiber(deps.dateien, deps.pfad, deps.jetzt);
   let geladen: Promise<Geladen> | undefined;
   const laufend = new Set<string>();
-  const planAusfuehren = ausfuehrer(deps);
+  const { ausfuehren: planAusfuehren, aufraeumen } = ausfuehrer(deps);
 
   const ergebnisSenden = (auftragId: string, ergebnis: Ergebnis, senden: (t: string) => void) =>
     senden(
@@ -237,5 +270,5 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
     return starten(stand, n, geprueft.plan, senden);
   };
 
-  return { empfangen };
+  return { empfangen, aufraeumen };
 };

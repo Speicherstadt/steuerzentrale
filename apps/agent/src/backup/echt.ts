@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gruppeBeiAbbruch } from "../auftraege/ausfuehren.ts";
 import { PATH } from "../einrichtung/nutzer.ts";
+import type { SpawnMitAusgabe } from "../zustand/pruefen.ts";
 import type { ResticLauf } from "./sichern.ts";
 
 /*
@@ -13,7 +14,8 @@ import type { ResticLauf } from "./sichern.ts";
  * (tmpfs, 0700), opened, and its folder removed, so the value is never in an argv, an environment
  * or a file anyone could open by name. (A named pipe on descriptor 3 made Bun's spawn hang in a
  * test with Bun 1.4.4; a regular file does not.) A source's standard output is restic's standard
- * input; what either writes to standard error is dropped. Killing `podman run` leaves its
+ * input, and for playing a snapshot back (Z-602) restic's standard output is a target's standard
+ * input; what any of them writes to standard error is dropped. Killing `podman run` leaves its
  * container running under conmon (restic retries an unreachable S3 for 15 minutes), so each
  * container gets a name of its own, and an aborted run removes it.
  */
@@ -86,7 +88,8 @@ export const echtRestic =
     const passwort = namenloseDatei(`${geheim.passwort}\n`, ordner);
     let zugang: number | undefined;
     let quelle: ReturnType<typeof Bun.spawn> | undefined;
-    let restic: ReturnType<typeof Bun.spawn>;
+    let restic: ReturnType<typeof Bun.spawn> | undefined;
+    let ziel: ReturnType<typeof Bun.spawn> | undefined;
     try {
       zugang = namenloseDatei(geheim.zugang, ordner);
       quelle =
@@ -105,21 +108,58 @@ export const echtRestic =
         detached: true,
         env,
       });
+      ziel =
+        a.ziel &&
+        Bun.spawn(a.ziel, {
+          stdin: restic.stdout as ReadableStream<Uint8Array>,
+          stdout: "ignore",
+          stderr: "ignore",
+          cwd: "/",
+          detached: true,
+          env,
+        });
     } catch (fehler) {
       quelle?.kill("SIGKILL");
+      // restic started and its reader did not: nothing would ever read what restic writes
+      if (restic !== undefined) {
+        restic.kill("SIGKILL");
+        await entfernen(name, env);
+      }
       throw fehler;
     } finally {
       closeSync(passwort);
       if (zugang !== undefined) closeSync(zugang);
     }
-    const aufheben = [restic, ...(quelle ? [quelle] : [])].map((p) => gruppeBeiAbbruch(p, signal));
+    const aufheben = [restic, ...(quelle ? [quelle] : []), ...(ziel ? [ziel] : [])].map((p) =>
+      gruppeBeiAbbruch(p, signal),
+    );
     try {
-      const aus = await endeLesen(restic.stdout as ReadableStream<Uint8Array>, signal);
+      const aus = ziel ? "" : await endeLesen(restic.stdout as ReadableStream<Uint8Array>, signal);
       const code = (await restic.exited) ?? null;
       if (signal.aborted) await entfernen(name, env);
+      if (ziel) return { code, aus, zielCode: (await ziel.exited) ?? null };
       if (!quelle) return { code, aus };
       return { code, aus, quelleCode: (await quelle.exited) ?? null };
     } finally {
       for (const f of aufheben) f();
     }
   };
+
+/** A fixed argv of the user with the same environment, its output read (Podman's answers, Z-602) */
+export const eigenLesen: SpawnMitAusgabe = async (argv, signal) => {
+  const p = Bun.spawn([...argv], {
+    stdin: "ignore",
+    stdout: "pipe",
+    stderr: "ignore",
+    cwd: "/",
+    detached: true,
+    env: umgebung(),
+  });
+  const aufheben = gruppeBeiAbbruch(p, signal);
+  try {
+    const aus = await endeLesen(p.stdout as ReadableStream<Uint8Array>, signal);
+    return { code: (await p.exited) ?? null, aus };
+  } finally {
+    aufheben();
+  }
+};

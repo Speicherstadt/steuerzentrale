@@ -5,7 +5,7 @@ import { pforteGrundkonfiguration, schluesselLesen } from "@steuerzentrale/manif
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { geheimenSchluesselLesen, signieren } from "../../../scripts/minisign.ts";
 import type { ZeilenLesen } from "../src/aktionen/journal.ts";
-import { auftraegeAnnehmen } from "../src/auftraege/auftraege.ts";
+import { auftraegeAnnehmen, type InstallationenDeps } from "../src/auftraege/auftraege.ts";
 import { eingabeRohr, type Spawn } from "../src/auftraege/ausfuehren.ts";
 import type { AuftragNachricht } from "../src/auftraege/pruefen.ts";
 import { speicher, TEST_PUB } from "../src/beitritt/testhilfen.ts";
@@ -57,10 +57,14 @@ export const sudoSpawn: Spawn = async (argv, signal, o = {}) => {
   return { code };
 };
 
-/** Root's argv through sudo with its standard output, as the checks read `systemctl show` (Z-403) */
-export const sudoLesen: SpawnMitAusgabe = async (argv, signal) => {
+/**
+ * Root's argv through sudo with its standard output, as the checks read `systemctl show` (Z-403);
+ * an input as sudoSpawn gives it (the secrets of a Prüf-Restore, Z-602)
+ */
+export const sudoLesen: SpawnMitAusgabe = async (argv, signal, o = {}) => {
+  const rohr = o.eingabe === undefined ? undefined : eingabeRohr(o.eingabe);
   const p = Bun.spawn(["sudo", "-n", ...argv], {
-    stdin: "ignore",
+    stdin: rohr ?? "ignore",
     stdout: "pipe",
     stderr: "ignore",
     cwd: "/",
@@ -68,6 +72,7 @@ export const sudoLesen: SpawnMitAusgabe = async (argv, signal) => {
     killSignal: "SIGKILL",
     env: { PATH, LC_ALL: "C" },
   });
+  if (rohr !== undefined) closeSync(rohr);
   const aus = await new Response(p.stdout).text();
   return { code: (await p.exited) ?? null, aus };
 };
@@ -144,7 +149,9 @@ export const ersetzen = (text: string, alt: string, neu: string): string => {
 export type EchterAgent = ReturnType<typeof echterAgent>;
 
 /** The agent's job handling as on a server; records in memory, root's part through sudo */
-export const echterAgent = (o: { agent?: string } = {}) => {
+export const echterAgent = (
+  o: { agent?: string; waehrendKopie?: InstallationenDeps["waehrendKopie"] } = {},
+) => {
   const schluessel = schluesselLesen(TEST_PUB);
   if (!schluessel) throw new Error("test key");
   const ordner = mkdtempSync(join(tmpdir(), "sz-test-einrichtung-"));
@@ -171,7 +178,10 @@ export const echterAgent = (o: { agent?: string } = {}) => {
       lesen: sudoLesen,
       journal: sudoZeilenLesen,
       warten: (ms) => Bun.sleep(ms),
+      holen: (url, init) => fetch(url, init),
+      verbinden: echtVerbinden,
       ...(o.agent === undefined ? {} : { agent: o.agent }),
+      ...(o.waehrendKopie === undefined ? {} : { waehrendKopie: o.waehrendKopie }),
     },
     planen,
     jetzt: Date.now,

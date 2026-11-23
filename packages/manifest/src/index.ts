@@ -75,6 +75,12 @@ export {
 } from "./backup/pruef-restore.ts";
 export { AGENT_BINARY, BACKUP_SERVICE, BACKUP_TIMER, backupUnits } from "./backup/units.ts";
 export {
+  PRUEF_RESTORE_HEALTH_S,
+  type RestoreTeil,
+  type RestoreTeile,
+  restoreTeile,
+} from "./backup/zurueckspielen.ts";
+export {
   type BackupOrt,
   type BackupPolicy,
   BUCKET,

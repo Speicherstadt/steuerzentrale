@@ -7,7 +7,8 @@ import { benannt, echtRestic, namenloseDatei } from "./echt.ts";
 /*
  * BAULISTE.md Z-601: how restic gets password and access for real, with harmless programs in
  * restic's place: as descriptors 3 and 4 of files that have no name any more, never in an argv;
- * a source's output on its standard input; the end of its output read back.
+ * a source's output on its standard input; the end of its output read back, or handed to a target
+ * that plays a snapshot back (Z-602).
  */
 const ORDNER = mkdtempSync(join(tmpdir(), "sz-test-sichern-"));
 afterAll(() => rmSync(ORDNER, { recursive: true, force: true }));
@@ -57,6 +58,23 @@ describe("echtRestic", () => {
       new AbortController().signal,
     );
     expect(r).toEqual({ code: 12, aus: "", quelleCode: 3 });
+  });
+
+  it("hands restic's output to a target's standard input and reports the target's exit code (Z-602)", async () => {
+    const pruefen = ["sh", "-c", 'test "$(cat)" = "pw-1|daten"'];
+    const ok = await lauf(
+      { argv: ["sh", "-c", 'printf "%s|daten" "$(cat /dev/fd/3)"'], ziel: pruefen },
+      { passwort: "pw-1", zugang: "[default]" },
+      new AbortController().signal,
+    );
+    expect(ok).toEqual({ code: 0, aus: "", zielCode: 0 });
+    const anders = await lauf(
+      { argv: ["printf", "anders"], ziel: pruefen },
+      { passwort: "pw-1", zugang: "[default]" },
+      new AbortController().signal,
+    );
+    expect(anders).toEqual({ code: 0, aus: "", zielCode: 1 });
+    expect(readdirSync(ORDNER)).toEqual([]);
   });
 
   it("kills restic when the signal aborts", async () => {

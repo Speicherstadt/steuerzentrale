@@ -12,7 +12,11 @@ import { BACKUP_AUFBEWAHRUNG, type BackupTeil, RESTIC_IMAGE } from "@steuerzentr
  * `forget` groups by it. Pure.
  */
 
-export type Repo = { installation: string; repository: string };
+/**
+ * `installation` is the host of the snapshots; `netz` the network restic runs in, the
+ * installation's own unless a Prüf-Restore plays its snapshots back into a copy (Z-602)
+ */
+export type Repo = { installation: string; repository: string; netz?: string };
 
 /** What restic reads on descriptors 3 and 4 */
 export const PASSWORT_FD = "/dev/fd/3";
@@ -24,7 +28,7 @@ const podmanRun = (r: Repo, o: { eingabe?: boolean; volume?: string } = {}): str
   "--rm",
   ...(o.eingabe ? ["-i"] : []),
   "--network",
-  r.installation,
+  r.netz ?? r.installation,
   "--preserve-fds",
   "2",
   "--env",
@@ -86,6 +90,32 @@ export const verwerfenArgv = (r: Repo, snapshot: string): string[] => [
   ...podmanRun(r),
   "forget",
   snapshot,
+];
+
+/**
+ * The newest snapshot of a part and the entries of one folder in it (Z-602): `ls --json` prints the
+ * snapshot first, then the folder and what is directly in it (not recursive, cmd/restic/cmd_ls.go)
+ */
+export const lsArgv = (r: Repo, tag: string, ordner: string): string[] => [
+  ...podmanRun(r),
+  "ls",
+  "--json",
+  "latest",
+  "--host",
+  r.installation,
+  "--tag",
+  tag,
+  ordner,
+];
+
+/**
+ * A file of a snapshot as it is, or a folder as tar: `<snapshot>:<folder>` makes the folder the
+ * root of the archive, so its entries are relative to it (doc/050_restore.rst, "dump")
+ */
+export const dumpArgv = (r: Repo, snapshot: string, datei: string, tar: boolean): string[] => [
+  ...podmanRun(r),
+  "dump",
+  ...(tar ? ["--archive", "tar", `${snapshot}:${datei}`, "/"] : [snapshot, datei]),
 ];
 
 /** The AWS credentials file of the S3 access; its form is checked by backupAuftragPruefen */
