@@ -1,0 +1,36 @@
+# Test manifest for updates (Z-503), signed with the public test key (test/schluessel/):
+# signed by scripts/minisign.ts with test/schluessel/test.key, trusted comment "probe 1.3.0 update (test key)"
+# The manifest gesichert.yml as version 1.3.0: a new image, a new generated value (PROBE_NEU) that
+# the update makes once, and `migrieren` after the update.
+schema: 1
+id: probe
+version: 1.3.0
+lizenz: AGPL-3.0-only
+quelle: https://example.org/probe
+container:
+  - name: app
+    image: registry.example.org/probe@sha256:3333333333333333333333333333333333333333333333333333333333333333
+    volumes: [{ name: daten, pfad: /daten }]
+    env: [PROBE_LIZENZ, PROBE_TITEL, PROBE_KENNWORT, PROBE_SCHLUESSEL, PROBE_PASSWORT, PROBE_NEU]
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 256, platte_gb: 1 }
+netz:
+  http: { dienst: app, port: 8080 }
+  ports: [{ dienst: app, port: 9000, proto: tcp, fest: false }]
+anmeldung: eigen
+health: { art: http, dienst: app, pfad: /health }
+befehle:
+  migrieren: { container: app, argv: [migrieren] }
+  sichern: { container: app, argv: [sichern] }
+schritte: { einrichten: [migrieren], nach_update: [migrieren] }
+aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }
+env:
+  - { name: PROBE_LIZENZ, ebene: betreiber, typ: geheim, pflicht: true }
+  - { name: PROBE_TITEL, ebene: installation, vorgabe: Probe }
+  - { name: PROBE_KENNWORT, ebene: installation, typ: geheim }
+  - { name: PROBE_SCHLUESSEL, ebene: auto, erzeugen: zufall_32 }
+  - { name: PROBE_PASSWORT, ebene: auto, erzeugen: zufall_hex_32 }
+  - { name: PROBE_NEU, ebene: auto, erzeugen: zufall_hex_32 }
+backup:
+  - { art: volume, volume: daten }
+  - { art: befehl, befehl: sichern }
