@@ -11,6 +11,9 @@ const zentralePort = 28300;
 // The stand-in for Cloudflare's API (Z-407, apps/zentrale/src/testhilfen/cloudflare.ts): no DNS
 // record of a test ever reaches Cloudflare
 const cloudflarePort = 28301;
+// The stand-in for MinIO's admin API (Z-601, apps/zentrale/src/testhilfen/minio.ts): the S3 target
+// the e2e tests set; no test makes an access at a real MinIO
+const minioPort = 28302;
 // Where the pinned Playwright's own browser is missing (some sandboxes), CHROMIUM_PATH names another
 const executablePath = process.env.CHROMIUM_PATH;
 const launchOptions = executablePath ? { executablePath } : {};
@@ -78,6 +81,11 @@ export default defineConfig({
     {
       command: `bun apps/zentrale/src/testhilfen/cloudflare.ts ${cloudflarePort}`,
       port: cloudflarePort,
+      reuseExistingServer: false,
+    },
+    {
+      command: `bun apps/zentrale/src/testhilfen/minio.ts ${minioPort}`,
+      port: minioPort,
       reuseExistingServer: false,
     },
     {

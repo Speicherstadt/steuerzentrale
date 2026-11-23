@@ -12,7 +12,8 @@ import { kundeAnlegen } from "./kunden.ts";
  * playwright.config.ts hands the Zentrale as `minisign.pub`. After the Zentrale's own test
  * manifest (apps/zentrale/src/testhilfen/manifeste/probe.yml), without a required value of the
  * operator; `mitBetreiberwert` gives it one under an app id of its own (Z-404), so the dialog asks
- * for it in each run of the test, on desktop and phone alike.
+ * for it in each run of the test, on desktop and phone alike; `mitBackup` a volume to back up
+ * (Z-601).
  */
 const PROBE = `schema: 1
 id: probe
@@ -46,6 +47,13 @@ export const mitBetreiberwert = (app: string) =>
     "env:\n",
     "env:\n  - { name: PROBE_LIZENZ, ebene: betreiber, typ: geheim, pflicht: true }\n",
   );
+
+/** The probe manifest with a volume to back up (Z-601) */
+export const mitBackup = () =>
+  `${PROBE.replace(
+    "    env: [PROBE_TITEL",
+    "    volumes: [{ name: daten, pfad: /daten }]\n    env: [PROBE_TITEL",
+  )}backup:\n  - { art: volume, volume: daten }\n`;
 
 /** The probe manifest without the restart (Z-405): the page must not offer it */
 export const ohneNeustart = () =>

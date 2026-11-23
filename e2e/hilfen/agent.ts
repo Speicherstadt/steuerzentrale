@@ -1,4 +1,4 @@
-import { createHash, randomInt } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { type APIRequestContext, expect } from "@playwright/test";
 import { testAnfrage } from "../../apps/zentrale/src/testhilfen/agent.ts";
 import { serverAnlegen } from "./server.ts";
@@ -12,8 +12,10 @@ import { serverAnlegen } from "./server.ts";
  * `laeuft` done, and the Pforte's route of such a host too. A job `installation_konfigurieren`
  * (Z-404) it reports done as the real agent does (`geaendert: "konfiguriert"`). A restart (Z-405)
  * it reports done; for a log excerpt it sends the lines (`LOG_ZEILEN`, the secrets already
- * replaced as the real agent does) and then the result with their number. It reports the state of
- * installations and an SSH login when a test tells it to (Z-403, Z-406). No Podman, no server.
+ * replaced as the real agent does) and then the result with their number. Setting up backups
+ * (Z-601) it reports done; "Backup jetzt" it reports done after the run, as the real agent sends it
+ * (`backup_stand` with a snapshot per part). It reports the state of installations and an SSH login
+ * when a test tells it to (Z-403, Z-406). No Podman, no server.
  */
 
 // The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite
@@ -102,6 +104,17 @@ export const LOG_ZEILEN = [
 const ergebnis = (auftragId: string, e: Record<string, unknown>) =>
   JSON.stringify({ typ: "ergebnis", protokoll: 1, auftragId, zeit: Date.now(), ergebnis: e });
 
+/** A run of the installation's backup as the agent reports it, one part with its snapshot */
+const backupStand = (installationId: unknown) =>
+  JSON.stringify({
+    typ: "backup_stand",
+    protokoll: 1,
+    installationId,
+    zeit: Date.now(),
+    ok: true,
+    teile: [{ tag: "volume-daten", snapshotId: randomBytes(4).toString("hex") }],
+  });
+
 /** Done as the real agent reports configuring anew (apps/agent, Z-404) */
 const konfiguriert = (n: Nachricht) => ({
   ok: true,
@@ -119,8 +132,12 @@ const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   const host = einrichtung?.installation?.host ?? (n.argumente as { host?: string }).host;
   if (n.aktion === "installation_konfigurieren")
     return ws.send(ergebnis(auftragId, konfiguriert(n)));
-  if (n.aktion === "installation_neustart")
+  if (n.aktion === "installation_neustart" || n.aktion === "installation_backup_einrichten")
     return ws.send(ergebnis(auftragId, { ok: true, daten: { installation: n.installationId } }));
+  if (n.aktion === "installation_backup") {
+    ws.send(backupStand(n.installationId));
+    return ws.send(ergebnis(auftragId, { ok: true, daten: { installation: n.installationId } }));
+  }
   if (n.aktion === "installation_log_auszug") {
     ws.send(JSON.stringify({ typ: "log_auszug", protokoll: 1, auftragId, zeilen: LOG_ZEILEN }));
     return ws.send(ergebnis(auftragId, { ok: true, daten: { zeilen: LOG_ZEILEN.length } }));

@@ -794,5 +794,7 @@
   "einst_backup_gespeichert": "Backup-Ziel gespeichert.",
   "einst_backup_fehler_ungueltig": "Bitte Endpunkt (https, ohne Pfad), Region, Bucket und beide Schlüssel des Zugangs prüfen.",
   "einst_backup_fehler_in_benutzung": "Endpunkt und Bucket bleiben, solange Installationen dort einen Zugang haben; Region und Zugang lassen sich ändern.",
-  "einst_backup_fehler_zugang_fehlt": "Beim ersten Speichern braucht die Zentrale den Zugang des Admins."
+  "einst_backup_fehler_zugang_fehlt": "Beim ersten Speichern braucht die Zentrale den Zugang des Admins.",
+  "auftrag_installation_backup_einrichten": "Backups einrichten",
+  "auftrag_installation_backup": "Backup"
 }

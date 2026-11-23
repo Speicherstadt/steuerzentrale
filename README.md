@@ -14,7 +14,7 @@ ordnet nach Schwere, was Aufmerksamkeit braucht (Störungen, rote, gelbe und unb
 getrennte oder stille Agenten, gescheiterte Aufträge, Warnungen des letzten Tages), und jeder Eintrag
 führt zu seiner Ursache; Aufträge, Ereignisse und Audit-Log (nur Inhaber und Technik) kommen
 seitenweise; Server- und Kundenseite zeigen ihre Installationen und Ereignisse. Wo die Zentrale noch
-keine Daten hat (Backups, Updates, Support-Zugänge, Leistungen), sagt die Seite, mit welchem Punkt sie
+keine Daten hat (Updates, Support-Zugänge, Leistungen), sagt die Seite, mit welchem Punkt sie
 kommen ([Übersicht und Betrieb](docs/uebersicht.md)); Demodaten mit den acht Apps der Speicherstadt
 zeigt nur `bun run dev:demo`.
 
@@ -46,6 +46,14 @@ API-Token; der Token liegt verschlüsselt in der Zentrale, erscheint nur als „
 einen Server. Für einen Host unter der Domain setzt die Zentrale A und AAAA und löscht sie mit der
 Installation, nur Einträge mit ihrem eigenen Kommentar; ein Fehler wird wiederholt und als Ereignis
 gemeldet ([Adressen und DNS](docs/dns.md)).
+
+**Backups:** jede Installation, deren Manifest Teile zum Sichern nennt, bekommt ein eigenes
+restic-Repository mit eigenem Passwort auf dem S3-Ziel des Betreibers und einen eigenen S3-Zugang, der
+nur ihr Präfix erreicht. Unter Einstellungen → Backup setzt der Betreiber Endpunkt, Region, Bucket und
+den Zugang des Admins (MinIO); der Zugang liegt verschlüsselt in der Zentrale und erscheint nur als
+„gesetzt“, ein Server bekommt nur Zugang und Passwort seiner eigenen Installationen. Die Seite Backups
+und der Reiter einer Installation zeigen jeden gemeldeten Lauf, ein gescheiterter wird ein Ereignis;
+„Backup jetzt“ startet einen Lauf mit Grund ([Backups](docs/backups.md)).
 
 **Einstellungen:** die Einstellungen jeder App entstehen als Formular aus ihrem Manifest. Unter
 Einstellungen → Apps pflegt der Betreiber seine Werte je App; ein Geheimnis erscheint nur als

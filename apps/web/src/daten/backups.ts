@@ -92,4 +92,3 @@ export const backupQuelle = (): BackupQuelle => quelle;
 export const backupQuelleEinsetzen = (neu: BackupQuelle): void => {
   quelle = neu;
 };
-

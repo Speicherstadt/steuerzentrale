@@ -15,8 +15,9 @@ Aufträge, Ereignisse, Audit-Log und Einstellungen. Die Demodaten zeigt nur `bun
 ## Übersicht
 
 Oben vier Kennzahlen: Server (wie viele verbunden, nach Art), Installationen (grün, gelb, rot, ohne
-Zustand, gekündigt), Updates und Backups. Für Updates und Backups hat die Zentrale noch keine Daten;
-die Kennzahl sagt, mit welchem Punkt sie kommen (Z-503, Z-601).
+Zustand, gekündigt), Updates und Backups (bei wie vielen Installationen der letzte Lauf gelang,
+[Backups](backups.md)). Für Updates hat die Zentrale noch keine Daten; die Kennzahl sagt, mit welchem
+Punkt sie kommen (Z-503).
 
 Darunter **Braucht Aufmerksamkeit**: was die Zentrale unter `GET /api/v1/uebersicht` liefert, das
 Schwerste zuerst. Jeder Eintrag führt zu seiner Ursache.
@@ -95,7 +96,7 @@ mit welchem Punkt sie kommen:
 
 | Seite oder Teil | kommt mit |
 | --- | --- |
-| Backups, Reiter „Backups“ einer Installation, Einstellungen → Backup | Z-601 |
+| Größe und Prüf-Restore der Backups | Z-602 |
 | Updates | Z-501, Z-503 |
 | Support-Zugänge, Support-Minuten eines Kunden | Z-802 |
 | Leistungen | Z-804 |

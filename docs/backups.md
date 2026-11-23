@@ -112,3 +112,138 @@ Den Stand liest der Agent als Nutzer der Installation, denn die Datei gehört de
 
 Wird eine Installation entfernt, gehen Timer, Service und beide Dateien mit ihrem Home
 (`userdel --remove`).
+
+## In der Zentrale
+
+### S3-Ziel
+
+Unter **Einstellungen → Backup** setzen Inhaber und Technik mit Grund:
+
+| Angabe | Bedeutung |
+| --- | --- |
+| Endpunkt | der MinIO des Betreibers als `https://…` ohne Pfad; `http://` nur auf `localhost`, `127.0.0.1` oder `::1` (ein MinIO neben der Zentrale) |
+| Region | wie im MinIO eingestellt, sonst `us-east-1` |
+| Bucket | ein Bucket nach den Regeln von S3 (Kleinbuchstaben, Ziffern, Punkt, Bindestrich) |
+| Access Key und Secret Key des Admins | ein Zugang, der Service-Accounts anlegen darf (etwa der Root-Zugang des MinIO) |
+
+In 1.0 sind nur MinIO-kompatible Ziele möglich: die Zentrale legt die Zugänge der Installationen
+über die Admin-API von MinIO an. Der Zugang des Admins liegt verschlüsselt in der Zentrale
+(`geheimnisse`, mit `STEUERZENTRALE_SECRET_KEY`, rotierbar wie jedes Geheimnis). Keine Antwort der API
+enthält ihn, die Oberfläche zeigt nur „gesetzt“; beide Felder leer lassen behält ihn. Das Audit-Log
+vermerkt ihn nur als geändert. Kein Server bekommt ihn.
+
+Beim ersten Speichern ist der Zugang Pflicht (`422 zugang_fehlt`). Endpunkt und Bucket lassen sich
+nur ändern, solange keine Installation dort einen Zugang hat (`409 ziel_in_benutzung`); Region und
+Zugang jederzeit. Support sieht die Angaben, ändert sie aber nicht.
+
+### Zugang und Passwort je Installation
+
+Sobald `installation_einrichten` einer Installation gelingt, erzeugt die Zentrale für sie:
+
+| Was | Wie |
+| --- | --- |
+| Präfix | `<betreiber>/<installation>/` im Bucket |
+| Repository | `s3:<endpunkt>/<bucket>/<betreiber>/<installation>` |
+| S3-Zugang | ein Service-Account `sz-<installation>` mit eigenem Access Key und Secret Key |
+| restic-Passwort | 48 zufällige Zeichen |
+
+Zugang und Passwort liegen verschlüsselt in `backup_zugaenge`, bevor MinIO sie kennt. Dann legt die
+Zentrale den Service-Account mit dieser Policy an:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": ["arn:aws:s3:::<bucket>"],
+      "Condition": { "StringLike": { "s3:prefix": ["<betreiber>/<installation>/", "<betreiber>/<installation>/*"] } }
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": ["arn:aws:s3:::<bucket>/<betreiber>/<installation>/*"]
+    }
+  ]
+}
+```
+
+Der Zugang einer Installation kann also nur ihr eigenes Präfix auflisten, lesen, schreiben und
+löschen, keines einer anderen Installation, auch keines mit gleichem Anfang (`haben-abc` und
+`haben-abcd`), und nichts am Bucket selbst.
+
+Die Anfragen an MinIO signiert die Zentrale selbst (AWS Signature V4); den Körper von
+`add-service-account` verschlüsselt sie mit dem Secret Key des Admins, wie MinIO es verlangt
+(PBKDF2-SHA256 und AES-256-GCM). Gelingt das Anlegen, schickt sie dem Server der Installation den
+Auftrag `installation_backup_einrichten`. Erst beim Zustellen setzt sie das Feld `backup` ein
+(Repository, Zugang, Passwort), und nur, wenn die Installation auf genau diesem Server steht: ein
+Server bekommt nie Zugang oder Passwort einer fremden Installation. In der Datenbank steht der Auftrag
+ohne diese Werte.
+
+Scheitert das Anlegen (kein S3-Ziel, MinIO nicht erreichbar, falscher Zugang des Admins), versucht die
+Zentrale es wieder: nach 1, 2, 4, 8 … Minuten, höchstens stündlich, und sofort nach neuen
+Einstellungen. Ein Versuch nach einem Fehlschlag löscht den Service-Account erst, falls der vorige ihn
+schon angelegt hatte. Der erste Fehlschlag einer Reihe schreibt das Ereignis `backup_fehler`
+(Schwere `warn`) an die Installation, ein anhaltender höchstens eines am Tag. Der Grund enthält nie
+ein Geheimnis.
+
+Nach erfolgreichem `installation_entfernen` löscht die Zentrale den Service-Account (ein schon
+fehlender zählt als gelöscht). Die Zeile mit dem restic-Passwort bleibt, damit das Repository lesbar
+bleibt; Repository und Passwort löscht erst die Kündigung (Z-604).
+
+### Läufe
+
+Nach jedem Lauf meldet der Agent der Zentrale `backup_stand`: Zeitpunkt, jeden Teil mit Tag und
+restic-Snapshot-ID, Erfolg oder Grund. Die Zentrale nimmt eine Meldung nur für eine Installation
+dieses Servers und Betreibers an; jede andere verwirft sie und schreibt das ins Log. Jeder Lauf wird
+eine Zeile in `backups` (13 Monate aufbewahrt), ein zweimal gemeldeter bleibt eine. Ein gescheiterter
+Lauf schreibt das Ereignis `backup_gescheitert` (Schwere `fehler`) mit seinem Grund.
+
+Die Seite **Backups** zeigt jede Installation mit ihren Teilen, dem letzten Lauf (gescheitert mit
+Grund und dem letzten Erfolg), den Snapshots des letzten Laufs und dem Stand: Zugang wird angelegt,
+wird auf dem Server eingerichtet, eingerichtet. Die Übersicht zählt, bei wie vielen Installationen der
+letzte Lauf gelang. Der Reiter **Backups** einer Installation zeigt die letzten 100 Läufe mit jedem
+Snapshot.
+
+### Backup jetzt
+
+Auf der Seite einer laufenden Installation, deren Backups eingerichtet sind, startet **Backup jetzt**
+mit Grund einen Lauf sofort (Auftrag `installation_backup`, Inhaber und Technik). Nicht, solange ein
+Backup-Auftrag der Installation offen ist (`409 backup_laeuft`) oder bevor die Backups eingerichtet sind
+(`409 nicht_eingerichtet`). Ein Backup startet die App nicht neu und läuft darum auch in einer
+Sperrzeit.
+
+### API
+
+| Route | Wer | Körper | Antwort |
+| --- | --- | --- | --- |
+| `GET /api/v1/backup-ziel` | alle Rollen | – | `{ endpunkt, region, bucket, zugangGesetzt }` |
+| `PUT /api/v1/backup-ziel` | Inhaber, Technik | `endpunkt`, `region`, `bucket`, `accessKey`?, `secretKey`?, `grund` | wie `GET` |
+| `GET /api/v1/backups` | alle Rollen | – | `{ installationen: [{ installationId, app, kundeName, serverName, teile, zugang, eingerichtet, letzter, letzterErfolg, … }] }` |
+| `GET /api/v1/installationen/:id/backups` | alle Rollen | – | `{ installationId, teile, zugang, eingerichtet, laeufe }` |
+| `POST /api/v1/installationen/:id/backup` | Inhaber, Technik | `grund` | `201 { auftrag }` |
+
+Fehler: `400 ungueltig`, `404 keine_installation`, `409 laeuft_nicht`, `409 nicht_eingerichtet`,
+`409 backup_laeuft`, `409 ziel_in_benutzung`, `422 zugang_fehlt`. Keine Antwort enthält einen Zugang,
+ein Passwort oder ein Repository. Jeder Betreiber sieht und ändert nur seine eigenen Backups und sein
+eigenes S3-Ziel.
+
+Audit-Log:
+
+| Aktion | Wann |
+| --- | --- |
+| `backup.ziel` | S3-Ziel oder Zugang des Admins gesetzt |
+| `backup.zugang-angelegt` | Zugang einer Installation angelegt, mit ihrem Auftrag (Akteur `system`) |
+| `backup.zugang-geloescht` | Zugang einer entfernten Installation gelöscht (Akteur `system`) |
+| `backup.zugang-fehler` | ein Versuch gescheitert, mit dem nächsten Zeitpunkt |
+| `backup.stand` | ein Lauf gemeldet (Akteur `server:<id>`) |
+| `installation.backup` | „Backup jetzt“, mit Grund |
+
+### Tests
+
+Die Admin-API von MinIO wird in den Tests der Zentrale nachgebaut
+(`apps/zentrale/src/testhilfen/minio.ts`, ein Bun-Server im Speicher): er prüft die Signatur, öffnet
+den verschlüsselten Körper mit dem Secret Key des Admins und antwortet wie MinIO. Die Playwright-Tests
+setzen ihn als S3-Ziel. Ob ein Zugang wirklich nur sein Präfix erreicht, prüft die CI gegen ein echtes
+MinIO mit dem Agenten.

@@ -794,5 +794,7 @@
   "einst_backup_gespeichert": "Backup target saved.",
   "einst_backup_fehler_ungueltig": "Please check endpoint (https, no path), region, bucket and both keys of the access.",
   "einst_backup_fehler_in_benutzung": "Endpoint and bucket stay while installations have an access there; region and access can change.",
-  "einst_backup_fehler_zugang_fehlt": "The first time, the Zentrale needs the admin's access."
+  "einst_backup_fehler_zugang_fehlt": "The first time, the Zentrale needs the admin's access.",
+  "auftrag_installation_backup_einrichten": "Set up backups",
+  "auftrag_installation_backup": "Backup"
 }
