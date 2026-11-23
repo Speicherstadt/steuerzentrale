@@ -21,6 +21,8 @@ const FIXTURES = join(import.meta.dirname, "../../../../packages/manifest/test")
 const MANIFEST = readFileSync(join(FIXTURES, "auftrag.yml"), "utf8");
 const SIGNATUR = readFileSync(join(FIXTURES, "auftrag.yml.minisig"), "utf8");
 const FREMDE_SIGNATUR = readFileSync(join(FIXTURES, "signiert.yml.minisig"), "utf8");
+/** auftrag.yml signed with a key the agent does not trust (docs/sicherheit.md, a foreign manifest) */
+const FREMDER_SCHLUESSEL = readFileSync(join(FIXTURES, "auftrag.yml.fremd.minisig"), "utf8");
 const PFAD = "/z/auftraege.json";
 
 const auftrag = (teil: Partial<AuftragNachricht> = {}): AuftragNachricht => ({
@@ -210,6 +212,11 @@ describe("a job the agent refuses, without starting anything", () => {
       "the signature of another manifest",
       { signatur: FREMDE_SIGNATUR },
       "(signature): signature does not match",
+    ],
+    [
+      "the manifest signed with another key, as a taken-over Zentrale would send it",
+      { signatur: FREMDER_SCHLUESSEL },
+      "(signature): signed with key 18DE39F36CBE9564, expected 3D1586A2B972C948",
     ],
     [
       "a manifest changed in one byte",

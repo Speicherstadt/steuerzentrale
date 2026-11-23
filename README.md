@@ -113,6 +113,10 @@ liegt getrennt davon beim Betreiber. `steuerzentrale wiederherstellen <datei>` s
 neuen Server in ein leeres Datenverzeichnis, und die Agenten verbinden sich mit ihren Zertifikaten von
 selbst wieder ([Zentrale sichern](docs/zentrale-sichern.md)).
 
+**Sicherheit:** das Bedrohungsmodell nennt zu jeder Bedrohung die Maßnahme und ihren Test, dazu den
+Notzugang per SSH und die technischen und organisatorischen Maßnahmen nach Art. 32 DSGVO als Anlage
+zum Auftragsverarbeitungsvertrag ([Sicherheit](docs/sicherheit.md)).
+
 **Einstellungen:** die Einstellungen jeder App entstehen als Formular aus ihrem Manifest. Unter
 Einstellungen → Apps pflegt der Betreiber seine Werte je App; ein Geheimnis erscheint nur als
 „gesetzt“, ein leeres geheimes Feld behält den Wert. Fehlt beim Installieren ein Pflichtwert des
