@@ -114,7 +114,6 @@ export const UpdateDialog = (props: {
               placeholder={m.upd_grund_platzhalter()}
               hint={m.feld_grund_hinweis()}
             />
-            <p class="text-xs text-muted-foreground">{m.upd_sperrzeit_regel()}</p>
             <Fehler text={fehler()} />
             <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button onClick={schliessen}>{m.knopf_abbrechen()}</Button>

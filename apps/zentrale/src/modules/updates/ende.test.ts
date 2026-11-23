@@ -18,11 +18,11 @@ import { updateStand, wellenstandLesen } from "./lesen.ts";
 const minio = minioNachbau();
 afterAll(() => minio.stoppen());
 
-const unterwegs = async () => {
+const unterwegs = async (version: "update-1.3.0" | "update-teile" = "update-1.3.0") => {
   const u = updateUmgebung(minio);
   const id = await u.eingerichtet();
-  u.versionen("update-1.3.0");
-  const r = u.anlegen(id);
+  u.versionen(version);
+  const r = u.anlegen(id, { version: version === "update-1.3.0" ? "1.3.0" : "1.3.3" });
   if (!r.ok) throw new Error(r.grund);
   u.gesichert(id);
   u.uhr.ms += 90_000;
@@ -151,5 +151,40 @@ describe("the end of an update", () => {
       internGelungenAm: u.uhr.ms,
     });
     expect(wellenstandLesen(u.db, "b1", "probe", "1.4.0", new Set([id]))).toEqual({});
+  });
+
+  it("sends nothing more when the new version backs up and routes as the old one", async () => {
+    const { u, id } = await unterwegs();
+    const vorher = u.agent.length;
+    u.beendet(id, { ergebnis: "aktualisiert", dauerMs: 1000 });
+    expect(u.agent.slice(vorher)).toEqual([]);
+  });
+
+  it("sets backups and route up anew when the new version names other parts and port", async () => {
+    const { u, id } = await unterwegs("update-teile");
+    const vorher = u.agent.length;
+    u.beendet(id, { ergebnis: "aktualisiert", dauerMs: 1000 });
+    const i = installationLesen(u.db, "b1", id);
+    const neu = u.agent.slice(vorher) as {
+      aktion: string;
+      argumente: unknown;
+      manifest: string;
+      backup?: unknown;
+    }[];
+    expect(neu.map((n) => n.aktion).sort()).toEqual([
+      "installation_backup_einrichten",
+      "pforte_route_setzen",
+    ]);
+    for (const n of neu) expect(n.manifest).toContain("version: 1.3.3");
+    expect(neu.find((n) => n.aktion === "pforte_route_setzen")?.argumente).toEqual({
+      host: i?.host,
+      port: i?.httpPort,
+    });
+    expect(neu.find((n) => n.aktion === "installation_backup_einrichten")?.backup).toBeDefined();
+    // not after a rollback: the old version keeps its backups and route
+    const zurueck = await unterwegs("update-teile");
+    const davor = zurueck.u.agent.length;
+    zurueck.u.beendet(zurueck.id, { ergebnis: "zurueckgenommen", grund: "rot" });
+    expect(zurueck.u.agent.slice(davor)).toEqual([]);
   });
 });

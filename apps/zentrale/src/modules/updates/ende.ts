@@ -9,12 +9,13 @@ import {
   ENDZUSTAENDE,
   type NachrichtVomAgenten,
 } from "@steuerzentrale/protokoll";
-import type { Db } from "../../db/oeffnen.ts";
 import type { UPDATE_ERGEBNISSE } from "../../db/schema.ts";
-import type { Schluesselbund } from "../../db/schluessel.ts";
 import type { Schreiber } from "../audit/index.ts";
 import { type Auftrag, auftragLesen } from "../auftraege/lesen.ts";
+import type { AuftragDeps } from "../auftraege/zustellen.ts";
 import { konfigurationAbschliessen } from "../installationen/konfiguration.ts";
+import { installationLesen } from "../installationen/lesen.ts";
+import { folgeauftraege } from "./folge.ts";
 import { type UpdateZeile, updateZu } from "./lesen.ts";
 
 /*
@@ -29,7 +30,8 @@ import { type UpdateZeile, updateZu } from "./lesen.ts";
  *   `ruecknahme_unvollstaendig` in `daten` of a successful result (updateDatenLesen); a failed
  *   result, a cancelled job or `daten` of none of the three is a failure with no known outcome.
  *   Only `aktualisiert` raises the installation to the new version (manifest, signature, values);
- *   every other end keeps the old one and halts the waves of the version (lesen.ts, `stoerungAm`).
+ *   every other end keeps the old one and halts the waves of the version (lesen.ts, `stoerungAm`);
+ *   one that holds may set up backups or the route anew (folge.ts).
  * Each end makes an event of the installation; the change of the row stands in the audit log.
  */
 
@@ -44,7 +46,7 @@ export const UPDATE_ARTEN = {
 type Ergebnis = Extract<NachrichtVomAgenten, { typ: "ergebnis" }>["ergebnis"];
 type UpdateErgebnis = (typeof UPDATE_ERGEBNISSE)[number];
 type Ende = { ergebnis: UpdateErgebnis; fehler: string | null; dauerMs: number | null };
-type Deps = { db: Db; schluessel: Schluesselbund };
+type Deps = AuftragDeps;
 
 const grundVon = (zustand: AuftragZustand, ergebnis: Ergebnis | undefined): string =>
   ergebnis && !ergebnis.ok ? ergebnis.fehler : `Auftrag ${zustand}`;
@@ -74,10 +76,14 @@ const ereignisText = (z: UpdateZeile, ende: Ende): string => {
   }
 };
 
-/** The installation on the new version: its manifest, signature and values (asked for the job) */
-const versionHeben = (w: Schreiber, deps: Deps, z: UpdateZeile, jetzt: number): void => {
+/**
+ * The installation on the new version: its manifest, signature and values (asked for the job);
+ * returns the jobs that follow (folge.ts)
+ */
+const versionHeben = (w: Schreiber, deps: Deps, z: UpdateZeile, jetzt: number): Auftrag[] => {
   const a = auftragLesen(deps.db, z.betreiberId, z.auftragId);
-  if (!a) throw new Error(`update ${z.auftragId} without its job`);
+  const alt = installationLesen(deps.db, z.betreiberId, z.installationId);
+  if (!a || !alt) throw new Error(`update ${z.auftragId} without its job or installation`);
   konfigurationAbschliessen(w, deps, a, true, jetzt);
   w.aendern(
     "installationen",
@@ -90,12 +96,22 @@ const versionHeben = (w: Schreiber, deps: Deps, z: UpdateZeile, jetzt: number): 
       geaendertAm: jetzt,
     },
   );
+  return folgeauftraege(w, deps, alt, a, jetzt);
 };
 
-/** Writes the update's end, its event and, for `aktualisiert`, the installation's new version */
-const beenden = (w: Schreiber, deps: Deps, z: UpdateZeile, ende: Ende, jetzt: number): void => {
-  if (ende.ergebnis === "aktualisiert") versionHeben(w, deps, z, jetzt);
-  else konfigurationAbschliessen(w, deps, z, false, jetzt);
+/**
+ * Writes the update's end, its event and, for `aktualisiert`, the installation's new version;
+ * returns the jobs that follow it, to be sent
+ */
+const beenden = (
+  w: Schreiber,
+  deps: Deps,
+  z: UpdateZeile,
+  ende: Ende,
+  jetzt: number,
+): Auftrag[] => {
+  const folge = ende.ergebnis === "aktualisiert" ? versionHeben(w, deps, z, jetzt) : [];
+  if (ende.ergebnis !== "aktualisiert") konfigurationAbschliessen(w, deps, z, false, jetzt);
   w.aendern(
     "updates",
     { auftragId: z.auftragId },
@@ -110,6 +126,7 @@ const beenden = (w: Schreiber, deps: Deps, z: UpdateZeile, ende: Ende, jetzt: nu
     ziel: `installation:${z.installationId}`,
     text: ereignisText(z, ende),
   });
+  return folge;
 };
 
 /** What the agent's `daten` say of the update's end; null when it knows none of the three */
@@ -146,12 +163,12 @@ export const updateFortschreiben = (
   zustand: AuftragZustand,
   ergebnis: Ergebnis | undefined,
   jetzt: number,
-): void => {
-  if (!ENDZUSTAENDE.has(zustand)) return;
+): Auftrag[] => {
+  if (!ENDZUSTAENDE.has(zustand)) return [];
   const z = updateZu(deps.db, a.betreiberId, a.auftragId);
-  if (!z || z.endeAm !== null) return;
+  if (!z || z.endeAm !== null) return [];
   const ende = endeVon(z, a.auftragId, zustand, ergebnis);
-  if (ende) beenden(w, deps, z, ende, jetzt);
+  return ende ? beenden(w, deps, z, ende, jetzt) : [];
 };
 
 /** The parts of a backup run as the agent reported them in its result (backup/auftrag.ts) */

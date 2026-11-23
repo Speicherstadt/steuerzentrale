@@ -75,14 +75,14 @@ export const auftragMelden = (
     const ergebnis = n.typ === "ergebnis" ? n.ergebnis : undefined;
     pruefRestoreAbschliessen(w, deps.db, a, u.zustand, ergebnis, jetzt);
     wiederherstellenFortschreiben(w, deps.db, a, u.zustand, ergebnis, jetzt);
-    updateFortschreiben(w, deps, a, u.zustand, ergebnis, jetzt);
+    const folge = updateFortschreiben(w, deps, a, u.zustand, ergebnis, jetzt);
     const nachfolger = nachfolgerFortschreiben(
       w,
       deps.db,
       { betreiberId, auftragId: a.auftragId, zustand: u.zustand },
       jetzt,
     );
-    return updateSnapshotsSetzen(w, deps, a, ergebnis, nachfolger, jetzt);
+    return [...updateSnapshotsSetzen(w, deps, a, ergebnis, nachfolger, jetzt), ...folge];
   });
   zustellen(deps, bereit);
   if (ENDZUSTAENDE.has(u.zustand)) {

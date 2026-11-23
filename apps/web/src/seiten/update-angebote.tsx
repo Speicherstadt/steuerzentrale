@@ -109,7 +109,7 @@ export const Angebote = () => {
   return (
     <Karte>
       <KartenKopf titel={m.upd_angebote()} text={m.upd_angebote_text()} />
-      <KartenInhalt class="grid gap-3">
+      <KartenInhalt>
         <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
           <Show when={!antwort().ok}>
             <Fehler text={m.apps_versionen_fehler()} />
@@ -124,7 +124,7 @@ export const Angebote = () => {
               { name: m.upd_spalte_angeboten() },
               { name: m.upd_spalte_plan() },
               { name: m.upd_spalte_update() },
-              ...(darf() ? [{ name: m.upd_spalte_aktion(), class: "sr-only" }] : []),
+              ...(darf() ? [{ name: m.upd_spalte_aktion() }] : []),
             ]}
             minBreite={980}
             leer={m.upd_keine_installationen()}
@@ -134,7 +134,7 @@ export const Angebote = () => {
               {(i) => <Zeile i={i} darf={darf()} waehlen={(x) => setGewaehlt(x)} />}
             </For>
           </Tabelle>
-          <p role="status" class={["text-xs text-muted-foreground", { hidden: !hinweis() }]}>
+          <p role="status" class={["mt-3 text-xs text-muted-foreground", { hidden: !hinweis() }]}>
             {hinweis()}
           </p>
           <UpdateDialog
