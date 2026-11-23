@@ -17,6 +17,7 @@ import { bewertungsSchleife } from "./modules/bewertung/index.ts";
 import { dnsSchleife } from "./modules/dns/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
 import { befehlImportieren, manifesteUebernehmen } from "./modules/manifeste/index.ts";
+import { neustartSchleife } from "./modules/neustart/index.ts";
 import { pruefRestoreSchleife } from "./modules/pruef-restore/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
 import { updateSchleife } from "./modules/updates/index.ts";
@@ -183,6 +184,20 @@ agentUpdateSchleife(
     now: Date.now,
     log,
     agentStand: ausgeliefert.agentStand,
+  },
+  planen,
+);
+// The reboots of the servers (Z-701): every minute, in each server's window, backups first
+neustartSchleife(
+  {
+    db,
+    schreibDb,
+    schluessel: env.schluessel,
+    verbindungen: agenten,
+    now: Date.now,
+    log,
+    dnsAnstossen: dns.anstossen,
+    backupAnstossen: backup.anstossen,
   },
   planen,
 );

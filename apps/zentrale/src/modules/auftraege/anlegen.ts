@@ -30,7 +30,11 @@ import {
   pforteAuftragPruefen,
   pruefRestoreAuftragPruefen,
   restoreTeile,
+  SERVER_NEUSTART_AKTION,
+  SERVER_NEUSTART_APP,
+  SERVER_NEUSTART_ZEITLIMIT_S,
   STANDARD_ZEITLIMIT_S,
+  serverNeustartAuftragPruefen,
   UPDATE_AKTION,
   UPDATE_ZEITLIMIT_S,
   updateArgumente,
@@ -66,7 +70,8 @@ import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
  * backup just before it are not known when it is made (modules/updates, ende.ts sets them), so it
  * is checked with a stand-in for each until then. The update of the agent itself (Z-504,
  * agent-update.ts) carries SHA256SUMS and its signature in the place of a manifest; its row names
- * the agent as its app and the new version.
+ * the agent as its app and the new version. The reboot of a server (Z-701, server-neustart.ts) carries
+ * no manifest and the boot it is meant for; its row names the operating system as its app.
  */
 
 export type NeuerAuftrag = {
@@ -142,8 +147,17 @@ const agentUpdateKennung = (neu: NeuerAuftrag): Kennung => {
     : { ok: false, grund: "argumente_ungueltig", detail: g.grund };
 };
 
+/** The reboot of a server (Z-701): no manifest, a fixed shape with the boot it is meant for */
+const neustartKennung = (neu: NeuerAuftrag): Kennung => {
+  const g = serverNeustartAuftragPruefen(neu);
+  return g.ok
+    ? { ok: true, app: SERVER_NEUSTART_APP, version: "-", zeitlimitS: SERVER_NEUSTART_ZEITLIMIT_S }
+    : { ok: false, grund: "argumente_ungueltig", detail: g.grund };
+};
+
 const kennung = (neu: NeuerAuftrag): Kennung => {
   if (neu.aktion === AGENT_UPDATE_AKTION) return agentUpdateKennung(neu);
+  if (neu.aktion === SERVER_NEUSTART_AKTION) return neustartKennung(neu);
   const g = gegenManifest(neu);
   if (!g.ok) return g;
   return { ok: true, app: g.manifest.id, version: g.manifest.version, zeitlimitS: g.zeitlimitS };

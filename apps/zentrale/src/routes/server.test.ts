@@ -135,6 +135,8 @@ describe("the servers of the operator", () => {
           agent: { zustand: "getrennt", letzterHeartbeat: null },
           fakten: null,
           faktenAm: null,
+          // Z-701: without facts nobody knows whether it needs a reboot
+          neustart: { noetig: null, plan: { art: "warten", grund: "unbekannt" }, letzter: null },
         },
       ],
     });
