@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { auditLog, ereignisse, supportZugaenge } from "../db/schema.ts";
+import { auditLog, auftraege, ereignisse, supportZugaenge } from "../db/schema.ts";
 import { logAuszugAnnehmen } from "../modules/auftraege/log-auszug.ts";
 import { abgelaufeneMelden } from "../modules/support/index.ts";
 import { kundeAnlegen, serverMitAgent } from "../testhilfen/installationen-api.ts";
@@ -217,6 +217,54 @@ describe("after an access ran out", () => {
     expect(daten.zugaenge).toEqual([expect.objectContaining({ aktiv: false, beendetAm: null })]);
     // owner and technik keep their own rights
     expect((await zeilenLesen(technik, id, auftragId)).status).toBe(200);
+  });
+
+  it("refuses a request whose body arrives only after the access ran out", async () => {
+    const id = await laufend("langsam.kanzlei.test");
+    const zugangId = await gestartet(support, id);
+    const ende = Number(
+      server.db
+        .select()
+        .from(supportZugaenge)
+        .all()
+        .find((z) => z.zugangId === zugangId)?.ende,
+    );
+    spaeter(ende - 1 - server.jetzt());
+    // the headers of support's browser, taken from one request it sends
+    const app = server.app;
+    const request = app.request.bind(app);
+    let kopf = new Headers();
+    app.request = ((pfad: string, init: RequestInit) => {
+      kopf = new Headers(init.headers);
+      return request(pfad, init);
+    }) as typeof app.request;
+    await json(support, ZUGAENGE);
+    app.request = request;
+    // the guard sees the request while the access runs; its body comes ten minutes later
+    const koerper = new ReadableStream<Uint8Array>(
+      {
+        pull: (strom) => {
+          spaeter(10 * MINUTE);
+          strom.enqueue(new TextEncoder().encode(JSON.stringify({ grund: "spät" })));
+          strom.close();
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    const antwort = await request(`http://localhost:28300/api/v1/installationen/${id}/neustart`, {
+      method: "POST",
+      headers: kopf,
+      body: koerper,
+      duplex: "half",
+    } as RequestInit);
+    expect(antwort.status).toBe(403);
+    expect(
+      server.db
+        .select()
+        .from(auftraege)
+        .all()
+        .filter((a) => a.installationId === id && a.angelegtAm >= ende),
+    ).toEqual([]);
   });
 
   it("writes one event of its end, at the instant it ran out", async () => {
