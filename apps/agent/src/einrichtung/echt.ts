@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import {
   chmod,
@@ -46,20 +47,28 @@ export const echteHausDateien: HausDateien = {
   },
   existiert: istDa,
   verzeichnis: async (pfad, modus, { uid, gid }) => {
-    const art = await lstat(pfad).catch(() => undefined);
-    if (art === undefined) await mkdir(pfad, { mode: modus });
-    else if (!art.isDirectory()) throw new Error(`${pfad} is not a folder`);
+    // another job may make the same folder at the same moment (the Pforte's): EEXIST is no error,
+    // but what is there is looked at again
+    await mkdir(pfad, { mode: modus }).catch((fehler: NodeJS.ErrnoException) => {
+      if (fehler.code !== "EEXIST") throw fehler;
+    });
+    if (!(await lstat(pfad)).isDirectory()) throw new Error(`${pfad} is not a folder`);
     await chmod(pfad, modus);
     await lchown(pfad, uid, gid);
   },
   schreiben: async (pfad, inhalt, modus, { uid, gid }) => {
-    const neu = `${pfad}.sz-neu`;
-    await rm(neu, { force: true });
-    await writeFile(neu, inhalt, { mode: modus, flag: "wx" });
-    // the umask may have taken bits off the mode
-    await chmod(neu, modus);
-    await lchown(neu, uid, gid);
-    await rename(neu, pfad);
+    // a name of its own: another job may write the same file at the same moment (the Pforte's unit)
+    const neu = `${pfad}.sz-neu-${randomUUID()}`;
+    try {
+      await writeFile(neu, inhalt, { mode: modus, flag: "wx" });
+      // the umask may have taken bits off the mode
+      await chmod(neu, modus);
+      await lchown(neu, uid, gid);
+      await rename(neu, pfad);
+    } catch (fehler) {
+      await rm(neu, { force: true });
+      throw fehler;
+    }
   },
   dateienIn: async (ordner) => {
     const art = await lstat(ordner).catch(() => undefined);
