@@ -49,12 +49,75 @@ afterAll(() => {
   abgelaufen.stop(true);
 });
 
+// The stand-ins listen on loopback, which the Zentrale itself never connects to
 const deps = (teil: Partial<SondenDeps> = {}): SondenDeps => ({
   aufloeser: lokal,
   port: pforte.port ?? 0,
   ca: tls.ca,
   zeitlimitMs: ZEIT,
+  adresseErlaubt: () => true,
   ...teil,
+});
+
+const zeigtAuf = (...ips: string[]): Aufloeser => ({
+  resolve4: async () => ips.filter((ip) => !ip.includes(":")),
+  resolve6: async () => ips.filter((ip) => ip.includes(":")),
+});
+
+describe("sonde, addresses that are not public", () => {
+  it.each([
+    "127.0.0.1",
+    "10.1.2.3",
+    "172.16.0.1",
+    "192.168.1.1",
+    "169.254.169.254",
+    "100.64.0.1",
+    "0.0.0.0",
+    "::1",
+    "fd00::1",
+    "fe80::1",
+    "::ffff:127.0.0.1",
+  ])(
+    "connects to none: %s (a host the operator enters must not reach the Zentrale's own network)",
+    async (ip) => {
+      const { adresseErlaubt: _, ...ohne } = deps({ aufloeser: zeigtAuf(ip) });
+      const p = await sonde(ohne)("localhost", "/health");
+      expect(p.tls).toBeUndefined();
+      expect(p.http).toBeUndefined();
+      expect(p.dns).toEqual({ ok: false, fehler: `keine öffentliche Adresse: ${ip}` });
+    },
+  );
+
+  it("connects to none when only one of the addresses is not public", async () => {
+    const { adresseErlaubt: _, ...ohne } = deps({
+      aufloeser: zeigtAuf("203.0.113.10", "10.0.0.1"),
+    });
+    expect(await sonde(ohne)("localhost", "/health")).toEqual({
+      dns: { ok: false, fehler: "keine öffentliche Adresse: 10.0.0.1" },
+    });
+  });
+});
+
+describe("sonde, one address for every step", () => {
+  let zweite: Server<unknown>;
+  beforeAll(() => {
+    zweite = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.2",
+      tls: { cert: tls.zertifikat, key: tls.schluessel },
+      fetch: () => new Response("ok"),
+    });
+  });
+  afterAll(() => zweite.stop(true));
+
+  it("sends the request to the address it resolved and checked, not to one the system resolves again", async () => {
+    const p = await sonde(deps({ aufloeser: zeigtAuf("127.0.0.2"), port: zweite.port ?? 0 }))(
+      "localhost",
+      "/health",
+    );
+    expect(p.tls).toMatchObject({ ok: true });
+    expect(p.http).toMatchObject({ ok: true, status: 200 });
+  });
 });
 
 describe("sonde", () => {
