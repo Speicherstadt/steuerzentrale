@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Schluesselbund } from "./db/schluessel.ts";
+import { CLOUDFLARE_API } from "./modules/dns/cloudflare.ts";
 import { type Schluessel, schluesselAus } from "./modules/geheim/verschluesseln.ts";
 
 const HINWEIS = "32 random bytes in base64 (openssl rand -base64 32)";
@@ -46,6 +47,28 @@ const agentUrlFeld = originFeld(
   "where agents reach the Zentrale, e.g. https://agent.example.de",
 );
 
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * Cloudflare's API in tests only (docs/plan.md, "DNS über Cloudflare"): the stand-in
+ * (testhilfen/cloudflare.ts) on this machine. Any other host is refused, so the variable cannot send
+ * an operator's DNS token anywhere but to Cloudflare.
+ */
+const cloudflareFeld = z
+  .string()
+  .optional()
+  .transform((wert, ctx) => {
+    if (wert === undefined || wert.trim() === "") return CLOUDFLARE_API;
+    const geparst = URL.parse(wert.trim());
+    if (geparst && /^https?:$/.test(geparst.protocol) && LOOPBACK.has(geparst.hostname))
+      return geparst.href.replace(/\/$/, "");
+    ctx.addIssue({
+      code: "custom",
+      message: "STEUERZENTRALE_CLOUDFLARE_API is for tests only and must name localhost",
+    });
+    return z.NEVER;
+  });
+
 /** The settings of the Zentrale from the environment; dev uses port 18300 (CLAUDE.md, "Working rules") */
 const EnvSchema = z.object({
   STEUERZENTRALE_PORT: z.coerce.number().int().min(1).max(65535).default(8300),
@@ -58,6 +81,7 @@ const EnvSchema = z.object({
   STEUERZENTRALE_SECRET_KEY: schluesselFeld("STEUERZENTRALE_SECRET_KEY"),
   // The previous key, only while rotating (`steuerzentrale schluessel-rotieren`)
   STEUERZENTRALE_SECRET_KEY_ALT: schluesselFeld("STEUERZENTRALE_SECRET_KEY_ALT").optional(),
+  STEUERZENTRALE_CLOUDFLARE_API: cloudflareFeld,
 });
 
 /** `dataDir` holds the database `zentrale.db`; created on the first start */
@@ -70,6 +94,8 @@ export type Env = {
   /** Unset: no install script and no binaries are served (the start logs it) */
   agentDateien: string | undefined;
   schluessel: Schluesselbund;
+  /** Cloudflare's API, https://api.cloudflare.com/client/v4 but in tests */
+  cloudflareApi: string;
 };
 
 export const parseEnv = (env: Record<string, string | undefined>): Env => {
@@ -83,5 +109,6 @@ export const parseEnv = (env: Record<string, string | undefined>): Env => {
     agentUrl: parsed.STEUERZENTRALE_AGENT_URL,
     agentDateien: parsed.STEUERZENTRALE_AGENT_DATEIEN,
     schluessel: { aktuell: parsed.STEUERZENTRALE_SECRET_KEY, alt: alt ? [alt] : [] },
+    cloudflareApi: parsed.STEUERZENTRALE_CLOUDFLARE_API,
   };
 };

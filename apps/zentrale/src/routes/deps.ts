@@ -27,6 +27,8 @@ export type RoutenDeps = {
   /** The agents' open connections (src/modules/verbindung) */
   verbindungen: Verbindungen;
   log: LogSink;
+  /** Starts setting or deleting the DNS records that are due (modules/dns, Z-407) */
+  dnsAnstossen?: () => void;
 };
 
 /** The request's JSON body parsed against `schema`, or undefined */

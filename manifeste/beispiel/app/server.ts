@@ -32,6 +32,8 @@ const AUSGEBEN = (process.env.BEISPIEL_AUSGEBEN ?? "").split(",").filter(Boolean
 const oeffnen = () => {
   mkdirSync(DATEN, { recursive: true });
   const db = new Database(`${DATEN}/beispiel.db`, { create: true });
+  // `migrieren` runs beside the app (podman exec): wait for the other writer instead of failing
+  db.run("PRAGMA busy_timeout = 10000");
   db.run("PRAGMA journal_mode = WAL");
   return db;
 };

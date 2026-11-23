@@ -1,11 +1,13 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dnsQuelleEinsetzen } from "../daten/dns.ts";
 import { apiInstallationen, installationenQuelleEinsetzen } from "../daten/installationen.ts";
 import { kundenQuelleEinsetzen } from "../daten/kunden.ts";
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
 import { serverQuelleEinsetzen } from "../daten/server.ts";
 import type { Rolle } from "../daten/typen.ts";
+import { demoDns } from "../demo/dns.ts";
 import { demo } from "../demo/index.ts";
 import { GESCHEITERT } from "../demo/installationen-bestand.ts";
 import { demoInstallationenQuelle } from "../demo/installationen-quelle.ts";
@@ -34,6 +36,7 @@ beforeEach(() => {
     }),
   );
   rolle("technik");
+  dnsQuelleEinsetzen(demoDns());
 });
 afterEach(aufraeumen);
 
@@ -310,5 +313,29 @@ describe("with the Zentrale's API", () => {
     expect(root.querySelector("main [role=alert]")?.textContent).toBe(
       "Dafür fehlt Ihrer Rolle das Recht.",
     );
+  });
+});
+
+describe("the suggested address (Z-407)", () => {
+  // Z-407: the address `<app>.<kuerzel>.<domain>`, the domain from the DNS settings
+  it("suggests the address from app, short name and domain, and keeps what is typed", async () => {
+    dnsQuelleEinsetzen(demoDns({ domain: "apps.example.de", zoneId: null, tokenGesetzt: false }));
+    const { root } = await oeffne("/installationen");
+    await auswaehlen(root, "atelier-nord", "shared-1");
+    expect(feld<HTMLInputElement>("Adresse").value).toBe("probe.atelier-nord.apps.example.de");
+    expect(dialog().textContent).toContain("Unter apps.example.de setzt die Zentrale A und AAAA");
+    eintragen("Adresse", "probe.eigene-domain.example");
+    await warten();
+    expect(feld<HTMLInputElement>("Adresse").value).toBe("probe.eigene-domain.example");
+    await waehlen("Kunde", "praxis-weber");
+    expect(feld<HTMLInputElement>("Adresse").value).toBe("probe.praxis-weber.apps.example.de");
+  });
+
+  it("suggests no address while the operator has no domain", async () => {
+    dnsQuelleEinsetzen(demoDns({ domain: null, zoneId: null, tokenGesetzt: false }));
+    const { root } = await oeffne("/installationen");
+    await auswaehlen(root, "atelier-nord", "shared-1");
+    expect(feld<HTMLInputElement>("Adresse").value).toBe("");
+    expect(dialog().textContent).toContain("Ohne Domain in den DNS-Einstellungen");
   });
 });

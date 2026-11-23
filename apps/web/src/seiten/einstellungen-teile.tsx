@@ -9,7 +9,8 @@ import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 
 /**
  * The tabs of the settings, read-only until their items let them be changed (each change with a
- * reason, DESIGN.md); the operator's values per app are in einstellungen-apps.tsx (Z-404);
+ * reason, DESIGN.md); the operator's values per app are in einstellungen-apps.tsx (Z-404), DNS in
+ * einstellungen-dns.tsx (Z-407);
  * "Darstellung" is the viewer's own and takes effect at once
  */
 
@@ -26,22 +27,6 @@ export const Backup = (props: { b: Bestand }) => (
           { name: m.einst_zeitplan(), wert: m.einst_zeitplan_wert() },
           { name: m.einst_aufbewahrung(), wert: m.einst_aufbewahrung_wert() },
           { name: m.inst_pruef(), wert: m.einst_pruef_wert() },
-        ]}
-      />
-    </KartenInhalt>
-  </Karte>
-);
-
-export const Dns = (props: { b: Bestand }) => (
-  <Karte>
-    <KartenKopf titel={m.einst_dns()} text={m.einst_dns_text()} />
-    <KartenInhalt>
-      <Angaben
-        zeilen={[
-          { name: m.einst_zone(), wert: mono(props.b.betreiber.domain) },
-          { name: m.einst_schema(), wert: mono(`<app>.<kunde>.${props.b.betreiber.domain}`) },
-          { name: m.einst_token(), wert: m.einst_token_wert() },
-          { name: m.einst_zertifikate(), wert: m.einst_zertifikate_wert() },
         ]}
       />
     </KartenInhalt>

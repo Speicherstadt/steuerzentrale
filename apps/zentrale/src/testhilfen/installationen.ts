@@ -72,6 +72,7 @@ export const installationsUmgebung = () => {
         name: kundeId,
         kontaktName: "Kim",
         kontaktEmail: "kim@kunde.test",
+        kuerzel: kundeId,
         angelegtAm: u.uhr.ms,
       });
       w.einfuegen("vertraege", {

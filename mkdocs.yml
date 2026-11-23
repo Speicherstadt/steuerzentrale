@@ -64,6 +64,7 @@ nav:
       - Server hinzufügen: server-hinzufuegen.md
       - Aufträge: auftraege.md
       - Apps installieren: installieren.md
+      - Adressen und DNS: dns.md
       - Einstellungen: einstellungen.md
       - Health und Zustand: zustand.md
       - Neustart, Log-Auszug, nur lesen: aktionen.md

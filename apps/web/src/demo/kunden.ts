@@ -12,6 +12,9 @@ const kunde = (
   name,
   kontakt: { name: kontakt[0], email: kontakt[1], telefon: kontakt[2] ?? null },
   notiz: null,
+  // the ids of the demo are short names already; every demo customer has installations
+  kuerzel: id,
+  kuerzelAenderbar: false,
   angelegtAm: berlin(seit, "09:00"),
   vertrag: { sla: "basis", beginn: berlin(seit), ende: null },
 });

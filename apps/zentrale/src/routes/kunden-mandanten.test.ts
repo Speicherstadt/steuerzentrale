@@ -86,6 +86,28 @@ describe("no operator reaches another's customers", () => {
     unveraendert();
   });
 
+  // Z-407: the short name is unique within one operator only, and only its own operator changes it
+  it("PUT /api/v1/kunden/:kundeId does not change another's short name", async () => {
+    const { grund: _, vertrag, ...rest } = daten("Kunde von Teufel");
+    const antwort = await partner.json(`/api/v1/kunden/${fremdId}`, {
+      method: "PUT",
+      body: { ...rest, kuerzel: "uebernommen", beginn: vertrag.beginn, grund: "fremd" },
+    });
+    expect(antwort).toEqual({ status: 404, daten: { fehler: "kein_kunde" } });
+    expect(server.db.select().from(kunden).all()).toContainEqual(
+      expect.objectContaining({ kundeId: fremdId, kuerzel: "kunde-von-teufel" }),
+    );
+  });
+
+  it("POST /api/v1/kunden takes a short name another operator has", async () => {
+    const body = { ...daten("Auch Teufel"), kuerzel: "kunde-von-teufel" };
+    expect(await partner.json("/api/v1/kunden", { body })).toMatchObject({
+      status: 201,
+      daten: { kuerzel: "kunde-von-teufel" },
+    });
+    unveraendert();
+  });
+
   it("PUT /api/v1/kunden/:kundeId/kuendigung does not end another's contract", async () => {
     const antwort = await partner.json(`/api/v1/kunden/${fremdId}/kuendigung`, {
       method: "PUT",

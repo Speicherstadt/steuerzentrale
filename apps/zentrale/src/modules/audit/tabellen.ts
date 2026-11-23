@@ -3,6 +3,7 @@ import {
   appEinstellungen,
   auftraege,
   betreiber,
+  dnsEinstellungen,
   einladungen,
   ereignisse,
   fakten,
@@ -60,6 +61,7 @@ export const tabellen = {
     schluessel: ["auftragId"],
     zeit: undefined,
   },
+  dnsEinstellungen: { tabelle: dnsEinstellungen, schluessel: [] as string[], zeit: undefined },
 } satisfies Record<
   string,
   { tabelle: SQLiteTable; schluessel: string[]; zeit: SQLiteColumn | undefined }

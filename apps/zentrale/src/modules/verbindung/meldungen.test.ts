@@ -134,6 +134,7 @@ describe("the state of the installations", () => {
           name: "Kanzlei",
           kontaktName: "Kim",
           kontaktEmail: "kim@kanzlei.test",
+          kuerzel: "kanzlei",
           angelegtAm: 1,
         }),
     );
