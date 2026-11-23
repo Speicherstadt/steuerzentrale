@@ -111,7 +111,10 @@ export const ROUTEN = {
   "GET /api/v1/manifeste/:app/:version": recht("manifeste:lesen"),
   "POST /api/v1/manifeste": recht("manifeste:importieren"),
   "POST /api/v1/versionen/abfragen": recht("manifeste:abfragen"),
+  // Z-503: every role sees offers, plan and the last update of each installation; owner and
+  // technik update by hand with a reason, in a freeze window only the owner
   "GET /api/v1/updates": recht("installationen:lesen"),
+  "POST /api/v1/installationen/:installationId/update": recht("installationen:schreiben"),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,

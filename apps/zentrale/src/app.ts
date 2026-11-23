@@ -21,6 +21,7 @@ import { kundenRouten } from "./routes/kunden.ts";
 import { manifesteRouten } from "./routes/manifeste.ts";
 import { mitgliederRouten } from "./routes/mitglieder.ts";
 import { serverRouten } from "./routes/server.ts";
+import { updateRouten } from "./routes/updates.ts";
 import { verbindungRouten } from "./routes/verbindung.ts";
 import {
   type Anfrage,
@@ -110,6 +111,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   dnsRouten(route, deps);
   backupRouten(route, deps);
   manifesteRouten(route, deps);
+  updateRouten(route, deps);
   agentRouten(route, deps);
   verbindungRouten(route, deps);
 

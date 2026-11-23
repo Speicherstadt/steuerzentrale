@@ -18,6 +18,7 @@ import { rotieren } from "./modules/geheim/index.ts";
 import { befehlImportieren, manifesteUebernehmen } from "./modules/manifeste/index.ts";
 import { pruefRestoreSchleife } from "./modules/pruef-restore/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
+import { updateSchleife } from "./modules/updates/index.ts";
 import { stilleSchleife } from "./modules/verbindung/stille.ts";
 import { verbindungen } from "./modules/verbindung/verbindungen.ts";
 import { versionen, versionsSchleife } from "./modules/versionen/index.ts";
@@ -155,6 +156,22 @@ if (manifestSchluessel) {
   if (uebernahme.uebernommen > 0 || uebernahme.abgelehnt.length > 0)
     log(JSON.stringify({ msg: "manifests of installations taken over", ...uebernahme }));
 }
+// Updates in waves (Z-503): every 5 minutes, what is due in each operator's plan
+updateSchleife(
+  {
+    db,
+    schreibDb,
+    schluessel: env.schluessel,
+    verbindungen: agenten,
+    now: Date.now,
+    log,
+    zufall: (n) => new Uint8Array(randomBytes(n)),
+    dnsAnstossen: dns.anstossen,
+    backupAnstossen: backup.anstossen,
+    manifestSchluessel: async () => manifestSchluessel,
+  },
+  planen,
+);
 // New versions from the registries (Z-501): at the start, then every 6 hours and on demand
 const neueVersionen = versionen({
   db,

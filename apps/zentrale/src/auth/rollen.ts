@@ -21,8 +21,8 @@ const ANWEISUNGEN = {
   kunden: ["lesen", "schreiben", "intern"],
   server: ["anlegen", "lesen", "sperren"],
   // log_auszug: the lines of an installation's journal (Z-405), customer data; Z-802 limits it to
-  // support access later
-  installationen: ["lesen", "schreiben", "log_auszug"],
+  // support access later; sperrzeit: an update by hand in a freeze window of the app (Z-503)
+  installationen: ["lesen", "schreiben", "log_auszug", "sperrzeit"],
   // the audit log (Z-406): who changed what, with the content of each change
   audit: ["lesen"],
   // the operator's domain, zone and Cloudflare token (Z-407); the token itself is never read back
@@ -53,7 +53,7 @@ export const ROLLEN_ZUGRIFF = {
     mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
     kunden: ["lesen", "schreiben", "intern"],
     server: ["anlegen", "lesen", "sperren"],
-    installationen: ["lesen", "schreiben", "log_auszug"],
+    installationen: ["lesen", "schreiben", "log_auszug", "sperrzeit"],
     audit: ["lesen"],
     dns: ["lesen", "schreiben"],
     backups: ["lesen", "schreiben"],
