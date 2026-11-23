@@ -9,6 +9,7 @@ import { eigenerZugang, supportQuelle } from "../daten/support.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { Aktionen } from "../seiten/installation-aktionen.tsx";
+import { VonAussen } from "../seiten/installation-aussen.tsx";
 import {
   BackupJetzt,
   InstallationBackups,
@@ -36,10 +37,11 @@ import { InstallationsZeichen, Version } from "../teile/zeichen.tsx";
  * One installation (BAULISTE.md Z-402): from the Zentrale its place, ports, values and setup jobs,
  * its state with reason and history (Z-403), after a failed setup the way to remove it, and once
  * it runs "Einstellungen ändern" (Z-404) and the actions its manifest offers (Z-405).
- * Its events come from the Zentrale (Z-406), its backups with "Backup jetzt" too (Z-601). Settings
- * from the manifest and the check from outside of the demo data show only in `dev:demo`, for an
- * installation the demo knows by id. A support access starts here too, and while the member's own
- * runs, support sees log excerpt and restart (Z-802).
+ * Its events come from the Zentrale (Z-406), its backups with "Backup jetzt" too (Z-601), and once
+ * it runs its check from outside with the availability per month (Z-704). Settings from the
+ * manifest of the demo data show only in `dev:demo`, for an installation the demo knows by id.
+ * A support access starts here too, and while the member's own runs, support sees log excerpt and
+ * restart (Z-802).
  */
 
 const Kopf = (props: { a: Einzelansicht }) => (
@@ -99,6 +101,9 @@ const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): T
               <UnitsUndHealth health={a.health} />
               {verlauf()}
             </div>
+            <Show when={a.zustand === "laeuft"}>
+              <VonAussen id={a.id} host={a.host} />
+            </Show>
             {einrichtung()}
           </div>
         ),

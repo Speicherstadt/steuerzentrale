@@ -103,6 +103,10 @@ const EnvSchema = z.object({
   STEUERZENTRALE_SECRET_KEY_ALT: schluesselFeld("STEUERZENTRALE_SECRET_KEY_ALT").optional(),
   STEUERZENTRALE_CLOUDFLARE_API: cloudflareFeld,
   STEUERZENTRALE_REGISTRY_HTTP: registryFeld,
+  // The check from outside (Z-704); `aus` only where the hosts are made up (e2e)
+  STEUERZENTRALE_AUSSEN_PRUEFUNG: z
+    .enum(["an", "aus"], { error: "STEUERZENTRALE_AUSSEN_PRUEFUNG must be an or aus" })
+    .default("an"),
 });
 
 /** `dataDir` holds the database `zentrale.db`; created on the first start */
@@ -119,6 +123,8 @@ export type Env = {
   cloudflareApi: string;
   /** The test registry in place of every registry; unset outside tests */
   registryHttp: string | undefined;
+  /** Whether the Zentrale checks the installations' public addresses (Z-704) */
+  aussenPruefung: boolean;
 };
 
 export const parseEnv = (env: Record<string, string | undefined>): Env => {
@@ -134,5 +140,6 @@ export const parseEnv = (env: Record<string, string | undefined>): Env => {
     schluessel: { aktuell: parsed.STEUERZENTRALE_SECRET_KEY, alt: alt ? [alt] : [] },
     cloudflareApi: parsed.STEUERZENTRALE_CLOUDFLARE_API,
     registryHttp: parsed.STEUERZENTRALE_REGISTRY_HTTP,
+    aussenPruefung: parsed.STEUERZENTRALE_AUSSEN_PRUEFUNG === "an",
   };
 };

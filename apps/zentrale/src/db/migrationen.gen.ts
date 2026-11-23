@@ -79,5 +79,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0019_support_zugaenge",
     "sql": "CREATE TABLE `support_zugaenge` (\n\t`betreiber_id` text NOT NULL,\n\t`zugang_id` text NOT NULL,\n\t`installation_id` text NOT NULL,\n\t`nutzer_id` text NOT NULL,\n\t`grund` text NOT NULL,\n\t`beginn` integer NOT NULL,\n\t`ende` integer NOT NULL,\n\t`beendet_am` integer,\n\t`beendet_von` text,\n\t`ende_gemeldet_am` integer,\n\tPRIMARY KEY(`betreiber_id`, `zugang_id`),\n\tFOREIGN KEY (`betreiber_id`,`installation_id`) REFERENCES `installationen`(`betreiber_id`,`installation_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `support_zugaenge_nutzer` ON `support_zugaenge` (`betreiber_id`,`nutzer_id`,`installation_id`,`ende`);--> statement-breakpoint\nCREATE INDEX `support_zugaenge_beginn` ON `support_zugaenge` (`betreiber_id`,`beginn`);"
+  },
+  {
+    "tag": "0020_aussen",
+    "sql": "CREATE TABLE `aussen_pruefungen` (\n\t`betreiber_id` text NOT NULL,\n\t`installation_id` text NOT NULL,\n\t`zustand` text NOT NULL,\n\t`grund` text NOT NULL,\n\t`seit` integer NOT NULL,\n\t`geprueft_am` integer NOT NULL,\n\t`ergebnis` text NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `installation_id`),\n\tFOREIGN KEY (`betreiber_id`,`installation_id`) REFERENCES `installationen`(`betreiber_id`,`installation_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE TABLE `verfuegbarkeit` (\n\t`betreiber_id` text NOT NULL,\n\t`installation_id` text NOT NULL,\n\t`stunde` integer NOT NULL,\n\t`gemessen` integer NOT NULL,\n\t`rot` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `installation_id`, `stunde`),\n\tFOREIGN KEY (`betreiber_id`,`installation_id`) REFERENCES `installationen`(`betreiber_id`,`installation_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `verfuegbarkeit_stunde` ON `verfuegbarkeit` (`stunde`);"
   }
 ];

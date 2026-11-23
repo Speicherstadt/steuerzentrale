@@ -4,6 +4,7 @@ import { getLocale } from "@steuerzentrale/ui";
 import { createRouter, RouterProvider } from "@tanstack/solid-router";
 import { sitzungsZustand, waechterEinsetzen } from "./anmeldung/sitzung.ts";
 import { apiApps, appsQuelleEinsetzen } from "./daten/apps.ts";
+import { apiAussen, aussenQuelleEinsetzen } from "./daten/aussen.ts";
 import { apiBackups, backupQuelleEinsetzen } from "./daten/backups.ts";
 import { apiBetrieb, betriebQuelleEinsetzen } from "./daten/betrieb.ts";
 import { apiDns, dnsQuelleEinsetzen } from "./daten/dns.ts";
@@ -31,6 +32,7 @@ if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
   einstellungenQuelleEinsetzen(apiEinstellungen);
   dnsQuelleEinsetzen(apiDns);
   backupQuelleEinsetzen(apiBackups);
+  aussenQuelleEinsetzen(apiAussen);
   appsQuelleEinsetzen(apiApps);
   rollenQuelleEinsetzen(apiRolle);
   betriebQuelleEinsetzen(apiBetrieb);

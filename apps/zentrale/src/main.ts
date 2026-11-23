@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { promises as dnsPromises } from "node:dns";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { TRENNUNG, VERSION } from "@steuerzentrale/protokoll";
@@ -12,6 +13,7 @@ import { parseEnv } from "./env.ts";
 import { agentUpdateSchleife } from "./modules/agent-update/index.ts";
 import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
+import { aussenSchleife, sonde, ZEITLIMIT_MS } from "./modules/aussen/index.ts";
 import { backupSchleife } from "./modules/backups/index.ts";
 import { bewertungsSchleife } from "./modules/bewertung/index.ts";
 import { dnsSchleife } from "./modules/dns/index.ts";
@@ -108,6 +110,28 @@ const planen = (lauf: () => void, ms: number) => {
 aufbewahrungsSchleife(db, schreibDb, Date.now, planen, log);
 stilleSchleife(db, schreibDb, Date.now, planen, log);
 bewertungsSchleife(db, schreibDb, Date.now, planen, log);
+// The check of every public address from outside (Z-704): every minute, independent of the agents;
+// the resolver asks the name servers of /etc/resolv.conf itself, twice at most
+if (env.aussenPruefung) {
+  const aufloeser = new dnsPromises.Resolver({ timeout: 2_000, tries: 2 });
+  aussenSchleife(
+    {
+      db,
+      schreibDb,
+      now: Date.now,
+      log,
+      sonde: sonde({
+        aufloeser: {
+          resolve4: (host) => aufloeser.resolve4(host),
+          resolve6: (host) => aufloeser.resolve6(host),
+        },
+        port: 443,
+        zeitlimitMs: ZEITLIMIT_MS,
+      }),
+    },
+    planen,
+  );
+}
 // The checks of every server (Z-702): an event when a finding begins, gets worse and ends
 pruefungsSchleife(db, schreibDb, Date.now, planen, log);
 // The end of every support access that ran out as an event for the customer (Z-802): every minute

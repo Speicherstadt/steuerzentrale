@@ -8,8 +8,8 @@ import {
   MELDUNG_FRIST_MS,
   type Meldung,
   STOERUNG_NACH_MS,
-  stoerungPruefen,
 } from "./bewertung.ts";
+import { stoerungPruefen } from "./stoerung.ts";
 
 /*
  * docs/plan.md, "Bewertung einer Installation" and "Störung": red when health is red, yellow when a

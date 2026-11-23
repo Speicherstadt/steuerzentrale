@@ -6,6 +6,7 @@ import {
   heartbeats,
   installationVerlauf,
   logAuszuege,
+  verfuegbarkeit,
 } from "../../db/schema.ts";
 import { testDatenbank } from "../../db/test-db.ts";
 import { schreiben } from "../audit/index.ts";
@@ -31,7 +32,7 @@ describe("monateZurueck", () => {
 });
 
 describe("aufbewahrungsGrenzen", () => {
-  it("keeps heartbeats, facts and log excerpts 30 days, the rating's history 90, events, backups and test restores 13 months", () => {
+  it("keeps heartbeats, facts and log excerpts 30 days, the rating's history 90, events, backups, test restores and the hourly checks from outside 13 months", () => {
     expect(aufbewahrungsGrenzen(JETZT)).toEqual({
       heartbeats: JETZT - 30 * TAG,
       fakten: JETZT - 30 * TAG,
@@ -40,6 +41,7 @@ describe("aufbewahrungsGrenzen", () => {
       ereignisse: Date.UTC(2025, 9, 20, 12, 0, 0),
       backups: Date.UTC(2025, 9, 20, 12, 0, 0),
       pruefRestores: Date.UTC(2025, 9, 20, 12, 0, 0),
+      verfuegbarkeit: Date.UTC(2025, 9, 20, 12, 0, 0),
     });
   });
 });
@@ -96,6 +98,12 @@ const befuellt = () => {
         betreiberId,
         JETZT - alter * TAG,
       ]);
+    // the hourly counts of the checks from outside (Z-704), a measurement too
+    for (const stunde of [monateZurueck(JETZT, 13) - 3_600_000, monateZurueck(JETZT, 13)])
+      offen.sqlite.run("INSERT INTO verfuegbarkeit VALUES (?, 'i1', ?, 60, 0)", [
+        betreiberId,
+        stunde,
+      ]);
     offen.sqlite.run("PRAGMA foreign_keys = ON");
   }
   return offen;
@@ -115,8 +123,16 @@ describe("aufbewahren", () => {
       ereignisse: 2,
       backups: 0,
       pruefRestores: 0,
+      verfuegbarkeit: 2,
     });
     expect(alterIn(db.select().from(installationVerlauf).all())).toEqual([89, 89]);
+    expect(
+      db
+        .select()
+        .from(verfuegbarkeit)
+        .all()
+        .map((z) => z.stunde),
+    ).toEqual([monateZurueck(JETZT, 13), monateZurueck(JETZT, 13)]);
     expect(alterIn(db.select().from(heartbeats).all())).toEqual([1, 1, 30, 30]);
     expect(alterIn(db.select().from(fakten).all())).toEqual([1, 1]);
     expect(
