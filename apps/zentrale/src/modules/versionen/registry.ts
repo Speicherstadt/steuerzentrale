@@ -5,7 +5,8 @@ import { challengeLesen, naechsteSeite, type Repository, tokenUrl } from "@steue
  * "Versionen aus den Registries (Z-501)"): `GET /v2/<name>/tags/list` of the OCI Distribution
  * Spec, page by page along `Link`, with an anonymous pull token when the registry answers 401 with
  * a bearer challenge (docker.io, ghcr.io). The model is scripts/digest.ts (Z-203). Only HTTPS,
- * Docker Hub on its API host; in tests `umleitung` (STEUERZENTRALE_REGISTRY_HTTP, only localhost)
+ * Docker Hub on its API host; no redirect is followed (a 3xx is an error), so no answer sends a
+ * request to plain HTTP or another origin; in tests `umleitung` (STEUERZENTRALE_REGISTRY_HTTP, only localhost)
  * names the stand-in or the test registry, which speak plain HTTP.
  */
 
@@ -44,6 +45,7 @@ const tokenHolen = async (
   if (!realmErlaubt(challenge.realm, deps.umleitung))
     return { fehler: `Token-Adresse nicht erlaubt: ${challenge.realm}` };
   const token = await deps.fetch(tokenUrl(challenge, name), {
+    redirect: "manual",
     signal: AbortSignal.timeout(ZEITLIMIT_MS),
   });
   if (!token.ok) return { fehler: `Token: HTTP ${token.status}` };
@@ -62,6 +64,7 @@ const seiteHolen = async (
   const holen = (t?: string) =>
     deps.fetch(url, {
       headers: { Accept: "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      redirect: "manual",
       signal: AbortSignal.timeout(ZEITLIMIT_MS),
     });
   let antwort = await holen(token);
