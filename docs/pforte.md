@@ -86,7 +86,8 @@ Zentrale: die Oberfläche nur für Adressen aus dem WireGuard-Netz, `agent.<doma
 der Agenten und mit Prüfung ihrer Client-Zertifikate. Diese Routen setzt nicht der Agent, sondern
 ein Mensch mit `steuerzentrale pforte` ([Installation](installation.md), Schritt 6); die Routen der
 Installationen bleiben dabei stehen, und kein Name einer Installation darf einen Namen der Zentrale
-nehmen.
+nehmen: hat eine Route einer Installation einen Namen oder den Port der Zentrale, lehnt der Befehl
+ab, und die Pforte bleibt, wie sie ist.
 
 ## Getrennte Installationen
 

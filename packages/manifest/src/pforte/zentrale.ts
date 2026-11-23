@@ -116,6 +116,27 @@ const richtlinien = (v: ZentraleVorne) => [
   {},
 ];
 
+/**
+ * A route of an installation that has a host or the upstream of the Zentrale (docs/pforte.md: no
+ * installation takes a name of the Zentrale). Behind the Zentrale's routes it would still get the
+ * interface's host from every other address and agent.<domain> for every other path. Hosts lower
+ * case as Caddy compares them (caddyhttp/matchers.go, MatchHost), as the agent checks (fremdBelegt)
+ */
+const belegtDurch = (routen: Route[], v: ZentraleVorne): string | undefined => {
+  const hosts = new Set([v.uiHost, v.agentHost]);
+  const upstream = `127.0.0.1:${v.port}`;
+  const liste = (wert: unknown): Record<string, unknown>[] =>
+    Array.isArray(wert) ? (wert as Record<string, unknown>[]) : [];
+  return routen
+    .filter((r) => r["@id"] !== ZENTRALE_UI_ID && r["@id"] !== ZENTRALE_AGENT_ID)
+    .find(
+      (r) =>
+        liste(r.match).some((m) =>
+          liste(m?.host).some((h) => hosts.has(String(h).toLowerCase())),
+        ) || liste(r.handle).some((h) => liste(h?.upstreams).some((u) => u?.dial === upstream)),
+    )?.["@id"];
+};
+
 const istKonfiguration = (wert: unknown): wert is Konfiguration => {
   const server = (wert as Konfiguration | null)?.apps?.http?.servers?.[PFORTE_SERVER];
   return typeof server === "object" && server !== null && Array.isArray(server.routes);
@@ -135,6 +156,9 @@ export const zentraleInPforte = (
   const server = basis.apps.http.servers[
     PFORTE_SERVER
   ] as Konfiguration["apps"]["http"]["servers"][string];
+  const fremd = belegtDurch(server.routes, vorne);
+  if (fremd !== undefined)
+    return { ok: false, grund: `route ${fremd} has a host or the port of the Zentrale` };
   const eigene = new Set([ZENTRALE_UI_ID, ZENTRALE_AGENT_ID]);
   server.routes = [...routen(vorne), ...server.routes.filter((r) => !eigene.has(r["@id"]))];
   server.tls_connection_policies = richtlinien(vorne);
