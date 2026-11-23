@@ -34,10 +34,11 @@ haben.
 | Neustart | ja, nur diese Installation | immer |
 | „Nur lesen“, Backups, Updates, Einstellungen | nie | immer |
 
-Die Zentrale prüft den Zugang bei **jeder Anfrage** mit der Uhr der Anfrage: ab der Millisekunde, in
-der er endet, lehnt sie Log-Auszug, das Lesen seiner Zeilen und Neustart mit
-`403 keine_berechtigung` ab, auch einen Log-Auszug, der während des Zugangs angefordert wurde. Die
-Seite der Installation zeigt Support die Knöpfe nur, solange der eigene Zugang läuft.
+Die Zentrale prüft den Zugang bei **jeder Anfrage** mit der Uhr der Anfrage, sobald sie ganz
+angekommen ist: ab der Millisekunde, in der er endet, lehnt sie Log-Auszug, das Lesen seiner Zeilen
+und Neustart mit `403 keine_berechtigung` ab, auch einen Log-Auszug, der während des Zugangs
+angefordert wurde. Die Seite der Installation zeigt Support die Knöpfe nur, solange der eigene
+Zugang läuft.
 
 ## Ende
 

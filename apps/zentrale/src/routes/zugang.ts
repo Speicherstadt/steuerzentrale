@@ -230,10 +230,14 @@ export const wache =
     const betreiberId = betreiberDerSitzung(db, sitzung);
     const mitglied = betreiberId ? mitgliedVon(db, betreiberId, sitzung.nutzerId) : undefined;
     if (!mitglied) return c.json({ fehler: "kein_betreiber" }, 403);
-    const erlaubt =
-      darf(mitglied.rolle, zugang.recht) ||
-      perSupportZugang(db, zugang, mitglied, c.req.param("installationId"), now());
-    if (!erlaubt) return c.json({ fehler: "keine_berechtigung" }, 403);
+    if (!darf(mitglied.rolle, zugang.recht)) {
+      // a support access is checked once the whole request is in (Hono keeps the body for the
+      // route), so a body that arrives after the access ended opens nothing
+      if (zugang.supportZugang === true) await c.req.text().catch(() => "");
+      const installationId = c.req.param("installationId");
+      if (!perSupportZugang(db, zugang, mitglied, installationId, now()))
+        return c.json({ fehler: "keine_berechtigung" }, 403);
+    }
     c.set("betreiberId", mitglied.betreiberId);
     c.set("rolle", mitglied.rolle);
     return next();
