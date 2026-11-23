@@ -32,6 +32,7 @@ const TYPEN_VOM_AGENTEN = [
   "log_auszug",
   "ssh_anmeldung",
   "zertifikat_anfrage",
+  "backup_stand",
 ];
 
 describe("every message", () => {

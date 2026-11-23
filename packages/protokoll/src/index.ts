@@ -24,6 +24,9 @@ export {
 } from "./lesen.ts";
 export {
   Auftrag,
+  Backup,
+  BackupLauf,
+  BackupStand,
   Bestaetigt,
   Einrichtung,
   Ergebnis,

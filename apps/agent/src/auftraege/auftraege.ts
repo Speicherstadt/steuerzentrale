@@ -1,3 +1,4 @@
+import { AGENT_BINARY } from "@steuerzentrale/manifest";
 import {
   Bestaetigt,
   Ergebnis as ErgebnisNachricht,
@@ -8,6 +9,7 @@ import {
 } from "@steuerzentrale/protokoll";
 import { type AktionsDeps, aktionAusfuehren } from "../aktionen/auftrag.ts";
 import type { ZeilenLesen } from "../aktionen/journal.ts";
+import { backupAusfuehren } from "../backup/auftrag.ts";
 import type { Dateien } from "../dateien.ts";
 import { einrichtungAusfuehren, installationsNutzer } from "../einrichtung/auftrag.ts";
 import { type Gedaechtnis, gedaechtnisOeffnen } from "../einrichtung/gedaechtnis.ts";
@@ -21,6 +23,7 @@ import {
   type AktionPlan,
   type AuftragNachricht,
   auftragPruefen,
+  type BackupPlan,
   type EinrichtungPlan,
   type PfortePlan,
   type Plan,
@@ -32,7 +35,8 @@ import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.
  * The agent's side of jobs (BAULISTE.md Z-305): it acknowledges a job, checks it (pruefen.ts),
  * reports that it runs, runs it (ausfuehren.ts as the installation's user; a job of the Pforte
  * through its admin API, src/pforte; a setup job by src/einrichtung; a restart or log excerpt by
- * src/aktionen, whose lines go out as `log_auszug` before the result) and reports the result.
+ * src/aktionen, whose lines go out as `log_auszug` before the result; a backup job by src/backup)
+ * and reports the result.
  * Idempotent by the job's
  * id through its record (zustand.ts): a finished job sent again gets its stored result, a running
  * one only an acknowledgement. A job that was running when the agent stopped is reported failed
@@ -57,6 +61,8 @@ export type InstallationenDeps = {
   /** Reads the journal for a log excerpt (Z-405, aktionen/journal.ts) */
   journal: ZeilenLesen;
   warten: (ms: number) => Promise<void>;
+  /** The agent's binary the backup's service runs (Z-601); AGENT_BINARY without, other in tests */
+  agent?: string;
 };
 
 export type AuftraegeDeps = {
@@ -99,7 +105,7 @@ const reihe = () => {
   };
 };
 
-type JederPlan = Plan | PfortePlan | EinrichtungPlan | AktionPlan;
+type JederPlan = Plan | PfortePlan | EinrichtungPlan | AktionPlan | BackupPlan;
 
 /** Runs a checked plan by its kind: a command as the installation's user, or a built-in job */
 const ausfuehrer = (deps: AuftraegeDeps) => {
@@ -115,12 +121,18 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
       deps.installationen.gedaechtnis ??
       gedaechtnisOeffnen(deps.dateien, deps.installationen.pfad, deps.jetzt),
   };
+  const backup = { ...system, agent: deps.installationen.agent ?? AGENT_BINARY, jetzt: deps.jetzt };
   return async (plan: JederPlan, auszugSenden: (zeilen: string[]) => void): Promise<Ergebnis> => {
     if (plan.art === "pforte") return pforteReihe(() => pforteAusfuehren(deps, plan));
     if (plan.art === "einrichtung")
       return einrichtungReihe(() => einrichtungAusfuehren(system, plan));
     if (plan.art === "aktion")
       return einrichtungReihe(() => aktionAusfuehren(system, plan, auszugSenden));
+    // setting up a backup writes into the home like a setup; a run may take hours and waits for none
+    if (plan.art === "backup")
+      return plan.auftrag.art === "einrichten"
+        ? einrichtungReihe(() => backupAusfuehren(backup, plan))
+        : backupAusfuehren(backup, plan);
     const als = await installationsNutzer(system, plan.installationId);
     if (!als.ok) return { ok: false, fehler: `abgelehnt: ${als.grund}` };
     return ausfuehren(deps, plan, als.nutzer);

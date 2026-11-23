@@ -236,6 +236,23 @@ const secretAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string }
   return { code: 0, aus: `${JSON.stringify(berichte, null, 4)}\n` };
 };
 
+/**
+ * What a user reads besides Podman's secrets: a file of its own (`cat`, the backup's stand, Z-601)
+ * and the answer of `steuerzentrale-agent sichern … --repository-anlegen`, a new repository
+ */
+const nutzerAusgabe = (z: Zustand, a: Aufgerufen): { code: number; aus: string } => {
+  const n = z.nutzer.get(a.als);
+  if (a.argv[0] === "cat") {
+    const e = z.dateien.get(a.argv.at(-1) ?? "");
+    return e?.art === "datei" && e.uid === n?.uid
+      ? { code: 0, aus: e.inhalt ?? "" }
+      : { code: 1, aus: "" };
+  }
+  if (a.argv[1] === "sichern")
+    return { code: 0, aus: '{"msg":"repository","ok":true,"repository":"angelegt"}\n' };
+  return secretAusgabe(z, a);
+};
+
 export const testSystem = (o: TestSystemOptionen = {}) => {
   const z = zustandAnlegen(o.nutzer ?? []);
   const spawn: Spawn = (argv, signal, mit) => {
@@ -252,8 +269,8 @@ export const testSystem = (o: TestSystemOptionen = {}) => {
     const a: Aufgerufen = { ...ohnePraefix(argv), gelesen: true };
     z.laeufe.push(a);
     const code = o.scheitern?.(a);
-    if (code !== undefined) return { code, aus: "" };
-    const r = a.als === "root" ? { code: 127, aus: "" } : secretAusgabe(z, a);
+    if (code !== undefined) return { code, aus: o.ausgabe?.(a) ?? "" };
+    const r = a.als === "root" ? { code: 127, aus: "" } : nutzerAusgabe(z, a);
     return { code: r.code, aus: o.ausgabe?.(a) ?? r.aus };
   };
   // the journal by _UID=<uid>, as journalctl prints it (Z-405); handed over in two pieces

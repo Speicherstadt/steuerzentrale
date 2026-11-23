@@ -86,6 +86,19 @@ export const VOM_AGENTEN_V1: readonly Record<string, unknown>[] = [
     methode: "publickey",
   },
   { typ: "zertifikat_anfrage", protokoll: 1, csr: CSR },
+  {
+    typ: "backup_stand",
+    protokoll: 1,
+    installationId: "beispiel-x7k2p9",
+    lauf: "5b0c8f0e-3c1d-4d2a-9a57-0f6a2f1e8c11",
+    beginn: 1_795_000_000_000,
+    ende: 1_795_000_042_000,
+    ok: true,
+    teile: [
+      { tag: "volume:daten", ok: true, snapshot: "a".repeat(64) },
+      { tag: "befehl:export", ok: true, snapshot: "b".repeat(64) },
+    ],
+  },
 ];
 
 export const VON_DER_ZENTRALE_V1: readonly Record<string, unknown>[] = [
@@ -139,5 +152,21 @@ export const VON_DER_ZENTRALE_V1: readonly Record<string, unknown>[] = [
     protokoll: 1,
     zeit: 1_795_000_000_000,
     zertifikatGueltigBis: 1_826_536_000_000,
+  },
+  {
+    typ: "auftrag",
+    protokoll: 1,
+    auftragId: "a-3",
+    installationId: "beispiel-x7k2p9",
+    aktion: "installation_backup_einrichten",
+    argumente: {},
+    manifest: MANIFEST,
+    signatur: SIGNATUR,
+    zeitlimitS: 1800,
+    backup: {
+      repository: "s3:https://s3.example.org/sicherung/b-1/beispiel-x7k2p9",
+      zugang: { schluesselId: "SZBEISPIEL0000000001", geheim: "c2VjcmV0LXNjaGx1ZXNzZWw" },
+      passwort: "restic-passwort-der-installation",
+    },
   },
 ];

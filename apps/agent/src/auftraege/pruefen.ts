@@ -1,6 +1,10 @@
 import {
   AKTION_ZEITLIMIT_S,
   aktionsAuftragPruefen,
+  BACKUP_AKTIONEN,
+  BACKUP_EINRICHTEN_ZEITLIMIT_S,
+  BACKUP_ZEITLIMIT_S,
+  backupAuftragPruefen,
   befehlFuellen,
   befehlZurAktion,
   EINRICHTUNG_ZEITLIMIT_S,
@@ -8,6 +12,7 @@ import {
   geheimeEinstellungen,
   INSTALLATIONS_NAME,
   istAktionsAuftrag,
+  istBackupAktion,
   istEinrichtungAktion,
   istPforteAktion,
   type Manifest,
@@ -22,6 +27,7 @@ import {
 } from "@steuerzentrale/manifest";
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
 import type { Aktion } from "../aktionen/auftrag.ts";
+import type { Backup } from "../backup/auftrag.ts";
 import type { Einrichten, Entfernen, Konfigurieren, Schritt } from "../einrichtung/typen.ts";
 import { pruefZiel } from "../zustand/ziel.ts";
 
@@ -35,7 +41,9 @@ import { pruefZiel } from "../zustand/ziel.ts";
  * route is rendered from the signed manifest. A setup job (Z-402) likewise, with
  * einrichtungAuftragPruefen: its units are rendered from the signed manifest, and the commands of
  * `schritte.einrichten` filled from it; reconfiguring (Z-404) alike, without them. A restart or a
- * log excerpt (Z-405) passes aktionsAuftragPruefen: refused unless the manifest offers it.
+ * log excerpt (Z-405) passes aktionsAuftragPruefen: refused unless the manifest offers it. A
+ * backup job (Z-601) passes backupAuftragPruefen; only `installation_backup_einrichten` may carry
+ * the field `backup`, with the installation's repository, S3 access and restic password.
  * Pure, no I/O.
  */
 
@@ -94,8 +102,21 @@ export type AktionPlan = {
   idempotent: boolean;
 };
 
+/** What a backup job does: set up the installation's backup, or back it up now (src/backup) */
+export type BackupPlan = {
+  art: "backup";
+  aktion: string;
+  auftrag: Backup;
+  zeitlimitMs: number;
+  /**
+   * Setting up writes the same files again and creates no second repository; backing up now makes
+   * one more snapshot of each part: both run again after a restart of the agent
+   */
+  idempotent: true;
+};
+
 export type Geprueft =
-  | { ok: true; plan: Plan | PfortePlan | EinrichtungPlan | AktionPlan }
+  | { ok: true; plan: Plan | PfortePlan | EinrichtungPlan | AktionPlan | BackupPlan }
   | { ok: false; grund: string };
 
 const pfortePlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
@@ -129,6 +150,28 @@ const aktionPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
       },
       zeitlimitMs: Math.min(n.zeitlimitS, AKTION_ZEITLIMIT_S) * 1000,
       idempotent: art === "log_auszug",
+    },
+  };
+};
+
+const backupPlan = (m: Manifest, n: AuftragNachricht): Geprueft => {
+  const geprueft = backupAuftragPruefen(m, n);
+  if (!geprueft.ok) return geprueft;
+  const a = geprueft.auftrag;
+  const auftrag: Backup =
+    a.art === "jetzt"
+      ? a
+      : { ...a, manifest: { id: m.id, version: m.version, geheim: geheimeEinstellungen(m) } };
+  // backing up now waits for the run, which the service's limit ends a little later
+  const grenze = a.art === "jetzt" ? BACKUP_ZEITLIMIT_S + 120 : BACKUP_EINRICHTEN_ZEITLIMIT_S;
+  return {
+    ok: true,
+    plan: {
+      art: "backup",
+      aktion: n.aktion,
+      auftrag,
+      zeitlimitMs: Math.min(n.zeitlimitS, grenze) * 1000,
+      idempotent: true,
     },
   };
 };
@@ -193,6 +236,10 @@ export const auftragPruefen = (n: AuftragNachricht, vertrauen: Vertrauen): Gepru
     vertrauen.schluessel,
   );
   if (!geladen.ok) return { ok: false, grund: geladen.fehler.join("; ") };
+  // an installation's repository, S3 access and password belong to setting up its backup only
+  if (n.backup !== undefined && n.aktion !== BACKUP_AKTIONEN.einrichten)
+    return { ok: false, grund: "only installation_backup_einrichten carries backup data (backup)" };
+  if (istBackupAktion(n.aktion)) return backupPlan(geladen.manifest, n);
   if (istEinrichtungAktion(n.aktion)) return einrichtungPlan(geladen.manifest, n);
   // the installation's data and its secrets belong to a setup job, and only there
   if (n.einrichtung !== undefined)

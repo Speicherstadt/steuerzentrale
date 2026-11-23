@@ -1,9 +1,13 @@
+import { homedir } from "node:os";
 import { pforteGrundkonfiguration } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
 import { echtZeilenLesen } from "./aktionen/journal.ts";
 import { auftraegeAnnehmen } from "./auftraege/auftraege.ts";
 import { echtSpawn } from "./auftraege/ausfuehren.ts";
 import type { Vertrauen } from "./auftraege/pruefen.ts";
+import { type SichernBefehlDeps, sichernBefehl } from "./backup/befehl.ts";
+import { echtRestic } from "./backup/echt.ts";
+import { backupMelder } from "./backup/melden.ts";
 import { beitreten } from "./beitritt/beitreten.ts";
 import { type Dateien, echteDateien } from "./dateien.ts";
 import { dienstPruefen } from "./dienst.ts";
@@ -33,6 +37,7 @@ export const USAGE = [
   "       steuerzentrale-agent beitreten --zentrale <url> [--testmodus] < token",
   "       steuerzentrale-agent dienst",
   "       steuerzentrale-agent fakten",
+  "       steuerzentrale-agent sichern <installation> [--repository-anlegen]",
 ].join("\n");
 
 export type CliDeps = {
@@ -50,6 +55,8 @@ export type CliDeps = {
   ) => void;
   /** Reads the server's facts (src/fakten) */
   fakten: () => Promise<FaktenNachricht>;
+  /** A backup run as the installation's user (src/backup, Z-601), what its service starts */
+  sichern: SichernBefehlDeps;
   /** Other directories than /etc/steuerzentrale and /var/lib/steuerzentrale, for tests */
   konfig?: string;
   zustand?: string;
@@ -104,6 +111,14 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
             melden,
           }),
         zustand: zustandMelden(gedaechtnis, nutzer),
+        backups: backupMelder({
+          gedaechtnis,
+          nutzer,
+          lesen: echtLesen,
+          dateien: echteDateien,
+          pfad: pfade.backupGemeldet,
+          log: jsonLog,
+        }),
       },
       auftraege: auftraegeAnnehmen({
         dateien: echteDateien,
@@ -140,6 +155,12 @@ const echteDeps = (): CliDeps => ({
   architektur: process.arch,
   dienstStarten,
   fakten: () => faktenLesen(echteQuellen(), { jetzt: Date.now(), uhrzeitAbweichungMs: null }),
+  sichern: {
+    uid: () => process.getuid?.() ?? 0,
+    home: homedir,
+    dateien: echteDateien,
+    sichern: { restic: echtRestic(), jetzt: Date.now, id: () => crypto.randomUUID(), planen },
+  },
 });
 
 /** `--name wert` pairs and bare `--flag`s; anything else makes the arguments invalid */
@@ -199,5 +220,7 @@ export const runCli = async (args: string[], deps: CliDeps = echteDeps()): Promi
   // what the agent would report, for a look on the server; the clock needs the Zentrale
   if (befehl === "fakten" && rest.length === 0)
     return { code: 0, out: JSON.stringify(await deps.fakten(), null, 2) };
+  // the backup's service as the installation's user, without the Zentrale (docs/plan.md, Z-601)
+  if (befehl === "sichern") return sichernBefehl(rest, deps.sichern);
   return { code: 2, out: USAGE };
 };

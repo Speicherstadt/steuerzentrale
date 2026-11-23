@@ -144,7 +144,7 @@ export const ersetzen = (text: string, alt: string, neu: string): string => {
 export type EchterAgent = ReturnType<typeof echterAgent>;
 
 /** The agent's job handling as on a server; records in memory, root's part through sudo */
-export const echterAgent = () => {
+export const echterAgent = (o: { agent?: string } = {}) => {
   const schluessel = schluesselLesen(TEST_PUB);
   if (!schluessel) throw new Error("test key");
   const ordner = mkdtempSync(join(tmpdir(), "sz-test-einrichtung-"));
@@ -171,6 +171,7 @@ export const echterAgent = () => {
       lesen: sudoLesen,
       journal: sudoZeilenLesen,
       warten: (ms) => Bun.sleep(ms),
+      ...(o.agent === undefined ? {} : { agent: o.agent }),
     },
     planen,
     jetzt: Date.now,
@@ -201,7 +202,7 @@ export const echterAgent = () => {
     JSON.parse(fs.inhalt.get("/z/installationen.json")?.text ?? '{"installationen":{}}')
       .installationen as Record<string, unknown>;
   const aufraeumen = () => rmSync(ordner, { recursive: true, force: true });
-  return { auftrag, gesendet, record, besitzer, aufraeumen, zustand };
+  return { auftrag, gesendet, record, besitzer, aufraeumen, zustand, gedaechtnis };
 };
 
 /** Takes an installation off the runner, whatever state it is in; for afterAll */

@@ -37,7 +37,7 @@ Jede Meldung nennt das Feld und den Grund, z. B.
 | `health` | `http` (`dienst`, `pfad`, `port`), `tcp` (`dienst`, `port`), `befehl` (Name aus `befehle`) oder `keine` (mit `hinweis`, z. B. dem Issue) |
 | `befehle` | benannte Befehle: `{ name: { container, argv: [...], argumente, zeitlimit_s, idempotent } }`; `argumente`, `zeitlimit_s` (Vorgabe 900 s, höchstens ein Tag) und `idempotent` (Vorgabe `false`) sind freiwillig, unten „Befehle in Aufträgen“ |
 | `schritte` | `einrichten`, `nach_update`: nur Namen aus `befehle` |
-| `backup` | Teile: `pg_dump` (`container`, `datenbank`, `nutzer`), `volume` (`volume`), `befehl` (`befehl`) |
+| `backup` | Teile: `pg_dump` (`container`, `datenbank`, `nutzer`), `volume` (`volume`), `befehl` (`befehl`); jeder Teil wird ein eigener Snapshot mit dem Tag `pg_dump:<container>:<datenbank>`, `volume:<volume>` oder `befehl:<name>` ([Backups](backups.md)); ein Befehl in `backup` hat keine `argumente`, eine `datenbank` nur Buchstaben, Ziffern, `_`, `.` und `-`; ohne Teile richtet die Zentrale kein Backup ein |
 | `aktionen` | `nur_lesen`, `export`: `nicht_unterstuetzt`, `{ nicht_unterstuetzt: <Issue> }` oder `{ befehl: <Name> }`; `neustart`, `log_auszug`: `angeboten` (Vorgabe) oder nicht unterstützt; was nicht angeboten ist, gibt es weder in der Oberfläche noch auf dem Server ([Aktionen](aktionen.md)); im Log-Auszug ersetzt der Agent die Werte aller Einstellungen vom Typ `geheim` und der Ebene `auto` |
 | `sperrzeiten` | `{ monatlich: "07-12", grund: … }`: keine Updates und Neustarts an diesen Tagen jedes Monats (Berliner Kalendertage); `28-03` reicht über den Monatswechsel |
 | `dns` | Einträge der App (`typ`, `name`, `wert`, `prioritaet`), z. B. MX und SPF für Mail; `name` und `wert` mit Platzhaltern wie eine `vorlage` |

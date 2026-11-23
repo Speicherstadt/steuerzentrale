@@ -22,6 +22,8 @@ export type Pfade = {
   auftraege: string;
   /** The record of the installations the agent made (src/einrichtung/gedaechtnis.ts) */
   installationen: string;
+  /** The backup runs the agent has reported (src/backup/melden.ts) */
+  backupGemeldet: string;
 };
 
 export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
@@ -35,4 +37,5 @@ export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
   sshCursor: join(zustand, "ssh-cursor"),
   auftraege: join(zustand, "auftraege.json"),
   installationen: join(zustand, "installationen.json"),
+  backupGemeldet: join(zustand, "backup-gemeldet.json"),
 });
