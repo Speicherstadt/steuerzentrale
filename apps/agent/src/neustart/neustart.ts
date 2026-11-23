@@ -56,6 +56,32 @@ export const neustartAusloesen = async (deps: NeustartDeps): Promise<Ergebnis> =
   return nein(`${NICHT_ERFOLGT}: der Server lief nach 5 Minuten noch`);
 };
 
+const OHNE: Ergebnis = { ok: false, fehler: "abgelehnt: this agent cannot reboot" };
+
+/**
+ * The reboots of one agent: out of the job's boot only, and from asking systemd on `laeuft` until
+ * that failed, so that no job starts that the reboot would end halfway
+ */
+export const neustartFuehrer = (deps: NeustartDeps | undefined) => {
+  let laeuft = false;
+  return {
+    laeuft: () => laeuft,
+    neustarten: async (auftrag: ServerNeustartAuftrag): Promise<Ergebnis> => {
+      if (!deps) return OHNE;
+      const abgelehnt = await neustartAblehnen(deps, auftrag);
+      if (abgelehnt) return abgelehnt;
+      laeuft = true;
+      try {
+        return await neustartAusloesen(deps);
+      } finally {
+        laeuft = false;
+      }
+    },
+    ende: (auftrag: ServerNeustartAuftrag): Promise<Ergebnis> =>
+      deps ? neustartEnde(deps, auftrag) : Promise.resolve(OHNE),
+  };
+};
+
 /** A job the record kept running when the agent stopped: done if the server booted anew since */
 export const neustartEnde = async (
   deps: NeustartDeps,

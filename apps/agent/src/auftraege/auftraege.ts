@@ -16,12 +16,7 @@ import { einrichtungAusfuehren, installationsNutzer } from "../einrichtung/auftr
 import { type Gedaechtnis, gedaechtnisOeffnen } from "../einrichtung/gedaechtnis.ts";
 import type { HausDateien } from "../einrichtung/haus.ts";
 import type { NutzerLesen } from "../einrichtung/nutzer.ts";
-import {
-  type NeustartDeps,
-  neustartAblehnen,
-  neustartAusloesen,
-  neustartEnde,
-} from "../neustart/neustart.ts";
+import { type NeustartDeps, neustartFuehrer } from "../neustart/neustart.ts";
 import { type PforteDeps, pforteAusfuehren } from "../pforte/ausfuehren.ts";
 import {
   type PruefRestoreDeps,
@@ -125,6 +120,19 @@ const MAX_FEHLER = 2000;
 
 const bestaetigt = (auftragId: string) =>
   schreiben(Bestaetigt, { typ: "bestaetigt", protokoll: PROTOKOLL_VERSION, auftragId });
+
+const fortschritt = (auftragId: string, schritt: string, zeit: number) =>
+  schreiben(Fortschritt, {
+    typ: "fortschritt",
+    protokoll: PROTOKOLL_VERSION,
+    auftragId,
+    schritt,
+    zeit,
+  });
+
+/** The restart after its own update, and a reboot, would end any other job halfway */
+const nurAllein = (plan: JederPlan) =>
+  plan.art === "agent_update" || plan.art === "server_neustart";
 
 const ergebnisNachricht = (auftragId: string, ergebnis: Ergebnis, zeit: number) =>
   schreiben(ErgebnisNachricht, {
@@ -263,23 +271,14 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
   const schreibe = standSchreiber(deps.dateien, deps.pfad, deps.jetzt);
   let geladen: Promise<Geladen> | undefined;
   const laufend = new Set<string>();
-  // its own update holds or the server reboots: a job sent now is sent again after the restart
+  // its own update holds: the restart comes, and a job sent now is sent again to the new agent
   let neustartFolgt = false;
   const eigenesUpdate = updateWache();
-  const ohneNeustart: Ergebnis = { ok: false, fehler: "abgelehnt: this agent cannot reboot" };
-  /** Out of the job's boot only; from asking systemd on, no job starts until it failed */
-  const serverNeustarten = async (plan: ServerNeustartPlan): Promise<Ergebnis> => {
-    if (!deps.neustart) return ohneNeustart;
-    const abgelehnt = await neustartAblehnen(deps.neustart, plan.auftrag);
-    if (abgelehnt) return abgelehnt;
-    neustartFolgt = true;
-    try {
-      return await neustartAusloesen(deps.neustart);
-    } finally {
-      neustartFolgt = false;
-    }
-  };
-  const { ausfuehren: planAusfuehren, aufraeumen } = ausfuehrer(deps, serverNeustarten);
+  // the reboot of the server (Z-701) likewise, from asking systemd on
+  const server = neustartFuehrer(deps.neustart);
+  const { ausfuehren: planAusfuehren, aufraeumen } = ausfuehrer(deps, (plan) =>
+    server.neustarten(plan.auftrag),
+  );
 
   const ergebnisSenden = (auftragId: string, ergebnis: Ergebnis, senden: (t: string) => void) =>
     senden(ergebnisNachricht(auftragId, ergebnis, deps.jetzt()));
@@ -310,19 +309,9 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
     stand.set(n.auftragId, { zustand: "laeuft", am: deps.jetzt() });
     try {
       await schreibe(stand);
-      senden(
-        schreiben(Fortschritt, {
-          typ: "fortschritt",
-          protokoll: PROTOKOLL_VERSION,
-          auftragId: n.auftragId,
-          schritt: plan.aktion,
-          zeit: deps.jetzt(),
-        }),
-      );
-      // the restart after its own update, and a reboot, would end any other job halfway
-      const allein = plan.art === "agent_update" || plan.art === "server_neustart";
+      senden(fortschritt(n.auftragId, plan.aktion, deps.jetzt()));
       const ergebnis =
-        allein && laufend.size > 1
+        nurAllein(plan) && laufend.size > 1
           ? { ok: false as const, fehler: "abgelehnt: other jobs run on the agent" }
           : await planAusfuehren(plan, n.auftragId, auszugSender(n.auftragId, senden));
       if (plan.art === "agent_update" && ergebnis.ok) neustartFolgt = true;
@@ -335,7 +324,8 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
 
   const empfangen: Auftraege["empfangen"] = async (n, senden) => {
     await eigenesUpdate.abwarten(n.auftragId);
-    if (neustartFolgt) return deps.log("job left for the new agent", { auftragId: n.auftragId });
+    if (neustartFolgt || server.laeuft())
+      return deps.log("job left for the new agent", { auftragId: n.auftragId });
     geladen ??= standLaden(deps.dateien, deps.pfad);
     const record = await geladen;
     if (!record.ok) {
@@ -359,10 +349,8 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
         senden,
       );
     // a reboot running when the agent stopped: the boot id tells whether it came (Z-701)
-    if (bekannt?.zustand === "laeuft" && geprueft.plan.art === "server_neustart") {
-      const ende = deps.neustart ? neustartEnde(deps.neustart, geprueft.plan.auftrag) : undefined;
-      return abschliessen(stand, n.auftragId, (await ende) ?? ohneNeustart, senden);
-    }
+    if (bekannt?.zustand === "laeuft" && geprueft.plan.art === "server_neustart")
+      return abschliessen(stand, n.auftragId, await server.ende(geprueft.plan.auftrag), senden);
     // running when the agent stopped: it may have done part of its work
     if (bekannt?.zustand === "laeuft" && !geprueft.plan.idempotent)
       return abschliessen(stand, n.auftragId, { ok: false, fehler: NEU_GESTARTET }, senden);

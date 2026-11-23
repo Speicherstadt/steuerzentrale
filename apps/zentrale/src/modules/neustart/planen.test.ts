@@ -67,7 +67,9 @@ describe("the planning of reboots", () => {
       .all()
       .filter((e) => e.aktion === "server.neustart");
     expect(audit[0]).toMatchObject({ akteur: "system" });
-    expect(audit[0]?.grund).toBe("Neustart nötig: Kernel 6.12.0-2-amd64 installiert, 6.12.0-1-amd64 läuft");
+    expect(audit[0]?.grund).toBe(
+      "Neustart nötig: Kernel 6.12.0-2-amd64 installiert, 6.12.0-1-amd64 läuft",
+    );
     // open: no second one
     expect(u.planen().angelegt).toEqual([]);
   });
@@ -225,7 +227,9 @@ describe("the planning of reboots", () => {
     expect(u.neustarts("b2")).toEqual([]);
     u.verbinden("b2", "s2");
     expect(u.planen().angelegt).toEqual(["s2"]);
-    expect(u.neustarts("b2")).toEqual([expect.objectContaining({ betreiberId: "b2", serverId: "s2" })]);
+    expect(u.neustarts("b2")).toEqual([
+      expect.objectContaining({ betreiberId: "b2", serverId: "s2" }),
+    ]);
     expect(u.neustarts("b1")).toHaveLength(1);
   });
 });

@@ -4,12 +4,12 @@ import { uebergang } from "@steuerzentrale/protokoll";
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { Db } from "../../db/oeffnen.ts";
 import { auftraege, betreiber, server } from "../../db/schema.ts";
-import type { Planer } from "../aufbewahrung/index.ts";
 import { schreiben } from "../audit/index.ts";
+import type { Planer } from "../aufbewahrung/index.ts";
 import type { AuftragDeps } from "../auftraege/zustellen.ts";
+import { serverFakten } from "../server/index.ts";
 import { neustartAnlegen } from "./anlegen.ts";
 import { neustartFortschreiben } from "./ende.ts";
-import { serverFakten } from "../server/index.ts";
 import { neustartServer } from "./lage.ts";
 import { neustartDarfHinaus, sperrzeitenAufServer, VON_DER_PLANUNG } from "./sperrzeiten.ts";
 
@@ -108,9 +108,7 @@ export const neustartsPlanen = (deps: AuftragDeps): NeustartRunde => {
       const r = neustartAnlegen(deps, kontext, s.serverId);
       if (r.ok) runde.angelegt.push(s.serverId);
       else
-        deps.log(
-          JSON.stringify({ msg: "reboot not made", serverId: s.serverId, grund: r.grund }),
-        );
+        deps.log(JSON.stringify({ msg: "reboot not made", serverId: s.serverId, grund: r.grund }));
     }
   }
   return runde;

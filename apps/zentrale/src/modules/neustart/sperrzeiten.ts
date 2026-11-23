@@ -1,8 +1,4 @@
-import {
-  manifestPruefen,
-  SERVER_NEUSTART_AKTION,
-  UPDATE_AKTION,
-} from "@steuerzentrale/manifest";
+import { manifestPruefen, SERVER_NEUSTART_AKTION, UPDATE_AKTION } from "@steuerzentrale/manifest";
 import { neustartZustellbar, type Sperrzeit } from "@steuerzentrale/planung";
 import { ENDZUSTAENDE } from "@steuerzentrale/protokoll";
 import { and, eq } from "drizzle-orm";
@@ -24,7 +20,11 @@ const ausManifest = (text: string): Sperrzeit[] => {
   return m.ok ? m.manifest.sperrzeiten : [];
 };
 
-export const sperrzeitenAufServer = (db: Db, betreiberId: string, serverId: string): Sperrzeit[] => {
+export const sperrzeitenAufServer = (
+  db: Db,
+  betreiberId: string,
+  serverId: string,
+): Sperrzeit[] => {
   const installiert = installationenAufServer(db, betreiberId, serverId).flatMap((i) =>
     ausManifest(i.manifest),
   );

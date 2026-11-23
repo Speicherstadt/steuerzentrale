@@ -55,12 +55,13 @@ const neustartBeenden = (
 ): void => {
   if (zustand === "erfolgreich") {
     const boot = ergebnis?.ok ? ergebnis.daten.bootId : undefined;
-    const text = typeof boot === "string" ? `Server neu gestartet (Boot ${boot})` : "Server neu gestartet";
-    return void ereignis(w, a, "erfolgreich", text, jetzt);
+    const text =
+      typeof boot === "string" ? `Server neu gestartet (Boot ${boot})` : "Server neu gestartet";
+    ereignis(w, a, "erfolgreich", text, jetzt);
+    return;
   }
   const art = zustand === "abgebrochen" ? "abgebrochen" : "gescheitert";
-  const was = art === "abgebrochen" ? "abgebrochen" : "gescheitert";
-  ereignis(w, a, art, `Neustart des Servers ${was}: ${grundVon(zustand, ergebnis)}`, jetzt);
+  ereignis(w, a, art, `Neustart des Servers ${art}: ${grundVon(zustand, ergebnis)}`, jetzt);
 };
 
 /** A backup before a reboot that did not succeed: the reboots waiting for it, cancelled with it */
@@ -90,7 +91,7 @@ export const neustartFortschreiben = (
   jetzt: number,
 ): void => {
   if (!ENDZUSTAENDE.has(zustand)) return;
-  if (a.aktion === SERVER_NEUSTART_AKTION) return neustartBeenden(w, a, zustand, ergebnis, jetzt);
-  if (a.aktion === BACKUP_AKTIONEN.jetzt && zustand !== "erfolgreich")
+  if (a.aktion === SERVER_NEUSTART_AKTION) neustartBeenden(w, a, zustand, ergebnis, jetzt);
+  else if (a.aktion === BACKUP_AKTIONEN.jetzt && zustand !== "erfolgreich")
     backupGescheitert(w, db, a, jetzt);
 };

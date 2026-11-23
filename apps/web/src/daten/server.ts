@@ -1,3 +1,4 @@
+import type { NeustartEntscheid } from "@steuerzentrale/planung";
 import { type Antwort, api } from "../anmeldung/api.ts";
 import { server as demoServer } from "../demo/server.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
@@ -29,6 +30,31 @@ export type ServerFakten = {
   portsBelegt: { port: number; proto: "tcp" | "udp" }[] | null;
   port25Ausgehend: boolean | null;
   uhrzeitAbweichungMs: number | null;
+  /** Z-701: the kernel's id of this boot and when it began */
+  bootId: string | null;
+  gestartetAm: number | null;
+  unattendedUpgrades: {
+    installiert: boolean;
+    aktiv: boolean | null;
+    letzterLauf: number | null;
+  } | null;
+};
+
+/**
+ * Where a server's reboot stands (Z-701, apps/zentrale modules/neustart/lage.ts): whether one is
+ * needed, what the plan decides now and the newest reboot job
+ */
+export type NeustartStand = {
+  noetig: boolean | null;
+  plan: NeustartEntscheid;
+  letzter: {
+    auftragId: string;
+    zustand: string;
+    vonHand: boolean;
+    angelegtAm: number;
+    geaendertAm: number;
+    fehler: string | null;
+  } | null;
 };
 
 /** The state of a server's agent (apps/zentrale, modules/verbindung/zustand.ts) */
@@ -54,6 +80,13 @@ export type ServerDerZentrale = {
   /** The newest facts and when the Zentrale got them; null before the agent's first report */
   fakten: ServerFakten | null;
   faktenAm: number | null;
+  neustart: NeustartStand;
+};
+
+/** What a reboot by hand made: the backups before and the reboot waiting for them */
+export type NeustartAngelegt = {
+  backups: { auftragId: string; zustand: string; installationId: string | null }[];
+  neustart: { auftragId: string; zustand: string };
 };
 
 export type ServerQuelle = {
@@ -61,6 +94,8 @@ export type ServerQuelle = {
   server: (id: string) => Promise<Antwort<ServerDerZentrale>>;
   /** Revokes the server's certificate: its agent is refused from now on */
   sperren: (id: string, grund: string) => Promise<Antwort<ServerDerZentrale>>;
+  /** Reboots the server by hand (Z-701): its installations are backed up first */
+  neustart: (id: string, grund: string) => Promise<Antwort<NeustartAngelegt>>;
 };
 
 const pfad = (id: string) => `/api/v1/server/${encodeURIComponent(id)}`;
@@ -72,6 +107,7 @@ export const apiServer: ServerQuelle = {
   },
   server: (id) => api<ServerDerZentrale>(pfad(id)),
   sperren: (id, grund) => api<ServerDerZentrale>(`${pfad(id)}/sperren`, { body: { grund } }),
+  neustart: (id, grund) => api<NeustartAngelegt>(`${pfad(id)}/neustart`, { body: { grund } }),
 };
 
 /**

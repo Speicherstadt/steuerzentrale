@@ -1,8 +1,4 @@
-import {
-  BACKUP_AKTIONEN,
-  KEIN_MANIFEST,
-  SERVER_NEUSTART_AKTION,
-} from "@steuerzentrale/manifest";
+import { BACKUP_AKTIONEN, KEIN_MANIFEST, SERVER_NEUSTART_AKTION } from "@steuerzentrale/manifest";
 import { sperrzeitAm } from "@steuerzentrale/planung";
 import { ENDZUSTAENDE } from "@steuerzentrale/protokoll";
 import { and, eq } from "drizzle-orm";

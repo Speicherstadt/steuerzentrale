@@ -89,7 +89,9 @@ export const neustartStand = (
 ) => {
   const lage = neustartServer(db, verbunden, sv);
   const letzter = letzterNeustart(db, sv.betreiberId, sv.serverId);
-  const ergebnis = letzter?.ergebnis ? (JSON.parse(letzter.ergebnis) as Record<string, unknown>) : {};
+  const ergebnis = letzter?.ergebnis
+    ? (JSON.parse(letzter.ergebnis) as Record<string, unknown>)
+    : {};
   return {
     noetig: lage.neustartNoetig,
     plan: neustartPruefen(lage, jetzt),

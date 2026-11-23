@@ -1,4 +1,8 @@
-import { AGENT_UPDATE_AKTION, SERVER_NEUSTART_AKTION, UPDATE_AKTION } from "@steuerzentrale/manifest";
+import {
+  AGENT_UPDATE_AKTION,
+  SERVER_NEUSTART_AKTION,
+  UPDATE_AKTION,
+} from "@steuerzentrale/manifest";
 import { versionVergleichen } from "@steuerzentrale/planung";
 import { ENDZUSTAENDE } from "@steuerzentrale/protokoll";
 import { and, desc, eq, inArray, or } from "drizzle-orm";

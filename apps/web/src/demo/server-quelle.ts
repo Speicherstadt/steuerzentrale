@@ -1,4 +1,10 @@
-import type { ServerDerZentrale, ServerFakten, ServerQuelle } from "../daten/server.ts";
+import { neustartPruefen } from "@steuerzentrale/planung";
+import type {
+  NeustartStand,
+  ServerDerZentrale,
+  ServerFakten,
+  ServerQuelle,
+} from "../daten/server.ts";
 import type { Server } from "../daten/typen.ts";
 
 /**
@@ -9,6 +15,17 @@ const ARTEN = { gemeinsam: "gemeinsam", eigen: "eigen", kunde: "beim_kunden" } a
 
 const STILL_AB_MS = 75_000;
 const MIB_200_GB = 200 * 1024;
+const TAG_MS = 24 * 3600_000;
+
+/** A boot id of the demo server, made from its name: the same on every load */
+const bootIdVon = (id: string) => {
+  const hex = [...id]
+    .map((z) => z.charCodeAt(0).toString(16))
+    .join("")
+    .padEnd(32, "0")
+    .slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+};
 
 /**
  * The demo server's values as its agent would report them (Z-304); the disk is a 200 GB root with
@@ -43,10 +60,32 @@ export const demoFakten = (sv: Server, jetzt: number): ServerFakten => {
     ],
     port25Ausgehend: null,
     uhrzeitAbweichungMs: sv.uhrAbweichungMs,
+    bootId: bootIdVon(sv.id),
+    gestartetAm: jetzt - sv.laufzeitTage * TAG_MS,
+    // unattended-upgrades ran last night at 02:10 (mockup, events)
+    unattendedUpgrades: { installiert: true, aktiv: true, letzterLauf: jetzt - 8 * 3600_000 },
   };
 };
 
-export const alsServerDerZentrale = (sv: Server, jetzt: number): ServerDerZentrale => {
+/** Where the demo server's reboot stands, as the Zentrale's plan would decide it now */
+const demoNeustart = (sv: Omit<ServerDerZentrale, "neustart">, jetzt: number): NeustartStand => ({
+  noetig: sv.fakten?.neustartNoetig ?? null,
+  plan: neustartPruefen(
+    {
+      neustartNoetig: sv.fakten?.neustartNoetig ?? null,
+      bootId: sv.fakten?.bootId ?? null,
+      wartungsfenster: sv.wartungsfenster,
+      sperrzeiten: [],
+      verbunden: sv.agent.zustand !== "getrennt",
+      offeneAuftraege: 0,
+      ohneBackup: 0,
+    },
+    jetzt,
+  ),
+  letzter: null,
+});
+
+const ohneNeustart = (sv: Server, jetzt: number): Omit<ServerDerZentrale, "neustart"> => {
   const letzterHeartbeat = sv.agent.letzteMeldung;
   const faktenAm = sv.agent.zustand === "verbunden" ? jetzt : letzterHeartbeat;
   const agent: ServerDerZentrale["agent"] =
@@ -76,6 +115,11 @@ export const alsServerDerZentrale = (sv: Server, jetzt: number): ServerDerZentra
   };
 };
 
+export const alsServerDerZentrale = (sv: Server, jetzt: number): ServerDerZentrale => {
+  const ohne = ohneNeustart(sv, jetzt);
+  return { ...ohne, neustart: demoNeustart(ohne, jetzt) };
+};
+
 export const demoServerQuelle = (start: Server[], jetzt: () => number): ServerQuelle => {
   let liste = start.map((sv) => alsServerDerZentrale(sv, jetzt()));
   const fehlt = { ok: false, status: 404, fehler: "kein_server" } as const;
@@ -85,6 +129,34 @@ export const demoServerQuelle = (start: Server[], jetzt: () => number): ServerQu
     server: async (id) => {
       const sv = liste.find((s) => s.serverId === id);
       return sv ? ok(sv) : fehlt;
+    },
+    neustart: async (id) => {
+      const sv = liste.find((s) => s.serverId === id);
+      if (!sv) return fehlt;
+      if (
+        sv.neustart.letzter &&
+        !["erfolgreich", "gescheitert", "abgebrochen"].includes(sv.neustart.letzter.zustand)
+      )
+        return { ok: false, status: 409, fehler: "auftrag_offen" };
+      const auftragId = crypto.randomUUID();
+      const neustart: NeustartStand = {
+        ...sv.neustart,
+        plan: { art: "warten", grund: "auftraege" },
+        letzter: {
+          auftragId,
+          zustand: "zugestellt",
+          vonHand: true,
+          angelegtAm: jetzt(),
+          geaendertAm: jetzt(),
+          fehler: null,
+        },
+      };
+      liste = liste.map((s) => (s.serverId === id ? { ...s, neustart } : s));
+      return {
+        ok: true,
+        status: 201,
+        daten: { backups: [], neustart: { auftragId, zustand: "zugestellt" } },
+      };
     },
     sperren: async (id) => {
       const sv = liste.find((s) => s.serverId === id);
