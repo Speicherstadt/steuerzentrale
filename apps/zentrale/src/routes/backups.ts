@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { BUCKET } from "@steuerzentrale/manifest";
 import type { Context } from "hono";
 import { z } from "zod";
@@ -9,6 +10,7 @@ import {
   backupZielSetzen,
 } from "../modules/backups/index.ts";
 import { installationLesen } from "../modules/installationen/index.ts";
+import { type PruefDeps, pruefRestoreAnlegen } from "../modules/pruef-restore/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
@@ -16,7 +18,8 @@ import type { Anfrage, Registrar } from "./zugang.ts";
  * Backups (BAULISTE.md Z-601; docs/plan.md, "S3-Ziel und Zugang je Installation (Z-601)", "Backup
  * auf dem Server (Z-601)"): every role reads the runs of the installations and the S3 target, whose
  * admin access comes back only as `zugangGesetzt`; owner and technik set the target and start
- * "Backup jetzt", each with a reason. No answer carries an access, a password or a repository. An
+ * "Backup jetzt", each with a reason, and "Prüf-Restore jetzt" (Z-602), which the schedule's
+ * weekly limit does not hold back. No answer carries an access, a password or a repository. An
  * installation of another operator is unknown.
  */
 
@@ -63,14 +66,25 @@ const STATUS: Record<string, 404 | 409 | 422> = {
   laeuft_nicht: 409,
   nicht_eingerichtet: 409,
   backup_laeuft: 409,
+  kein_backup: 409,
+  auftrag_offen: 409,
+  server_belegt: 409,
+  kein_platz: 409,
+  keine_ports: 409,
   ziel_in_benutzung: 409,
   zugang_fehlt: 422,
   nicht_ausfuehrbar: 422,
 };
 
-const fehler = (c: Context<Anfrage>, f: { grund: string; detail?: string | undefined }) =>
+type Fehler = { grund: string; detail?: string | undefined; gruende?: unknown[] | undefined };
+
+const fehler = (c: Context<Anfrage>, f: Fehler) =>
   c.json(
-    { fehler: f.grund, ...(f.detail === undefined ? {} : { detail: f.detail }) },
+    {
+      fehler: f.grund,
+      ...(f.detail === undefined ? {} : { detail: f.detail }),
+      ...(f.gruende === undefined ? {} : { gruende: f.gruende }),
+    },
     STATUS[f.grund] ?? 400,
   );
 
@@ -82,6 +96,11 @@ export const backupRouten = (route: Registrar, deps: RoutenDeps): void => {
     grund,
   });
   const installationId = (c: Context<Anfrage>) => c.req.param("installationId") ?? "";
+  const pruefDeps: PruefDeps = {
+    ...deps,
+    zufall: (n) => new Uint8Array(randomBytes(n)),
+    verbunden: (b, s) => deps.verbindungen.verbundenSeit(b, s) !== undefined,
+  };
 
   route("GET /api/v1/backups", (c) =>
     c.json({ installationen: backupUebersicht(deps.db, c.get("betreiberId")) }),
@@ -111,6 +130,15 @@ export const backupRouten = (route: Registrar, deps: RoutenDeps): void => {
     const angaben = await eingabe(c, grundSchema);
     if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
     const r = backupJetzt(deps, kontext(c, angaben.grund), installationId(c));
+    if (!r.ok) return fehler(c, r);
+    const { auftragId, aktion, zustand, angelegtAm } = r.auftrag;
+    return c.json({ auftrag: { auftragId, aktion, zustand, angelegtAm } }, 201);
+  });
+
+  route("POST /api/v1/installationen/:installationId/pruef-restore", async (c) => {
+    const angaben = await eingabe(c, grundSchema);
+    if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
+    const r = pruefRestoreAnlegen(pruefDeps, kontext(c, angaben.grund), installationId(c));
     if (!r.ok) return fehler(c, r);
     const { auftragId, aktion, zustand, angelegtAm } = r.auftrag;
     return c.json({ auftrag: { auftragId, aktion, zustand, angelegtAm } }, 201);

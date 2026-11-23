@@ -187,6 +187,7 @@ describe("the backups of an installation", () => {
         zugang: null,
         eingerichtet: false,
         laeufe: [],
+        pruefRestore: { letzter: null, laeuft: false },
       },
     });
     erledigt(auftragVon(EINRICHTUNG_AKTIONEN.einrichten)?.auftragId ?? "");

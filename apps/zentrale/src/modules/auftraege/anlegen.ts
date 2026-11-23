@@ -21,7 +21,10 @@ import {
   type Manifest,
   manifestPruefen,
   PFORTE_ZEITLIMIT_S,
+  PRUEF_RESTORE_AKTION,
+  PRUEF_RESTORE_ZEITLIMIT_S,
   pforteAuftragPruefen,
+  pruefRestoreAuftragPruefen,
   STANDARD_ZEITLIMIT_S,
 } from "@steuerzentrale/manifest";
 import type { AuftragZustand } from "@steuerzentrale/protokoll";
@@ -44,7 +47,8 @@ import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
  * excerpt of an installation (Z-405, aktionen.ts) are built in too, without arguments, and only for
  * a manifest that offers them, and so are the backup jobs (Z-601, backup.ts), only for a manifest
  * with parts to back up; setting up backups is checked with its field `backup`, which the row does
- * not keep either.
+ * not keep either. The test restore (Z-602, backup/pruef-restore.ts) is checked with the copy's data
+ * in `einrichtung`, like a setup.
  */
 
 export type NeuerAuftrag = {
@@ -60,7 +64,7 @@ export type NeuerAuftrag = {
   wartetAuf?: readonly string[];
   /** A caller's own id, so that making the same job again is refused instead of doubled */
   auftragId?: string;
-  /** Only to check `installation_einrichten`; not stored with the job */
+  /** Only to check `installation_einrichten` and the test restore; not stored with the job */
   einrichtung?: Einrichtung;
   /** Only to check `installation_backup_einrichten` (Z-601); not stored with the job */
   backup?: BackupZugang;
@@ -104,6 +108,12 @@ const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
     return einrichtung.ok
       ? { ok: true, manifest: geprueft.manifest, zeitlimitS: EINRICHTUNG_ZEITLIMIT_S }
       : { ok: false, grund: "argumente_ungueltig", detail: einrichtung.grund };
+  }
+  if (neu.aktion === PRUEF_RESTORE_AKTION) {
+    const pruef = pruefRestoreAuftragPruefen(geprueft.manifest, neu);
+    return pruef.ok
+      ? { ok: true, manifest: geprueft.manifest, zeitlimitS: PRUEF_RESTORE_ZEITLIMIT_S }
+      : { ok: false, grund: "argumente_ungueltig", detail: pruef.grund };
   }
   if (istPforteAktion(neu.aktion)) {
     const pforte = pforteAuftragPruefen(geprueft.manifest, neu);

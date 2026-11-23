@@ -31,7 +31,7 @@ describe("monateZurueck", () => {
 });
 
 describe("aufbewahrungsGrenzen", () => {
-  it("keeps heartbeats, facts and log excerpts 30 days, the rating's history 90, events and backups 13 months", () => {
+  it("keeps heartbeats, facts and log excerpts 30 days, the rating's history 90, events, backups and test restores 13 months", () => {
     expect(aufbewahrungsGrenzen(JETZT)).toEqual({
       heartbeats: JETZT - 30 * TAG,
       fakten: JETZT - 30 * TAG,
@@ -39,6 +39,7 @@ describe("aufbewahrungsGrenzen", () => {
       installationVerlauf: JETZT - 90 * TAG,
       ereignisse: Date.UTC(2025, 9, 20, 12, 0, 0),
       backups: Date.UTC(2025, 9, 20, 12, 0, 0),
+      pruefRestores: Date.UTC(2025, 9, 20, 12, 0, 0),
     });
   });
 });
@@ -113,6 +114,7 @@ describe("aufbewahren", () => {
       installationVerlauf: 2,
       ereignisse: 2,
       backups: 0,
+      pruefRestores: 0,
     });
     expect(alterIn(db.select().from(installationVerlauf).all())).toEqual([89, 89]);
     expect(alterIn(db.select().from(heartbeats).all())).toEqual([1, 1, 30, 30]);
