@@ -273,7 +273,7 @@ jobs:
           bestaetigt() { sudo incus exec "$VM" -- grep -q '"bestaetigt":true' /var/lib/steuerzentrale/agent-update.json; }
           for i in $(seq 1 10); do bestaetigt && break; sleep 1; done
           bestaetigt
-          sudo incus exec "$VM" -- systemctl list-timers --all --no-pager steuerzentrale-agent-pruefen.timer | grep -q steuerzentrale-agent-pruefen
+          sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent-pruefen.timer
           # the check, run now as its timer would: a confirmed update stays
           sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent.alt agent-update-pruefen
           sudo incus exec "$VM" -- test ! -e /var/lib/steuerzentrale/agent-update.json
