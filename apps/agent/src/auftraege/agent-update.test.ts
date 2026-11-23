@@ -46,7 +46,9 @@ const befehl: AuftragNachricht = {
   signatur: readFileSync(join(FIXTURES, "auftrag.yml.minisig"), "utf8"),
 };
 
-const aufgebaut = () => {
+const aufgebaut = (
+  holen: AgentUpdateDeps["holen"] = async () => new Response(NEUES_X64.slice()),
+) => {
   const schluessel = schluesselLesen(TEST_PUB);
   if (!schluessel) throw new Error("test key");
   const fs = speicher();
@@ -68,7 +70,7 @@ const aufgebaut = () => {
     marke: MARKE,
     version: "0.0.0",
     protokoll: PROTOKOLL_VERSION,
-    holen: async () => new Response(NEUES_X64.slice()),
+    holen,
     dateien: p.dateien,
     binaer: p.binaer,
     lesen: async () => ({
@@ -128,5 +130,48 @@ describe("the update of the agent as a job", () => {
     });
     expect(a.neustarts).toEqual([]);
     expect(a.p.lesen(BINARY)).toBe("agent linux-x64 0.0.0\n");
+  });
+
+  it("starts no job that comes while it loads the new binary, and leaves it to the new agent", async () => {
+    let laden: (r: Response) => void = () => {};
+    const a = aufgebaut(
+      () =>
+        new Promise<Response>((r) => {
+          laden = r;
+        }),
+    );
+    const laeuft = a.empfangen(update);
+    await new Promise((r) => setTimeout(r, 0));
+    void a.empfangen(befehl);
+    await new Promise((r) => setTimeout(r, 0));
+    laden(new Response(NEUES_X64.slice()));
+    await laeuft;
+    await new Promise((r) => setTimeout(r, 10));
+    expect(a.neustarts).toEqual([1]);
+    // the restart would end it halfway: the new agent gets it again
+    expect(a.gesendet.filter((n) => n.auftragId === "a-1")).toEqual([]);
+    expect(a.log.at(-1)).toEqual({ msg: "job left for the new agent", auftragId: "a-1" });
+  });
+
+  it("runs a job that came while it loaded once its update failed", async () => {
+    let laden: (r: Response) => void = () => {};
+    const a = aufgebaut(
+      () =>
+        new Promise<Response>((r) => {
+          laden = r;
+        }),
+    );
+    const laeuft = a.empfangen(update);
+    await new Promise((r) => setTimeout(r, 0));
+    void a.empfangen(befehl);
+    await new Promise((r) => setTimeout(r, 0));
+    laden(new Response("not the binary"));
+    await laeuft;
+    await new Promise((r) => setTimeout(r, 10));
+    expect(a.neustarts).toEqual([]);
+    expect(a.gesendet.filter((n) => n.auftragId === "a-1").map((n) => n.typ)).toEqual([
+      "bestaetigt",
+      "fortschritt",
+    ]);
   });
 });
