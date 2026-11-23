@@ -1,25 +1,28 @@
-import { randomUUID } from "node:crypto";
-import { backupPraefix } from "@steuerzentrale/manifest";
 import { vertragsphase } from "@steuerzentrale/planung";
 import { ENDZUSTAENDE } from "@steuerzentrale/protokoll";
-import { type Kontext, type Schreiber, schreiben } from "../audit/index.ts";
-import { auftragEinfuegen } from "../auftraege/anlegen.ts";
+import { schreiben } from "../audit/index.ts";
 import { type Auftrag, auftragLesen } from "../auftraege/lesen.ts";
-import { type AuftragDeps, zustellen } from "../auftraege/zustellen.ts";
-import { praefixLoeschen } from "../backups/objekte.ts";
-import { backupZielLesen } from "../backups/ziel.ts";
-import { zugangGeheim, zugangLesen, zugangNachEntfernen } from "../backups/zugaenge.ts";
-import { naechsterVersuch } from "../dns/index.ts";
-import { auftraegeDerInstallation, installationLesen } from "../installationen/lesen.ts";
-import { archivKette, type Kette, loeschKette } from "./auftraege.ts";
+import { installationLesen } from "../installationen/lesen.ts";
+import { archivKette, loeschKette } from "./auftraege.ts";
 import {
-  type Abwicklung,
-  ArchivDaten,
-  type Beendet,
-  protokollVon,
-  vertragsendeVon,
-} from "./lesen.ts";
-import { loeschText } from "./text.ts";
+  type AbwicklungDeps,
+  ARCHIV_GESCHEITERT_ART,
+  fehlschlag,
+  kettenSchreiben,
+  LOESCHUNG_GESCHEITERT_ART,
+  mitEintrag,
+  offenerAuftrag,
+  systemKontext,
+} from "./gemeinsam.ts";
+import { type Abwicklung, ArchivDaten, type Beendet, vertragsendeVon } from "./lesen.ts";
+import { dnsPruefen, repositoryLoeschen, zugangPruefen } from "./nachher.ts";
+
+export {
+  type AbwicklungDeps,
+  ARCHIV_GESCHEITERT_ART,
+  GELOESCHT_ART,
+  LOESCHUNG_GESCHEITERT_ART,
+} from "./gemeinsam.ts";
 
 /*
  * The steps after a contract ended (BAULISTE.md Z-604; docs/plan.md, "Kündigung und Löschung"),
@@ -29,86 +32,6 @@ import { loeschText } from "./text.ts";
  * makes an event the first time of a series; its event and the deletion log go to the recipients
  * of the operator (Z-703), by mail and signed webhook.
  */
-
-export type AbwicklungDeps = AuftragDeps & { fetch: typeof fetch; neueId?: () => string };
-
-export const GELOESCHT_ART = "installation_geloescht";
-export const ARCHIV_GESCHEITERT_ART = "archiv_gescheitert";
-export const LOESCHUNG_GESCHEITERT_ART = "loeschung_gescheitert";
-
-const systemKontext = (betreiberId: string, jetzt: number, grund: string): Kontext => ({
-  betreiberId,
-  akteur: "system",
-  jetzt,
-  grund,
-});
-
-const mitEintrag = (a: Pick<Abwicklung, "protokoll">, schritt: string, z: number, detail: string) =>
-  JSON.stringify([...protokollVon(a), { schritt, zeitpunkt: z, detail }]);
-
-const ziel = (installationId: string) => `installation:${installationId}`;
-
-const ereignis = (
-  w: Schreiber,
-  deps: AbwicklungDeps,
-  a: { betreiberId: string; installationId: string },
-  e: { art: string; schwere: "info" | "warn" | "fehler"; text: string; jetzt: number },
-) =>
-  w.einfuegen("ereignisse", {
-    betreiberId: a.betreiberId,
-    ereignisId: (deps.neueId ?? randomUUID)(),
-    zeitpunkt: e.jetzt,
-    art: e.art,
-    schwere: e.schwere,
-    ziel: ziel(a.installationId),
-    text: e.text.slice(0, 2000),
-  });
-
-const offenerAuftrag = (deps: AuftragDeps, betreiberId: string, installationId: string) =>
-  auftraegeDerInstallation(deps.db, betreiberId, installationId).some(
-    (a) => !ENDZUSTAENDE.has(a.zustand),
-  );
-
-/** Writes the chain's jobs in the change, then sends those that are ready */
-const kettenSchreiben = (
-  deps: AbwicklungDeps,
-  k: Kontext,
-  aktion: string,
-  kette: Extract<Kette, { ok: true }>,
-  dazu: (w: Schreiber) => void,
-) => {
-  const geschrieben = schreiben(deps.schreibDb, k, aktion, (w) => {
-    const zeilen = kette.zeilen.map((z) => auftragEinfuegen(w, z));
-    dazu(w);
-    return zeilen;
-  });
-  zustellen(deps, geschrieben);
-};
-
-/** A failed step: one more attempt later, an event on the first failure of a series */
-const fehlschlag = (
-  deps: AbwicklungDeps,
-  a: Abwicklung,
-  jetzt: number,
-  art: string,
-  text: string,
-  werte: Partial<Abwicklung> = {},
-) => {
-  const versuche = a.versuche + 1;
-  schreiben(deps.schreibDb, systemKontext(a.betreiberId, jetzt, text), "abwicklung.fehler", (w) => {
-    w.aendern(
-      "abwicklungen",
-      { installationId: a.installationId },
-      {
-        ...werte,
-        versuche,
-        naechsterVersuch: naechsterVersuch(versuche, jetzt),
-        geaendertAm: jetzt,
-      },
-    );
-    if (versuche === 1) ereignis(w, deps, a, { art, schwere: "fehler", text, jetzt });
-  });
-};
 
 /** The contract ended: the row, and "nur lesen", the last backup and the archive */
 export const beginnen = (deps: AbwicklungDeps, b: Beendet, jetzt: number): void => {
@@ -191,7 +114,7 @@ const archivPruefen = (deps: AbwicklungDeps, a: Abwicklung, jetzt: number): void
     return;
   }
   const i = installationLesen(deps.db, a.betreiberId, a.installationId);
-  if (!i || i.zustand !== "laeuft" || offenerAuftrag(deps, a.betreiberId, a.installationId)) return;
+  if (i?.zustand !== "laeuft" || offenerAuftrag(deps, a.betreiberId, a.installationId)) return;
   const kette = archivKette(deps, k, i, false);
   if (!kette.ok || !kette.letzter) {
     const text = `Archiv von ${a.installationId} nicht möglich: ${kette.ok ? "kein Backup" : kette.detail}`;
@@ -280,120 +203,6 @@ const loeschenPruefen = (deps: AbwicklungDeps, a: Abwicklung, jetzt: number): vo
     schritt: "warten",
     loeschAuftragId: null,
   });
-};
-
-/** Step `repository`: every object below the installation's prefix, with its own access */
-const repositoryLoeschen = async (deps: AbwicklungDeps, a: Abwicklung, jetzt: number) => {
-  const z = zugangLesen(deps.db, a.betreiberId, a.installationId);
-  const k = systemKontext(a.betreiberId, jetzt, "Repository löschen");
-  const weiter = (detail: string, dazu: (w: Schreiber) => void = () => {}) => {
-    schreiben(deps.schreibDb, k, "abwicklung.repository", (w) => {
-      w.aendern(
-        "abwicklungen",
-        { installationId: a.installationId },
-        {
-          schritt: "zugang",
-          versuche: 0,
-          naechsterVersuch: null,
-          protokoll: mitEintrag(a, "repository", jetzt, detail),
-          geaendertAm: jetzt,
-        },
-      );
-      dazu(w);
-    });
-    deps.backupAnstossen?.();
-  };
-  if (!z || z.zustand !== "angelegt") return weiter("kein Repository");
-  const nein = (fehler: string) =>
-    fehlschlag(
-      deps,
-      a,
-      jetzt,
-      LOESCHUNG_GESCHEITERT_ART,
-      `Repository von ${a.installationId}: ${fehler}`,
-    );
-  const t = backupZielLesen(deps.db, a.betreiberId);
-  const g = zugangGeheim(deps.schluessel, z);
-  if (!g.ok) return nein(g.grund);
-  if (!t.endpunkt || !t.bucket || !t.region) return nein("no S3 target set");
-  const ort = backupPraefix({
-    bucket: t.bucket,
-    betreiberId: a.betreiberId,
-    installationId: a.installationId,
-  });
-  if (!ort.ok) return nein(ort.grund);
-  const r = await praefixLoeschen(
-    {
-      fetch: deps.fetch,
-      endpunkt: t.endpunkt,
-      region: t.region,
-      bucket: t.bucket,
-      zugang: { accessKey: g.geheim.accessKey, secretKey: g.geheim.secretKey },
-      jetzt: deps.now,
-    },
-    ort.praefix,
-  );
-  if (!r.ok) return nein(r.fehler);
-  weiter(`${r.geloescht} Objekte gelöscht`, (w) => zugangNachEntfernen(w, deps.db, a, jetzt));
-};
-
-/** Step `zugang`: the access deleted at MinIO, then its row with the restic password */
-const zugangPruefen = (deps: AbwicklungDeps, a: Abwicklung, jetzt: number) => {
-  const z = zugangLesen(deps.db, a.betreiberId, a.installationId);
-  if (z && z.zustand !== "geloescht") return;
-  schreiben(
-    deps.schreibDb,
-    systemKontext(a.betreiberId, jetzt, "S3-Zugang gelöscht"),
-    "abwicklung.zugang",
-    (w) => {
-      if (z) w.loeschen("backupZugaenge", { installationId: a.installationId });
-      w.aendern(
-        "abwicklungen",
-        { installationId: a.installationId },
-        {
-          schritt: "dns",
-          protokoll: mitEintrag(
-            a,
-            "zugang",
-            jetzt,
-            z ? "S3-Zugang und restic-Passwort gelöscht" : "kein S3-Zugang",
-          ),
-          geaendertAm: jetzt,
-        },
-      );
-    },
-  );
-};
-
-/** Step `dns`: its records gone, the deletion log goes out as an event */
-const dnsPruefen = (deps: AbwicklungDeps, a: Abwicklung, jetzt: number) => {
-  const i = installationLesen(deps.db, a.betreiberId, a.installationId);
-  if (i && i.dns !== null && i.dns !== "geloescht") return;
-  const protokoll = mitEintrag(
-    a,
-    "dns",
-    jetzt,
-    i?.dns === "geloescht" ? "DNS-Einträge gelöscht" : "keine DNS-Einträge",
-  );
-  const fertig = { ...a, protokoll };
-  schreiben(
-    deps.schreibDb,
-    systemKontext(a.betreiberId, jetzt, "Löschprotokoll"),
-    "abwicklung.geloescht",
-    (w) => {
-      w.aendern(
-        "abwicklungen",
-        { installationId: a.installationId },
-        { schritt: "geloescht", protokoll, geloeschtAm: jetzt, geaendertAm: jetzt },
-      );
-      ereignis(w, deps, a, {
-        art: GELOESCHT_ART,
-        schwere: "warn",
-        text: loeschText(fertig),
-        jetzt,
-      });
-    },
-  );
 };
 
 /** One row: the step it stands at, if due; nothing from `loeschen` on before the deadline */

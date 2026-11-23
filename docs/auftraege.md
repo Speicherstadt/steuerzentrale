@@ -163,6 +163,15 @@ Einrichtungsaufträgen und meldet `{ installation, repository, teile, timer }`; 
 daneben und meldet `{ installation, lauf, teile }`. Beide werden nach einem Neustart des Agenten
 wiederholt.
 
+Nach dem Vertragsende ([Kunden](kunden.md)) kommen zwei weitere eingebaute Aufträge, geprüft mit
+`abwicklungAuftragPruefen`, ohne Feld `einrichtung` oder `backup` und nur für eine Installation, die
+der Agent fertig eingerichtet hat: `installation_archiv` mit dem einzigen Argument `region`
+(Zeitlimit höchstens vier Stunden und zwei Minuten) startet als Nutzer der Installation
+`steuerzentrale-agent archivieren <installation> <region>` und meldet `{ installation, objekte }`;
+`installation_loeschen` ohne Argumente (höchstens 30 Minuten) baut die Installation ab, aber nur
+nach einem gelungenen Backup-Lauf der letzten zwei Stunden, und meldet `{ installation, geaendert:
+"geloescht" }`. Beide laufen nacheinander mit den Einrichtungsaufträgen.
+
 Das Update des Agenten selbst (`agent_update`, siehe [Updates des Agenten](agent-updates.md)) ist
 ebenso eingebaut, gehört aber zu keiner App: An der Stelle des Manifests trägt er `SHA256SUMS` der
 Agent-Binaries und an der Stelle der Signatur `SHA256SUMS.minisig`, genau wie die Zentrale sie unter

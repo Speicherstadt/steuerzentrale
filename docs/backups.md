@@ -191,7 +191,9 @@ ein Geheimnis.
 
 Nach erfolgreichem `installation_entfernen` löscht die Zentrale den Service-Account (ein schon
 fehlender zählt als gelöscht). Die Zeile mit dem restic-Passwort bleibt, damit das Repository lesbar
-bleibt; Repository und Passwort löscht erst die Kündigung (Z-604).
+bleibt; Repository und Passwort löscht erst die Löschung nach dem Vertragsende: 90 Tage danach löscht
+die Zentrale jedes Objekt unter dem Präfix der Installation mit deren eigenem Zugang, dann den
+Service-Account und die Zeile mit dem Passwort ([Kunden](kunden.md), „Nach dem Vertragsende“).
 
 ### Läufe
 

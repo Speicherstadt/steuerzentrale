@@ -3,12 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { backupPolicy } from "@steuerzentrale/manifest";
 import { afterAll, describe, expect, it } from "vitest";
-import { dienstkontoAnlegen } from "../../../zentrale/src/modules/backups/minio.ts";
-import { minioNachbau, TEST_ADMIN } from "../../../zentrale/src/testhilfen/minio.ts";
-import type { BackupDatei } from "../backup/datei.ts";
-import type { ResticAufruf } from "../backup/sichern.ts";
-import { speicher } from "../beitritt/testhilfen.ts";
-import { type ArchivDeps, archivierenBefehl, repositoryOrt } from "./archivieren.ts";
+import { dienstkontoAnlegen } from "../../zentrale/src/modules/backups/minio.ts";
+import { minioNachbau, TEST_ADMIN } from "../../zentrale/src/testhilfen/minio.ts";
+import {
+  type ArchivDeps,
+  archivierenBefehl,
+  repositoryOrt,
+} from "../src/abwicklung/archivieren.ts";
+import type { BackupDatei } from "../src/backup/datei.ts";
+import type { ResticAufruf } from "../src/backup/sichern.ts";
+import { speicher } from "../src/beitritt/testhilfen.ts";
 
 /*
  * BAULISTE.md Z-604, `archivieren` as the installation's user against the stand-in of MinIO

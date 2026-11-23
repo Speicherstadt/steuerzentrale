@@ -60,8 +60,42 @@ Installationen, Backups und DNS-Einträge 90 Tage nach dem Vertragsende, vorher 
 zeigt den Tag der Löschung, sobald ein Vertragsende gewählt ist. Eine Kündigung lässt sich mit Grund
 zurücknehmen; der Vertrag läuft dann weiter, die Löschung entfällt.
 
-Was nach dem Vertragsende geschieht (nur lesen, Export, Löschung, Löschprotokoll), bauen spätere
-Punkte der Bauliste; bis dahin trägt die Zentrale das Datum ein und zeigt es an.
+### Nach dem Vertragsende
+
+Die Fristen sind Kalendertage in `Europe/Berlin`, vom Vertragsende an gezählt: eine Umstellung auf
+Sommer- oder Winterzeit dazwischen verschiebt sie um keine Stunde. Alle 30 Sekunden und sofort nach
+einer Kündigung oder dem Ende eines Auftrags prüft die Zentrale jede laufende Installation eines
+gekündigten Kunden:
+
+1. **Am Vertragsende** schickt sie „nur lesen“, wenn das Manifest es anbietet, dann ein letztes
+   Backup und danach das **Archiv für den Kunden** (`installation_archiv`), jeder Auftrag wartet auf
+   den vorigen. Der Agent schreibt als Nutzer der Installation den neuesten Snapshot jedes Teils als
+   eine Datei (ein Volume als tar, ein Dump oder Export so, wie er gesichert wurde) und lädt sie mit
+   dem eigenen S3-Zugang der Installation neben ihr Repository (`<präfix>archiv/`). Ohne
+   eingerichtetes Backup gibt es kein Archiv. Scheitert es, versucht die Zentrale es später wieder
+   und meldet `archiv_gescheitert` (Schwere `fehler`).
+2. **30 Tage lang** erzeugen Inhaber und Technik auf der Seite der Installation (Reiter „Backups“,
+   Karte „Vertragsende“) mit Grund einen **Link für den Kunden**: je Datei ein vorsignierter
+   S3-Link, signiert mit dem Zugang der Installation, gültig höchstens 7 Tage und nie über die 30
+   Tage hinaus. Er erscheint nur in dieser Antwort; die Zentrale speichert ihn nicht und schreibt ihn
+   in kein Log, das Audit-Log hält den Grund und die Gültigkeit fest. Nach seiner Frist lehnt S3 ihn
+   ab.
+3. **90 Tage nach dem Vertragsende** schickt sie ein letztes Backup und danach
+   `installation_loeschen`. Der Agent baut die Installation ab wie ein gescheitertes Einrichten
+   (Units, Linger, Linux-Nutzer mit Home), aber nur, wenn ihr Backup nicht eingerichtet ist oder in
+   den letzten zwei Stunden ein Lauf gelang. Danach löscht die Zentrale jedes Objekt unter dem Präfix
+   der Installation (Repository und Archiv) mit deren eigenem Zugang, dann den S3-Zugang samt
+   restic-Passwort, dann die DNS-Einträge. Scheitert ein Schritt, wartet sie (1, 2, 4 … Minuten,
+   höchstens stündlich) und meldet `loeschung_gescheitert` (Schwere `fehler`).
+4. Zuletzt schreibt sie das **Löschprotokoll** als Ereignis `installation_geloescht` (Schwere
+   `warn`): jeder Schritt mit Zeitpunkt. Es geht wie jedes Ereignis an die Empfänger des Betreibers,
+   per Mail und als signierter Webhook ([Benachrichtigungen](benachrichtigungen.md)).
+
+Vor Ablauf der 90 Tage löscht die Zentrale nichts; jeder Schritt der Löschung prüft die Frist
+erneut. Eine Kündigung lässt sich zurücknehmen oder in die Zukunft verschieben, solange die Löschung
+nicht begonnen hat; dann verwirft die Zentrale, was nach dem Vertragsende entstand. „Nur lesen“
+bleibt, wie die App es gesetzt hat. Hat die Löschung begonnen, antwortet die API mit
+`409 loeschung_laeuft`.
 
 ## Grund und Audit-Log
 
@@ -75,6 +109,8 @@ Jede schreibende Aktion fragt nach dem Grund („Vertrag vom 20.11.“, „Künd
 | `vertrag.kuendigen` | Vertragsende gesetzt |
 | `vertrag.zuruecknehmen` | Kündigung zurückgenommen |
 | `kunde.intern`, `kunde.nicht-intern` | als intern markiert oder Markierung aufgehoben; unverändert kein Eintrag |
+| `abwicklung.*` | ein Schritt nach dem Vertragsende (Akteur `system`) |
+| `installation.archiv-link` | Link für den Kunden erzeugt; mit Grund und Gültigkeit, ohne den Link |
 
 ## Rollen
 
@@ -100,6 +136,15 @@ Jede schreibende Route verlangt `grund` im Körper.
 | `PUT /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `ende`, `grund` |
 | `DELETE /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `grund` |
 | `PUT /api/v1/kunden/:kundeId/intern` | Inhaber | `intern` (`true` oder `false`), `grund` |
+| `GET /api/v1/installationen/:installationId/abwicklung` | alle Rollen | – |
+| `POST /api/v1/installationen/:installationId/archiv-link` | Inhaber, Technik | `grund` |
+
+`GET …/abwicklung` nennt `phase` (`laeuft`, `nur_lesen`, `wartet`, `loeschen`), `vertragsende`,
+`nurLesenBis`, `loeschenAb`, `schritt` (`archiv`, `warten`, `loeschen`, `repository`, `zugang`,
+`dns`, `geloescht` oder `null`), `archiv` (`am`, `objekte` mit `tag`, `datei`, `bytes`), `linkBis`,
+`geloeschtAm` und `protokoll`. `POST …/archiv-link` antwortet `{ gueltigBis, links: [{ tag, datei,
+bytes, url }] }` mit `Cache-Control: no-store`; Fehler `409 kein_archiv`, `409 frist_abgelaufen`
+(nach den 30 Tagen), `409 kein_zugang`.
 
 Die Antwort ist der Kunde:
 

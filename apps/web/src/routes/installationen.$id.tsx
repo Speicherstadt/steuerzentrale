@@ -8,6 +8,7 @@ import { bestand } from "../daten/quelle.ts";
 import { eigenerZugang, supportQuelle } from "../daten/support.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
+import { InstallationAbwicklung } from "../seiten/installation-abwicklung.tsx";
 import { Aktionen } from "../seiten/installation-aktionen.tsx";
 import { VonAussen } from "../seiten/installation-aussen.tsx";
 import {
@@ -77,7 +78,12 @@ const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): T
   const backups: Tab = {
     id: "backups",
     label: m.nav_backups(),
-    content: () => <InstallationBackups a={a} />,
+    content: () => (
+      <div class="grid gap-4">
+        <InstallationBackups a={a} />
+        <InstallationAbwicklung a={a} jetzt={b.jetzt} />
+      </div>
+    ),
   };
   const ereignisse: Tab = {
     id: "ereignisse",
