@@ -122,6 +122,19 @@ export const sudoHaus = (ordner: string, besitzer = new Map<string, number>()): 
       rmSync(tmp, { force: true });
     }
   },
+  dateienIn: async (ordner) => {
+    if (sudo("test", "-L", ordner).code === 0) throw new Error(`${ordner} is a symlink`);
+    if (sudo("test", "-e", ordner).code !== 0) return [];
+    if (sudo("test", "-d", ordner).code !== 0) throw new Error(`${ordner} is not a folder`);
+    const l = sudo("find", ordner, "-mindepth", "1", "-maxdepth", "1", "-printf", "%f\\n");
+    if (l.code !== 0) throw new Error(`${ordner} cannot be listed`);
+    return l.aus.split("\n").filter(Boolean).sort();
+  },
+  entfernen: async (pfad) => {
+    if (sudo("test", "-d", pfad).code === 0 && sudo("test", "-L", pfad).code !== 0)
+      throw new Error(`${pfad} is a folder`);
+    muss("rm", "-f", "--", pfad);
+  },
 });
 
 export const nutzerLesen = nutzerAusPasswd(async (pfad) => {

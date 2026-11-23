@@ -7,6 +7,7 @@ import {
   type Einrichten,
   gelungen,
   gescheitert,
+  type Schritt,
   type Schrittergebnis,
   type SystemDeps,
 } from "./typen.ts";
@@ -110,6 +111,21 @@ export const nacheinander = async (
   return gelungen;
 };
 
+/**
+ * Each step runs even when one before failed, as when bringing an old state back; the first
+ * failure is the answer
+ */
+export const alleVersuchen = async (
+  laeufe: (() => Promise<Schrittergebnis>)[],
+): Promise<Schrittergebnis> => {
+  let erster: Schrittergebnis = gelungen;
+  for (const lauf of laeufe) {
+    const r = await lauf();
+    if (!r.ok && erster.ok) erster = r;
+  }
+  return erster;
+};
+
 const secretsUndImages = (k: Kontext, n: Nutzer) =>
   nacheinander([
     ...Object.entries(k.a.quadlets.secrets).map(
@@ -167,12 +183,21 @@ export const unitsStarten = async (
   return bisAktiv(deps, lauf, n, units, auftrag);
 };
 
-/** `podman exec <installation>-<container>`, the container's name from its unit, marked (imContainer) */
-const schritteAusfuehren = (k: Kontext, n: Nutzer) =>
+/**
+ * The commands of `schritte.einrichten` (or `schritte.nach_update`, Z-503) one after the other:
+ * `podman exec <installation>-<container>`, the container's name from its unit, marked (imContainer)
+ */
+export const schritteAusfuehren = (
+  lauf: Lauf,
+  n: Nutzer,
+  installation: string,
+  schritte: readonly Schritt[],
+  art = "schritte.einrichten",
+) =>
   nacheinander(
-    k.a.schritte.map((s) => () => {
-      const { argv, marke } = imContainer(n, `${k.a.name}-${s.container}`, s.argv);
-      return k.lauf(`schritte.einrichten ${s.name}`, argv, { zeitlimitMs: s.zeitlimitMs, marke });
+    schritte.map((s) => () => {
+      const { argv, marke } = imContainer(n, `${installation}-${s.container}`, s.argv);
+      return lauf(`${art} ${s.name}`, argv, { zeitlimitMs: s.zeitlimitMs, marke });
     }),
   );
 
@@ -211,9 +236,8 @@ export const einrichten = async (
 ): Promise<Schrittergebnis> => {
   const v = await vorbereiten(deps, a, lauf, auftrag);
   if (!v.ok) return v;
-  const k: Kontext = { deps, a, lauf, ...(auftrag ? { auftrag } : {}) };
   return nacheinander([
     () => unitsStarten(deps, lauf, v.nutzer, a.units, auftrag),
-    () => schritteAusfuehren(k, v.nutzer),
+    () => schritteAusfuehren(lauf, v.nutzer, a.name, a.schritte),
   ]);
 };

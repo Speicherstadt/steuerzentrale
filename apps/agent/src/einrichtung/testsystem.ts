@@ -219,6 +219,19 @@ const hausIn = (z: Zustand, o: TestSystemOptionen): HausDateien => {
       elternDa(pfad);
       z.dateien.set(pfad, { art: "datei", inhalt, modus, uid, gid });
     },
+    dateienIn: async (ordner) => {
+      const art = z.dateien.get(ordner)?.art;
+      if (art === undefined) return [];
+      if (art !== "verzeichnis") throw new Error(`${ordner} is not a folder`);
+      return [...z.dateien.keys()]
+        .filter((p) => ordnerVon(p) === ordner && p !== ordner)
+        .map((p) => p.slice(ordner.length + 1))
+        .sort();
+    },
+    entfernen: async (pfad) => {
+      if (z.dateien.get(pfad)?.art === "verzeichnis") throw new Error(`${pfad} is a folder`);
+      z.dateien.delete(pfad);
+    },
   };
 };
 

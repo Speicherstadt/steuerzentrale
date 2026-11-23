@@ -5,6 +5,7 @@ import {
   lstat,
   mkdir,
   open,
+  readdir,
   readFile,
   rename,
   rm,
@@ -60,4 +61,12 @@ export const echteHausDateien: HausDateien = {
     await lchown(neu, uid, gid);
     await rename(neu, pfad);
   },
+  dateienIn: async (ordner) => {
+    const art = await lstat(ordner).catch(() => undefined);
+    if (art === undefined) return [];
+    if (!art.isDirectory()) throw new Error(`${ordner} is not a folder`);
+    return (await readdir(ordner)).sort();
+  },
+  // without `recursive`, a folder is refused; a symlink is removed, never followed
+  entfernen: (pfad) => rm(pfad, { force: true }),
 };

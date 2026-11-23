@@ -70,7 +70,6 @@ const fehler = (text: string): Ergebnis => ({ ok: false, fehler: text });
 
 /** Between two health checks of the copy, five minutes long at most */
 const HEALTH_WARTEN_MS = 2000;
-const HEALTH_VERSUCHE = (PRUEF_RESTORE_HEALTH_S * 1000) / HEALTH_WARTEN_MS;
 
 /** Tears down every copy left `angelegt` by a Prüf-Restore the agent did not finish */
 export const resteAbbauen = async (
@@ -107,20 +106,22 @@ const vorabPruefen = async (
 };
 
 /**
- * The health of the copy, or of a restored installation (Z-603), until it is no longer red, five
- * minutes at most
+ * The health of the copy, or of a restored or updated installation (Z-603, Z-503), until it is no
+ * longer red, five minutes (`fristS`) at most
  */
 export const healthAbwarten = async (
   deps: PruefDeps & Pick<SystemDeps, "warten">,
   e: Pick<Einrichten, "ziel" | "name">,
   n: Nutzer,
   auftrag: AbortSignal,
+  fristS = PRUEF_RESTORE_HEALTH_S,
 ): Promise<Health> => {
   const frist = new AbortController();
-  const aufheben = deps.planen(() => frist.abort(), PRUEF_RESTORE_HEALTH_S * 1000);
+  const aufheben = deps.planen(() => frist.abort(), fristS * 1000);
+  const versuche = (fristS * 1000) / HEALTH_WARTEN_MS;
   try {
     let h = await healthPruefen(deps, e.ziel, e.name, n);
-    for (let i = 1; h.zustand === "rot" && i < HEALTH_VERSUCHE; i++) {
+    for (let i = 1; h.zustand === "rot" && i < versuche; i++) {
       if (auftrag.aborted || frist.signal.aborted) break;
       await deps.warten(HEALTH_WARTEN_MS);
       h = await healthPruefen(deps, e.ziel, e.name, n);

@@ -30,6 +30,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@steuerzentrale/manifest": "workspace:*",
+        "@steuerzentrale/planung": "workspace:*",
         "@steuerzentrale/protokoll": "workspace:*",
         "zod": "4.6.7",
       },
