@@ -149,6 +149,7 @@ describe("agentAktualisieren", () => {
       "--unit=steuerzentrale-agent-pruefen",
       "--on-active=300",
       "--timer-property=AccuracySec=1s",
+      "--timer-property=RemainAfterElapse=no",
       "--collect",
       `${BINARY}.alt`,
       "agent-update-pruefen",

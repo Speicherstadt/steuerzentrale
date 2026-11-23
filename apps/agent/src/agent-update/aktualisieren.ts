@@ -125,6 +125,7 @@ const pruefungPlanen = async (deps: AgentUpdateDeps): Promise<boolean> => {
         `--unit=${PRUEF_UNIT}`,
         `--on-active=${RUECKKEHR_FRIST_S}`,
         "--timer-property=AccuracySec=1s",
+        "--timer-property=RemainAfterElapse=no",
         "--collect",
         `${deps.binary}.alt`,
         PRUEFEN_BEFEHL,
