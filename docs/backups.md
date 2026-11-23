@@ -213,8 +213,8 @@ Snapshot.
 
 Auf der Seite einer laufenden Installation, deren Backups eingerichtet sind, startet **Backup jetzt**
 mit Grund einen Lauf sofort (Auftrag `installation_backup`, Inhaber und Technik). Nicht, solange ein
-Backup-Auftrag der Installation offen ist (`409 backup_laeuft`) oder bevor die Backups eingerichtet sind
-(`409 nicht_eingerichtet`). Ein Backup startet die App nicht neu und läuft darum auch in einer
+Backup-Auftrag der Installation offen ist (`409 backup_laeuft`), solange sie wiederhergestellt wird
+(`409 auftrag_offen`, siehe unten) oder bevor die Backups eingerichtet sind (`409 nicht_eingerichtet`). Ein Backup startet die App nicht neu und läuft darum auch in einer
 Sperrzeit.
 
 ### Prüf-Restore

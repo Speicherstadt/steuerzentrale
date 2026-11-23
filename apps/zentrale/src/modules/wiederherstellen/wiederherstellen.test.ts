@@ -9,7 +9,7 @@ import { neueInstallation, signiert, TEST_SCHLUESSEL } from "../../testhilfen/in
 import { minioNachbau } from "../../testhilfen/minio.ts";
 import { SNAPSHOT } from "../../testhilfen/pruef-restore.ts";
 import { wiederherstellenUmgebung } from "../../testhilfen/wiederherstellen.ts";
-import { backupAbgleichen, backupStandAnnehmen } from "../backups/index.ts";
+import { backupAbgleichen, backupJetzt, backupStandAnnehmen } from "../backups/index.ts";
 import { installationAnlegen } from "../installationen/anlegen.ts";
 import type { Server } from "../server/index.ts";
 import { wiederherstellenAnlegen } from "./anlegen.ts";
@@ -164,6 +164,18 @@ describe("making a restore", () => {
       grund: "laeuft_nicht",
     });
     expect(anlegen(lauf, "gibt-es-nicht")).toEqual({ ok: false, grund: "keine_installation" });
+  });
+
+  it('keeps "Backup jetzt" back while the restore is open, also once its backup is done', async () => {
+    const { u, id, anlegen } = await umgebung();
+    const r = anlegen();
+    if (!r.ok) throw new Error(r.grund);
+    const jetzt = () => backupJetzt(u.deps, { ...u.kontext("b1"), grund: GRUND }, id);
+    expect(jetzt()).toMatchObject({ ok: false });
+    u.ergebnisMelden(r.backup.auftragId, { ok: true, daten: {} });
+    expect(jetzt()).toEqual({ ok: false, grund: "auftrag_offen" });
+    u.ergebnisMelden(r.wiederherstellen.auftragId, { ok: true, daten: {} });
+    expect(jetzt().ok).toBe(true);
   });
 
   it("is allowed in a freeze window: the backup goes out at once", async () => {
