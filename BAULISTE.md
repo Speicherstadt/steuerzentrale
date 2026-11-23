@@ -364,7 +364,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: Tests Sperrzeiten über den Monatswechsel, Zeitumstellung, Wartungsfenster über
   Mitternacht, eine gestoppte Welle nach einer Störung und ein dringendes Update abdecken und Haben
   nie zwischen dem 7. und 12. aktualisiert wird, außer mit Freigabe.
-- [ ] **Z-503 Update mit Rückkehr** – Backup, Pull per Digest, `schritte.nach_update`, Neustart,
+- [x] **Z-503 Update mit Rückkehr** – Backup, Pull per Digest, `schritte.nach_update`, Neustart,
   Health; bei Rot zurück auf die alte Version und das Backup; Welle anhalten; Ereignis; Apps mit
   `health: keine` nur von Hand.
   nach: Z-501, Z-502, Z-603
