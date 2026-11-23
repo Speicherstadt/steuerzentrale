@@ -16,7 +16,8 @@ Versionen](manifeste.md)). Die Seite **Updates** zeigt je Installation die Versi
 bekommen kann (eine Vorabversion nur eine Installation eines internen Kunden), wo der Plan für sie
 steht (Welle und nächster Termin oder warum sie wartet) und ihr letztes Update mit seinem Ausgang.
 Alle 5 Minuten startet die Zentrale, was nach dem Plan fällig ist; auf jedem Server läuft höchstens
-ein Update zugleich, das [Update des Agenten](agent-updates.md) mitgezählt. Geplant wird jede
+ein Update zugleich, das [Update des Agenten](agent-updates.md) und ein
+[Neustart des Servers](betriebssystem.md) mitgezählt. Geplant wird jede
 laufende Installation auf die neueste Version, die ihr angeboten wird.
 
 ## Wellen

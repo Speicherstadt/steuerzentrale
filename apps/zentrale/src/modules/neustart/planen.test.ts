@@ -169,6 +169,30 @@ describe("the planning of reboots", () => {
     expect(u.vonHand()).toMatchObject({ ok: false, grund: "backup_fehlt" });
   });
 
+  it("never sends a reboot by hand whose backups ran into a freeze window", async () => {
+    const u = neustartUmgebung(minio);
+    const gesperrt = u.laufend("gesperrt");
+    u.melden(u.auftrag(gesperrt, PFORTE_AKTIONEN.setzen)?.auftragId ?? "", true);
+    const a = await u.eingerichtet();
+    // 06.02.2027, 23:59 in Berlin: the day before the freeze window from the 7th
+    u.uhr.ms = Date.UTC(2027, 1, 6, 22, 59);
+    const r = u.vonHand();
+    expect(r).toMatchObject({
+      ok: true,
+      neustart: { zustand: "wartend", angelegtVon: "nutzer-1" },
+    });
+    // the backup ends after midnight: the freeze window holds the reboot, the round cancels it
+    u.uhr.ms = Date.UTC(2027, 1, 6, 23, 1);
+    const vorher = u.agent.length;
+    u.melden(u.auftrag(a, BACKUP_AKTIONEN.jetzt)?.auftragId ?? "", true);
+    expect(u.agent.slice(vorher).filter((n) => n.aktion === SERVER_NEUSTART_AKTION)).toEqual([]);
+    expect(u.planen().abgebrochen).toHaveLength(1);
+    expect(u.ereignisseVon().at(-1)).toMatchObject({
+      art: NEUSTART_ARTEN.abgebrochen,
+      text: "Neustart des Servers abgebrochen: Sperrzeit: Umsatzsteuer-Voranmeldung",
+    });
+  });
+
   it("cancels a reboot whose backups ran past the window, instead of sending it later", async () => {
     const u = neustartUmgebung(minio);
     const a = await u.eingerichtet();

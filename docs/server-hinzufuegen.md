@@ -161,6 +161,8 @@ startet nur Befehle mit festen Argumenten, keine Shell:
 | Kernel | läuft: `/proc/sys/kernel/osrelease`; installiert: der neueste in `/boot`, sonst `/lib/modules` |
 | Neustart nötig | `/var/run/reboot-required` oder ein neuerer installierter Kernel als der laufende |
 | ausstehende Updates | `apt-get -s -q upgrade` (simuliert nur): die Pakete, die es aktualisieren würde, und die zurückgehaltenen, etwa ein neuer Kernel |
+| Boot | Boot-ID aus `/proc/sys/kernel/random/boot_id`, Startzeit aus `btime` in `/proc/stat` ([Betriebssystem und Neustarts](betriebssystem.md)) |
+| unattended-upgrades | installiert (`/usr/bin/unattended-upgrade`), an (`APT::Periodic::Unattended-Upgrade` aus `apt-config dump`), letzter Lauf (Änderungszeit von `/var/lib/apt/periodic/unattended-upgrades-stamp`) |
 | Podman | `podman --version` |
 | IPv4, IPv6 | die Adressen der Netzwerkschnittstellen ohne Loopback, Link-Local und Podmans Netze |
 | PTR | Rückwärtsauflösung jeder öffentlichen Adresse |
