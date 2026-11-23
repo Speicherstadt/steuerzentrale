@@ -240,15 +240,23 @@ describe("a restore that fails starts the units again", () => {
 });
 
 describe("a restore after a restart of the agent", () => {
-  it("is not run again", async () => {
+  // the agent starts no app unit by itself; when it starts, it only stops the transient unit and
+  // starts the backup's timer (docs/plan.md, "Neustart des Agenten beim Wiederherstellen (Z-603)")
+  it("is not run again, and starts no unit of the app", async () => {
     const a = await eingerichtet();
     const job = wiederherstellen();
     const record = JSON.stringify({ auftraege: { [job.auftragId]: { zustand: "laeuft", am: 1 } } });
     a.fs.inhalt.set(AUFTRAEGE, { text: record, modus: 0o600 });
     const b = einrichtungsAgent({}, a.fs, a.sys);
     const vorher = a.sys.laeufe.length;
+    await b.agent.aufraeumen();
+    expect(a.sys.laeufe.slice(vorher).map((l) => l.argv.slice(2).join(" "))).toEqual([
+      `stop ${TRANSIENT}`,
+      "start sz_backup.timer",
+    ]);
+    const nachAufraeumen = a.sys.laeufe.length;
     await b.empfangen(job);
     expect(b.ergebnis()).toEqual({ ok: false, fehler: NEU_GESTARTET });
-    expect(a.sys.laeufe.slice(vorher)).toEqual([]);
+    expect(a.sys.laeufe.slice(nachAufraeumen)).toEqual([]);
   });
 });

@@ -119,7 +119,7 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
     jetzt: Date.now,
     log: jsonLog,
   });
-  // a copy of a Prüf-Restore the agent did not finish before it stopped (Z-602)
+  // a copy of a Prüf-Restore (Z-602) or a restore (Z-603) the agent did not finish before it stopped
   void auftraege.aufraeumen();
   verbindungsSchleife(
     {

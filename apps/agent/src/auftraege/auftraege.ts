@@ -22,6 +22,7 @@ import {
   resteAbbauen,
 } from "../pruef-restore/auftrag.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
+import { wiederherstellenAufraeumen } from "../wiederherstellen/aufraeumen.ts";
 import { wiederherstellenAusfuehren } from "../wiederherstellen/auftrag.ts";
 import type { PruefDeps, SpawnMitAusgabe } from "../zustand/pruefen.ts";
 import { ausfuehren as befehlAusfuehren, type Ergebnis, type Spawn } from "./ausfuehren.ts";
@@ -93,8 +94,9 @@ export type Auftraege = {
   /** Handles a job; `senden` reaches the Zentrale over the current connection, if any */
   empfangen: (n: AuftragNachricht, senden: (text: string) => void) => Promise<void>;
   /**
-   * Tears down what a Prüf-Restore left when the agent stopped in its middle (Z-602): called once
-   * when the service starts, in the line of the Prüf-Restores
+   * Sets right what a job left when the agent stopped in its middle, called once when the service
+   * starts: tears down a Prüf-Restore's copy (Z-602), in the line of the Prüf-Restores; stops a
+   * restore's transient unit and starts the backup's timer (Z-603), in the line of the setups
    */
   aufraeumen: () => Promise<void>;
 };
@@ -144,17 +146,27 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
   };
   // one Prüf-Restore at a time, beside the setups: it may take hours and changes no installation
   const pruefReihe = reihe();
-  const aufraeumen = () =>
+  // started with `void` (cli.ts): a rejection would end the service, so a throw is logged
+  const gefangen = (e: unknown) => ({ ok: false as const, grund: String(e).slice(0, 500) });
+  const kopienAbbauen = () =>
     pruefReihe(async () => {
-      // started with `void` (cli.ts): a rejection would end the service, so a throw is logged
-      const r = await resteAbbauen(system).catch((e: unknown) => ({
-        ok: false as const,
-        grund: String(e).slice(0, 500),
-      }));
+      const r = await resteAbbauen(system).catch(gefangen);
       if (!r.ok) deps.log("pruef-restore leftovers not torn down", { grund: r.grund });
       else if (r.abgebaut.length > 0)
         deps.log("pruef-restore leftovers torn down", { kopien: r.abgebaut });
     });
+  // in the line of the setups, where a restore runs: done before any job that came after the start
+  const wiederherstellenReste = () =>
+    einrichtungReihe(async () => {
+      const r = await wiederherstellenAufraeumen(system).catch(gefangen);
+      if (!r.ok) return deps.log("restore leftovers not cleaned up", { grund: r.grund });
+      for (const f of r.fehler) deps.log("restore leftovers not cleaned up", f);
+      if (r.installationen.length > 0)
+        deps.log("restore leftovers cleaned up", { installationen: r.installationen });
+    });
+  const aufraeumen = async () => {
+    await Promise.all([kopienAbbauen(), wiederherstellenReste()]);
+  };
   const ausfuehren = async (
     plan: JederPlan,
     auszugSenden: (zeilen: string[]) => void,

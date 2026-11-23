@@ -409,8 +409,13 @@ wieder gestartet“ oder „…; Units nicht wieder gestartet: …“.
 
 Startet der Agent mitten im Wiederherstellen neu, meldet er den Auftrag als gescheitert („Agent neu
 gestartet“) und wiederholt ihn nicht: er weiß nicht, wie weit er kam, und Daten sollen nicht zu einer
-Zeit ersetzt werden, die niemand gewählt hat. Die Units startet er dann nicht von selbst; die Health
-zeigt die gestoppte App, und die Aktion „Neustart“ startet sie.
+Zeit ersetzt werden, die niemand gewählt hat. Beim Start räumt er aber auf, vor jedem neuen Auftrag:
+für jede Installation, die er fertig eingerichtet hat und deren Backup bei ihm eingerichtet ist
+(`backup.json`), stoppt er als ihr Nutzer eine noch laufende `sz_wiederherstellen.service`, damit
+kein Zurückspielen neben der wieder gestarteten App weiterschreibt (eine nicht geladene Unit gilt als
+gestoppt), und startet `sz_backup.timer`, damit weiter Backups laufen. Die App-Units startet er nicht
+von selbst; die Health zeigt die gestoppte App, und die Aktion „Neustart“ startet sie. Scheitert das
+Aufräumen bei einer Installation, schreibt der Agent das ins Log und macht mit den anderen weiter.
 
 ### API
 
@@ -496,4 +501,5 @@ MinIO weg, hängt restic in der vorübergehenden Unit, bis das Zeitlimit des Auf
 läuft kein `restic`, kein `zurueckspielen` und kein `systemd-run` des Nutzers mehr, und App und
 Timer laufen wieder. Die Unit-Tests des Agenten (`apps/agent/test/wiederherstellen*.test.ts`)
 prüfen die Ablehnungen, den Ablauf je Art, den Neustart der Units nach jedem Fehler und nach dem
-Zeitlimit, `RuntimeMaxSec` und dass kein Geheimnis in `argv`, Ergebnis oder Log steht.
+Zeitlimit, das Aufräumen beim Start des Agenten, `RuntimeMaxSec` und dass kein Geheimnis in
+`argv`, Ergebnis oder Log steht.
