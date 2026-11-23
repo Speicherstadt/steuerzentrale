@@ -79,6 +79,16 @@ Die App bekommt im Header `X-Forwarded-For` genau die Adresse, von der die Pfort
 bekam. Einen `X-Forwarded-For`, den der Client selbst schickt, reicht die Pforte nicht weiter;
 `Forwarded` und `X-Real-IP` entfernt sie. Eine App liest also den letzten (und einzigen) Eintrag.
 
+## Die Zentrale hinter der Pforte
+
+Auf dem Server der Zentrale (Ein-Server-Betrieb) hält dieselbe Pforte auch die beiden Namen der
+Zentrale: die Oberfläche nur für Adressen aus dem WireGuard-Netz, `agent.<domain>` nur für die Pfade
+der Agenten und mit Prüfung ihrer Client-Zertifikate. Diese Routen setzt nicht der Agent, sondern
+ein Mensch mit `steuerzentrale pforte` ([Installation](installation.md), Schritt 6); die Routen der
+Installationen bleiben dabei stehen, und kein Name einer Installation darf einen Namen der Zentrale
+nehmen: hat eine Route einer Installation einen Namen oder den Port der Zentrale, lehnt der Befehl
+ab, und die Pforte bleibt, wie sie ist.
+
 ## Getrennte Installationen
 
 Jede Installation läuft unter ihrem eigenen Linux-Nutzer in ihrem eigenen Podman-Netz und

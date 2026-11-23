@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it, onTestFinished } from "vitest";
 import { createApp } from "./app.ts";
 import { createAuth } from "./auth/auth.ts";
 import type { Db } from "./db/oeffnen.ts";
@@ -7,7 +10,7 @@ import { auslieferung } from "./modules/server/index.ts";
 import { verbindungen } from "./modules/verbindung/verbindungen.ts";
 import { versionen } from "./modules/versionen/index.ts";
 
-const setup = (teil: { db?: Db } = {}) => {
+const setup = (teil: { db?: Db; web?: string } = {}) => {
   const lines: string[] = [];
   const offen = testDatenbank();
   const { schreibDb, anmeldeGeheimnis, schluessel } = offen;
@@ -27,6 +30,7 @@ const setup = (teil: { db?: Db } = {}) => {
     socketAdresse: () => undefined,
     verbindungen: verbindungen(4409),
     versionen: versionen({ db, schreibDb, fetch, now: () => 0, log: () => {} }),
+    ...(teil.web === undefined ? {} : { web: teil.web }),
   });
   return { app, lines };
 };
@@ -50,6 +54,31 @@ describe("GET /health", () => {
     const res = await app.request("/health");
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ status: "fehler", version: "1.2.3" });
+  });
+});
+
+// Z-1004: the image serves the interface from STEUERZENTRALE_WEB; the API's paths stay 404
+describe("the interface's files", () => {
+  const webOrdner = () => {
+    const ordner = mkdtempSync(join(tmpdir(), "sz-test-web-"));
+    onTestFinished(() => rmSync(ordner, { recursive: true, force: true }));
+    writeFileSync(join(ordner, "index.html"), "<!doctype html><title>Steuerzentrale</title>");
+    return ordner;
+  };
+
+  it("answers a route of the SPA with index.html", async () => {
+    const { app } = setup({ web: webOrdner() });
+    const res = await app.request("/erster-inhaber");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toMatch(/^text\/html/);
+    expect(await res.text()).toContain("<title>Steuerzentrale</title>");
+  });
+
+  it("leaves unknown API paths and other methods at 404, and serves nothing without a folder", async () => {
+    const { app } = setup({ web: webOrdner() });
+    expect((await app.request("/api/v1/unbekannt")).status).toBe(404);
+    expect((await app.request("/erster-inhaber", { method: "POST" })).status).toBe(404);
+    expect((await setup().app.request("/erster-inhaber")).status).toBe(404);
   });
 });
 

@@ -459,7 +459,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   GHCR.
   nach: Z-503, Z-603
   Fertig, wenn: der Lauf grün ist.
-- [ ] **Z-1004 Release-Kandidat** – Image der Zentrale (amd64, arm64) mit Quadlet-Units und
+- [x] **Z-1004 Release-Kandidat** – Image der Zentrale (amd64, arm64) mit Quadlet-Units und
   Agent-Binaries mit Prüfsummen, in der CI mit dem Test-Schlüssel signiert, nur als Workflow-Artefakt
   und in der lokalen Registry; `docs/installation.md` mit Ein-Server-Betrieb. Echte Signatur, Tag und
   Push macht ein Mensch (Schritte für Menschen).
@@ -566,7 +566,13 @@ Nicht auf dem Weg des Loops.
 - Signierschlüssel (minisign) erzeugen, offline aufbewahren; Manifeste der Apps (Z-203) und jedes
   Release signieren.
 - Release (nach Z-1004): Ziel-Registry und Image-Name bestätigen (plan.md), Secret für den Push, Tag
-  setzen, mit dem echten Schlüssel signieren, veröffentlichen.
+  setzen, Image (amd64, arm64) nach `ghcr.io/speicherstadt/steuerzentrale` pushen, die Quadlet-Unit
+  mit dessen Digest erzeugen (`bun scripts/release-kandidat.ts unit …`), `SHA256SUMS` der
+  Agent-Dateien und des Releases mit dem echten Schlüssel signieren (`minisign -Sm SHA256SUMS`, vorher
+  `bun scripts/release-schluessel.ts minisign.pub`), Schlüssel-ID in die Release-Notiz, GitHub-Release
+  veröffentlichen.
+- Erste eigene Zentrale nach `docs/installation.md` (Server, DNS für Oberfläche und `agent.`,
+  WireGuard).
 - Je App eine eigene interne Installation für die Welle „intern“.
 - Betreiber-Vertrag in den App-Repos: Health ohne Anmeldung, nur lesen, Export, Einrichtungsbefehl
   (Haben#945–#948, #1307; für die anderen Apps noch anzulegen); Images für Kennwort und Soll, für

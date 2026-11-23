@@ -152,6 +152,19 @@ describe("parseEnv", () => {
     ).toBe("/opt/steuerzentrale/agent");
   });
 
+  // Z-1004: the image serves the built interface from this folder; without it, none
+  it("takes the folder of the built interface", () => {
+    const basis = {
+      STEUERZENTRALE_SECRET_KEY: KEY,
+      STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: AGENT_,
+    };
+    expect(parseEnv(basis).web).toBeUndefined();
+    expect(parseEnv({ ...basis, STEUERZENTRALE_WEB: "/usr/share/steuerzentrale/web" }).web).toBe(
+      "/usr/share/steuerzentrale/web",
+    );
+  });
+
   // Z-407: Cloudflare's API, elsewhere only for the stand-in in tests (testhilfen/cloudflare.ts)
   it("talks to Cloudflare's API and lets only a test point it at localhost", () => {
     const basis = {

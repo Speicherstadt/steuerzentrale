@@ -98,6 +98,8 @@ const EnvSchema = z.object({
   STEUERZENTRALE_AGENT_URL: agentUrlFeld,
   // The install script, the agent binaries and their signed checksums (scripts/agent-dateien.ts)
   STEUERZENTRALE_AGENT_DATEIEN: z.string().min(1).optional(),
+  // The built interface (apps/web/dist); the image of the Zentrale sets it (Z-1004)
+  STEUERZENTRALE_WEB: z.string().min(1).optional(),
   STEUERZENTRALE_SECRET_KEY: schluesselFeld("STEUERZENTRALE_SECRET_KEY"),
   // The previous key, only while rotating (`steuerzentrale schluessel-rotieren`)
   STEUERZENTRALE_SECRET_KEY_ALT: schluesselFeld("STEUERZENTRALE_SECRET_KEY_ALT").optional(),
@@ -118,6 +120,8 @@ export type Env = {
   agentUrl: string;
   /** Unset: no install script and no binaries are served (the start logs it) */
   agentDateien: string | undefined;
+  /** The built interface; unset: it is served elsewhere (Vite in development) */
+  web: string | undefined;
   schluessel: Schluesselbund;
   /** Cloudflare's API, https://api.cloudflare.com/client/v4 but in tests */
   cloudflareApi: string;
@@ -137,6 +141,7 @@ export const parseEnv = (env: Record<string, string | undefined>): Env => {
     url: parsed.STEUERZENTRALE_URL,
     agentUrl: parsed.STEUERZENTRALE_AGENT_URL,
     agentDateien: parsed.STEUERZENTRALE_AGENT_DATEIEN,
+    web: parsed.STEUERZENTRALE_WEB,
     schluessel: { aktuell: parsed.STEUERZENTRALE_SECRET_KEY, alt: alt ? [alt] : [] },
     cloudflareApi: parsed.STEUERZENTRALE_CLOUDFLARE_API,
     registryHttp: parsed.STEUERZENTRALE_REGISTRY_HTTP,
