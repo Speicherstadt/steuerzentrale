@@ -74,5 +74,6 @@ export const auftragMelden = (
     );
   });
   zustellen(deps, bereit);
+  if (ENDZUSTAENDE.has(u.zustand)) deps.dnsAnstossen?.();
   return { ok: true, geaendert: true };
 };

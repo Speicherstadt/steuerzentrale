@@ -38,6 +38,8 @@ export type AuftragDeps = {
   log: LogSink;
   /** For the secrets of an installation, decrypted when its setup job is sent */
   schluessel: Schluesselbund;
+  /** Starts setting or deleting DNS records now that some are due (modules/dns, Z-407) */
+  dnsAnstossen?: () => void;
 };
 
 /** The `auftrag` message: the manifest's exact text and signature, which the agent checks */

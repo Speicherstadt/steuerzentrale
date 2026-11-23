@@ -23,6 +23,13 @@ export const INSTALLATIONS_ZUSTAENDE = [
   "entfernt",
 ] as const;
 
+/**
+ * Where an installation's DNS records stand (Z-407; docs/plan.md, "DNS über Cloudflare"): to be set,
+ * set, to be deleted, deleted. Null for a host the Zentrale sets no records for (not below the
+ * operator's domain when the installation was made)
+ */
+export const DNS_ZUSTAENDE = ["setzen", "gesetzt", "loeschen", "geloescht"] as const;
+
 /** The rating of an installation (packages/planung, `installationBewerten`) */
 export const BEWERTUNGEN = ["gruen", "gelb", "rot", "unbekannt"] as const;
 
@@ -38,7 +45,9 @@ export const BEWERTUNGEN = ["gruen", "gelb", "rot", "unbekannt"] as const;
  * unique among the operator's installations not removed. Its current rating (Z-403) is a
  * measurement written only by modules/audit/messwerte.ts: `bewertung`, `bewertung_grund` (JSON
  * `{ code, werte }`), `bewertung_seit`, `gemeldet_am` (the last report) and `meldung` (JSON units and
- * health of that report); null until the agent first reports.
+ * health of that report); null until the agent first reports. `dns` is where its DNS records stand
+ * (Z-407, `DNS_ZUSTAENDE`), with the failed attempts since the last success and when the next is
+ * due (backoff), written by modules/dns.
  */
 export const installationen = sqliteTable(
   "installationen",
@@ -65,6 +74,9 @@ export const installationen = sqliteTable(
     bewertungSeit: integer("bewertung_seit"),
     gemeldetAm: integer("gemeldet_am"),
     meldung: text("meldung"),
+    dns: text("dns", { enum: DNS_ZUSTAENDE }),
+    dnsVersuche: integer("dns_versuche").notNull().default(0),
+    dnsNaechsterVersuch: integer("dns_naechster_versuch"),
     angelegtVon: text("angelegt_von").notNull(),
     angelegtAm: integer("angelegt_am").notNull(),
     geaendertAm: integer("geaendert_am").notNull(),
@@ -72,6 +84,7 @@ export const installationen = sqliteTable(
   (t) => [
     primaryKey({ columns: [t.betreiberId, t.installationId] }),
     index("installationen_server").on(t.betreiberId, t.serverId),
+    index("installationen_dns").on(t.dnsNaechsterVersuch),
     uniqueIndex("installationen_host").on(t.betreiberId, t.host).where(ne(t.zustand, "entfernt")),
     foreignKey({
       columns: [t.betreiberId, t.serverId],
@@ -177,3 +190,15 @@ export const installationKonfigurationen = sqliteTable(
     }),
   ],
 );
+
+/**
+ * The operator's DNS at Cloudflare (Z-407; docs/plan.md, "DNS über Cloudflare"): its domain (the
+ * addresses `<app>.<kuerzel>.<domain>`) and the id of the zone that holds it. The API token is a
+ * secret of the operator in `geheimnisse` (modules/dns/einstellungen.ts), never in this row.
+ */
+export const dnsEinstellungen = sqliteTable("dns_einstellungen", {
+  betreiberId: text("betreiber_id").primaryKey(),
+  domain: text("domain").notNull(),
+  zoneId: text("zone_id").notNull(),
+  geaendertAm: integer("geaendert_am").notNull(),
+});

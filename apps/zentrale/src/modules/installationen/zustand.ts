@@ -4,13 +4,15 @@ import type { Db } from "../../db/oeffnen.ts";
 import type { INSTALLATIONS_ZUSTAENDE } from "../../db/schema.ts";
 import type { Schluesselbund } from "../../db/schluessel.ts";
 import type { Schreiber } from "../audit/index.ts";
+import { dnsNachEntfernen } from "../dns/index.ts";
 import { konfigurationAbschliessen } from "./konfiguration.ts";
 import { installationLesen, portsDerInstallation } from "./lesen.ts";
 
 /*
  * What the end of a setup job means for its installation (BAULISTE.md Z-402): set up, it runs; failed
  * or cancelled, it failed; removed, it is gone and its ports are free again; configured anew
- * (Z-404), it runs with the asked values, after a failure with its old ones. Runs inside the
+ * (Z-404), it runs with the asked values, after a failure with its old ones; removed, its DNS
+ * records are due for deletion (Z-407). Runs inside the
  * transaction that records the job's end (modules/auftraege/melden.ts), so the installation's state
  * and the job's never disagree.
  */
@@ -55,7 +57,11 @@ export const installationFortschreiben = (
   w.aendern(
     "installationen",
     { installationId: i.installationId },
-    { zustand: neu, geaendertAm: jetzt },
+    {
+      zustand: neu,
+      geaendertAm: jetzt,
+      ...(neu === "entfernt" ? dnsNachEntfernen(i.dns, jetzt) : {}),
+    },
   );
   if (neu === "entfernt")
     for (const p of portsDerInstallation(db, a.betreiberId, i.installationId))

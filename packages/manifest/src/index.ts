@@ -2,6 +2,13 @@
 // functions only (docs/plan.md, "Projektstruktur"; docs/manifest.md).
 
 export {
+  adresseVorschlag,
+  freiesKuerzel,
+  KUERZEL,
+  kuerzelVorschlag,
+  unterDomain,
+} from "./adresse.ts";
+export {
   befehlFuellen,
   befehlZurAktion,
   type Gefuellt,

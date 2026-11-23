@@ -25,6 +25,8 @@ type KundeAntwort = {
   name: string;
   kontakt: { name: string; email: string; telefon: string | null };
   notiz: string | null;
+  kuerzel: string;
+  kuerzelAenderbar: boolean;
   angelegtAm: number;
   vertrag: { sla: string; beginn: number; ende: number | null };
 };
@@ -53,6 +55,8 @@ describe("a customer", () => {
       name: "Liste GmbH",
       kontakt: { name: "Anna Nord", email: "buero@atelier-nord.test", telefon: "+49 40 123456" },
       notiz: "Zahlt per Rechnung",
+      kuerzel: "liste-gmbh",
+      kuerzelAenderbar: true,
       angelegtAm: server.jetzt(),
       vertrag: { sla: "basis", beginn: BEGINN, ende: null },
     });
@@ -274,6 +278,39 @@ describe("a customer", () => {
     expect(
       (await inhaber.json(`${pfad}/kuendigung`, { method: "DELETE", body: { grund: "x" } })).status,
     ).toBe(404);
+  });
+});
+
+// Z-407: the short name in the addresses `<app>.<kuerzel>.<domain>`
+describe("a customer's short name", () => {
+  it("is suggested from the name, or taken as given, and then refused for another", async () => {
+    const vorgeschlagen = await anlegen(inhaber, "Müller & Söhne");
+    expect(vorgeschlagen.kuerzel).toBe("mueller-soehne");
+    const body = { ...neuerKunde("Eigenes Kürzel"), kuerzel: "eigen-1" };
+    const eigen = await inhaber.json("/api/v1/kunden", { body });
+    expect(eigen).toMatchObject({ status: 201, daten: { kuerzel: "eigen-1" } });
+    expect(await inhaber.json("/api/v1/kunden", { body })).toEqual({
+      status: 409,
+      daten: { fehler: "kuerzel_vergeben" },
+    });
+    const { grund: _, vertrag, ...daten } = neuerKunde("Müller & Söhne");
+    const aendern = (kuerzel: string) =>
+      inhaber.json(`/api/v1/kunden/${vorgeschlagen.id}`, {
+        method: "PUT",
+        body: { ...daten, kuerzel, beginn: vertrag.beginn, grund: "neues Kürzel" },
+      });
+    expect(await aendern("eigen-1")).toEqual({
+      status: 409,
+      daten: { fehler: "kuerzel_vergeben" },
+    });
+    expect(await aendern("muesoe")).toMatchObject({ status: 200, daten: { kuerzel: "muesoe" } });
+  });
+
+  it("takes only lower-case letters, digits and inner hyphens, up to 30", async () => {
+    for (const kuerzel of ["", "Gross", "-a", "a-", "a.b", "ä", "a".repeat(31)]) {
+      const body = { ...neuerKunde(), kuerzel };
+      expect((await inhaber.json("/api/v1/kunden", { body })).status, kuerzel).toBe(400);
+    }
   });
 });
 
