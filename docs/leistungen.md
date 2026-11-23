@@ -61,5 +61,5 @@ einer Person und läuft so nie in der Tabelle des Betreibers.
 
 `GET /api/v1/leistungen?monat=2026-11` liefert den Monat als JSON (ohne `monat` den laufenden),
 `&format=csv` dasselbe als CSV (`text/csv; charset=utf-8; header=present`, als Download). Ein Monat,
-der keiner ist, oder ein anderes Format ist `400`. Recht `kunden:lesen` (alle Rollen); jeder
+der keiner ist (auch ein Jahr vor 1000), oder ein anderes Format ist `400`. Recht `kunden:lesen` (alle Rollen); jeder
 Betreiber sieht nur seine Kunden.

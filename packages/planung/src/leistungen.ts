@@ -68,9 +68,12 @@ export type KundenLeistung = {
   verfuegbarkeit: { minuten: number; gemessen: number; anteil: number | null };
 };
 
-/** "2026-11" as a month; anything else is no month */
+/**
+ * "2026-11" as a month; anything else is no month, nor a year before 1000: Date.UTC reads the
+ * years 0 to 99 as 1900 to 1999, and monatText would not write it back the same
+ */
 export const monatAusText = (text: string): Monat | undefined => {
-  const treffer = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(text);
+  const treffer = /^([1-9]\d{3})-(0[1-9]|1[0-2])$/.exec(text);
   return treffer ? { jahr: Number(treffer[1]), monat: Number(treffer[2]) } : undefined;
 };
 
