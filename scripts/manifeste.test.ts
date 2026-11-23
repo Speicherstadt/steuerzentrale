@@ -38,9 +38,23 @@ const dateien = manifestDateien();
 const faelle = dateien.map((datei) => [relative(MANIFESTE, datei), datei] as const);
 
 describe("the manifests of the Speicherstadt (Z-203)", () => {
-  it("exist for all eight apps, one version each, and for nothing else", () => {
-    const apps = dateien.map((d) => relative(MANIFESTE, d).split("/")[0]);
+  it("exist for all eight apps and for nothing else", () => {
+    const apps = new Set(dateien.map((d) => relative(MANIFESTE, d).split("/")[0]));
     expect([...apps].sort()).toEqual([...APPS].sort());
+  });
+
+  // Z-1003 updates Schreibzeug and Haben from one released version to the next; every other app
+  // keeps one version
+  it("hold two versions only for the apps the update test needs", () => {
+    const versionen = Map.groupBy(
+      dateien.map((d) => relative(MANIFESTE, dirname(d)).split("/")),
+      ([app]) => app,
+    );
+    const mehrere = [...versionen].filter(([, v]) => v.length > 1);
+    expect(Object.fromEntries(mehrere.map(([app, v]) => [app, v.map(([, x]) => x)]))).toEqual({
+      haben: ["0.12.0", "0.12.0-rc.1"],
+      schreibzeug: ["0.1.25", "0.1.26"],
+    });
   });
 
   it.each(faelle)("%s is valid and signed with the test key", (_name, datei) => {

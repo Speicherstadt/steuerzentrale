@@ -78,15 +78,21 @@ const manifeste = manifestDateien().map((datei) => {
 const tabelle = tabelleLesen(readFileSync(join(root, "docs/plan.md"), "utf8"));
 
 describe('the table "Die Apps der Speicherstadt" in docs/plan.md', () => {
-  it("has one row per manifest", () => {
-    expect(tabelle.map((z) => z.App).sort()).toEqual(manifeste.map((m) => m.id).sort());
+  it("has one row per app", () => {
+    expect(tabelle.map((z) => z.App).sort()).toEqual(
+      [...new Set(manifeste.map((m) => m.id))].sort(),
+    );
   });
 
-  it.each(manifeste.map((m) => [m.id, m] as const))("matches the manifest of %s", (id, m) => {
-    const zeile = tabelle.find((z) => z.App === id);
-    const health = (zeile?.Health ?? "").replace(/\s*\(.*\)$/, "");
-    expect({ ...zeile, Health: health }).toEqual(zeileAusManifest(m));
-  });
+  // Every version of an app (two for Z-1003) must match its one row
+  it.each(manifeste.map((m) => [`${m.id} ${m.version}`, m] as const))(
+    "matches the manifest of %s",
+    (_n, m) => {
+      const zeile = tabelle.find((z) => z.App === m.id);
+      const health = (zeile?.Health ?? "").replace(/\s*\(.*\)$/, "");
+      expect({ ...zeile, Health: health }).toEqual(zeileAusManifest(m));
+    },
+  );
 });
 
 describe("reading the table", () => {

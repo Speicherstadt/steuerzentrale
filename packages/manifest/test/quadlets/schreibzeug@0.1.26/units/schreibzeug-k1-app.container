@@ -1,0 +1,30 @@
+# schreibzeug 0.1.26 for the installation schreibzeug-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=schreibzeug 0.1.26, app (schreibzeug-k1)
+
+[Container]
+ContainerName=schreibzeug-k1-app
+Image=ghcr.io/speicherstadt/schreibzeug@sha256:60e30336817514e7b925381f10944dc8d1711c7ea555bdc52e3e4b5a223bc993
+Network=schreibzeug-k1.network:alias=app
+Label="de.speicherstadt.steuerzentrale.installation=schreibzeug-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=schreibzeug"
+Label="de.speicherstadt.steuerzentrale.version=0.1.26"
+NoNewPrivileges=true
+PublishPort=127.0.0.1:20001:3000
+Volume=schreibzeug-k1-daten.volume:/data
+Environment="SCHREIBZEUG_URL=https://schreibzeug-k1.kunde.example"
+Secret=schreibzeug-k1-schreibzeug-auth-secret,type=env,target=SCHREIBZEUG_AUTH_SECRET
+Environment="SCHREIBZEUG_OPEN_SIGNUP=false"
+Environment="OIDC_ISSUER=test-oidc-oidc_issuer"
+Environment="OIDC_CLIENT_ID=test-oidc-oidc_client_id"
+Secret=schreibzeug-k1-oidc-client-secret,type=env,target=OIDC_CLIENT_SECRET
+
+[Service]
+Slice=schreibzeug-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

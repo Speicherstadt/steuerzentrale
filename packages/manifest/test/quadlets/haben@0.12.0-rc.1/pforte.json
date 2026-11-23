@@ -1,0 +1,42 @@
+{
+  "@id": "haben-k1",
+  "match": [
+    {
+      "host": [
+        "haben-k1.kunde.example"
+      ]
+    }
+  ],
+  "handle": [
+    {
+      "handler": "request_body",
+      "max_size": 262144000
+    },
+    {
+      "handler": "reverse_proxy",
+      "upstreams": [
+        {
+          "dial": "127.0.0.1:20001"
+        }
+      ],
+      "transport": {
+        "protocol": "http",
+        "response_header_timeout": "60s"
+      },
+      "headers": {
+        "request": {
+          "set": {
+            "X-Forwarded-For": [
+              "{http.request.remote.host}"
+            ]
+          },
+          "delete": [
+            "Forwarded",
+            "X-Real-IP"
+          ]
+        }
+      }
+    }
+  ],
+  "terminal": true
+}
