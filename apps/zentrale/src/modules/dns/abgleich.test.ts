@@ -1,5 +1,5 @@
 import { EINRICHTUNG_AKTIONEN } from "@steuerzentrale/manifest";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, onTestFinished } from "vitest";
 import { auditLog, auftraege, ereignisse, installationen } from "../../db/schema.ts";
 import { cloudflareNachbau, TEST_TOKEN, TEST_ZONE } from "../../testhilfen/cloudflare.ts";
 import {
@@ -222,6 +222,42 @@ describe("the DNS records of an installation", () => {
       token: TEST_TOKEN,
     });
     await dnsAbgleichen(dns);
+    expect(zeile(u, id)?.dns).toBe("gesetzt");
+  });
+
+  it("are due at once after a new token saved while an attempt with the old one was under way", async () => {
+    const u = installationsUmgebung();
+    u.bereit();
+    const alt = "cf-revoked-token-0000000000000000";
+    dnsEinstellungenSetzen(u.deps, u.kontext("b1"), {
+      domain: DOMAIN,
+      zoneId: TEST_ZONE,
+      token: alt,
+    });
+    const host = `neu.kanzlei.${DOMAIN}`;
+    const id = anlegen(u, host);
+    // a stand-in of its own: the old token stays out of the shared one's requests
+    const eigener = cloudflareNachbau();
+    onTestFinished(() => eigener.stoppen());
+    let gespeichert = false;
+    // the operator saves the right token while Cloudflare still answers the call with the old one
+    const zwischendurch: typeof fetch = Object.assign(
+      (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+        if (!gespeichert) {
+          gespeichert = true;
+          dnsEinstellungenSetzen(u.deps, u.kontext("b1"), {
+            domain: DOMAIN,
+            zoneId: TEST_ZONE,
+            token: TEST_TOKEN,
+          });
+        }
+        return fetch(url, init);
+      },
+      { preconnect: fetch.preconnect },
+    );
+    await dnsAbgleichen({ ...u.deps, fetch: zwischendurch, basis: eigener.url });
+    expect(zeile(u, id)?.dnsNaechsterVersuch).toBeLessThanOrEqual(u.uhr.ms);
+    await dnsAbgleichen({ ...u.deps, fetch, basis: eigener.url });
     expect(zeile(u, id)?.dns).toBe("gesetzt");
   });
 
