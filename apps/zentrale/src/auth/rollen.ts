@@ -33,6 +33,9 @@ const ANWEISUNGEN = {
   // the imported manifests and the registries' versions (Z-501): every role reads; importing a
   // signed manifest and asking the registries now is for owner and technik
   manifeste: ["lesen", "importieren", "abfragen"],
+  // notifications (Z-703): every role sees mail server, quiet hours, recipients and deliveries,
+  // never the SMTP password or a webhook's URL and key; owner and technik change them and test
+  benachrichtigungen: ["lesen", "schreiben"],
 } as const;
 
 export const zugriff = createAccessControl(ANWEISUNGEN);
@@ -58,6 +61,7 @@ export const ROLLEN_ZUGRIFF = {
     dns: ["lesen", "schreiben"],
     backups: ["lesen", "schreiben"],
     manifeste: ["lesen", "importieren", "abfragen"],
+    benachrichtigungen: ["lesen", "schreiben"],
   }),
   // servers, installations and updates (later items); sees who else works on the operator; takes
   // on customers and their contracts, which installing an app starts from (docs/plan.md, "Kunden")
@@ -72,6 +76,7 @@ export const ROLLEN_ZUGRIFF = {
     dns: ["lesen", "schreiben"],
     backups: ["lesen", "schreiben"],
     manifeste: ["lesen", "importieren", "abfragen"],
+    benachrichtigungen: ["lesen", "schreiben"],
   }),
   // support access to customers (later items); sees who else works on the operator, whom it
   // helps, the servers and installations they run on, but changes no customer, contract, server
@@ -88,6 +93,7 @@ export const ROLLEN_ZUGRIFF = {
     dns: ["lesen"],
     backups: ["lesen"],
     manifeste: ["lesen"],
+    benachrichtigungen: ["lesen"],
   }),
 } as const;
 

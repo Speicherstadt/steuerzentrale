@@ -115,6 +115,16 @@ export const ROUTEN = {
   // technik update by hand with a reason, in a freeze window only the owner
   "GET /api/v1/updates": recht("installationen:lesen"),
   "POST /api/v1/installationen/:installationId/update": recht("installationen:schreiben"),
+  // notifications (Z-703): every role sees them; owner and technik change them and send a test
+  "GET /api/v1/benachrichtigungen": recht("benachrichtigungen:lesen"),
+  "PUT /api/v1/benachrichtigungen": recht("benachrichtigungen:schreiben"),
+  "POST /api/v1/benachrichtigungen/empfaenger": recht("benachrichtigungen:schreiben"),
+  "DELETE /api/v1/benachrichtigungen/empfaenger/:empfaengerId": recht(
+    "benachrichtigungen:schreiben",
+  ),
+  "POST /api/v1/benachrichtigungen/empfaenger/:empfaengerId/test": recht(
+    "benachrichtigungen:schreiben",
+  ),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,

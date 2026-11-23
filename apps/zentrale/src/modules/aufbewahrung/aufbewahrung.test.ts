@@ -31,11 +31,12 @@ describe("monateZurueck", () => {
 });
 
 describe("aufbewahrungsGrenzen", () => {
-  it("keeps heartbeats, facts and log excerpts 30 days, the rating's history 90, events, backups and test restores 13 months", () => {
+  it("keeps heartbeats, facts, log excerpts and deliveries 30 days, the rating's history 90, events, backups and test restores 13 months", () => {
     expect(aufbewahrungsGrenzen(JETZT)).toEqual({
       heartbeats: JETZT - 30 * TAG,
       fakten: JETZT - 30 * TAG,
       logAuszuege: JETZT - 30 * TAG,
+      zustellungen: JETZT - 30 * TAG,
       installationVerlauf: JETZT - 90 * TAG,
       ereignisse: Date.UTC(2025, 9, 20, 12, 0, 0),
       backups: Date.UTC(2025, 9, 20, 12, 0, 0),
@@ -60,6 +61,18 @@ const befuellt = () => {
           auftragId: "a",
           zeitpunkt: JETZT - alter * TAG,
           inhalt: "x",
+        });
+        // a delivery of a notification (Z-703)
+        s.einfuegen("zustellungen", {
+          betreiberId,
+          zustellungId: `e.${id}`,
+          ereignisId: "e",
+          empfaengerId: id,
+          schwere: "fehler",
+          zustand: "zugestellt",
+          versuche: 1,
+          faelligAm: JETZT - alter * TAG,
+          angelegtAm: JETZT - alter * TAG,
         });
       }
       for (const [id, zeitpunkt] of [
@@ -105,12 +118,13 @@ const alterIn = (zeilen: { zeitpunkt: number }[]) =>
   zeilen.map((z) => (JETZT - z.zeitpunkt) / TAG).sort();
 
 describe("aufbewahren", () => {
-  it("deletes old heartbeats, facts, log excerpts, history and events of every operator and keeps the young", () => {
+  it("deletes old heartbeats, facts, log excerpts, deliveries, history and events of every operator and keeps the young", () => {
     const { db, schreibDb } = befuellt();
     expect(aufbewahren(db, schreibDb, JETZT)).toEqual({
       heartbeats: 2,
       fakten: 2,
       logAuszuege: 2,
+      zustellungen: 2,
       installationVerlauf: 2,
       ereignisse: 2,
       backups: 0,

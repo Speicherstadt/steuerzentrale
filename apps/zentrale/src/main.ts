@@ -13,6 +13,7 @@ import { agentUpdateSchleife } from "./modules/agent-update/index.ts";
 import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
 import { backupSchleife } from "./modules/backups/index.ts";
+import { benachrichtigungsSchleife, versandImBetrieb } from "./modules/benachrichtigung/index.ts";
 import { bewertungsSchleife } from "./modules/bewertung/index.ts";
 import { dnsSchleife } from "./modules/dns/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
@@ -199,6 +200,12 @@ const neueVersionen = versionen({
   log,
 });
 versionsSchleife(neueVersionen, planen, log);
+// Notifications (Z-703): every 15 s the new events to their recipients, by mail and webhook
+const versand = versandImBetrieb(fetch);
+benachrichtigungsSchleife(
+  { db, schreibDb, schluessel: env.schluessel, versand, now: Date.now, url: env.url, log },
+  planen,
+);
 const auth = createAuth({ schreibDb, url: env.url, geheimnis: datenbank.anmeldeGeheimnis });
 const app = createApp({
   log,
@@ -216,6 +223,7 @@ const app = createApp({
   dnsAnstossen: dns.anstossen,
   backupAnstossen: backup.anstossen,
   versionen: neueVersionen,
+  versand,
 });
 // `websocket` carries the agents' connections (src/routes/verbindung.ts)
 const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch, websocket });

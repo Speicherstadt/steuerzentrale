@@ -4,12 +4,14 @@ import type { Db, SchreibDb } from "./db/oeffnen.ts";
 import type { Schluesselbund } from "./db/schluessel.ts";
 import { formatRequestLog, type LogSink, redactUrl } from "./log.ts";
 import { clientAdresse } from "./modules/anmeldung/adresse.ts";
+import type { Versand } from "./modules/benachrichtigung/index.ts";
 import type { Auslieferung } from "./modules/server/index.ts";
 import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
 import type { Versionen } from "./modules/versionen/index.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { aktionenRouten } from "./routes/aktionen.ts";
 import { backupRouten } from "./routes/backups.ts";
+import { benachrichtigungRouten } from "./routes/benachrichtigungen.ts";
 import { betriebRouten } from "./routes/betrieb.ts";
 import { dnsRouten } from "./routes/dns.ts";
 import { einladungRouten } from "./routes/einladungen.ts";
@@ -56,6 +58,8 @@ export type AppDeps = {
   dnsAnstossen?: () => void;
   /** Starts making or deleting the S3 accesses that are due (modules/backups, Z-601) */
   backupAnstossen?: () => void;
+  /** How notifications go out, for the test message (modules/benachrichtigung, Z-703) */
+  versand?: Versand;
 };
 
 const AUTH_BASIS = "/api/auth";
@@ -112,6 +116,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   backupRouten(route, deps);
   manifesteRouten(route, deps);
   updateRouten(route, deps);
+  benachrichtigungRouten(route, deps);
   agentRouten(route, deps);
   verbindungRouten(route, deps);
 
