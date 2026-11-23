@@ -220,22 +220,38 @@ jobs:
           host="$(sudo incus network get incusbr0 ipv4.address | cut -d/ -f1)"
           {
             echo "STEUERZENTRALE_PORT=28300"
-            echo "STEUERZENTRALE_HOST=0.0.0.0"
+            echo "STEUERZENTRALE_HOST=127.0.0.1"
             echo "STEUERZENTRALE_DATA=$RUNNER_TEMP/daten"
             echo "STEUERZENTRALE_SECRET_KEY=$(head -c 32 /dev/zero | tr '\0' '\7' | base64)"
             echo "STEUERZENTRALE_URL=http://localhost:28300"
-            echo "STEUERZENTRALE_AGENT_URL=http://$host:28300"
+            # agents reach the Zentrale only through its Pforte, as agent.<domain> in production
+            echo "STEUERZENTRALE_AGENT_URL=https://$host:28443"
             echo "STEUERZENTRALE_AGENT_DATEIEN=$RUNNER_TEMP/agent-dateien"
+            echo "PFORTE_HOST=$host"
           } >> "$GITHUB_ENV"
       - name: install.sh in the VM
         run: |
           nohup bun apps/zentrale/src/main.ts > "$RUNNER_TEMP/zentrale.log" 2>&1 &
-          for i in $(seq 1 50); do curl -fsS "$STEUERZENTRALE_AGENT_URL/health" && break; sleep 0.2; done
+          for i in $(seq 1 50); do curl -fsS "$STEUERZENTRALE_URL/health" && break; sleep 0.2; done
           neu="$(bun apps/zentrale/src/testhilfen/testserver.ts anlegen "${{ matrix.system }}")"
           echo "SERVER_ID=$(jq -r .serverId <<< "$neu")" >> "$GITHUB_ENV"
+          # The Pforte in front of the Zentrale (testhilfen/ci-pforte.ts): TLS, the client certificate
+          # checked against the operator's CA, its fingerprint passed on from loopback; the Zentrale
+          # believes that header from nowhere else, so without it the agent's connection gets 401
+          ca="$RUNNER_TEMP/pforte-ca.pem"
+          nohup bun apps/zentrale/src/testhilfen/ci-pforte.ts "$PFORTE_HOST" 28443 "$ca" > "$RUNNER_TEMP/pforte.log" 2>&1 &
+          for i in $(seq 1 50); do curl -fsS --cacert "$ca" "$STEUERZENTRALE_AGENT_URL/health" && break; sleep 0.2; done
+          curl -fsS --cacert "$ca" "$STEUERZENTRALE_AGENT_URL/health"
           # The command needs curl, as the one the interface shows does
-          sudo incus exec "$VM" -- sh -c 'command -v curl >/dev/null || { apt-get update -q && apt-get install -y -q curl; }'
-          sudo incus exec "$VM" -- sh -c "$(jq -r .befehl <<< "$neu")"
+          sudo incus exec "$VM" -- sh -c 'command -v curl >/dev/null && command -v update-ca-certificates >/dev/null || { apt-get update -q && apt-get install -y -q curl ca-certificates; }'
+          # The VM trusts the Pforte's test CA: curl through the system's store, the agent (Bun)
+          # through NODE_EXTRA_CA_CERTS, in install.sh and in its service (also after its update)
+          crt=/usr/local/share/ca-certificates/sz-test-pforte.crt
+          sudo incus file push "$ca" "$VM$crt"
+          sudo incus exec "$VM" -- update-ca-certificates
+          printf '[Service]\nEnvironment=NODE_EXTRA_CA_CERTS=%s\n' "$crt" > "$RUNNER_TEMP/sz-test-pforte.conf"
+          sudo incus file push --create-dirs "$RUNNER_TEMP/sz-test-pforte.conf" "$VM/etc/systemd/system/steuerzentrale-agent.service.d/sz-test-pforte.conf"
+          sudo incus exec "$VM" --env NODE_EXTRA_CA_CERTS="$crt" -- sh -c "$(jq -r .befehl <<< "$neu")"
       - name: The agent runs and has its certificate
         run: |
           sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
@@ -249,6 +265,10 @@ jobs:
           zentrale="$(bun apps/zentrale/src/testhilfen/testserver.ts fingerabdruck "$SERVER_ID")"
           echo "VM: $vm, Zentrale: $zentrale"
           test -n "$vm" && test "$vm" = "$zentrale"
+          # the agent is connected: the Zentrale saw its hallo through the Pforte
+          agent() { bun apps/zentrale/src/testhilfen/testserver.ts agent "$SERVER_ID"; }
+          for i in $(seq 1 30); do test "$(agent | jq -r .version)" = 0.0.0 && break; sleep 2; done
+          test "$(agent | jq -r .version)" = 0.0.0
       # Z-504: a newer agent (0.0.1, the same code with another version, scripts/compile.ts) in the
       # agent files; the maintenance window is the whole day, the planning runs every minute
       - name: The agent updates itself
@@ -303,6 +323,7 @@ jobs:
       - if: failure()
         run: |
           cat "$RUNNER_TEMP/zentrale.log" || true
+          cat "$RUNNER_TEMP/pforte.log" || true
           sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent --no-pager -n 100 || true
           sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent-pruefen --no-pager -n 50 || true
 

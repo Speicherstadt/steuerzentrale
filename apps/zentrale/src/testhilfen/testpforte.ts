@@ -60,6 +60,9 @@ export const testPforte = (optionen: {
   schluessel: string;
   /** The CAs client certificates are checked against */
   clientCas: string[];
+  /** Where it listens: 127.0.0.1 and a free port unless given (CI's VMs reach it on the bridge) */
+  hostname?: string;
+  port?: number;
 }): TestPforte => {
   const weiter = async (unten: Socket<Strom>, start: Uint8Array) => {
     // a Zentrale that is down: the client's connection ends, as Caddy's would with a 502
@@ -87,8 +90,8 @@ export const testPforte = (optionen: {
   };
 
   const listener = Bun.listen<Strom>({
-    hostname: "127.0.0.1",
-    port: 0,
+    hostname: optionen.hostname ?? "127.0.0.1",
+    port: optionen.port ?? 0,
     tls: {
       cert: optionen.zertifikat,
       key: optionen.schluessel,

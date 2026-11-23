@@ -22,8 +22,11 @@ const paar = async () =>
 const privatPem = async (schluessel: CryptoKey) =>
   pem("PRIVATE KEY", await crypto.subtle.exportKey("pkcs8", schluessel));
 
-/** A CA and a server certificate for 127.0.0.1 and localhost, valid around `jetzt` */
-export const pforteTls = async (jetzt = Date.now()) => {
+/**
+ * A CA and a server certificate for 127.0.0.1, localhost and the further IPv4 addresses in `ips`
+ * (the CI's Pforte on the VMs' bridge), valid around `jetzt`
+ */
+export const pforteTls = async (jetzt = Date.now(), ips: readonly string[] = []) => {
   const caPaar = await paar();
   const ca = await x509.X509CertificateGenerator.createSelfSigned({
     name: "CN=Test-Pforte CA",
@@ -48,6 +51,7 @@ export const pforteTls = async (jetzt = Date.now()) => {
       new x509.SubjectAlternativeNameExtension([
         { type: "dns", value: "localhost" },
         { type: "ip", value: "127.0.0.1" },
+        ...ips.map((value) => ({ type: "ip" as const, value })),
       ]),
       new x509.ExtendedKeyUsageExtension([x509.ExtendedKeyUsage.serverAuth]),
     ],
