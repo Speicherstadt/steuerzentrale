@@ -59,8 +59,9 @@ export const neustartAusloesen = async (deps: NeustartDeps): Promise<Ergebnis> =
 const OHNE: Ergebnis = { ok: false, fehler: "abgelehnt: this agent cannot reboot" };
 
 /**
- * The reboots of one agent: out of the job's boot only, and from asking systemd on `laeuft` until
- * that failed, so that no job starts that the reboot would end halfway
+ * The reboots of one agent: out of the job's boot only, and `laeuft` from the moment it is called
+ * (before the boot id is read) until it was refused or failed, so that no job starts that the
+ * reboot would end halfway
  */
 export const neustartFuehrer = (deps: NeustartDeps | undefined) => {
   let laeuft = false;
@@ -68,11 +69,10 @@ export const neustartFuehrer = (deps: NeustartDeps | undefined) => {
     laeuft: () => laeuft,
     neustarten: async (auftrag: ServerNeustartAuftrag): Promise<Ergebnis> => {
       if (!deps) return OHNE;
-      const abgelehnt = await neustartAblehnen(deps, auftrag);
-      if (abgelehnt) return abgelehnt;
       laeuft = true;
       try {
-        return await neustartAusloesen(deps);
+        const abgelehnt = await neustartAblehnen(deps, auftrag);
+        return abgelehnt ?? (await neustartAusloesen(deps));
       } finally {
         laeuft = false;
       }

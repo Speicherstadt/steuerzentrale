@@ -324,10 +324,11 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
 
   const empfangen: Auftraege["empfangen"] = async (n, senden) => {
     await eigenesUpdate.abwarten(n.auftragId);
-    if (neustartFolgt || server.laeuft())
-      return deps.log("job left for the new agent", { auftragId: n.auftragId });
     geladen ??= standLaden(deps.dateien, deps.pfad);
     const record = await geladen;
+    // after the last wait before the job is acknowledged: a reboot asked for meanwhile counts too
+    if (neustartFolgt || server.laeuft())
+      return deps.log("job left for the new agent", { auftragId: n.auftragId });
     if (!record.ok) {
       // without its record the agent cannot tell a job sent twice: it runs none, and reads the
       // record again with the next job, so a repaired one counts without a restart
