@@ -50,6 +50,8 @@ const befehl: AuftragNachricht = {
 
 type Aufbau = {
   boot?: string | null;
+  /** Reads the boot id in place of `boot`, to hold the reboot while it reads */
+  bootId?: () => Promise<string | null>;
   rebootCode?: number;
   fs?: ReturnType<typeof speicher>;
   zweck?: "release" | "test";
@@ -88,7 +90,7 @@ const aufgebaut = (o: Aufbau = {}) => {
     jetzt: () => 1_800_000_000_000,
     log: () => {},
     neustart: {
-      bootId: async () => (o.boot === undefined ? BOOT : o.boot),
+      bootId: o.bootId ?? (async () => (o.boot === undefined ? BOOT : o.boot)),
       spawn,
       warten: (ms) => {
         gewartet.push(ms);
@@ -201,6 +203,25 @@ describe("the reboot of the server as a job", () => {
       ergebnis: { ok: false, fehler: "abgelehnt: unknown argument x" },
     });
     expect([...a.aufrufe, ...b.aufrufe].filter((x) => x[0] === "systemctl")).toEqual([]);
+  });
+
+  it("starts no job while it reads the boot id before asking systemd to reboot", async () => {
+    let lesen: (boot: string) => void = () => {};
+    const a = aufgebaut({
+      bootId: () =>
+        new Promise((r) => {
+          lesen = r;
+        }),
+    });
+    void a.empfangen(neustart);
+    await kurz();
+    // a job that comes while the agent reads the boot id: the reboot would end it halfway
+    void a.empfangen(befehl);
+    await kurz();
+    lesen(BOOT);
+    await kurz();
+    expect(a.aufrufe).toEqual([[...SYSTEMCTL_REBOOT]]);
+    expect(a.gesendet.filter((n) => n.auftragId === "a-1")).toEqual([]);
   });
 
   it("is refused after the key like every job: the test key outside test mode", async () => {
