@@ -105,7 +105,11 @@ export type Gesendete = { zugestellt: number; gescheitert: number; gehalten: num
 
 const BATCH = 100;
 
-/** Sends every due delivery once, one after another; returns what became of them */
+/**
+ * Sends the due deliveries once, one after another, at most BATCH per run; returns what became of
+ * them. Held ones do not count towards BATCH: a night of warnings must not keep a fault, or another
+ * operator's message, back
+ */
 export const zustellungenSenden = async (deps: ZustellDeps): Promise<Gesendete> => {
   const jetzt = deps.now();
   const ergebnis: Gesendete = { zugestellt: 0, gescheitert: 0, gehalten: 0 };
@@ -114,13 +118,13 @@ export const zustellungenSenden = async (deps: ZustellDeps): Promise<Gesendete> 
     .from(zustellungen)
     .where(and(eq(zustellungen.zustand, "wartet"), lte(zustellungen.faelligAm, jetzt)))
     .orderBy(asc(zustellungen.faelligAm), asc(zustellungen.angelegtAm))
-    .limit(BATCH)
     .all();
   for (const z of faellig) {
     if (zustellbarAb(ruhezeitVon(deps.db, z.betreiberId), z.schwere, jetzt) > jetzt) {
       ergebnis.gehalten += 1;
       continue;
     }
+    if (ergebnis.zugestellt + ergebnis.gescheitert >= BATCH) break;
     const r = empfaengerZeile(deps.db, z.betreiberId, z.empfaengerId);
     const e = ereignisVon(deps.db, z);
     const g: Gesendet =
