@@ -6,10 +6,11 @@ import * as schema from "./schema.ts";
 
 /**
  * Every table with data of an operator carries `betreiber_id` (docs/plan.md, "Mandanten"). Exempt:
- * manifests (a later item) and Better Auth's tables, whose membership is the organization's; their
+ * the imported manifests, which hold for every operator (Z-501), and Better Auth's tables, whose membership is the organization's; their
  * memberships and roles are mirrored into `mitglieder`, which carries it (Z-104).
  */
 const AUSGENOMMEN = new Set<string>([
+  "manifeste",
   "user",
   "session",
   "account",

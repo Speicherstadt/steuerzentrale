@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   alleOptionen,
   EINRICHTUNG_AKTIONEN,
@@ -7,14 +6,14 @@ import {
   einstellungsFormular,
   istOeffentlicheIpv4,
   type Manifest,
-  manifestPruefen,
   type OeffentlicherSchluessel,
   PFORTE_AKTIONEN,
   type PlatzBefund,
   type PlatzServer,
-  signaturPruefen,
   type Wert,
 } from "@steuerzentrale/manifest";
+import { versionAngeboten } from "@steuerzentrale/planung";
+import type { Db } from "../../db/oeffnen.ts";
 import { type Kontext, schreiben } from "../audit/index.ts";
 import {
   type AnlageFehler,
@@ -26,6 +25,8 @@ import type { Auftrag } from "../auftraege/lesen.ts";
 import { type AuftragDeps, zustellen } from "../auftraege/zustellen.ts";
 import { dnsFuerNeueInstallation } from "../dns/index.ts";
 import { betreiberWerteSchreiben } from "../einstellungen/betreiber.ts";
+import { kundeLesen } from "../kunden/index.ts";
+import { manifestLesen, sha256, signiertesManifestPruefen } from "../manifeste/index.ts";
 import {
   type GeheimeEinstellungen,
   geheimVerschluesseln,
@@ -44,8 +45,10 @@ import { autoWerteErzeugen, betreiberWerteFuer, installationsWerte, type Zufall 
 
 /*
  * Making an installation (BAULISTE.md Z-402; docs/plan.md, "Installationen in der Zentrale",
- * "Manifest beim Installieren", "Einrichtungsaufträge"): the uploaded manifest must carry a valid
- * signature of the key install.sh hands the agents; it must fit the server (placement with the
+ * "Manifeste in der Zentrale (Z-501)", "Einrichtungsaufträge"): app and version name an imported
+ * manifest (Z-501), offered to the customer (a pre-release only to an internal one) and still
+ * signed by the key install.sh hands the agents; the installation keeps its text. It must fit the
+ * server (placement with the
  * server's facts, the operator's required values included) and render with the installation's
  * values (`einrichtungAuftragPruefen`). Then, in one transaction with the audit log, the row with
  * its secrets encrypted, its ports, the operator's values the dialog added (Z-404), the job
@@ -61,9 +64,9 @@ export type InstallationsDeps = AuftragDeps & {
 export type NeueInstallation = {
   kundeId: string;
   serverId: string;
-  /** The manifest's exact text and its minisign signature (`.minisig`) */
-  manifest: string;
-  signatur: string;
+  /** App and version of an imported manifest (Z-501) */
+  app: string;
+  version: string;
   optionen: string[];
   host: string;
   /** Values of the level `installation`, by name */
@@ -73,6 +76,8 @@ export type NeueInstallation = {
 };
 
 export type InstallationsFehler =
+  | "kein_manifest"
+  | "nur_intern"
   | "signatur_ungueltig"
   | "manifest_ungueltig"
   | "kein_kunde"
@@ -93,20 +98,33 @@ export type InstallationAngelegt =
 
 type Fehler = Extract<InstallationAngelegt, { ok: false }>;
 
-export type ManifestGeprueft = { ok: true; manifest: Manifest } | Fehler;
+export type ManifestGewaehlt =
+  | { ok: true; manifest: Manifest; text: string; signatur: string }
+  | Fehler;
 
-/** The uploaded manifest, only with a valid signature over its exact bytes */
-export const hochgeladenesManifest = (
+/**
+ * The imported manifest of app and version, when it is offered to the customer (a pre-release only
+ * to an internal one, also by hand: docs/plan.md, "Interne Kunden und Vorabversionen (Z-501)") and
+ * its signature holds with the key the agents have now; it was checked on import, a changed key
+ * would only fail on the server
+ */
+export const gewaehltesManifest = (
+  db: Db,
   schluessel: OeffentlicherSchluessel,
-  text: string,
-  signatur: string,
-): ManifestGeprueft => {
-  const signiert = signaturPruefen(new TextEncoder().encode(text), signatur, schluessel);
-  if (!signiert.ok) return { ok: false, grund: "signatur_ungueltig", detail: signiert.grund };
-  const geprueft = manifestPruefen(text);
-  return geprueft.ok
-    ? geprueft
-    : { ok: false, grund: "manifest_ungueltig", detail: geprueft.fehler.join("; ") };
+  betreiberId: string,
+  wahl: { kundeId: string; app: string; version: string },
+): ManifestGewaehlt => {
+  const eintrag = manifestLesen(db, wahl.app, wahl.version);
+  if (!eintrag) return { ok: false, grund: "kein_manifest" };
+  const kunde = kundeLesen(db, betreiberId, wahl.kundeId);
+  if (!kunde) return { ok: false, grund: "kein_kunde" };
+  if (!versionAngeboten(eintrag.version, kunde.intern)) return { ok: false, grund: "nur_intern" };
+  const geprueft = signiertesManifestPruefen(schluessel, {
+    manifest: eintrag.text,
+    signatur: eintrag.signatur,
+  });
+  if (!geprueft.ok) return geprueft;
+  return { ok: true, manifest: geprueft.manifest, text: eintrag.text, signatur: eintrag.signatur };
 };
 
 /** The installation's host ports: HTTP on its own, the others as "<dienst>:<port>" */
@@ -119,6 +137,9 @@ const portsAus = (vergeben: Vergeben) => ({
 
 type Plan = {
   manifest: Manifest;
+  /** The manifest's exact text and signature, as imported */
+  text: string;
+  signatur: string;
   name: string;
   vergeben: Vergeben;
   einrichtung: Einrichtung;
@@ -134,9 +155,10 @@ type Plan = {
 const planen = (
   deps: InstallationsDeps,
   betreiberId: string,
-  m: Manifest,
+  gewaehlt: Extract<ManifestGewaehlt, { ok: true }>,
   neu: NeueInstallation,
 ): ({ ok: true } & Plan) | Fehler => {
+  const m = gewaehlt.manifest;
   const optionen = [...new Set(neu.optionen)];
   const platz = platzPruefen(deps, betreiberId, {
     ...neu,
@@ -185,7 +207,19 @@ const planen = (
     bisher: platz.betreiberGespeichert,
     neu: platz.betreiberNeu,
   };
-  return { ok: true, manifest: m, name, vergeben, einrichtung, offen, geheim, betreiber };
+  const { text, signatur } = gewaehlt;
+  return {
+    ok: true,
+    manifest: m,
+    text,
+    signatur,
+    name,
+    vergeben,
+    einrichtung,
+    offen,
+    geheim,
+    betreiber,
+  };
 };
 
 /** The setup job and, for an app with a route, the Pforte's job that waits for it */
@@ -198,8 +232,8 @@ const auftraegeVorbereiten = (
   const gemeinsam = {
     serverId: neu.serverId,
     installationId: plan.name,
-    manifest: neu.manifest,
-    signatur: neu.signatur,
+    manifest: plan.text,
+    signatur: plan.signatur,
   };
   const einrichten: Vorbereitet = auftragVorbereiten(deps, kontext, {
     ...gemeinsam,
@@ -238,9 +272,9 @@ const zeileAus = (kontext: Kontext, deps: InstallationsDeps, neu: NeueInstallati
     serverId: neu.serverId,
     app: plan.manifest.id,
     version: plan.manifest.version,
-    manifestHash: createHash("sha256").update(neu.manifest, "utf8").digest("hex"),
-    manifest: neu.manifest,
-    signatur: neu.signatur,
+    manifestHash: sha256(plan.text),
+    manifest: plan.text,
+    signatur: plan.signatur,
     host: neu.host,
     ipv4: i.ipv4,
     httpPort: i.httpPort,
@@ -263,9 +297,9 @@ export const installationAnlegen = (
   neu: NeueInstallation,
 ): InstallationAngelegt => {
   const { betreiberId } = kontext;
-  const geprueft = hochgeladenesManifest(schluessel, neu.manifest, neu.signatur);
-  if (!geprueft.ok) return geprueft;
-  const plan = planen(deps, betreiberId, geprueft.manifest, neu);
+  const gewaehlt = gewaehltesManifest(deps.db, schluessel, betreiberId, neu);
+  if (!gewaehlt.ok) return gewaehlt;
+  const plan = planen(deps, betreiberId, gewaehlt, neu);
   if (!plan.ok) return plan;
   const auftraege = auftraegeVorbereiten(deps, kontext, neu, plan);
   if (!auftraege.ok) return auftraege;

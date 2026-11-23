@@ -12,8 +12,8 @@ import {
   KENNWORT,
   LIZENZ,
   neueInstallation,
-  signiert,
   TEST_SCHLUESSEL,
+  type Testmanifest,
 } from "../../testhilfen/installationen.ts";
 import { type AuftragsMeldung, auftragMelden } from "../auftraege/melden.ts";
 import { offeneZustellen } from "../auftraege/zustellen.ts";
@@ -61,9 +61,10 @@ const allesErledigt = (u: U) => {
 };
 
 /** An installation set up and running, its route set; with what its agent got */
-const laufend = (u: U, teil: Parameters<typeof neueInstallation>[0] = {}) => {
-  const agent = u.bereit() as Nachricht[];
-  const a = installationAnlegen(u.deps, u.kontext("b1"), TEST_SCHLUESSEL, neueInstallation(teil));
+const laufend = (u: U, mit: Testmanifest = "probe") => {
+  const agent = u.bereit("b1", mit) as Nachricht[];
+  const wahl = u.manifest(mit);
+  const a = installationAnlegen(u.deps, u.kontext("b1"), TEST_SCHLUESSEL, neueInstallation(wahl));
   if (!a.ok) throw new Error(`${a.grund} ${a.detail ?? ""}`);
   allesErledigt(u);
   allesErledigt(u);
@@ -188,9 +189,8 @@ describe("configuring anew is refused", () => {
 
   it("in a freeze window of its manifest, and not outside it", () => {
     const u = installationsUmgebung();
-    const gesperrt = signiert("gesperrt");
     u.uhr.ms = Date.UTC(2027, 0, 13, 12);
-    const { i } = laufend(u, gesperrt);
+    const { i } = laufend(u, "gesperrt");
     u.uhr.ms = Date.UTC(2027, 1, 7, 9);
     expect(konfigurieren(u, i.installationId, { PROBE_TITEL: "A" })).toEqual({
       ok: false,
@@ -205,7 +205,7 @@ describe("configuring anew is refused", () => {
   it("when the agent connects only in a freeze window after the job was made outside it", () => {
     const u = installationsUmgebung();
     u.uhr.ms = Date.UTC(2027, 0, 13, 12);
-    const { i } = laufend(u, signiert("gesperrt"));
+    const { i } = laufend(u, "gesperrt");
     u.deps.verbindungen.trennen("b1", "s1", 1001, "test");
     u.uhr.ms = Date.UTC(2027, 1, 6, 12);
     const r = konfigurieren(u, i.installationId, { PROBE_TITEL: "A" });

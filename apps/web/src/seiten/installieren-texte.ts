@@ -25,6 +25,8 @@ const FEHLER: Record<string, () => string> = {
   sperrzeit: m.inst_fehler_sperrzeit,
   auftrag_offen: m.inst_fehler_auftrag_offen,
   kein_manifest: m.inst_fehler_kein_manifest,
+  nur_intern: m.inst_fehler_nur_intern,
+  version_vergeben: m.inst_fehler_version_vergeben,
   werte_unlesbar: m.inst_fehler_werte_unlesbar,
   einstellung_ungueltig: m.inst_fehler_einstellung_ungueltig,
   ungueltig: m.inst_fehler_ungueltig,

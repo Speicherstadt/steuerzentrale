@@ -33,8 +33,17 @@ sich sofort sperren. Der Agent meldet die Fakten seines Servers (CPU, RAM, Platt
 „Neustart nötig“, ausstehende Updates, Podman, Adressen, PTR, Ports, Port 25, Uhrzeit) alle 15
 Minuten, die Server-Seiten zeigen sie, und jede SSH-Anmeldung wird ein Ereignis.
 
+**Manifeste und Versionen:** ein signiertes Manifest kommt per Import in die Zentrale, auf der Seite
+„Apps“ (Inhaber und Technik, mit Grund) oder mit `steuerzentrale manifest importieren <pfad>`; die
+Zentrale prüft Signatur, Schema und Regeln, und eine importierte Version ändert sich nie. Alle 6
+Stunden und auf Knopfdruck fragt sie die Registries nach neuen Tags: eine neue Version ohne Manifest
+zeigt die Seite „Apps“ als „neue Version, Manifest fehlt“, eine dringende und eine Vorabversion sind
+markiert, ein Fehler der Registry wird ein Ereignis. Die Seite „Updates“ zeigt je Installation die
+Versionen, die sie bekommen kann; eine Vorabversion nur ein Kunde, den der Inhaber als intern markiert
+hat ([Manifeste und Versionen](docs/manifeste.md)).
+
 **Apps installieren:** im Dialog „App installieren“ (Installationen oder Kundenseite) wählt der
-Betreiber Kunde und Server, lädt das signierte Manifest mit seiner `.minisig` hoch, wählt die Optionen,
+Betreiber Kunde, Server, App und Version aus den importierten Manifesten, wählt die Optionen,
 füllt die Einstellungen der Installation aus dem Manifest aus und gibt Adresse und Grund an; die
 Platzierung zeigt bei jeder Änderung, ob die App passt, mit jedem Grund. Die Installationen-Seiten
 zeigen die Installationen der Zentrale mit Zustand und Aufträgen; eine gescheiterte Einrichtung lässt

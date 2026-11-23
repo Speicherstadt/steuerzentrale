@@ -9,6 +9,10 @@
  * `<registry>/<name>@sha256:… | Registry <registry>, Tag <tag>, abgefragt am <YYYY-MM-DD> | <platforms>`.
  */
 import { createHash } from "node:crypto";
+import { challengeLesen, tokenUrl } from "@steuerzentrale/manifest";
+
+// The bearer challenge and the token request are shared with the Zentrale's version query (Z-501)
+export { challengeLesen, tokenUrl };
 
 export type Referenz = { registry: string; name: string; tag: string };
 export type Quelle = { registry: string; tag: string; abgefragt_am: string };
@@ -50,28 +54,6 @@ export const apiBasis = (registry: string): string => {
   return host === "localhost" || host === "127.0.0.1"
     ? `http://${registry}`
     : `https://${registry}`;
-};
-
-/** realm and parameters of a `WWW-Authenticate: Bearer …` challenge, or null for any other */
-export const challengeLesen = (
-  kopf: string | null,
-): { realm: string; parameter: Record<string, string> } | null => {
-  if (!kopf || !/^Bearer\s/i.test(kopf)) return null;
-  const parameter: Record<string, string> = {};
-  for (const [, schluessel, wert] of kopf.slice(7).matchAll(/([a-z]+)="([^"]*)"/gi))
-    if (schluessel && wert !== undefined) parameter[schluessel.toLowerCase()] = wert;
-  const { realm, ...rest } = parameter;
-  return realm ? { realm, parameter: rest } : null;
-};
-
-export const tokenUrl = (
-  challenge: { realm: string; parameter: Record<string, string> },
-  name: string,
-): string => {
-  const url = new URL(challenge.realm);
-  if (challenge.parameter.service) url.searchParams.set("service", challenge.parameter.service);
-  url.searchParams.set("scope", challenge.parameter.scope ?? `repository:${name}:pull`);
-  return url.toString();
 };
 
 /** "os/arch" of each image in an index or manifest list; empty for a single manifest */

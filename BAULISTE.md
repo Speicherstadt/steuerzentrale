@@ -344,13 +344,17 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 6 – Updates
 
-- [ ] **Z-501 Versionen und Manifeste** – die Zentrale fragt die Registries nach Tags (Semver) und
+- [x] **Z-501 Versionen und Manifeste** – die Zentrale fragt die Registries nach Tags (Semver) und
   zeigt „neue Version, Manifest fehlt“, bis ein signiertes Manifest dieser Version importiert ist
   (Upload in der Oberfläche oder `zentrale manifest importieren <pfad>`); Vorabversionen nur für die
   Welle „intern“; Markierung `dringend` im Manifest.
   nach: Z-406
   Fertig, wenn: gegen die lokale Registry eine neue Version erkannt wird, ein Manifest ohne gültige
-  Signatur beim Import abgelehnt wird und eine Vorabversion nur intern erscheint.
+  Signatur beim Import abgelehnt wird und eine Vorabversion nur intern erscheint; dazu (Tests):
+  Import über die Oberfläche und über den Befehl; ein zweiter Import derselben Version mit anderem
+  Inhalt wird abgelehnt; der Dialog „App installieren“ installiert aus einem importierten Manifest
+  (Playwright); nur Inhaber und Technik importieren, nur Inhaber markieren einen Kunden als intern
+  (Test je Route); ein Fehler der Registry erzeugt ein Ereignis; „dringend“ steht an der Version.
 - [x] **Z-502 Wellen und Sperrzeiten** – reine Funktion in `packages/planung`: Installationen,
   Sperrzeiten, Wartungsfenster, Zeitpunkt → Plan. Zwei Wellen: „intern“ (unsere eigenen
   Installationen) und „alle“, 24 h nach „intern“ ohne Störung; „intern“ ohne eigene Installation

@@ -11,25 +11,23 @@ import {
 } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
 import { For, Show } from "solid-js";
-import {
-  alleSperrzeiten,
-  appVon,
-  installationenDer,
-  kundeVon,
-  sperrzeitAktiv,
-} from "../daten/ableitungen.ts";
+import { alleSperrzeiten, appVon, kundeVon, sperrzeitAktiv } from "../daten/ableitungen.ts";
 import { bestand, mitDemo } from "../daten/quelle.ts";
 import type { Bestand, Updateplan } from "../daten/typen.ts";
 import { nurVonHand, type WellenStand, type WellenZustand, wellen } from "../daten/wellen.ts";
 import { datum } from "../format/zeit.ts";
 import { welleName } from "../rahmen/texte.ts";
+import { Angebote, NeuInRegistry, UpdatesDerZentrale } from "../seiten/update-angebote.tsx";
 import { Balken } from "../teile/balken.tsx";
 import { Hinweisbox, Karte, KartenInhalt, KartenKopf, Seitenkopf } from "../teile/karte.tsx";
-import { NochNicht } from "../teile/kommt-noch.tsx";
 import { ZuInstallation, ZuServer } from "../teile/verweise.tsx";
 import { AppZeichen, Zustand } from "../teile/zeichen.tsx";
 
-/** New versions in waves (BAULISTE.md, Z-501 to Z-504): stage 1 has "intern" and "alle" */
+/**
+ * New versions in waves (BAULISTE.md, Z-501 to Z-504): stage 1 has "intern" and "alle". The
+ * versions each installation is offered and the registries' news come from the Zentrale (Z-501);
+ * waves and running updates are the demo's until Z-503
+ */
 
 const WELLENZUSTAND: Record<WellenZustand, { icon: IconNode; farbe: string; text: () => string }> =
   {
@@ -160,35 +158,6 @@ const VonHand = (props: { b: Bestand }) => (
   </Karte>
 );
 
-const Registry = (props: { b: Bestand }) => {
-  const neu = () => props.b.apps.filter((a) => a.ohneManifest);
-  return (
-    <Karte>
-      <KartenKopf titel={m.upd_registry()} text={m.upd_registry_text()} />
-      <KartenInhalt>
-        <ul class="grid gap-3">
-          <For
-            each={neu()}
-            fallback={<li class="text-muted-foreground">{m.uebersicht_keine_versionen()}</li>}
-          >
-            {(a) => (
-              <li class="flex flex-wrap items-center gap-2">
-                <AppZeichen app={a} />
-                <span class="font-mono text-xs">
-                  {a.version} → {a.ohneManifest}
-                </span>
-                <span class="text-xs text-muted-foreground">
-                  {m.upd_manifest_fehlt({ n: installationenDer(props.b, a.id).length })}
-                </span>
-              </li>
-            )}
-          </For>
-        </ul>
-      </KartenInhalt>
-    </Karte>
-  );
-};
-
 const Agent = (props: { b: Bestand }) => {
   const alt = () => props.b.server.filter((s) => s.agent.version !== props.b.agentVersion);
   return (
@@ -246,9 +215,10 @@ const UpdatesDemo = () => {
           </div>
         )}
       </For>
+      <Angebote />
       <div class="grid gap-4 lg:grid-cols-3">
         <VonHand b={b} />
-        <Registry b={b} />
+        <NeuInRegistry />
         <Agent b={b} />
       </div>
     </div>
@@ -256,18 +226,17 @@ const UpdatesDemo = () => {
 };
 
 /**
- * Signed in, nothing of the demo: the page waits for Z-503 (docs/plan.md, "Echte Daten (Z-406)")
+ * Signed in, nothing of the demo: the offers and the registries' news from the Zentrale; waves and
+ * running updates come with Z-503 (docs/plan.md, "Echte Daten (Z-406)")
  */
 const Updates = () => (
   <Show
     when={mitDemo()}
     fallback={
-      <NochNicht
-        titel={m.nav_updates()}
-        text={m.upd_text()}
-        punkt="Z-503"
-        hinweis={m.updates_spaeter()}
-      />
+      <div class="grid gap-4">
+        <Seitenkopf titel={m.nav_updates()} text={m.upd_text()} />
+        <UpdatesDerZentrale />
+      </div>
     }
   >
     <UpdatesDemo />

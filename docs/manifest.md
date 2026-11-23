@@ -23,7 +23,7 @@ Jede Meldung nennt das Feld und den Grund, z. B.
 | Feld | Inhalt |
 | --- | --- |
 | `schema` | immer `1` |
-| `id`, `version` | Name der App (Kleinbuchstaben, Ziffern, Bindestrich) und Version (`1.9.0`, Vorabversion mit `-…`) |
+| `id`, `version` | Name der App (Kleinbuchstaben, Ziffern, Bindestrich) und Version (`1.9.0`, Vorabversion mit `-…`; SemVer ohne führende Null, also nicht `01.9.0`) |
 | `lizenz`, `quelle` | Lizenz und URL des Quellcodes |
 | `container` | Container der App: `name`, `image` (nur per Digest, oder `{ noch_nicht_veroeffentlicht: … }`), `architektur` (übersteuert die der App), `braucht` (andere Container), `volumes` (`name`, `pfad`), `dateien` (Konfigurationsdateien: `pfad`, `inhalt`, nur lesbar eingehängt), `argv`, `env` (Namen aus `env`), `feste_env`, `ram_mb`. Im Netz der Installation ist jeder Container unter seinem `name` erreichbar |
 | `architektur` | `amd64`, `arm64` |

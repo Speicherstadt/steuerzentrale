@@ -177,5 +177,13 @@ export {
   type Quadlets,
   type Wert,
 } from "./quadlet/typen.ts";
+export {
+  type Challenge,
+  challengeLesen,
+  naechsteSeite,
+  type Repository,
+  repositoryAusImage,
+  tokenUrl,
+} from "./registry.ts";
 export { PFORTE_IMAGE, RESTIC_IMAGE, type SystemImage } from "./system.ts";
 export { schluesselVertrauen, TEST_SCHLUESSEL_ID, type Zweck } from "./vertrauen.ts";

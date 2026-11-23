@@ -70,6 +70,7 @@ nav:
       - Health und Zustand: zustand.md
       - Neustart, Log-Auszug, nur lesen: aktionen.md
       - Pforte: pforte.md
+      - Manifeste und Versionen: manifeste.md
       - Updates: updates.md
       - Backups: backups.md
   - Für App-Entwickler:

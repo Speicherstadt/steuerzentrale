@@ -11,6 +11,11 @@ Eine neue Version einer App erreicht die Installationen in Wellen. Den Plan rech
 Funktion (`packages/planung`) aus den Installationen, dem Update, dem Stand der Wellen und dem
 Zeitpunkt; alle Zeiten gelten in `Europe/Berlin`.
 
+Welche Versionen es gibt, sagen die importierten Manifeste und die Registries ([Manifeste und
+Versionen](manifeste.md)). Die Seite **Updates** zeigt je Installation die Versionen, die sie
+bekommen kann; eine Vorabversion nur eine Installation eines internen Kunden. Ausführen lassen sich
+Updates mit Z-503.
+
 ## Wellen
 
 | Welle | Wer | Wann |
@@ -18,8 +23,10 @@ Zeitpunkt; alle Zeiten gelten in `Europe/Berlin`.
 | intern | unsere eigenen Installationen jeder App | im nächsten Wartungsfenster |
 | alle | alle anderen Installationen | 24 Stunden, nachdem „intern“ ohne Störung fertig war, im nächsten Wartungsfenster |
 
-Gibt es von einer App keine eigene Installation, wartet „alle“ auf eine Freigabe von Hand: „intern“
-ohne Installation wäre kein Test. Eine Vorabversion erreicht nur „intern“.
+„Intern“ sind die Installationen der Kunden, die der Inhaber als intern markiert hat
+([Kunden](kunden.md)). Gibt es von einer App keine eigene Installation, wartet „alle“ auf eine
+Freigabe von Hand: „intern“ ohne Installation wäre kein Test. Eine Vorabversion erreicht nur
+„intern“.
 
 Eine **Störung** (Health innen oder außen länger als 5 Minuten rot oder eine Rückkehr nach einem
 Update) hält beide Wellen an, auch ein dringendes Update. Apps ohne Health (`health: keine`) werden

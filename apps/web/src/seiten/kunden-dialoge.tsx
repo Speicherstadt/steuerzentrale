@@ -294,3 +294,33 @@ export const KuendigungZuruecknehmen = (props: DialogProps & { kunde: Kunde; end
     </Show>
   </Dialog>
 );
+
+/**
+ * Our own customer, or no longer (Z-501): its installations form the wave "intern" and alone are
+ * offered pre-releases; only the owner sees the button
+ */
+export const KundeIntern = (props: DialogProps & { kunde: Kunde }) => (
+  <Dialog
+    open={props.open}
+    onClose={() => props.onClose()}
+    title={
+      props.kunde.intern
+        ? m.kunde_extern_titel({ name: props.kunde.name })
+        : m.kunde_intern_titel({ name: props.kunde.name })
+    }
+    description={props.kunde.intern ? m.kunde_extern_text() : m.kunde_intern_text()}
+  >
+    <Show when={props.open}>
+      <Formular
+        knopf={props.kunde.intern ? m.kunde_intern_aufheben() : m.kunde_intern_markieren()}
+        onClose={() => props.onClose()}
+        gespeichert={(k) => props.gespeichert(k)}
+        senden={(werte) =>
+          kundenQuelle().intern(props.kunde.id, !props.kunde.intern, werte.grund ?? "")
+        }
+      >
+        <GrundFeld platzhalter={m.kunde_grund_intern()} />
+      </Formular>
+    </Show>
+  </Dialog>
+);

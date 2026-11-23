@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { agentVerbinden } from "./hilfen/agent.ts";
-import { installationAnlegen, manifestDateien, neuerHost } from "./hilfen/installationen.ts";
+import { installationAnlegen, manifestImportieren, neuerHost } from "./hilfen/installationen.ts";
 import { kundeAnlegen } from "./hilfen/kunden.ts";
 
 test.use({ locale: "de-DE" });
@@ -12,25 +12,26 @@ const ohneBefund = async (page: Page) => {
 };
 
 // BAULISTE.md Z-402: the dialog "Installieren" against the real Zentrale with the first owner's
-// session (e2e/einrichtung.setup.ts): a signed manifest uploaded, the placement live, the
-// installation made with a reason. The stand-in agent (e2e/hilfen/agent.ts) runs no job, so the
+// session (e2e/einrichtung.setup.ts): app and version of an imported manifest chosen (Z-501), the
+// placement live, the installation made with a reason. The stand-in agent (e2e/hilfen/agent.ts) runs no job, so the
 // installation stays "wird eingerichtet"; the setup itself runs in CI (apps/agent).
 test.describe("installing", { tag: "@phone" }, () => {
   test("places an app live and lists the installation as being set up", async ({ page }) => {
     const kunde = await kundeAnlegen(page.request, "Kanzlei Nord");
     const agent = await agentVerbinden(page.request, "Gemeinsamer Server");
-    const dateien = manifestDateien();
+    await manifestImportieren(page.request);
     const host = neuerHost();
     try {
       await page.goto("/installationen");
       await page.getByRole("button", { name: "App installieren" }).click();
       const dialog = page.getByRole("dialog", { name: "App installieren" });
       await expect(dialog).toBeVisible();
-      await expect(dialog.getByText(/^Kunde, Server, Manifest und Signatur wählen/)).toBeVisible();
+      await expect(dialog.getByText(/^Kunde, Server, App und Version wählen/)).toBeVisible();
+      await expect(dialog.getByLabel("Manifest (manifest.yml)")).toHaveCount(0);
       await dialog.getByLabel("Kunde", { exact: true }).selectOption(kunde.id);
       await dialog.getByLabel("Server", { exact: true }).selectOption(agent.serverId);
-      await dialog.getByLabel("Manifest (manifest.yml)").setInputFiles(dateien.manifest);
-      await dialog.getByLabel("Signatur (manifest.yml.minisig)").setInputFiles(dateien.signatur);
+      await dialog.getByLabel("App", { exact: true }).selectOption("probe");
+      await dialog.getByLabel("Version", { exact: true }).selectOption("1.0.0");
       await expect(dialog.getByText("Manifest probe 1.0.0")).toBeVisible();
       const platzierung = dialog.getByTestId("platzierung");
       await expect(platzierung).toContainText("Passt");
@@ -72,14 +73,14 @@ test.describe("installing", { tag: "@phone" }, () => {
         return ((await sv.json()) as { agent: { zustand: string } }).agent.zustand;
       })
       .toBe("getrennt");
-    const dateien = manifestDateien();
+    await manifestImportieren(page.request);
     await page.goto(`/kunden/${kunde.id}`);
     await page.getByRole("button", { name: "App installieren" }).click();
     const dialog = page.getByRole("dialog", { name: "App installieren" });
     await expect(dialog.getByLabel("Kunde", { exact: true })).toHaveValue(kunde.id);
     await dialog.getByLabel("Server", { exact: true }).selectOption(agent.serverId);
-    await dialog.getByLabel("Manifest (manifest.yml)").setInputFiles(dateien.manifest);
-    await dialog.getByLabel("Signatur (manifest.yml.minisig)").setInputFiles(dateien.signatur);
+    await dialog.getByLabel("App", { exact: true }).selectOption("probe");
+    await dialog.getByLabel("Version", { exact: true }).selectOption("1.0.0");
     const platzierung = dialog.getByTestId("platzierung");
     await expect(platzierung).toContainText("Passt nicht");
     await expect(platzierung).toContainText("Der Agent des Servers ist nicht verbunden.");

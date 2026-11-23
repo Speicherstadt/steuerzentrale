@@ -13,7 +13,6 @@ import {
   KENNWORT,
   LIZENZ,
   neueInstallation,
-  signiert,
   TEST_SCHLUESSEL,
 } from "../../testhilfen/installationen.ts";
 import { schreiben } from "../audit/index.ts";
@@ -22,8 +21,8 @@ import { offeneZustellen } from "../auftraege/zustellen.ts";
 import { installationAnlegen } from "./anlegen.ts";
 
 /*
- * BAULISTE.md Z-402, the Zentrale's side: an installation is made from a signed manifest that fits
- * its server, with its name, ports and generated values, and the setup job with the route of the
+ * BAULISTE.md Z-402, the Zentrale's side: an installation is made from an imported, signed
+ * manifest (Z-501) that is offered to its customer and fits its server, with its name, ports and generated values, and the setup job with the route of the
  * Pforte waiting for it, in one transaction with the audit log; no secret in plain text anywhere
  * but in the job the agent gets.
  */
@@ -232,7 +231,8 @@ describe("a new installation", () => {
   it("has no route in the Pforte when the app brings its own proxy", () => {
     const u = installationsUmgebung();
     u.bereit();
-    const i = angelegt(u, { ...signiert("stumm"), einstellungen: {} });
+    u.manifest("stumm");
+    const i = angelegt(u, { app: "stumm", einstellungen: {} });
     expect(jobs(u).map((a) => [a.installationId, a.aktion])).toEqual([
       [i.installationId, EINRICHTUNG_AKTIONEN.einrichten],
     ]);
@@ -247,13 +247,39 @@ describe("a new installation is refused, and nothing is written", () => {
   };
 
   it.each([
-    ["a manifest changed by one byte", { manifest: `${signiert("probe").manifest} ` }],
-    ["the signature of another manifest", { signatur: signiert("stumm").signatur }],
-    ["no signature", { signatur: "kein minisign" }],
-  ])("with %s", (_fall, teil) => {
+    ["a version without an imported manifest", { version: "1.1.0" }],
+    ["an app without one", { app: "stumm" }],
+  ])("for %s", (_fall, teil) => {
     const u = installationsUmgebung();
     u.bereit();
-    expect(anlegen(u, teil)).toMatchObject({ ok: false, grund: "signatur_ungueltig" });
+    expect(anlegen(u, teil)).toEqual({ ok: false, grund: "kein_manifest" });
+    nichtsGeschrieben(u);
+  });
+
+  // docs/plan.md, "Interne Kunden und Vorabversionen (Z-501)": not even by hand
+  it("for a pre-release, unless the customer is internal", () => {
+    const u = installationsUmgebung();
+    u.bereit();
+    u.manifest("probe-2.0.0-rc.1");
+    const vorab = { version: "2.0.0-rc.1" };
+    expect(anlegen(u, vorab)).toEqual({ ok: false, grund: "nur_intern" });
+    nichtsGeschrieben(u);
+    schreiben(u.schreibDb, u.kontext("b1"), "test", (w) =>
+      w.aendern("kunden", { kundeId: "k1" }, { intern: true }),
+    );
+    expect(anlegen(u, vorab)).toMatchObject({ ok: true, installation: { version: "2.0.0-rc.1" } });
+  });
+
+  it("when the imported manifest's signature does not hold with the agents' key now", () => {
+    const u = installationsUmgebung();
+    u.bereit();
+    const anderer = {
+      id: TEST_SCHLUESSEL.id,
+      schluessel: TEST_SCHLUESSEL.schluessel.map((b) => b ^ 1),
+    };
+    expect(installationAnlegen(u.deps, u.kontext("b1"), anderer, neueInstallation())).toMatchObject(
+      { ok: false, grund: "signatur_ungueltig" },
+    );
     nichtsGeschrieben(u);
   });
 
@@ -274,6 +300,7 @@ describe("a new installation is refused, and nothing is written", () => {
     u.betreiber("b1", "s1");
     u.kunde("b1", "k1");
     u.betreiberWert("b1", "probe", "PROBE_LIZENZ", LIZENZ, true);
+    u.manifest("probe");
     expect(anlegen(u)).toMatchObject({
       grund: "passt_nicht",
       gruende: [{ code: "fakten_fehlen" }],
@@ -292,6 +319,7 @@ describe("a new installation is refused, and nothing is written", () => {
     u.kunde("b1", "k1");
     u.fakten("b1", "s1");
     u.verbinden("b1", "s1");
+    u.manifest("probe");
     expect(anlegen(u)).toMatchObject({
       ok: false,
       grund: "passt_nicht",

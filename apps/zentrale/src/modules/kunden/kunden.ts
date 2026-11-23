@@ -22,6 +22,8 @@ export type Kunde = {
   kuerzel: string;
   /** False while an installation of the customer runs or is being set up (Z-407) */
   kuerzelAenderbar: boolean;
+  /** Our own customer: its installations are the wave "intern", offered pre-releases (Z-501) */
+  intern: boolean;
   angelegtAm: number;
   vertrag: { sla: Sla; beginn: number; ende: number | null };
 };
@@ -47,6 +49,7 @@ const SPALTEN = {
   kontaktTelefon: kunden.kontaktTelefon,
   notiz: kunden.notiz,
   kuerzel: kunden.kuerzel,
+  intern: kunden.intern,
   angelegtAm: kunden.angelegtAm,
   vertragId: vertraege.vertragId,
   sla: vertraege.sla,
@@ -74,6 +77,7 @@ const alsKunde =
     notiz: z.notiz,
     kuerzel: z.kuerzel,
     kuerzelAenderbar: !fest.has(z.id),
+    intern: z.intern,
     angelegtAm: z.angelegtAm,
     vertrag: { sla: z.sla, beginn: z.beginn, ende: z.ende },
   });
@@ -207,6 +211,26 @@ export const vertragsendeSetzen = (
       kontext,
       ende === null ? "vertrag.zuruecknehmen" : "vertrag.kuendigen",
       (s) => s.aendern("vertraege", { vertragId: alt.vertragId }, { ende }),
+    );
+  return gelesen(db, kontext, kundeId);
+};
+
+/**
+ * Marks the customer as our own or takes the mark back (Z-501; docs/plan.md, "Interne Kunden und
+ * Vorabversionen (Z-501)"); the route lets only the owner do it. Unchanged, no audit entry
+ */
+export const internSetzen = (
+  db: Db,
+  schreibDb: SchreibDb,
+  kontext: Kontext,
+  kundeId: string,
+  intern: boolean,
+): Ergebnis => {
+  const alt = zeileVon(db, kontext.betreiberId, kundeId);
+  if (!alt) return { ok: false, grund: "kein_kunde" };
+  if (alt.intern !== intern)
+    schreiben(schreibDb, kontext, intern ? "kunde.intern" : "kunde.nicht-intern", (s) =>
+      s.aendern("kunden", { kundeId }, { intern }),
     );
   return gelesen(db, kontext, kundeId);
 };

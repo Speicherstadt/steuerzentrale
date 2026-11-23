@@ -62,6 +62,8 @@ export const ROUTEN = {
   "PUT /api/v1/kunden/:kundeId": recht("kunden:schreiben"),
   "PUT /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
   "DELETE /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
+  // Z-501: our own customers, offered pre-releases; only the owner marks one
+  "PUT /api/v1/kunden/:kundeId/intern": recht("kunden:intern"),
   "GET /api/v1/server": recht("server:lesen"),
   "GET /api/v1/server/:serverId": recht("server:lesen"),
   "POST /api/v1/server": recht("server:anlegen"),
@@ -103,6 +105,13 @@ export const ROUTEN = {
   "POST /api/v1/installationen/:installationId/pruef-restore": recht("backups:schreiben"),
   // Z-603: restoring a run, with the backup of the current state before it
   "POST /api/v1/installationen/:installationId/wiederherstellen": recht("backups:schreiben"),
+  // manifests and versions (Z-501): every role reads them and what each installation is offered;
+  // owner and technik import a signed manifest and ask the registries now
+  "GET /api/v1/apps": recht("manifeste:lesen"),
+  "GET /api/v1/manifeste/:app/:version": recht("manifeste:lesen"),
+  "POST /api/v1/manifeste": recht("manifeste:importieren"),
+  "POST /api/v1/versionen/abfragen": recht("manifeste:abfragen"),
+  "GET /api/v1/updates": recht("installationen:lesen"),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,

@@ -11,7 +11,7 @@ import {
 
 /*
  * The tables of the Zentrale. Every table with data of an operator carries `betreiber_id`
- * (docs/plan.md, "Mandanten"); exempt are only manifests and Better Auth's tables (later items) and
+ * (docs/plan.md, "Mandanten"); exempt are only manifests (schema-manifeste.ts) and Better Auth's tables and
  * the migrations' own bookkeeping (src/db/migrieren.ts). Instants are UTC milliseconds.
  */
 
@@ -196,6 +196,9 @@ export const kunden = sqliteTable(
     kontaktTelefon: text("kontakt_telefon"),
     notiz: text("notiz"),
     kuerzel: text("kuerzel").notNull(),
+    // Our own customer (Z-501): its installations form the wave "intern" and alone are offered a
+    // pre-release; only the owner sets it, with a reason
+    intern: integer("intern", { mode: "boolean" }).notNull().default(false),
     angelegtAm: integer("angelegt_am").notNull(),
   },
   (t) => [
@@ -318,3 +321,5 @@ export const auftraege = sqliteTable(
 export * from "./schema-backups.ts";
 // Installations, their ports and the operator's app settings (Z-402), in a file of their own
 export * from "./schema-installationen.ts";
+// The imported manifests, for every operator (Z-501)
+export * from "./schema-manifeste.ts";

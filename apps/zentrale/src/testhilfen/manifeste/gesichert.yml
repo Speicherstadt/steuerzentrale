@@ -1,9 +1,10 @@
 # Test manifest for backups (Z-601), signed with the public test key (test/schluessel/):
-# minisign -S -s test/schluessel/test.key -m gesichert.yml -t "probe 1.0.0 gesichert (test key)"
+# signed by scripts/minisign.ts with test/schluessel/test.key, trusted comment "probe 1.0.3 gesichert (test key)"
+# Version 1.0.3: an imported version has one text (Z-501), so each variant has its own.
 # The manifest probe.yml with two parts to back up: its volume and the output of a command.
 schema: 1
 id: probe
-version: 1.0.0
+version: 1.0.3
 lizenz: AGPL-3.0-only
 quelle: https://example.org/probe
 container:

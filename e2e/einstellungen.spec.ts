@@ -4,7 +4,7 @@ import { type APIRequestContext, expect, type Page, test } from "@playwright/tes
 import { agentVerbinden } from "./hilfen/agent.ts";
 import {
   installationAnlegen,
-  manifestDateien,
+  manifestImportieren,
   mitBetreiberwert,
   neuerHost,
 } from "./hilfen/installationen.ts";
@@ -39,15 +39,15 @@ test.describe("settings", { tag: "@phone" }, () => {
     const app = neueApp();
     const kunde = await kundeAnlegen(page.request, "Kanzlei West");
     const agent = await agentVerbinden(page.request, "Gemeinsamer Server");
-    const dateien = manifestDateien(mitBetreiberwert(app));
+    await manifestImportieren(page.request, mitBetreiberwert(app));
     try {
       await page.goto("/installationen");
       await page.getByRole("button", { name: "App installieren" }).click();
       const dialog = page.getByRole("dialog", { name: "App installieren" });
       await dialog.getByLabel("Kunde", { exact: true }).selectOption(kunde.id);
       await dialog.getByLabel("Server", { exact: true }).selectOption(agent.serverId);
-      await dialog.getByLabel("Manifest (manifest.yml)").setInputFiles(dateien.manifest);
-      await dialog.getByLabel("Signatur (manifest.yml.minisig)").setInputFiles(dateien.signatur);
+      await dialog.getByLabel("App", { exact: true }).selectOption(app);
+      await dialog.getByLabel("Version", { exact: true }).selectOption("1.0.0");
       await expect(dialog.getByTestId("platzierung")).toContainText("PROBE_LIZENZ");
       await expect(dialog.getByText("Fehlende Werte des Betreibers")).toBeVisible();
       await dialog.getByLabel("PROBE_LIZENZ").fill("lizenz-aus-dem-dialog");

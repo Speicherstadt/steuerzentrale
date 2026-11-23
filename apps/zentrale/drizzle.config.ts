@@ -8,6 +8,7 @@ export default defineConfig({
     "./src/db/schema.ts",
     "./src/db/schema-installationen.ts",
     "./src/db/schema-backups.ts",
+    "./src/db/schema-manifeste.ts",
     "./src/db/auth-schema.ts",
   ],
   out: "./drizzle",

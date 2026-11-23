@@ -1,5 +1,6 @@
 export {
   type Ergebnis,
+  internSetzen,
   type Kunde,
   kundeAendern,
   kundeAnlegen,

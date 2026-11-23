@@ -28,6 +28,15 @@ export {
   type Wartungsfenster,
 } from "./fenster.ts";
 export {
+  type AngeboteneVersion,
+  angeboteneVersionen,
+  istVorabversion,
+  type ManifestVersion,
+  tagAlsVersion,
+  versionAngeboten,
+  versionVergleichen,
+} from "./versionen.ts";
+export {
   type Planeintrag,
   type PlanInstallation,
   type PlanUpdate,

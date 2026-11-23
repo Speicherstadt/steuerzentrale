@@ -8,8 +8,8 @@ import type { Server } from "../modules/server/index.ts";
 import {
   installationsUmgebung,
   neueInstallation,
-  signiert,
   TEST_SCHLUESSEL,
+  type Testmanifest,
 } from "./installationen.ts";
 import { TEST_ADMIN } from "./minio.ts";
 
@@ -25,7 +25,7 @@ type Nachbau = { url: string; region: string };
 
 export const backupUmgebung = (minio: Nachbau, betreiberId = "b1") => {
   const u = installationsUmgebung();
-  const agent = u.bereit(betreiberId);
+  const agent = u.bereit(betreiberId, null);
   const deps: BackupDeps = { ...u.deps, fetch };
 
   const zielSetzen = (b = betreiberId, zugang: typeof TEST_ADMIN | undefined = TEST_ADMIN) =>
@@ -59,10 +59,14 @@ export const backupUmgebung = (minio: Nachbau, betreiberId = "b1") => {
       .filter((a) => a.installationId === installationId && a.aktion === aktion)
       .at(-1);
 
-  /** An installation of `gesichert` whose setup succeeded */
-  const laufend = (teil: Partial<NeueInstallation> = {}, b = betreiberId) => {
+  /** An installation of `gesichert` (or `mit`) whose setup succeeded */
+  const laufend = (
+    mit: Testmanifest = "gesichert",
+    teil: Partial<NeueInstallation> = {},
+    b = betreiberId,
+  ) => {
     const host = `${crypto.randomUUID().slice(0, 8)}.kunde.example`;
-    const neu = neueInstallation({ host, ...signiert("gesichert"), ...teil });
+    const neu = neueInstallation({ host, ...u.manifest(mit, b), ...teil });
     const a = installationAnlegen(u.deps, u.kontext(b), TEST_SCHLUESSEL, neu);
     if (!a.ok) throw new Error(`${a.grund} ${a.detail ?? ""}`);
     const id = a.installation.installationId;

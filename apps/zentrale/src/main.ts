@@ -15,10 +15,12 @@ import { backupSchleife } from "./modules/backups/index.ts";
 import { bewertungsSchleife } from "./modules/bewertung/index.ts";
 import { dnsSchleife } from "./modules/dns/index.ts";
 import { rotieren } from "./modules/geheim/index.ts";
+import { befehlImportieren, manifesteUebernehmen } from "./modules/manifeste/index.ts";
 import { pruefRestoreSchleife } from "./modules/pruef-restore/index.ts";
 import { auslieferung } from "./modules/server/index.ts";
 import { stilleSchleife } from "./modules/verbindung/stille.ts";
 import { verbindungen } from "./modules/verbindung/verbindungen.ts";
+import { versionen, versionsSchleife } from "./modules/versionen/index.ts";
 
 const log = (line: string) => console.log(line);
 
@@ -75,6 +77,25 @@ if (process.argv[2] === "schluessel-rotieren") {
   }
 }
 
+// `steuerzentrale manifest importieren <pfad>` (Z-501): `<pfad>` and `<pfad>.minisig`, checked with
+// the key in STEUERZENTRALE_AGENT_DATEIEN like an upload; the same text again changes nothing
+if (process.argv[2] === "manifest" && process.argv[3] === "importieren") {
+  const pfad = process.argv[4];
+  if (!pfad) {
+    console.error(JSON.stringify({ msg: "usage: steuerzentrale manifest importieren <pfad>" }));
+    process.exit(2);
+  }
+  const schluessel = await auslieferung(env.agentDateien, env.agentUrl).manifestSchluessel();
+  const r = befehlImportieren(datenbank, schluessel, pfad, Date.now());
+  if (r.ok) {
+    const { app, version } = r.eintrag;
+    log(JSON.stringify({ msg: r.neu ? "manifest imported" : "manifest unchanged", app, version }));
+    process.exit(0);
+  }
+  console.error(JSON.stringify({ msg: "manifest refused", grund: r.grund, detail: r.detail }));
+  process.exit(1);
+}
+
 const { db, schreibDb } = datenbank;
 const planen = (lauf: () => void, ms: number) => {
   setInterval(lauf, ms);
@@ -126,6 +147,24 @@ pruefRestoreSchleife(
   },
   planen,
 );
+// The manifests of installations made before Z-501 go into `manifeste` where a version is missing
+const ausgeliefert = auslieferung(env.agentDateien, env.agentUrl);
+const manifestSchluessel = await ausgeliefert.manifestSchluessel();
+if (manifestSchluessel) {
+  const uebernahme = manifesteUebernehmen(datenbank, manifestSchluessel, Date.now());
+  if (uebernahme.uebernommen > 0 || uebernahme.abgelehnt.length > 0)
+    log(JSON.stringify({ msg: "manifests of installations taken over", ...uebernahme }));
+}
+// New versions from the registries (Z-501): at the start, then every 6 hours and on demand
+const neueVersionen = versionen({
+  db,
+  schreibDb,
+  fetch,
+  umleitung: env.registryHttp,
+  now: Date.now,
+  log,
+});
+versionsSchleife(neueVersionen, planen, log);
 const auth = createAuth({ schreibDb, url: env.url, geheimnis: datenbank.anmeldeGeheimnis });
 const app = createApp({
   log,
@@ -137,11 +176,12 @@ const app = createApp({
   url: env.url,
   schluessel: env.schluessel,
   agentUrl: env.agentUrl,
-  auslieferung: auslieferung(env.agentDateien, env.agentUrl),
+  auslieferung: ausgeliefert,
   socketAdresse: (request, server) => (server as Server<unknown>).requestIP(request)?.address,
   verbindungen: agenten,
   dnsAnstossen: dns.anstossen,
   backupAnstossen: backup.anstossen,
+  versionen: neueVersionen,
 });
 // `websocket` carries the agents' connections (src/routes/verbindung.ts)
 const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch, websocket });

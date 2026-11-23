@@ -18,6 +18,9 @@ export const apiRolle: RollenQuelle = async () => {
 export const darfInstallieren = (rolle: Rolle): boolean =>
   rolle === "inhaber" || rolle === "technik";
 
+/** Only the owner marks a customer as internal (Z-501) */
+export const darfInternMarkieren = (rolle: Rolle): boolean => rolle === "inhaber";
+
 let quelle: RollenQuelle = async () => ({ ok: true, status: 200, daten: demo.konto.rolle });
 
 export const rolleLesen = (): Promise<Antwort<Rolle>> => quelle();

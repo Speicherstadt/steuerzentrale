@@ -8,6 +8,7 @@ import { testDatenbank } from "../db/test-db.ts";
 import { einrichtungscodeErzeugen } from "../modules/anmeldung/einrichtungscode.ts";
 import { auslieferung } from "../modules/server/index.ts";
 import { verbindungen } from "../modules/verbindung/verbindungen.ts";
+import { versionen } from "../modules/versionen/index.ts";
 import { betreiberEinrichten } from "../routes/erster-inhaber.ts";
 import { TEST_AGENT_URL, testAgentDateien } from "./agent-dateien.ts";
 import { authenticator } from "./authenticator.ts";
@@ -39,8 +40,16 @@ export const passkeyEinrichten = async (b: Browser) => {
   return geraet;
 };
 
+/** No test reaches a real registry; one that asks them gives the stand-in (testhilfen/registry.ts) */
+const ohneNetz = (async () => {
+  throw new Error("no network in tests");
+}) as unknown as typeof fetch;
+
 /** A Zentrale on a fresh test database with Better Auth */
-const kern = (aufraeumen: (fn: () => void) => void = onTestFinished) => {
+const kern = (
+  aufraeumen: (fn: () => void) => void = onTestFinished,
+  registry: { fetch: typeof fetch; umleitung?: string } = { fetch: ohneNetz },
+) => {
   const uhr = { ms: 1_800_000_000_000 };
   const jetzt = () => uhr.ms;
   const datenbank = testDatenbank(undefined, aufraeumen);
@@ -67,6 +76,13 @@ const kern = (aufraeumen: (fn: () => void) => void = onTestFinished) => {
       request.headers.get(SOCKET_HEADER) ??
       (env as Server<unknown> | undefined)?.requestIP?.(request)?.address,
     verbindungen: verbindungen(TRENNUNG.ersetzt),
+    versionen: versionen({
+      db: datenbank.db,
+      schreibDb: datenbank.schreibDb,
+      now: jetzt,
+      log: (zeile) => log.push(zeile),
+      ...registry,
+    }),
   };
   const app = createApp(deps);
   return {
@@ -151,8 +167,11 @@ const personen = (k: Kern) => {
  * A Zentrale on a fresh test database with Better Auth, and people who act over HTTP as a browser
  * would (cookies kept between calls), after Speicherstadt/soll, apps/server/src/test-server.ts
  */
-export const testServer = (aufraeumen?: (fn: () => void) => void) => {
-  const k = kern(aufraeumen);
+export const testServer = (
+  aufraeumen?: (fn: () => void) => void,
+  registry?: { fetch: typeof fetch; umleitung?: string },
+) => {
+  const k = kern(aufraeumen, registry);
   return {
     ...k,
     ...personen(k),

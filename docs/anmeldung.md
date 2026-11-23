@@ -68,6 +68,9 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 | einladen, Rollen ändern, Mitglieder entfernen | ja | – | – |
 | Kunden und Verträge sehen | ja | ja | ja |
 | Kunden anlegen, ändern, kündigen | ja | ja | – |
+| Kunden als intern markieren | ja | – | – |
+| Apps, Versionen und Manifeste sehen | ja | ja | ja |
+| Manifest importieren, Registry abfragen | ja | ja | – |
 | Server hinzufügen | ja | ja | – |
 | Installationen und Platzierung sehen | ja | ja | ja |
 | Installationen anlegen, gescheiterte entfernen | ja | ja | – |
@@ -100,6 +103,9 @@ oder geändert hat.
 | `GET`, `POST /api/v1/einladungen`, `DELETE …/:einladungId` | Inhaber |
 | `GET /api/v1/kunden`, `GET …/:kundeId` | alle Rollen ([Kunden und Verträge](kunden.md)) |
 | `POST /api/v1/kunden`, `PUT …/:kundeId`, `PUT`, `DELETE …/:kundeId/kuendigung` | Inhaber, Technik |
+| `PUT /api/v1/kunden/:kundeId/intern` | Inhaber |
+| `GET /api/v1/apps`, `GET /api/v1/manifeste/:app/:version`, `GET /api/v1/updates` | alle Rollen ([Manifeste und Versionen](manifeste.md)) |
+| `POST /api/v1/manifeste`, `POST /api/v1/versionen/abfragen` | Inhaber, Technik |
 | `GET /api/v1/installationen`, `GET …/:installationId`, `POST …/platzierung` | alle Rollen ([Apps installieren](installieren.md)) |
 | `POST /api/v1/installationen`, `DELETE …/:installationId` | Inhaber, Technik |
 

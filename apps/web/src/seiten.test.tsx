@@ -102,9 +102,9 @@ describe("pages", () => {
     expect(schweren).toEqual([...schweren].sort((a, b) => a - b));
   });
 
-  it("show all eight apps on the apps page", async () => {
+  it("show all eight apps on the apps page, and an app only imported (Z-501)", async () => {
     const root = await oeffne("/apps");
-    const namen = [...root.querySelectorAll("main h2")].map((h) => h.textContent);
+    const namen = [...root.querySelectorAll("main section h2")].map((h) => h.textContent);
     expect(namen).toEqual([
       "Haben",
       "Belegt",
@@ -114,6 +114,7 @@ describe("pages", () => {
       "Fixpunkt",
       "Kennwort",
       "Soll",
+      "probe",
     ]);
     expect(root.textContent).toContain("Haben#947");
   });
