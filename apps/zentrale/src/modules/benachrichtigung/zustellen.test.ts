@@ -311,3 +311,66 @@ describe("which events reach whom", () => {
     );
   });
 });
+
+describe("held deliveries", () => {
+  /** Webhooks that always arrive, noted by the event's type */
+  const gezaehlt = () => {
+    const gesendet: string[] = [];
+    const versand = {
+      mail: async () => ({ ok: true as const }),
+      webhook: async (_ziel: unknown, n: { body: string }) => {
+        gesendet.push(JSON.parse(n.body).ereignis.art);
+        return { ok: true as const };
+      },
+    };
+    return { gesendet, versand };
+  };
+  const HOOK = { art: "webhook", url: "https://hooks.example/a", schluessel: SCHLUESSEL } as const;
+  // 23:00 in Berlin on 23 November (UTC+1), inside quiet hours 22:00–07:00
+  const NACHTS = Date.UTC(2026, 10, 23, 22);
+  const warnungen = (u: ReturnType<typeof benachrichtigungsUmgebung>, n: number) => {
+    for (let i = 0; i < n; i++)
+      ereignisSchreiben(u.schreibDb, "b1", {
+        zeitpunkt: u.uhr.ms,
+        art: "warnung",
+        schwere: "warn",
+      });
+  };
+
+  it("do not keep a fault from going out in quiet hours", async () => {
+    const { gesendet, versand } = gezaehlt();
+    const u = benachrichtigungsUmgebung(versand);
+    u.einstellen("b1", { smtp: null, ruhezeit: { von: "22:00", bis: "07:00" } });
+    u.uhr.ms = NACHTS;
+    u.empfaenger("b1", { ...HOOK, abSchwere: "info" });
+    warnungen(u, 120);
+    expect(await u.lauf()).toMatchObject({ angelegt: 120, zugestellt: 0 });
+    u.uhr.ms += MIN;
+    ereignisSchreiben(u.schreibDb, "b1", {
+      zeitpunkt: u.uhr.ms,
+      art: "stoerung",
+      schwere: "fehler",
+    });
+    await u.lauf();
+    expect(gesendet).toEqual(["stoerung"]);
+  });
+
+  it("of one operator do not keep another operator's messages back", async () => {
+    const { gesendet, versand } = gezaehlt();
+    const u = benachrichtigungsUmgebung(versand);
+    u.einstellen("b1", { smtp: null, ruhezeit: { von: "22:00", bis: "07:00" } });
+    u.uhr.ms = NACHTS;
+    u.empfaenger("b1", { ...HOOK, abSchwere: "info" });
+    u.empfaenger("b2", { ...HOOK, abSchwere: "info" });
+    warnungen(u, 120);
+    await u.lauf();
+    u.uhr.ms += MIN;
+    ereignisSchreiben(u.schreibDb, "b2", {
+      zeitpunkt: u.uhr.ms,
+      art: "b2_warnung",
+      schwere: "warn",
+    });
+    await u.lauf();
+    expect(gesendet).toEqual(["b2_warnung"]);
+  });
+});
