@@ -1,4 +1,13 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
@@ -132,6 +141,33 @@ describe("restoring the Zentrale", () => {
     const r = wiederherstellen(datei, daten, oeffnen(bund));
     expect(r.ok).toBe(false);
     expect(existsSync(join(daten, DATEI))).toBe(false);
+  });
+
+  it("does not replace a database that appears in the data directory while it restores", async () => {
+    const { offen } = await mitBestand();
+    const datei = join(neuerOrdner(), "zentrale.sicherung.db");
+    sichern(offen, datei);
+    const daten = join(neuerOrdner(), "daten");
+    // e.g. the service started meanwhile and made its empty database
+    const r = wiederherstellen(datei, daten, (pfad) => {
+      const geoeffnet = oeffnen(bund)(pfad);
+      writeFileSync(join(daten, DATEI), "bestand");
+      return geoeffnet;
+    });
+    expect(r).toEqual({ ok: false, grund: expect.stringContaining("already holds a database") });
+    expect(readFileSync(join(daten, DATEI), "utf8")).toBe("bestand");
+    expect(existsSync(join(daten, `${DATEI}.wiederherstellen`))).toBe(false);
+  });
+
+  it("refuses a data directory whose database is a link, even one pointing nowhere", async () => {
+    const { offen } = await mitBestand();
+    const datei = join(neuerOrdner(), "zentrale.sicherung.db");
+    sichern(offen, datei);
+    const daten = neuerOrdner();
+    symlinkSync(join(daten, "anderswo.db"), join(daten, DATEI));
+    const r = wiederherstellen(datei, daten, oeffnen(bund));
+    expect(r).toEqual({ ok: false, grund: expect.stringContaining("already holds a database") });
+    expect(lstatSync(join(daten, DATEI)).isSymbolicLink()).toBe(true);
   });
 
   it("refuses a backup that is not there", () => {
