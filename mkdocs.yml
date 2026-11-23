@@ -66,6 +66,7 @@ nav:
       - Apps installieren: installieren.md
       - Einstellungen: einstellungen.md
       - Health und Zustand: zustand.md
+      - Neustart, Log-Auszug, nur lesen: aktionen.md
       - Pforte: pforte.md
       - Updates: updates.md
   - Für App-Entwickler:

@@ -19,7 +19,7 @@ import {
   serverLesen,
   zertifikatRotieren,
 } from "../server/index.ts";
-import { auftragsEingang } from "./auftraege.ts";
+import { auftragsEingang, logAuszugEingang } from "./auftraege.ts";
 import { eimer, mindestabstand } from "./eimer.ts";
 import { faktenSpeichern, sshAnmeldungSchreiben } from "./meldungen.ts";
 import type { Sockel, Verbindungen } from "./verbindungen.ts";
@@ -31,7 +31,8 @@ import type { Sockel, Verbindungen } from "./verbindungen.ts";
  * Zentrale cannot read, or anything before `hallo`, ends the connection. Facts and SSH logins
  * (Z-304) are kept (meldungen.ts), the state of the installations is rated (Z-403,
  * src/modules/bewertung). After `willkommen` the agent gets its open jobs, and its reports
- * about them move them on (Z-305, src/modules/auftraege); log excerpts are left for Z-405.
+ * about them move them on (Z-305, src/modules/auftraege); the lines of a log excerpt are kept for
+ * a log job of this server (Z-405, auftraege/log-auszug.ts), any other dropped and logged.
  */
 export type SitzungDeps = BeitrittDeps & {
   verbindungen: Verbindungen;
@@ -118,6 +119,7 @@ export const sitzung = (
   };
 
   const auftrag = auftragsEingang(deps, () => server);
+  const logAuszug = logAuszugEingang(deps, () => server);
 
   const rotieren = async (csr: string, s: Sockel) => {
     const aktuell = serverLesen(deps.db, betreiberId, serverId);
@@ -164,6 +166,7 @@ export const sitzung = (
       if (n.typ === "zertifikat_anfrage") return rotieren(n.csr, s);
       if (n.typ === "bestaetigt" || n.typ === "fortschritt" || n.typ === "ergebnis")
         return auftrag(n, jetzt);
+      if (n.typ === "log_auszug") return logAuszug(n, jetzt);
       if (n.typ === "fakten")
         return faktenErlaubt(jetzt) ? faktenSpeichern(deps.schreibDb, server, n, jetzt) : undefined;
       if (n.typ === "zustand")

@@ -92,6 +92,7 @@ export const installationenAuf = (sys: TestSystem): AuftraegeDeps["installatione
   haus: sys.haus,
   nutzer: sys.nutzerLesen,
   lesen: sys.lesen,
+  journal: sys.zeilenLesen,
   warten: async () => {},
 });
 
@@ -102,6 +103,8 @@ export const einrichtungsAgent = (
 ) => {
   const schluessel = schluesselLesen(TEST_PUB);
   if (!schluessel) throw new Error("test key");
+  /** What the agent wrote to its own log, as lines */
+  const logs: string[] = [];
   const plaene: { ms: number; lauf: () => void }[] = [];
   const agent = auftraegeAnnehmen({
     dateien: fs.dateien,
@@ -115,7 +118,7 @@ export const einrichtungsAgent = (
       return () => {};
     },
     jetzt: () => 1_800_000_000_000,
-    log: () => {},
+    log: (msg, mehr) => logs.push(JSON.stringify({ msg, ...mehr })),
   });
   const gesendet: Record<string, unknown>[] = [];
   const empfangen = (n: AuftragNachricht = einrichtenAuftrag()) =>
@@ -131,5 +134,5 @@ export const einrichtungsAgent = (
         l.argv.slice(0, l.argv[0] === "systemctl" ? 3 : 2).join(" "),
       ].join(""),
     );
-  return { sys, fs, plaene, gesendet, empfangen, ergebnis, record, programme };
+  return { sys, fs, plaene, gesendet, logs, empfangen, ergebnis, record, programme };
 };

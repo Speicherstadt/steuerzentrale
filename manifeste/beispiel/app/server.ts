@@ -7,6 +7,7 @@
  * Modes (argv[2]): server (default), worker, migrieren, export.
  * BEISPIEL_TITEL is the setting an operator changes (Z-404, reconfiguring); the server shows it, and
  * the one title BEIM_START_SCHEITERN makes it exit at its start, as an app does with a bad setting.
+ * BEISPIEL_AUSGEBEN names variables it logs at its start, only for the test of log excerpts (Z-405).
  */
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
@@ -20,6 +21,13 @@ const TCP_PORT = Number(process.env.BEISPIEL_TCP_PORT ?? "9000");
 const TITEL = process.env.BEISPIEL_TITEL ?? "Beispiel";
 /** The setting of the tests that the app refuses at its start, so reconfiguring must roll back */
 const BEIM_START_SCHEITERN = "beim-start-scheitern";
+/**
+ * The test mode of the log excerpt (Z-405): the names of variables whose values the server writes
+ * to its log at its start, as a careless app might. Only the manifest of the agent's test sets it
+ * (feste_env), so that the test can prove the agent replaces a secret and a generated value in the
+ * excerpt; without it, nothing of the environment is logged.
+ */
+const AUSGEBEN = (process.env.BEISPIEL_AUSGEBEN ?? "").split(",").filter(Boolean);
 
 const oeffnen = () => {
   mkdirSync(DATEN, { recursive: true });
@@ -73,6 +81,7 @@ const server = (db: Database) => {
     port: TCP_PORT,
     socket: { data: (socket, daten) => void socket.write(daten) },
   });
+  for (const name of AUSGEBEN) console.log(`beispiel test: ${name}=${process.env[name] ?? ""}`);
   console.log(
     JSON.stringify({ msg: "beispiel listening", version: VERSION, http: HTTP_PORT, tcp: TCP_PORT }),
   );

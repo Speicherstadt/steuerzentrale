@@ -10,8 +10,10 @@ import { serverAnlegen } from "./server.ts";
  * gets and runs none, so an installation stays "wird eingerichtet"; a setup whose host starts with
  * `kaputt` it reports failed, as the real agent does after cleaning up, one whose host starts with
  * `laeuft` done, and the Pforte's route of such a host too. A job `installation_konfigurieren`
- * (Z-404) it reports done as the real agent does (`geaendert: "konfiguriert"`). It reports the
- * state of installations when a test tells it to (Z-403). No Podman, no server.
+ * (Z-404) it reports done as the real agent does (`geaendert: "konfiguriert"`). A restart (Z-405)
+ * it reports done; for a log excerpt it sends the lines (`LOG_ZEILEN`, the secrets already
+ * replaced as the real agent does) and then the result with their number. It reports the state of
+ * installations when a test tells it to (Z-403). No Podman, no server.
  */
 
 // The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite
@@ -88,6 +90,13 @@ const fakten = (zeit: number) => ({
   uhrzeitAbweichungMs: 12,
 });
 
+/** What the stand-in agent reads from the journal of every installation */
+export const LOG_ZEILEN = [
+  "2026-11-22T10:31:02+0100 app[1]: started",
+  "2026-11-22T10:31:02+0100 app[1]: config loaded, PROBE_KENNWORT=[geheim]",
+  "2026-11-22T10:31:03+0100 app[1]: listening on :8080",
+];
+
 const ergebnis = (auftragId: string, e: Record<string, unknown>) =>
   JSON.stringify({ typ: "ergebnis", protokoll: 1, auftragId, zeit: Date.now(), ergebnis: e });
 
@@ -99,7 +108,7 @@ const konfiguriert = (n: Nachricht) => ({
 
 /**
  * Takes a job; a setup of a `kaputt…` host it reports failed, of a `laeuft…` host done, with its
- * route; configuring anew done
+ * route; configuring anew and a restart done, a log excerpt with its lines
  */
 const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   const auftragId = n.auftragId as string;
@@ -108,6 +117,12 @@ const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   const host = einrichtung?.installation?.host ?? (n.argumente as { host?: string }).host;
   if (n.aktion === "installation_konfigurieren")
     return ws.send(ergebnis(auftragId, konfiguriert(n)));
+  if (n.aktion === "installation_neustart")
+    return ws.send(ergebnis(auftragId, { ok: true, daten: { installation: n.installationId } }));
+  if (n.aktion === "installation_log_auszug") {
+    ws.send(JSON.stringify({ typ: "log_auszug", protokoll: 1, auftragId, zeilen: LOG_ZEILEN }));
+    return ws.send(ergebnis(auftragId, { ok: true, daten: { zeilen: LOG_ZEILEN.length } }));
+  }
   if (n.aktion !== "installation_einrichten" && n.aktion !== "pforte_route_setzen") return;
   if (host?.startsWith("kaputt"))
     ws.send(ergebnis(auftragId, { ok: false, fehler: "image ziehen: manifest unknown" }));

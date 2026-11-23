@@ -19,7 +19,9 @@ const ANWEISUNGEN = {
   mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
   kunden: ["lesen", "schreiben"],
   server: ["anlegen", "lesen", "sperren"],
-  installationen: ["lesen", "schreiben"],
+  // log_auszug: the lines of an installation's journal (Z-405), customer data; Z-802 limits it to
+  // support access later
+  installationen: ["lesen", "schreiben", "log_auszug"],
 } as const;
 
 export const zugriff = createAccessControl(ANWEISUNGEN);
@@ -40,7 +42,7 @@ export const ROLLEN_ZUGRIFF = {
     mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
     kunden: ["lesen", "schreiben"],
     server: ["anlegen", "lesen", "sperren"],
-    installationen: ["lesen", "schreiben"],
+    installationen: ["lesen", "schreiben", "log_auszug"],
   }),
   // servers, installations and updates (later items); sees who else works on the operator; takes
   // on customers and their contracts, which installing an app starts from (docs/plan.md, "Kunden")
@@ -50,18 +52,18 @@ export const ROLLEN_ZUGRIFF = {
     mitglieder: ["lesen"],
     kunden: ["lesen", "schreiben"],
     server: ["anlegen", "lesen", "sperren"],
-    installationen: ["lesen", "schreiben"],
+    installationen: ["lesen", "schreiben", "log_auszug"],
   }),
   // support access to customers (later items); sees who else works on the operator, whom it
   // helps, the servers and installations they run on, but changes no customer, contract, server
-  // or installation
+  // or installation; takes a log excerpt (docs/plan.md, "Aktionen einer Installation")
   support: zugriff.newRole({
     ...KEINE_RECHTE_IN_BETTER_AUTH,
     betreiber: ["lesen"],
     mitglieder: ["lesen"],
     kunden: ["lesen"],
     server: ["lesen"],
-    installationen: ["lesen"],
+    installationen: ["lesen", "log_auszug"],
   }),
 } as const;
 

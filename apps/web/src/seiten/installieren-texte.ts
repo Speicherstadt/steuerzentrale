@@ -77,6 +77,8 @@ const AKTIONEN: Record<string, () => string> = {
   installation_einrichten: m.auftrag_installation_einrichten,
   installation_entfernen: m.auftrag_installation_entfernen,
   installation_konfigurieren: m.auftrag_installation_konfigurieren,
+  installation_neustart: m.auftrag_installation_neustart,
+  installation_log_auszug: m.auftrag_installation_log_auszug,
   pforte_route_setzen: m.auftrag_pforte_route_setzen,
   pforte_route_entfernen: m.auftrag_pforte_route_entfernen,
 };

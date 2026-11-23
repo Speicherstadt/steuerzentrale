@@ -47,6 +47,13 @@ export const mitBetreiberwert = (app: string) =>
     "env:\n  - { name: PROBE_LIZENZ, ebene: betreiber, typ: geheim, pflicht: true }\n",
   );
 
+/** The probe manifest without the restart (Z-405): the page must not offer it */
+export const ohneNeustart = () =>
+  PROBE.replace(
+    "aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }",
+    "aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt, neustart: nicht_unterstuetzt }",
+  );
+
 /** The manifest's text and signature */
 export const signiertesManifest = (text = PROBE) => {
   const schluessel = geheimenSchluesselLesen(
@@ -79,10 +86,14 @@ export type Angelegt = {
   agent: TestAgent;
 };
 
-/** An installation made over the API for a new customer on a new server with a connected agent */
+/**
+ * An installation made over the API for a new customer on a new server with a connected agent,
+ * from the probe manifest or `text`
+ */
 export const installationAnlegen = async (
   request: APIRequestContext,
   host = neuerHost(),
+  text = PROBE,
 ): Promise<Angelegt> => {
   const kunde = await kundeAnlegen(request, "Kanzlei Nord");
   const agent = await agentVerbinden(request, "Gemeinsamer Server");
@@ -90,7 +101,7 @@ export const installationAnlegen = async (
     data: {
       kundeId: kunde.id,
       serverId: agent.serverId,
-      ...signiertesManifest(),
+      ...signiertesManifest(text),
       optionen: [],
       host,
       einstellungen: { PROBE_KENNWORT: "kennwort-der-installation" },

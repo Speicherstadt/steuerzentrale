@@ -1,12 +1,15 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
+  AKTION_ZEITLIMIT_S,
   type ArgumentWert,
+  aktionsAuftragPruefen,
   befehlFuellen,
   befehlZurAktion,
   EINRICHTUNG_ZEITLIMIT_S,
   type Einrichtung,
   einrichtungAuftragPruefen,
   INSTALLATIONS_NAME,
+  istAktionsAuftrag,
   istEinrichtungAktion,
   istPforteAktion,
   type Manifest,
@@ -31,7 +34,9 @@ import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
  * Pforte (Z-401) is no command of the manifest but one of the Steuerzentrale's own, with a fixed
  * shape (packages/manifest, pforte/auftraege.ts), and so are the setup jobs of an installation
  * (Z-402, einrichtung/auftraege.ts), checked with the installation's data, which the row does not
- * keep: it is taken from the installation when the job is sent (zustellen.ts).
+ * keep: it is taken from the installation when the job is sent (zustellen.ts). Restart and log
+ * excerpt of an installation (Z-405, aktionen.ts) are built in too, without arguments, and only for
+ * a manifest that offers them.
  */
 
 export type NeuerAuftrag = {
@@ -95,6 +100,12 @@ const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
     return pforte.ok
       ? { ok: true, manifest: geprueft.manifest, zeitlimitS: PFORTE_ZEITLIMIT_S }
       : { ok: false, grund: "argumente_ungueltig", detail: pforte.grund };
+  }
+  if (istAktionsAuftrag(neu.aktion)) {
+    const aktion = aktionsAuftragPruefen(geprueft.manifest, neu);
+    return aktion.ok
+      ? { ok: true, manifest: geprueft.manifest, zeitlimitS: AKTION_ZEITLIMIT_S }
+      : { ok: false, grund: "argumente_ungueltig", detail: aktion.grund };
   }
   const befehl = befehlZurAktion(geprueft.manifest, neu.aktion);
   if (!befehl) return { ok: false, grund: "aktion_unbekannt", detail: neu.aktion };

@@ -69,12 +69,32 @@ export type AuftragDerInstallation = {
 /** The form of the installation's settings and the names of its secret values that are set */
 export type InstallationsFormular = { felder: EinstellungsFeld[]; gesetzt: string[] };
 
+/** The actions of an installation (Z-405; packages/manifest, aktionen.ts) */
+export type InstallationsAktion = "neustart" | "log_auszug" | "nur_lesen";
+
+/** A job an action made, as the Zentrale answers it */
+export type AktionsAuftrag = {
+  auftragId: string;
+  aktion: string;
+  zustand: AuftragsZustand;
+  angelegtAm: number;
+};
+
+/** A log excerpt's job with its lines; `zeilen` is null until the agent sent them */
+export type LogAuszug = AktionsAuftrag & {
+  fehler: string | null;
+  zeilen: string[] | null;
+  zeitpunkt: number | null;
+};
+
 export type InstallationMitAuftraegen = InstallationDerZentrale & {
   auftraege: AuftragDerInstallation[];
   /** Every change of the state, newest first */
   verlauf: Verlaufseintrag[];
   /** For "Einstellungen ändern" (Z-404) */
   formular: InstallationsFormular;
+  /** Which actions its manifest offers (Z-405) */
+  aktionen: Record<InstallationsAktion, boolean>;
 };
 
 /** What the dialog asks the placement about: the signed manifest's exact text and signature */
@@ -108,6 +128,21 @@ export type InstallationenQuelle = {
     einstellungen: Record<string, Einstellungswert>,
     grund: string,
   ) => Promise<Antwort<InstallationMitAuftraegen>>;
+  /** Restart, log excerpt or "nur lesen" (Z-405), with a reason; answers the new job */
+  aktion: (
+    id: string,
+    aktion: InstallationsAktion,
+    grund: string,
+  ) => Promise<Antwort<AktionsAuftrag>>;
+  /** The lines of a log excerpt, once the agent sent them */
+  logAuszug: (id: string, auftragId: string) => Promise<Antwort<LogAuszug>>;
+};
+
+/** The path of an action under the installation (apps/zentrale, routes/aktionen.ts) */
+const AKTIONS_PFAD: Record<InstallationsAktion, string> = {
+  neustart: "neustart",
+  log_auszug: "log-auszug",
+  nur_lesen: "nur-lesen",
 };
 
 const PFAD = "/api/v1/installationen";
@@ -133,6 +168,14 @@ export const apiInstallationen: InstallationenQuelle = {
       method: "PUT",
       body: { einstellungen, grund },
     }),
+  aktion: async (id, aktion, grund) => {
+    const antwort = await api<{ auftrag: AktionsAuftrag }>(`${pfad(id)}/${AKTIONS_PFAD[aktion]}`, {
+      body: { grund },
+    });
+    return antwort.ok ? { ...antwort, daten: antwort.daten.auftrag } : antwort;
+  },
+  logAuszug: (id, auftragId) =>
+    api<LogAuszug>(`${pfad(id)}/log-auszuege/${encodeURIComponent(auftragId)}`),
 };
 
 /**
@@ -159,6 +202,8 @@ const spaeterDemo = (): InstallationenQuelle => {
     anlegen: async (neu, grund) => (await laden()).anlegen(neu, grund),
     entfernen: async (id, grund) => (await laden()).entfernen(id, grund),
     konfigurieren: async (id, e, grund) => (await laden()).konfigurieren(id, e, grund),
+    aktion: async (id, a, grund) => (await laden()).aktion(id, a, grund),
+    logAuszug: async (id, auftragId) => (await laden()).logAuszug(id, auftragId),
   };
 };
 

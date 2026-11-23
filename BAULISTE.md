@@ -270,10 +270,15 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   und stellt bei einem Fehler den alten Stand wieder her (CI gegen Podman); kein Betreiber erreicht
   die Einstellungen eines anderen (Test je Endpunkt); Werte des Betreibers im Dialog und neu
   konfigurieren in Playwright.
-- [ ] **Z-405 Neustart, Logs, nur lesen** – Aktionen Neustart, Log-Auszug (letzte 500 Zeilen aus
+- [x] **Z-405 Neustart, Logs, nur lesen** – Aktionen Neustart, Log-Auszug (letzte 500 Zeilen aus
   journald, Werte der Secrets ersetzt), nur lesen, wenn das Manifest sie anbietet; jede mit Grund.
   Fertig, wenn: eine nicht angebotene Aktion in der Oberfläche fehlt und vom Agenten abgelehnt wird
-  und der Wert eines Secrets im Log-Auszug ersetzt ist.
+  und der Wert eines Secrets im Log-Auszug ersetzt ist; dazu (Tests): auch ein erzeugter Wert der
+  Ebene `auto` ist im Log-Auszug ersetzt (CI gegen Podman mit einer App, die ihn ausgibt); ein
+  Neustart wird in einer Sperrzeit und bei offenem Auftrag abgelehnt und in einer Sperrzeit nicht
+  zugestellt; jede Aktion ohne Grund wird abgelehnt und steht mit Grund im Audit-Log; kein
+  Betreiber erreicht Aktionen oder Log-Auszüge eines anderen (Test je Endpunkt); Neustart und
+  Log-Auszug in Playwright.
 - [ ] **Z-406 Übersicht und echte Daten** – Übersicht, Server, Server-Detail, Installationen,
   Installation, Aufträge, Ereignisse, Audit-Log und Einstellungen mit echten Daten statt Demodaten;
   die Kundenseite zeigt ihre Installationen; Übersicht mit allem, was Aufmerksamkeit braucht, nach

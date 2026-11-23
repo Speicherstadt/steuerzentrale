@@ -19,10 +19,18 @@ import { PruefZiel } from "../zustand/ziel.ts";
  */
 const pruefung = z.object({ units: z.array(z.string().min(1)), ziel: PruefZiel });
 
+/**
+ * The names of the settings whose values a log excerpt replaces (Z-405, typ `geheim` and ebene
+ * `auto`), from the signed manifest at setup and reconfiguring: names only, the values stay in the
+ * units and in Podman. An entry from before Z-405 has none (src/aktionen/geheimnisse.ts)
+ */
+const geheim = z.array(z.string().regex(/^[A-Z][A-Z0-9_]*$/));
+
 const eintrag = z.object({
   zustand: z.enum(["angelegt", "fertig"]),
   am: z.number(),
   pruefung: pruefung.optional(),
+  geheim: geheim.optional(),
 });
 const Datei = z.object({ installationen: z.record(z.string(), eintrag) });
 
@@ -37,13 +45,14 @@ export type GedaechtnisGelesen =
 export type Gedaechtnis = {
   lesen: () => Promise<GedaechtnisGelesen>;
   /**
-   * Records the installation's state, with what its health check needs once it is `fertig`, or
-   * forgets it with undefined; throws when it cannot
+   * Records the installation's state, with what its health check needs and the names of its secret
+   * settings once it is `fertig`, or forgets it with undefined; throws when it cannot
    */
   setzen: (
     name: string,
     zustand: InstallationsEintrag["zustand"] | undefined,
     pruefung?: Pruefung,
+    geheim?: readonly string[],
   ) => Promise<void>;
 };
 
@@ -76,12 +85,18 @@ export const gedaechtnisOeffnen = (
     return g;
   };
 
-  const setzen: Gedaechtnis["setzen"] = async (name, zustand, pruefung) => {
+  const setzen: Gedaechtnis["setzen"] = async (name, zustand, pruefung, geheim) => {
     const g = await lesen();
     if (!g.ok) throw new Error(g.grund);
     const stand = new Map(g.stand);
     if (zustand === undefined) stand.delete(name);
-    else stand.set(name, { zustand, am: jetzt(), ...(pruefung ? { pruefung } : {}) });
+    else
+      stand.set(name, {
+        zustand,
+        am: jetzt(),
+        ...(pruefung ? { pruefung } : {}),
+        ...(geheim ? { geheim: [...geheim] } : {}),
+      });
     geladen = Promise.resolve({ ok: true, stand });
     const text = JSON.stringify({ installationen: Object.fromEntries(stand) });
     zuletzt = zuletzt.catch(() => {}).then(() => dateien.schreiben(pfad, text, 0o600));

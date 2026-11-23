@@ -52,12 +52,14 @@ describe("a setup job", () => {
       `${NUTZER}: systemctl --user is-active`,
       `${NUTZER}: podman exec`,
     ]);
-    // what the health check needs (Z-403): the units, and netz.http's assigned port on 127.0.0.1
+    // what the health check needs (Z-403): the units, and netz.http's assigned port on 127.0.0.1;
+    // the names of the settings a log excerpt replaces (Z-405), never their values
     expect(a.record()).toEqual({
       [NAME]: {
         zustand: "fertig",
         am: expect.any(Number),
         pruefung: { units: UNITS, ziel: { art: "http", port: 20001, pfad: "/health" } },
+        geheim: ["BEISPIEL_SCHLUESSEL"],
       },
     });
   });

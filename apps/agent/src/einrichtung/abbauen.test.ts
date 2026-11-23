@@ -26,6 +26,7 @@ const FERTIG = {
   zustand: "fertig",
   am: expect.any(Number),
   pruefung: { units: UNITS, ziel: expect.objectContaining({ art: "http" }) },
+  geheim: ["BEISPIEL_SCHLUESSEL"],
 };
 
 const FEHLSCHRITTE: [string, (l: Aufgerufen) => boolean][] = [

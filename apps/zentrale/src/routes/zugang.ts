@@ -73,6 +73,13 @@ export const ROUTEN = {
   "POST /api/v1/installationen": recht("installationen:schreiben"),
   "DELETE /api/v1/installationen/:installationId": recht("installationen:schreiben"),
   "PUT /api/v1/installationen/:installationId/einstellungen": recht("installationen:schreiben"),
+  // the actions of an installation (Z-405): support may take a log excerpt, not restart
+  "POST /api/v1/installationen/:installationId/neustart": recht("installationen:schreiben"),
+  "POST /api/v1/installationen/:installationId/nur-lesen": recht("installationen:schreiben"),
+  "POST /api/v1/installationen/:installationId/log-auszug": recht("installationen:log_auszug"),
+  "GET /api/v1/installationen/:installationId/log-auszuege/:auftragId": recht(
+    "installationen:log_auszug",
+  ),
   // the operator's values of an app (Z-404): rights as for installations, which they serve
   "GET /api/v1/apps/:app/einstellungen": recht("installationen:lesen"),
   "PUT /api/v1/apps/:app/einstellungen": recht("installationen:schreiben"),

@@ -1,4 +1,5 @@
 import {
+  aktionAngeboten,
   EINRICHTUNG_AKTIONEN,
   einstellungsFormular,
   HOST,
@@ -16,6 +17,7 @@ import type {
 } from "../daten/installationen.ts";
 import type { ServerDerZentrale } from "../daten/server.ts";
 import type { Kunde } from "../daten/typen.ts";
+import { type DemoBestand, demoAktionenQuelle } from "./installationen-aktionen.ts";
 import { type Eintrag, nachAuftrag, startbestand } from "./installationen-bestand.ts";
 import { ohneMeldung } from "./installationen-health.ts";
 import { demoKonfigurieren } from "./installationen-konfigurieren.ts";
@@ -26,8 +28,8 @@ import { ausManifest, demoPlatzieren } from "./platz.ts";
  * (apps/zentrale, routes/installationen.ts): placement, making, reading and removing a failed one.
  * The demo has no public key, so it checks only that a signature came along; the manifest itself it
  * reads with the same function as the Zentrale. Without an agent a new installation stays
- * "wird_eingerichtet", and a job to configure one anew stays open, as in the Zentrale; a change
- * lasts until the page reloads.
+ * "wird_eingerichtet", and a job to configure one anew or restart one stays open, as in the
+ * Zentrale; a log excerpt comes back at once (Z-405). A change lasts until the page reloads.
  */
 
 export type DemoQuellen = {
@@ -103,6 +105,11 @@ const neuerEintrag = (neu: NeueInstallation, m: Manifest, httpPort: number | nul
         felder: einstellungsFormular(m, "installation", optionen),
         gesetzt: Object.keys(neu.einstellungen).filter((n) => geheim.has(n)),
       },
+      aktionen: {
+        neustart: aktionAngeboten(m, "neustart"),
+        log_auszug: aktionAngeboten(m, "log_auszug"),
+        nur_lesen: aktionAngeboten(m, "nur_lesen"),
+      },
     },
     platz: ausManifest(neu.kundeId, m, optionen),
     bietet: m.bietet,
@@ -116,11 +123,22 @@ const fremderWert = (m: Manifest, neu: NeueInstallation) =>
     (n) => !m.env.some((e) => e.name === n && e.ebene === "installation"),
   );
 
+/** The next free HTTP port on the server, after those of its installations */
+const naechsterPort = (aktiv: Eintrag[], serverId: string) =>
+  Math.max(19999, ...aktiv.filter((e) => e.i.serverId === serverId).map((e) => e.i.httpPort ?? 0)) +
+  1;
+
 export const demoInstallationenQuelle = (q: DemoQuellen): InstallationenQuelle => {
   let liste: Eintrag[] = startbestand(q.jetzt());
   // the names of the operator's values; the dialog adds to them (Z-404)
   let betreiberWerte = q.betreiberWerte;
   const aktiv = () => liste.filter((e) => e.i.zustand !== "entfernt");
+  const bestand: DemoBestand = {
+    finden: (id) => liste.find((x) => x.i.installationId === id),
+    ersetzen: (alt, neu) => {
+      liste = liste.map((x) => (x === alt ? neu : x));
+    },
+  };
 
   /** The checked manifest and the placement, or why the question has no answer */
   const pruefen = async (
@@ -153,18 +171,10 @@ export const demoInstallationenQuelle = (q: DemoQuellen): InstallationenQuelle =
     return { ok: true, manifest: geprueft.manifest, platzierung };
   };
 
-  const naechsterPort = (serverId: string) =>
-    Math.max(
-      19999,
-      ...aktiv()
-        .filter((e) => e.i.serverId === serverId)
-        .map((e) => e.i.httpPort ?? 0),
-    ) + 1;
-
   return {
     liste: async () => ok(liste.map(ohneAuftraege)),
     installation: async (id) => {
-      const e = liste.find((x) => x.i.installationId === id);
+      const e = bestand.finden(id);
       return e ? ok(e.i) : nein(404, "keine_installation");
     },
     platzierung: async (w) => {
@@ -183,29 +193,30 @@ export const demoInstallationenQuelle = (q: DemoQuellen): InstallationenQuelle =
         return nein(400, "einstellung_ungueltig", {
           detail: `${fremd}: no setting of the level installation`,
         });
-      const port = p.manifest.netz.http ? naechsterPort(neu.serverId) : null;
+      const port = p.manifest.netz.http ? naechsterPort(aktiv(), neu.serverId) : null;
       const eintrag = neuerEintrag(neu, p.manifest, port, q.jetzt());
       liste = [...liste, eintrag];
       betreiberWerte = [...new Set([...betreiberWerte, ...Object.keys(neu.betreiberWerte ?? {})])];
       return ok(ohneAuftraege(eintrag), 201);
     },
     entfernen: async (id) => {
-      const e = liste.find((x) => x.i.installationId === id);
+      const e = bestand.finden(id);
       if (!e) return nein(404, "keine_installation");
       if (e.i.zustand !== "gescheitert") return nein(409, "nicht_gescheitert");
       if (e.i.auftraege.some(entfernenOffen)) return nein(409, "entfernen_laeuft");
       const job = nachAuftrag(id, EINRICHTUNG_AKTIONEN.entfernen, "zugestellt", q.jetzt());
       const neu: Eintrag = { ...e, i: { ...e.i, auftraege: [...e.i.auftraege, job] } };
-      liste = liste.map((x) => (x === e ? neu : x));
+      bestand.ersetzen(e, neu);
       return ok(neu.i);
     },
     konfigurieren: async (id, einstellungen) => {
-      const e = liste.find((x) => x.i.installationId === id);
+      const e = bestand.finden(id);
       if (!e) return nein(404, "keine_installation");
       const r = demoKonfigurieren(e, einstellungen, q.jetzt());
       if (!r.ok) return r;
-      liste = liste.map((x) => (x === e ? r.eintrag : x));
+      bestand.ersetzen(e, r.eintrag);
       return ok(r.eintrag.i);
     },
+    ...demoAktionenQuelle(bestand, q.jetzt),
   };
 };

@@ -80,6 +80,16 @@ bleiben. Er schreibt Units, Slice, Dateien und Secrets neu, startet die Units ne
 einem Fehler den alten Stand wieder her ([Apps installieren](installieren.md), „Neu
 konfigurieren“). Erfolgreich meldet er `{ installation, geaendert: "konfiguriert", units }`.
 
+Die Aktionen einer Installation ([Aktionen](aktionen.md)) sind zwei weitere eingebaute Aufträge:
+`installation_neustart` und `installation_log_auszug` (Zeitlimit höchstens 5 Minuten), mit
+dem signierten Manifest und dem Namen der Installation, ohne Argumente und ohne Feld
+`einrichtung`. Nach Schlüssel und Signatur prüft der Agent, dass das Manifest die Aktion anbietet
+(`aktionen.neustart` bzw. `aktionen.log_auszug`), sonst lehnt er ab. Beide laufen nacheinander mit
+den Einrichtungsaufträgen und nur für eine Installation, die er fertig eingerichtet hat. Der
+Neustart meldet `{ installation, units }`; der Log-Auszug schickt zuerst die Nachricht `log_auszug`
+mit den Zeilen und der Auftrags-ID und meldet dann `{ zeilen: n }`. Nach einem Neustart des Agenten
+wird ein laufender Log-Auszug wiederholt, ein Neustart nicht.
+
 Nach Schlüssel und Signatur prüft der Agent die feste Form der Einrichtungsaufträge (Name der Installation, Ports von 1024 bis 65535, nur Optionen des
 Manifests, keine Argumente) und rendert die Units selbst aus dem signierten Manifest. Die Angaben
 zur Installation (Feld `einrichtung`) trägt nur ein Einrichtungsauftrag; jeden anderen Auftrag mit
@@ -129,5 +139,6 @@ startet die App neu und gilt nach einem Neustart des Agenten als gescheitert. Is
 führt der Agent keinen Auftrag aus, weil er einen doppelten nicht mehr erkennen könnte. Erledigte
 Aufträge vergisst er nach 30 Tagen.
 
-Log-Auszüge zu Aufträgen kommen mit dem Punkt „Logs“ (Z-405), mit ersetzten Werten der Geheimnisse,
-und bleiben 30 Tage.
+Log-Auszüge gehören zu einem Auftrag `installation_log_auszug`: der Agent schickt die Zeilen mit
+ersetzten Werten der Geheimnisse, die Zentrale hält sie 30 Tage ([Neustart, Log-Auszug, nur
+lesen](aktionen.md)).
