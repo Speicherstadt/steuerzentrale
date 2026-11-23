@@ -31,7 +31,9 @@ Die Zentrale startet nur mit `STEUERZENTRALE_SECRET_KEY` (32 Zufallsbytes in Bas
 Schlüssel-ID an jedem Wert). Ein Prüfwert in der Datenbank sorgt dafür, dass ein falscher Schlüssel
 den Start verweigert. Zum Rotieren den neuen Schlüssel in `STEUERZENTRALE_SECRET_KEY`, den alten in
 `STEUERZENTRALE_SECRET_KEY_ALT` setzen und `steuerzentrale schluessel-rotieren` ausführen; danach
-genügt der neue. Tokens stehen nur als SHA-256 in der Datenbank.
+genügt der neue. Tokens stehen nur als SHA-256 in der Datenbank. Gesichert und wiederhergestellt
+wird die Datenbank mit `steuerzentrale sichern <datei>` und `steuerzentrale wiederherstellen <datei>`,
+der Schlüssel getrennt davon ([Zentrale sichern](zentrale-sichern.md)).
 
 Dazu braucht sie `STEUERZENTRALE_URL`: die Adresse der Oberfläche, wie sie im Browser steht (nur
 Schema, Host und Port, z. B. `https://zentrale.example.de`). Better Auth prüft daran den Origin, und

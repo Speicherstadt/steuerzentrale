@@ -116,8 +116,16 @@ export const sudoHaus = (ordner: string, besitzer = new Map<string, number>()): 
     besitzer.set(pfad, uid);
     const tmp = join(mkdtempSync(join(ordner, "datei-")), "inhalt");
     writeFileSync(tmp, inhalt, { mode: 0o600 });
+    // a name of its own, then a rename, as the agent writes (src/einrichtung/echt.ts): two test
+    // files may set up an app behind the Pforte at once and write its unit at the same moment, and
+    // `install` onto the same path then fails with "File exists" (CI run 45220139544)
+    const neu = `${pfad}.sz-neu-${crypto.randomUUID()}`;
     try {
-      muss("install", "-m", oktal(modus), "-o", String(uid), "-g", String(gid), "--", tmp, pfad);
+      muss("install", "-m", oktal(modus), "-o", String(uid), "-g", String(gid), "--", tmp, neu);
+      muss("mv", "-f", "-T", "--", neu, pfad);
+    } catch (fehler) {
+      sudo("rm", "-f", "--", neu);
+      throw fehler;
     } finally {
       rmSync(tmp, { force: true });
     }

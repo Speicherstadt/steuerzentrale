@@ -74,7 +74,8 @@ describe.skipIf(podman === null)("rendered Quadlet units with Podman's generator
   });
 
   it("writes the network alias, the secrets and argv into podman run", () => {
-    const haben = pruefen("haben").aus;
+    // Haben has two versions in manifeste/, so its cases carry the version (Z-1003)
+    const haben = pruefen("haben@0.12.0").aus;
     expect(haben).toContain("--network=haben-k1:alias=app");
     expect(haben).toContain("--secret haben-k1-database-url,type=env,target=DATABASE_URL");
     expect(haben).toContain("--publish 127.0.0.1:20001:3000");

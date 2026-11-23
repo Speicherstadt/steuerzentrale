@@ -92,3 +92,13 @@ Grund, für eine Installation.
 Ein als `dringend` markiertes Update (Sicherheitslücke, Mindestversion von ERiC) läuft sofort durch
 beide Wellen, ohne die 24 Stunden und ohne auf ein Wartungsfenster zu warten. Eine Sperrzeit hält es
 trotzdem auf, bis sie endet, außer der Inhaber gibt die Installation mit Grund frei.
+
+## In der CI mit echten Apps
+
+Die CI aktualisiert Schreibzeug und Haben mit ihren echten Images von GHCR
+(`apps/agent/test/echte-apps.agent.test.ts`): Schreibzeug 0.1.25 und Haben 0.12.0-rc.1 werden aus
+`manifeste/` eingerichtet (Haben mit der Test-Hersteller-ID `74931`), gesichert und aus dem ersten
+von zwei Backup-Läufen wiederhergestellt. Danach geht Schreibzeug auf 0.1.26, wie seine Welle es
+startet (der Plan der Zentrale nennt den Termin), und Haben von Hand auf 0.12.0, als App ohne Health,
+die keine Welle aktualisiert; der Agent bewertet sie nach ihren Units. Daten bleiben bei beiden
+erhalten.
