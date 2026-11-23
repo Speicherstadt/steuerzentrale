@@ -72,7 +72,7 @@ describe("an installation's own S3 access", () => {
   it("is not made for a manifest that names nothing to back up", () => {
     const u = backupUmgebung(minio);
     u.zielSetzen();
-    const id = u.laufend(signiert("probe"));
+    const id = u.laufend("probe");
     expect(zugang(u, id)).toBeUndefined();
   });
 
@@ -195,7 +195,7 @@ describe("a server", () => {
     u.zielSetzen();
     const zweiter = zweiterServer(u);
     const hier = u.laufend();
-    const dort = u.laufend({ serverId: "s2" });
+    const dort = u.laufend("gesichert", { serverId: "s2" });
     await backupAbgleichen(u.deps);
     const p1 = passwortIn(u.agent, hier);
     const p2 = passwortIn(zweiter, dort);

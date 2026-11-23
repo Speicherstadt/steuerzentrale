@@ -22,8 +22,8 @@ describe("the API source of the installations", () => {
   const wunsch = {
     kundeId: "k1",
     serverId: "s1",
-    manifest: "schema: 1\n",
-    signatur: "sig",
+    app: "probe",
+    version: "1.0.0",
     optionen: ["extra"],
   };
 

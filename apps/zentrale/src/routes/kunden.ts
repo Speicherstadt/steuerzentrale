@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import { z } from "zod";
 import {
   type Ergebnis,
+  internSetzen,
   kundeAendern,
   kundeAnlegen,
   kundeLesen,
@@ -15,7 +16,7 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
  * Customers and their contracts (BAULISTE.md Z-801): every role reads, owner and technik write
- * (src/auth/rollen.ts). Every write names its reason in `grund`, which goes into the audit log.
+ * (src/auth/rollen.ts); only the owner marks a customer as internal (Z-501). Every write names its reason in `grund`, which goes into the audit log.
  * The short name (Z-407) may be left out: a new customer gets one from its name, a change keeps it.
  */
 
@@ -51,6 +52,7 @@ const anlegenSchema = z
 const aendernSchema = z.object({ ...stammdaten, beginn: tag, grund }).strict();
 const kuendigenSchema = z.object({ ende: tag, grund }).strict();
 const grundSchema = z.object({ grund }).strict();
+const internSchema = z.object({ intern: z.boolean(), grund }).strict();
 
 const STATUS = {
   kein_kunde: 404,
@@ -105,6 +107,14 @@ export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
     if (!angaben) return ungueltig(c);
     const k = kontext(c, angaben.grund);
     return antwort(c, vertragsendeSetzen(deps.db, deps.schreibDb, k, kundeId(c), angaben.ende));
+  });
+
+  // Z-501: our own customer, whose installations alone are offered pre-releases; only the owner
+  route("PUT /api/v1/kunden/:kundeId/intern", async (c) => {
+    const angaben = await eingabe(c, internSchema);
+    if (!angaben) return ungueltig(c);
+    const k = kontext(c, angaben.grund);
+    return antwort(c, internSetzen(deps.db, deps.schreibDb, k, kundeId(c), angaben.intern));
   });
 
   route("DELETE /api/v1/kunden/:kundeId/kuendigung", async (c) => {

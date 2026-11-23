@@ -7,4 +7,4 @@ export {
   type EinstellungsFehler,
   type Gelesen,
 } from "./betreiber.ts";
-export { neuestesManifest, versionVergleichen } from "./manifest.ts";
+export { neuestesManifest } from "./manifest.ts";

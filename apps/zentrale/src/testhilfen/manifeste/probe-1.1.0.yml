@@ -1,0 +1,30 @@
+# Test manifest for imported versions (Z-501), signed with the public test key (test/schluessel/)
+# by scripts/minisign.ts, trusted comment "probe-1.1.0 (test key)".
+# probe.yml as version 1.1.0.
+schema: 1
+id: probe
+version: 1.1.0
+lizenz: AGPL-3.0-only
+quelle: https://example.org/probe
+container:
+  - name: app
+    image: registry.example.org/probe@sha256:1111111111111111111111111111111111111111111111111111111111111111
+    volumes: [{ name: daten, pfad: /daten }]
+    env: [PROBE_LIZENZ, PROBE_TITEL, PROBE_KENNWORT, PROBE_SCHLUESSEL, PROBE_PASSWORT]
+architektur: [amd64, arm64]
+ressourcen: { ram_mb: 256, platte_gb: 1 }
+netz:
+  http: { dienst: app, port: 8080 }
+  ports: [{ dienst: app, port: 9000, proto: tcp, fest: false }]
+anmeldung: eigen
+health: { art: http, dienst: app, pfad: /health }
+befehle:
+  migrieren: { container: app, argv: [migrieren] }
+schritte: { einrichten: [migrieren] }
+aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }
+env:
+  - { name: PROBE_LIZENZ, ebene: betreiber, typ: geheim, pflicht: true }
+  - { name: PROBE_TITEL, ebene: installation, vorgabe: Probe }
+  - { name: PROBE_KENNWORT, ebene: installation, typ: geheim }
+  - { name: PROBE_SCHLUESSEL, ebene: auto, erzeugen: zufall_32 }
+  - { name: PROBE_PASSWORT, ebene: auto, erzeugen: zufall_hex_32 }

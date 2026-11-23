@@ -114,7 +114,7 @@ export const betreiberEinstellungenLesen = (
   betreiberId: string,
   app: string,
 ): Gelesen => {
-  const m = neuestesManifest(deps.db, betreiberId, app);
+  const m = neuestesManifest(deps.db, app);
   if (!m) return { ok: false, grund: "kein_manifest" };
   const werte = betreiberWerteLesen(deps.db, deps.schluessel, betreiberId, app);
   if (!werte.ok) return { ok: false, grund: "werte_unlesbar", detail: werte.grund };
@@ -129,7 +129,7 @@ export const betreiberEinstellungenAendern = (
   eingabe: Readonly<Record<string, Wert>>,
 ): Gelesen => {
   const { betreiberId, jetzt } = kontext;
-  const m = neuestesManifest(deps.db, betreiberId, app);
+  const m = neuestesManifest(deps.db, app);
   if (!m) return { ok: false, grund: "kein_manifest" };
   const bisher = betreiberWerteLesen(deps.db, deps.schluessel, betreiberId, app);
   if (!bisher.ok) return { ok: false, grund: "werte_unlesbar", detail: bisher.grund };

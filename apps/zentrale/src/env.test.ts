@@ -167,4 +167,20 @@ describe("parseEnv", () => {
         "STEUERZENTRALE_CLOUDFLARE_API is for tests only",
       );
   });
+
+  // Z-501: the registries over HTTPS, in tests the stand-in or CI's registry on localhost
+  it("asks the registries themselves and lets only a test redirect them to localhost", () => {
+    const basis = {
+      STEUERZENTRALE_SECRET_KEY: KEY,
+      STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: AGENT_,
+    };
+    expect(parseEnv(basis).registryHttp).toBeUndefined();
+    const test = { ...basis, STEUERZENTRALE_REGISTRY_HTTP: "http://localhost:5000/" };
+    expect(parseEnv(test).registryHttp).toBe("http://localhost:5000");
+    for (const fremd of ["https://localhost:5000", "http://ghcr.io", "http://10.0.0.1", "kein-url"])
+      expect(fehlerVon({ ...basis, STEUERZENTRALE_REGISTRY_HTTP: fremd })).toContain(
+        "STEUERZENTRALE_REGISTRY_HTTP is for tests only",
+      );
+  });
 });

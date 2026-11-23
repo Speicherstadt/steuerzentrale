@@ -47,6 +47,21 @@ describe("darf", () => {
     expect(darf("support", "audit:lesen")).toBe(false);
   });
 
+  it("lets every role read manifests, owner and technik import and ask (Z-501)", () => {
+    for (const rolle of ROLLEN) expect(darf(rolle, "manifeste:lesen"), rolle).toBe(true);
+    for (const recht of ["manifeste:importieren", "manifeste:abfragen"] as const) {
+      expect(darf("inhaber", recht), recht).toBe(true);
+      expect(darf("technik", recht), recht).toBe(true);
+      expect(darf("support", recht), recht).toBe(false);
+    }
+  });
+
+  it("lets only the owner mark a customer as internal (Z-501)", () => {
+    expect(darf("inhaber", "kunden:intern")).toBe(true);
+    expect(darf("technik", "kunden:intern")).toBe(false);
+    expect(darf("support", "kunden:intern")).toBe(false);
+  });
+
   it("gives a member with several roles the rights of each", () => {
     expect(rollenVon("support, inhaber")).toEqual(["support", "inhaber"]);
     expect(darf("support,inhaber", "mitglieder:einladen")).toBe(true);

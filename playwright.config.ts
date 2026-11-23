@@ -14,6 +14,9 @@ const cloudflarePort = 28301;
 // The stand-in for MinIO's admin API (Z-601, apps/zentrale/src/testhilfen/minio.ts): the S3 target
 // the e2e tests set; no test makes an access at a real MinIO
 const minioPort = 28302;
+// The stand-in for a container registry (Z-501, apps/zentrale/src/testhilfen/registry.ts): every
+// registry a manifest names is asked here, with probe's tags 1.0.0 and 9.0.0
+const registryPort = 28303;
 // Where the pinned Playwright's own browser is missing (some sandboxes), CHROMIUM_PATH names another
 const executablePath = process.env.CHROMIUM_PATH;
 const launchOptions = executablePath ? { executablePath } : {};
@@ -76,6 +79,7 @@ export default defineConfig({
         STEUERZENTRALE_AGENT_URL: `http://localhost:${zentralePort}`,
         STEUERZENTRALE_AGENT_DATEIEN: agentDateien,
         STEUERZENTRALE_CLOUDFLARE_API: `http://127.0.0.1:${cloudflarePort}/client/v4`,
+        STEUERZENTRALE_REGISTRY_HTTP: `http://127.0.0.1:${registryPort}`,
       },
     },
     {
@@ -86,6 +90,11 @@ export default defineConfig({
     {
       command: `bun apps/zentrale/src/testhilfen/minio.ts ${minioPort}`,
       port: minioPort,
+      reuseExistingServer: false,
+    },
+    {
+      command: `bun apps/zentrale/src/testhilfen/registry.ts ${registryPort} probe=1.0.0,9.0.0`,
+      port: registryPort,
       reuseExistingServer: false,
     },
     {

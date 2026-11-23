@@ -12,6 +12,9 @@
       "path": "../../packages/manifest"
     },
     {
+      "path": "../../packages/planung"
+    },
+    {
       "path": "../../packages/ui"
     }
   ]

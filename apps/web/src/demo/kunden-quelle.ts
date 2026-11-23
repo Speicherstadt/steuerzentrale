@@ -41,6 +41,7 @@ export const demoKunden = (start: Kunde[], jetzt: () => number): KundenQuelle =>
         ...stamm({ ...neu, beginn: neu.vertrag.beginn }),
         kuerzel: neu.kuerzel ?? freiesKuerzel(kuerzelVorschlag(neu.name), (k) => belegt(k)),
         kuerzelAenderbar: true,
+        intern: false,
         angelegtAm: jetzt(),
         vertrag: { sla: neu.vertrag.sla, beginn: neu.vertrag.beginn, ende: null },
       };
@@ -62,5 +63,6 @@ export const demoKunden = (start: Kunde[], jetzt: () => number): KundenQuelle =>
     kuendigen: async (id, ende) => aendern(id, (k) => ({ ...k, vertrag: { ...k.vertrag, ende } })),
     zuruecknehmen: async (id) =>
       aendern(id, (k) => ({ ...k, vertrag: { ...k.vertrag, ende: null } })),
+    intern: async (id, intern) => aendern(id, (k) => ({ ...k, intern })),
   };
 };

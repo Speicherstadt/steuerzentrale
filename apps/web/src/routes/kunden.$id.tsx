@@ -1,5 +1,5 @@
 import { Button, Icon, m } from "@steuerzentrale/ui";
-import { CalendarX, Pencil, Undo2 } from "@steuerzentrale/ui/icons";
+import { Building2, CalendarX, Pencil, Undo2 } from "@steuerzentrale/ui/icons";
 import { createFileRoute, useNavigate } from "@tanstack/solid-router";
 import { createMemo, createSignal, Loading, Match, refresh, Show, Switch } from "solid-js";
 import { loeschungAm, monatVon, supportMinuten } from "../daten/ableitungen.ts";
@@ -17,8 +17,10 @@ import { Installieren } from "../seiten/installieren.tsx";
 import {
   KuendigungZuruecknehmen,
   KundeAendern,
+  KundeIntern,
   KundeKuendigen,
 } from "../seiten/kunden-dialoge.tsx";
+import { NurInhaber } from "../seiten/recht.tsx";
 import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { Angaben, Hinweisbox, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
@@ -36,7 +38,7 @@ const initialen = (name: string) =>
     .join("")
     .slice(0, 2);
 
-type Offen = "aendern" | "kuendigen" | "zuruecknehmen" | undefined;
+type Offen = "aendern" | "kuendigen" | "zuruecknehmen" | "intern" | undefined;
 
 /**
  * Install an app for the customer (Z-402), change, give notice, take the notice back: each opens
@@ -58,6 +60,12 @@ const Aktionen = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => {
         <Icon icon={Pencil} />
         {m.kunde_aendern()}
       </Button>
+      <NurInhaber>
+        <Button onClick={() => props.oeffne("intern")}>
+          <Icon icon={Building2} />
+          {props.k.intern ? m.kunde_intern_aufheben() : m.kunde_intern_markieren()}
+        </Button>
+      </NurInhaber>
       <Show
         when={props.k.vertrag.ende === null}
         fallback={
@@ -94,6 +102,9 @@ const Kopf = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => (
           <Marke class="bg-accent font-mono">
             {m.kunde_kuerzel_anzeige({ kuerzel: props.k.kuerzel })}
           </Marke>
+          <Show when={props.k.intern}>
+            <Marke class="bg-accent">{m.kunden_intern()}</Marke>
+          </Show>
         </div>
         <p class="text-muted-foreground break-words">
           {m.kunde_kontakt({
@@ -171,6 +182,12 @@ const Dialoge = (props: {
       />
       <KundeKuendigen
         open={props.offen === "kuendigen"}
+        kunde={props.k}
+        onClose={schliessen}
+        gespeichert={fertig}
+      />
+      <KundeIntern
+        open={props.offen === "intern"}
         kunde={props.k}
         onClose={schliessen}
         gespeichert={fertig}

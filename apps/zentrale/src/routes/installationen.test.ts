@@ -3,10 +3,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { auditLog, installationen } from "../db/schema.ts";
 import { schreiben } from "../modules/audit/index.ts";
 import { spalteVerschluesseln } from "../modules/geheim/spalten.ts";
-import { KENNWORT, LIZENZ, signiert } from "../testhilfen/installationen.ts";
+import { KENNWORT, LIZENZ } from "../testhilfen/installationen.ts";
 import {
   BEGINN,
   kundeAnlegen,
+  manifestHochladen,
   serverMitAgent as serverMitAgentVon,
 } from "../testhilfen/installationen-api.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
@@ -45,7 +46,8 @@ const json = async (
 const wunsch = (teil: Record<string, unknown> = {}): Record<string, unknown> => ({
   kundeId,
   serverId,
-  ...signiert("probe"),
+  app: "probe",
+  version: "1.0.0",
   optionen: [],
   ...teil,
 });
@@ -109,6 +111,7 @@ beforeAll(async () => {
   kundeId = await kundeAnlegen(json, teufel);
   serverId = await serverMitAgent(teufel, agent);
   lizenzSetzen(teufel.betreiberId);
+  await manifestHochladen(json, teufel);
 }, 60_000);
 
 describe("the placement", () => {
@@ -134,11 +137,31 @@ describe("the placement", () => {
     });
   });
 
-  it("refuses a manifest without a valid signature", async () => {
+  it("refuses a version without an imported manifest (Z-501)", async () => {
     const a = await json(teufel, "/api/v1/installationen/platzierung", {
-      body: wunsch({ manifest: `${signiert("probe").manifest}\n` }),
+      body: wunsch({ version: "9.9.9" }),
     });
-    expect(a).toMatchObject({ status: 422, daten: { fehler: "signatur_ungueltig" } });
+    expect(a).toEqual({ status: 404, daten: { fehler: "kein_manifest" } });
+  });
+
+  it("refuses a pre-release for a customer who is not internal, by hand too (Z-501)", async () => {
+    const vorab = await manifestHochladen(json, teufel, "probe-2.0.0-rc.1");
+    const nurIntern = { status: 409, daten: { fehler: "nur_intern" } };
+    const platz = "/api/v1/installationen/platzierung";
+    expect(await json(teufel, platz, { body: wunsch(vorab) })).toEqual(nurIntern);
+    expect(
+      await json(teufel, "/api/v1/installationen", { body: neu("vorab.kanzlei.example", vorab) }),
+    ).toEqual(nurIntern);
+    // the owner marks the customer as internal: now it is offered
+    await json(teufel, `/api/v1/kunden/${kundeId}/intern`, {
+      method: "PUT",
+      body: { intern: true, grund: "unsere eigene Installation" },
+    });
+    expect((await json(teufel, platz, { body: wunsch(vorab) })).status).toBe(200);
+    await json(teufel, `/api/v1/kunden/${kundeId}/intern`, {
+      method: "PUT",
+      body: { intern: false, grund: "zurück" },
+    });
   });
 });
 

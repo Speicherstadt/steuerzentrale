@@ -1,5 +1,6 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { apiApps, appsQuelle, appsQuelleEinsetzen } from "./daten/apps.ts";
 import { apiBackups, backupQuelle, backupQuelleEinsetzen } from "./daten/backups.ts";
 import { apiBetrieb, betriebQuelle, betriebQuelleEinsetzen } from "./daten/betrieb.ts";
 import {
@@ -45,6 +46,8 @@ const LEER: Record<string, unknown> = {
   "/api/v1/audit": { eintraege: [], weiter: null },
   "/api/v1/backups": { installationen: [] },
   "/api/v1/backup-ziel": { endpunkt: null, region: null, bucket: null, zugangGesetzt: false },
+  "/api/v1/apps": { apps: [] },
+  "/api/v1/updates": { installationen: [] },
 };
 
 /** Names of the demo operator (src/demo/) that must not show */
@@ -86,6 +89,7 @@ const vorher = {
   kunden: kundenQuelle(),
   einstellungen: einstellungenQuelle(),
   backups: backupQuelle(),
+  apps: appsQuelle(),
 };
 
 beforeAll(() => {
@@ -99,6 +103,7 @@ beforeAll(() => {
   ichQuelleEinsetzen(apiIch);
   mitgliederQuelleEinsetzen(apiMitglieder);
   backupQuelleEinsetzen(apiBackups);
+  appsQuelleEinsetzen(apiApps);
 });
 
 afterAll(() => {
@@ -109,6 +114,7 @@ afterAll(() => {
   kundenQuelleEinsetzen(vorher.kunden);
   einstellungenQuelleEinsetzen(vorher.einstellungen);
   backupQuelleEinsetzen(vorher.backups);
+  appsQuelleEinsetzen(vorher.apps);
 });
 
 beforeEach(() => {

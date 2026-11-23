@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { demoAppsQuelle } from "./apps-quelle.ts";
 import { demo } from "./index.ts";
 import { GESCHEITERT } from "./installationen-bestand.ts";
 import { demoInstallationenQuelle } from "./installationen-quelle.ts";
 import { demoKunden } from "./kunden-quelle.ts";
-import { PROBE_MANIFEST, PROBE_SIGNATUR } from "./probe-manifest.ts";
 import { demoServerQuelle } from "./server-quelle.ts";
 
 // BAULISTE.md Z-402: the demo answers the dialog as the Zentrale would (routes/installationen.ts),
@@ -15,6 +15,7 @@ const quelle = () => {
     jetzt: () => demo.jetzt,
     kunden: kunden.liste,
     server: server.liste,
+    manifest: demoAppsQuelle(() => demo.jetzt).manifest,
     betreiberWerte: [],
   });
 };
@@ -22,8 +23,8 @@ const quelle = () => {
 const wunsch = {
   kundeId: "atelier-nord",
   serverId: "shared-1",
-  manifest: PROBE_MANIFEST,
-  signatur: PROBE_SIGNATUR,
+  app: "probe",
+  version: "1.0.0",
   optionen: [],
 };
 const neu = { ...wunsch, host: "probe.atelier-nord.example", einstellungen: {} };
@@ -46,14 +47,14 @@ describe("the demo's installations", () => {
 
   it("refuse what the Zentrale refuses before placing", async () => {
     const q = quelle();
-    expect(await q.platzierung({ ...wunsch, signatur: " " })).toMatchObject({
-      status: 422,
-      fehler: "signatur_ungueltig",
+    expect(await q.platzierung({ ...wunsch, version: "9.9.9" })).toMatchObject({
+      status: 404,
+      fehler: "kein_manifest",
     });
-    expect(await q.platzierung({ ...wunsch, manifest: "schema: 2\n" })).toMatchObject({
-      status: 422,
-      fehler: "manifest_ungueltig",
-    });
+    // Z-501: a pre-release only for an internal customer
+    const vorab = { ...wunsch, version: "1.1.0-rc.1" };
+    expect(await q.platzierung(vorab)).toMatchObject({ status: 409, fehler: "nur_intern" });
+    expect(await q.platzierung({ ...vorab, kundeId: "intern" })).toMatchObject({ ok: true });
     expect(await q.platzierung({ ...wunsch, kundeId: "x" })).toMatchObject({ status: 404 });
     expect(await q.platzierung({ ...wunsch, serverId: "x" })).toMatchObject({ status: 404 });
   });

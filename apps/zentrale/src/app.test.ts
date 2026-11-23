@@ -4,6 +4,7 @@ import { createAuth } from "./auth/auth.ts";
 import { testDatenbank } from "./db/test-db.ts";
 import { auslieferung } from "./modules/server/index.ts";
 import { verbindungen } from "./modules/verbindung/verbindungen.ts";
+import { versionen } from "./modules/versionen/index.ts";
 
 const setup = () => {
   const lines: string[] = [];
@@ -22,6 +23,7 @@ const setup = () => {
     auslieferung: auslieferung(undefined, url),
     socketAdresse: () => undefined,
     verbindungen: verbindungen(4409),
+    versionen: versionen({ db, schreibDb, fetch, now: () => 0, log: () => {} }),
   });
   return { app, lines };
 };

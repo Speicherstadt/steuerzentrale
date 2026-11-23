@@ -44,6 +44,14 @@ Solange eine Installation des Kunden läuft oder eingerichtet wird, bleibt das K
 kuerzel_fest`); der Dialog zeigt das Feld dann gesperrt. Die Adresse einer bestehenden Installation
 ändert sich mit dem Kürzel ohnehin nicht, das Kürzel ist nur der Vorschlag für neue.
 
+## Interne Kunden
+
+Ein Kunde kann **intern** sein: das sind wir selbst, mit einer eigenen Installation jeder App. Seine
+Installationen bilden die Welle „intern“ ([Updates](updates.md)) und bekommen als einzige eine
+Vorabversion angeboten ([Manifeste und Versionen](manifeste.md)). Markieren oder die Markierung
+aufheben darf nur der Inhaber, mit Grund, auf der Kundenseite („Als intern markieren“,
+„Nicht mehr intern“). Die Kundenseite bietet einem internen Kunden keine Kündigung an.
+
 ## Kündigung
 
 Eine Kündigung ist das Vertragsende. Bis dahin läuft alles normal; danach folgen 30 Tage nur lesen
@@ -66,6 +74,7 @@ Jede schreibende Aktion fragt nach dem Grund („Vertrag vom 20.11.“, „Künd
 | `kunde.aendern` | Angaben oder Vertragsbeginn geändert; nur geänderte Felder, ohne Änderung kein Eintrag |
 | `vertrag.kuendigen` | Vertragsende gesetzt |
 | `vertrag.zuruecknehmen` | Kündigung zurückgenommen |
+| `kunde.intern`, `kunde.nicht-intern` | als intern markiert oder Markierung aufgehoben; unverändert kein Eintrag |
 
 ## Rollen
 
@@ -73,6 +82,7 @@ Jede schreibende Aktion fragt nach dem Grund („Vertrag vom 20.11.“, „Künd
 | --- | --- | --- | --- |
 | Kunden und Verträge sehen | ja | ja | ja |
 | Kunden anlegen, ändern, kündigen, Kündigung zurücknehmen | ja | ja | – |
+| Kunden als intern markieren | ja | – | – |
 
 Jeder Betreiber sieht nur seine eigenen Kunden; eine fremde ID antwortet wie eine unbekannte mit
 `404`.
@@ -89,6 +99,7 @@ Jede schreibende Route verlangt `grund` im Körper.
 | `PUT /api/v1/kunden/:kundeId` | Inhaber, Technik | `name`, `kontakt`, `notiz`?, `kuerzel`?, `beginn`, `grund`; ersetzt die Angaben, ein fehlendes Feld mit `?` wird leer, ein fehlendes `kuerzel` bleibt |
 | `PUT /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `ende`, `grund` |
 | `DELETE /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `grund` |
+| `PUT /api/v1/kunden/:kundeId/intern` | Inhaber | `intern` (`true` oder `false`), `grund` |
 
 Die Antwort ist der Kunde:
 
@@ -100,6 +111,7 @@ Die Antwort ist der Kunde:
   "notiz": null,
   "kuerzel": "atelier-nord",
   "kuerzelAenderbar": true,
+  "intern": false,
   "angelegtAm": 1795167720000,
   "vertrag": { "sla": "basis", "beginn": 1773442800000, "ende": null }
 }

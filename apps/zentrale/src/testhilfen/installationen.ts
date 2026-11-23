@@ -6,6 +6,7 @@ import { VOM_AGENTEN_V1 } from "../../../../packages/protokoll/src/beispiele-v1.
 import { schreiben } from "../modules/audit/index.ts";
 import { spalteVerschluesseln } from "../modules/geheim/spalten.ts";
 import type { InstallationsDeps, NeueInstallation } from "../modules/installationen/index.ts";
+import { manifestImportieren } from "../modules/manifeste/index.ts";
 import { auftragsUmgebung } from "./auftraege.ts";
 
 /*
@@ -13,14 +14,30 @@ import { auftragsUmgebung } from "./auftraege.ts";
  * operator's values for an app, and two manifests signed with the public test key
  * (testhilfen/manifeste/), the key install.sh hands the agents in tests; `gesperrt` is `probe`
  * with a freeze window (Z-404), `aktionen` with "nur lesen" and without restart (Z-405),
- * `gesichert` with two parts to back up (Z-601).
+ * `gesichert` with two parts to back up (Z-601), the versions of probe of Z-501 (testhilfen/
+ * manifeste.ts). An installation is made from an imported manifest (Z-501): `bereit` imports one,
+ * and since the variants of probe are all version 1.0.0, a test imports only the one it installs.
  */
 const ORDNER = join(import.meta.dirname, "manifeste");
 const REPO = join(import.meta.dirname, "../../../..");
 
-export const signiert = (
-  app: "probe" | "stumm" | "gesperrt" | "aktionen" | "gesichert" | "gesichert-gesperrt",
-) => ({
+export type Testmanifest =
+  | "probe"
+  | "stumm"
+  | "gesperrt"
+  | "aktionen"
+  | "gesichert"
+  | "gesichert-gesperrt"
+  | "probe-1.1.0"
+  | "probe-1.2.0"
+  | "probe-1.10.0"
+  | "probe-2.0.0-rc.1"
+  | "probe-2.0.0"
+  | "probe-anders"
+  | "probe-01.0.0"
+  | "kaputt";
+
+export const signiert = (app: Testmanifest) => ({
   manifest: readFileSync(join(ORDNER, `${app}.yml`), "utf8"),
   signatur: readFileSync(join(ORDNER, `${app}.yml.minisig`), "utf8"),
 });
@@ -51,7 +68,8 @@ export const FAKTEN = VOM_AGENTEN_V1.find((n) => n.typ === "fakten") as Record<s
 export const neueInstallation = (teil: Partial<NeueInstallation> = {}): NeueInstallation => ({
   kundeId: "k1",
   serverId: "s1",
-  ...signiert("probe"),
+  app: "probe",
+  version: "1.0.0",
   optionen: [],
   host: "probe.kunde.example",
   einstellungen: { PROBE_TITEL: "Kanzlei", PROBE_KENNWORT: KENNWORT },
@@ -125,14 +143,31 @@ export const installationsUmgebung = () => {
       }),
     );
 
-  /** An operator with a customer `k1`, server `s1` with facts and connected agent, and its value */
-  const bereit = (betreiberId = "b1") => {
+  /** Imports a test manifest (Z-501), as an owner of `betreiberId` would; the same one again is a no-op */
+  const manifest = (name: Testmanifest, betreiberId = "b1") => {
+    const r = manifestImportieren(
+      u,
+      u.kontext(betreiberId),
+      TEST_SCHLUESSEL,
+      signiert(name),
+      "betreiber",
+    );
+    if (!r.ok) throw new Error(`${name}: ${r.grund} ${r.detail ?? ""}`);
+    return { app: r.eintrag.app, version: r.eintrag.version };
+  };
+
+  /**
+   * An operator with a customer `k1`, server `s1` with facts and connected agent, and its value;
+   * the manifest `manifest` imported, none with null
+   */
+  const bereit = (betreiberId = "b1", mit: Testmanifest | null = "probe") => {
     u.betreiber(betreiberId, "s1");
     kunde(betreiberId, "k1");
     fakten(betreiberId, "s1");
     betreiberWert(betreiberId, "probe", "PROBE_LIZENZ", LIZENZ, true);
+    if (mit) manifest(mit, betreiberId);
     return u.verbinden(betreiberId, "s1");
   };
 
-  return { ...u, deps, kunde, fakten, betreiberWert, bereit };
+  return { ...u, deps, kunde, fakten, betreiberWert, manifest, bereit };
 };

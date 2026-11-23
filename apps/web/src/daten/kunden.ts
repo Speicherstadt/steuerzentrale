@@ -30,6 +30,8 @@ export type KundenQuelle = {
   kuendigen: (id: string, ende: number, grund: string) => Promise<Antwort<Kunde>>;
   /** Takes the notice back: the contract runs on */
   zuruecknehmen: (id: string, grund: string) => Promise<Antwort<Kunde>>;
+  /** Marks the customer as our own or takes it back (Z-501); only the owner */
+  intern: (id: string, intern: boolean, grund: string) => Promise<Antwort<Kunde>>;
 };
 
 const pfad = (id: string) => `/api/v1/kunden/${encodeURIComponent(id)}`;
@@ -46,6 +48,8 @@ export const apiKunden: KundenQuelle = {
     api<Kunde>(`${pfad(id)}/kuendigung`, { method: "PUT", body: { ende, grund } }),
   zuruecknehmen: (id, grund) =>
     api<Kunde>(`${pfad(id)}/kuendigung`, { method: "DELETE", body: { grund } }),
+  intern: (id, intern, grund) =>
+    api<Kunde>(`${pfad(id)}/intern`, { method: "PUT", body: { intern, grund } }),
 };
 
 let quelle: KundenQuelle = demoKunden(kunden, Date.now);

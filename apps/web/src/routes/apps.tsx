@@ -17,19 +17,25 @@ import {
   Server,
 } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
-import { createMemo, For, Loading, Show } from "solid-js";
+import { createMemo, createSignal, For, Loading, refresh, Show } from "solid-js";
+import { type AppDerZentrale, appsQuelle } from "../daten/apps.ts";
 import { installationenQuelle } from "../daten/installationen.ts";
 import { bestand } from "../daten/quelle.ts";
 import type { Ebene, Manifest, OptionaleAktion } from "../daten/typen.ts";
 import { speicher } from "../format/zahl.ts";
 import { anzahl, standName } from "../rahmen/texte.ts";
+import { Fehler } from "../seiten/anmeldung-teile.tsx";
+import { ManifestImportieren, RegistryAbfragen, VersionenTeil } from "../seiten/app-versionen.tsx";
+import { MitInstallationsRecht } from "../seiten/recht.tsx";
 import { appIcon } from "../teile/app-icon.ts";
-import { Karte, Seitenkopf } from "../teile/karte.tsx";
+import { Hinweisbox, Karte, Seitenkopf } from "../teile/karte.tsx";
 import { Marke } from "../teile/zeichen.tsx";
 
 /**
  * The apps as their manifests describe them (BAULISTE.md, Z-201, Z-203): facts, values and the
- * actions offered; what an app lacks shows as "nicht unterstützt" with its issue (DESIGN.md)
+ * actions offered; what an app lacks shows as "nicht unterstützt" with its issue (DESIGN.md). Since
+ * Z-501 each with its imported versions and what the registry has new, and the import of a signed
+ * manifest; an app imported that the descriptions do not know shows with its versions alone.
  */
 
 type Fakt = { icon: IconNode; text: string; warn?: boolean };
@@ -138,80 +144,150 @@ const Aktionen = (props: { a: Manifest }) => {
   );
 };
 
-/** An app with how many of the operator's installations run it (the Zentrale's, Z-406) */
-const AppKarte = (props: { a: Manifest; n: number }) => {
-  const n = () => props.n;
-  return (
-    <Karte>
-      <div class="flex items-start gap-4 p-5 pb-3">
-        <span class="flex size-10 shrink-0 items-center justify-center rounded-lg border">
-          <Icon icon={appIcon(props.a.icon)} size={20} />
-        </span>
-        <div class="grid min-w-0 flex-1 gap-1.5">
-          <div class="flex flex-wrap items-center gap-2">
-            <h2 class="font-semibold leading-none">{props.a.name}</h2>
-            <Show when={props.a.version}>
-              {(v) => (
-                <Marke class="font-mono font-normal">
-                  {props.a.ohneManifest
-                    ? m.apps_version_neu({ version: v(), neu: props.a.ohneManifest })
-                    : v()}
-                </Marke>
-              )}
-            </Show>
-            <Marke class={props.a.stand === "stabil" ? "bg-accent" : ""}>
-              {standName(props.a.stand)}
-            </Marke>
-            <Show when={n() > 0}>
-              <Marke class="bg-accent tabular-nums">
-                {anzahl(n(), m.apps_installation_eins, m.apps_installationen)}
-              </Marke>
-            </Show>
-          </div>
-          <p class="text-muted-foreground">
-            {m.apps_beschreibung({ text: props.a.beschreibung, quelle: props.a.quelle })}
-          </p>
-        </div>
-      </div>
-      <ul class="flex flex-wrap gap-1.5 px-5 pb-3">
-        <For each={fakten(props.a)}>
-          {(f) => (
-            <li
-              class={[
-                "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs",
-                f.warn ? "text-warn" : "text-muted-foreground",
-              ]}
-            >
-              <Icon icon={f.icon} size={12} />
-              {f.text}
-            </li>
-          )}
-        </For>
-      </ul>
-      <p class="px-5 pb-4 text-xs text-muted-foreground">
-        {EBENEN.map((e) =>
-          e.text({ n: props.a.variablen.filter((v) => v.ebene === e.ebene).length }),
-        ).join(", ")}
-        {" · "}
-        {m.apps_container({ namen: props.a.container.join(", ") })}
-      </p>
-      <Aktionen a={props.a} />
-    </Karte>
-  );
+/** The newest available version, and the newer one whose manifest is missing */
+const versionsMarke = (v: AppDerZentrale | undefined): string | undefined => {
+  const verfuegbar = v?.versionen.find((x) => x.zustand === "verfuegbar")?.version;
+  const neu = v?.versionen.find((x) => x.zustand === "manifest_fehlt")?.version;
+  if (!verfuegbar) return neu ? m.apps_version_nur_neu({ neu }) : undefined;
+  return neu ? m.apps_version_neu({ version: verfuegbar, neu }) : verfuegbar;
 };
+
+/** Name, version, stage and how many of the operator's installations run it (Z-406) */
+const Kopf = (props: {
+  id: string;
+  a?: Manifest | undefined;
+  v?: AppDerZentrale | undefined;
+  n: number;
+}) => (
+  <div class="flex items-start gap-4 p-5 pb-3">
+    <span class="flex size-10 shrink-0 items-center justify-center rounded-lg border">
+      <Icon icon={appIcon(props.a?.icon ?? "")} size={20} />
+    </span>
+    <div class="grid min-w-0 flex-1 gap-1.5">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 class="font-semibold leading-none">{props.a?.name ?? props.id}</h2>
+        <Show when={versionsMarke(props.v)}>
+          {(text) => <Marke class="font-mono font-normal">{text()}</Marke>}
+        </Show>
+        <Show when={props.a}>
+          {(a) => (
+            <Marke class={a().stand === "stabil" ? "bg-accent" : ""}>{standName(a().stand)}</Marke>
+          )}
+        </Show>
+        <Show when={props.n > 0}>
+          <Marke class="bg-accent tabular-nums">
+            {anzahl(props.n, m.apps_installation_eins, m.apps_installationen)}
+          </Marke>
+        </Show>
+      </div>
+      <Show when={props.a}>
+        {(a) => (
+          <p class="text-muted-foreground">
+            {m.apps_beschreibung({ text: a().beschreibung, quelle: a().quelle })}
+          </p>
+        )}
+      </Show>
+    </div>
+  </div>
+);
+
+/** What the description of the app says: facts, values, containers and actions */
+const Beschreibung = (props: { a: Manifest }) => (
+  <>
+    <ul class="flex flex-wrap gap-1.5 px-5 pb-3">
+      <For each={fakten(props.a)}>
+        {(f) => (
+          <li
+            class={[
+              "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs",
+              f.warn ? "text-warn" : "text-muted-foreground",
+            ]}
+          >
+            <Icon icon={f.icon} size={12} />
+            {f.text}
+          </li>
+        )}
+      </For>
+    </ul>
+    <p class="px-5 pb-4 text-xs text-muted-foreground">
+      {EBENEN.map((e) =>
+        e.text({ n: props.a.variablen.filter((v) => v.ebene === e.ebene).length }),
+      ).join(", ")}
+      {" · "}
+      {m.apps_container({ namen: props.a.container.join(", ") })}
+    </p>
+    <Aktionen a={props.a} />
+  </>
+);
+
+const AppKarte = (props: {
+  id: string;
+  a: Manifest | undefined;
+  v: AppDerZentrale | undefined;
+  n: number;
+}) => (
+  <Karte>
+    <Kopf id={props.id} a={props.a} v={props.v} n={props.n} />
+    <Show when={props.a}>{(a) => <Beschreibung a={a()} />}</Show>
+    <VersionenTeil a={props.v} jetzt={bestand().jetzt} />
+  </Karte>
+);
 
 const Apps = () => {
   const antwort = createMemo(() => installationenQuelle().liste());
+  const versionen = createMemo(() => appsQuelle().liste());
+  const [meldung, setMeldung] = createSignal("");
   const anzahlDer = (app: string) => {
     const a = antwort();
     return a.ok ? a.daten.filter((i) => i.app === app && i.zustand !== "entfernt").length : 0;
   };
+  const versionenDer = (app: string) => {
+    const v = versionen();
+    return v.ok ? v.daten.find((x) => x.app === app) : undefined;
+  };
+  // the described apps first, then those only imported
+  const ids = () => {
+    const v = versionen();
+    return [
+      ...new Set([...bestand().apps.map((a) => a.id), ...(v.ok ? v.daten.map((x) => x.app) : [])]),
+    ];
+  };
+  const neuGeladen = (text?: string) => {
+    setMeldung(text ?? "");
+    refresh(versionen);
+  };
   return (
     <div class="grid gap-6">
-      <Seitenkopf titel={m.nav_apps()} text={m.apps_text()} />
+      <Seitenkopf
+        titel={m.nav_apps()}
+        text={m.apps_text()}
+        aktion={
+          <MitInstallationsRecht>
+            <RegistryAbfragen onAbgefragt={() => neuGeladen()} />
+            <ManifestImportieren onImportiert={neuGeladen} />
+          </MitInstallationsRecht>
+        }
+      />
+      <Show when={meldung()}>
+        <Hinweisbox icon={<Icon icon={CircleCheck} />} titel={m.apps_importieren()}>
+          <span role="status">{meldung()}</span>
+        </Hinweisbox>
+      </Show>
       <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
+        <Show when={!versionen().ok}>
+          <Fehler text={m.apps_versionen_fehler()} />
+        </Show>
         <div class="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-2">
-          <For each={bestand().apps}>{(a) => <AppKarte a={a} n={anzahlDer(a.id)} />}</For>
+          <For each={ids()}>
+            {(id) => (
+              <AppKarte
+                id={id}
+                a={bestand().apps.find((a) => a.id === id)}
+                v={versionenDer(id)}
+                n={anzahlDer(id)}
+              />
+            )}
+          </For>
         </div>
       </Loading>
     </div>

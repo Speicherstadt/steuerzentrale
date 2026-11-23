@@ -120,6 +120,13 @@
       "when": 1795409004451,
       "tag": "0016_wiederherstellungen",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1795413024865,
+      "tag": "0017_manifeste",
+      "breakpoints": true
     }
   ]
 }

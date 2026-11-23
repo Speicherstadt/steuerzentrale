@@ -189,9 +189,14 @@ const env = z.strictObject({
   option: name.optional(),
 });
 
+// SemVer 2.0.0: no leading zero in a number of the core, so one version has one spelling and an
+// imported version cannot come again as another (Z-501; packages/planung, versionen.ts)
 const semver = z
   .string()
-  .regex(/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/, "a version as major.minor.patch");
+  .regex(
+    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?$/,
+    "a version as major.minor.patch",
+  );
 
 export const ManifestStruktur = z.strictObject({
   schema: z.literal(1),

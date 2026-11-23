@@ -17,19 +17,22 @@ test.describe("the interface", { tag: "@phone" }, () => {
     expect(await res.json()).toMatchObject({ status: "ok" });
   });
 
+  // the eight first; apps other tests imported (Z-501) follow them
   test("shows the eight apps of the Speicherstadt", async ({ page }) => {
     await page.goto("/apps");
-    const apps = page.locator("main h2");
-    await expect(apps).toHaveText([
-      "Haben",
-      "Belegt",
-      "Kontext",
-      "Schreibzeug",
-      "Stellwerk",
-      "Fixpunkt",
-      "Kennwort",
-      "Soll",
-    ]);
+    const apps = page.locator("main section h2");
+    await expect
+      .poll(async () => (await apps.allTextContents()).slice(0, 8))
+      .toEqual([
+        "Haben",
+        "Belegt",
+        "Kontext",
+        "Schreibzeug",
+        "Stellwerk",
+        "Fixpunkt",
+        "Kennwort",
+        "Soll",
+      ]);
   });
 
   test("switches between light and dark and keeps the choice", async ({ page }) => {

@@ -1,6 +1,6 @@
 export { type AktionAusgeloest, aktionAusloesen, angeboteneAktionen } from "./aktionen.ts";
 export {
-  hochgeladenesManifest,
+  gewaehltesManifest,
   type InstallationAngelegt,
   type InstallationsDeps,
   type InstallationsFehler,

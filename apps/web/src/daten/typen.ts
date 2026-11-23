@@ -139,8 +139,11 @@ export type Kunde = {
   kuerzelAenderbar: boolean;
   angelegtAm: number;
   vertrag: { sla: Sla; beginn: number; ende: number | null };
-  /** Our own customer, whose installations go first in the wave "intern" (Z-502; demo only) */
-  intern?: boolean;
+  /**
+   * Our own customer (Z-501): its installations form the wave "intern" and alone are offered a
+   * pre-release; only the owner sets it
+   */
+  intern: boolean;
 };
 
 /** What an event, a job or an audit entry is about */

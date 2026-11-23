@@ -1,5 +1,5 @@
 import { schreiben } from "../modules/audit/index.ts";
-import { FAKTEN } from "./installationen.ts";
+import { FAKTEN, signiert, type Testmanifest } from "./installationen.ts";
 import type { TestServer } from "./server.ts";
 
 /*
@@ -17,6 +17,23 @@ export type Json = (
 ) => Promise<Antwort>;
 
 export const BEGINN = Date.UTC(2026, 10, 30, 23);
+
+/**
+ * Imports a test manifest through the API as `p` (Z-501), so an installation can be made from it;
+ * app and version to make it with
+ */
+export const manifestHochladen = async (
+  json: Json,
+  p: Pick<Person, "json">,
+  name: Testmanifest = "probe",
+): Promise<{ app: string; version: string }> => {
+  const { status, daten } = await json(p, "/api/v1/manifeste", {
+    body: { ...signiert(name), grund: "Test" },
+  });
+  if (status !== 201 && status !== 200)
+    throw new Error(`manifest ${name}: ${status} ${JSON.stringify(daten)}`);
+  return { app: String(daten.app), version: String(daten.version) };
+};
 
 /** A customer of the operator with a running contract; its id */
 export const kundeAnlegen = async (json: Json, p: Pick<Person, "json">, name = "Kanzlei Nord") => {

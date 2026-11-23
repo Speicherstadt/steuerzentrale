@@ -15,6 +15,7 @@ const kunde = (
   // the ids of the demo are short names already; every demo customer has installations
   kuerzel: id,
   kuerzelAenderbar: false,
+  intern: false,
   angelegtAm: berlin(seit, "09:00"),
   vertrag: { sla: "basis", beginn: berlin(seit), ende: null },
 });

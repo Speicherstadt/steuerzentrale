@@ -6,15 +6,15 @@ import { type InstallationDerZentrale, installationenQuelle } from "../daten/ins
 import { Fehler, felder } from "./anmeldung-teile.tsx";
 import { EinstellungsFelder } from "./einstellungs-felder.tsx";
 import { type Auswahl, auswahlZustand } from "./installieren-auswahl.ts";
-import { DateiFeld, ManifestBefund, ZielWahl } from "./installieren-felder.tsx";
+import { AppWahl, ManifestBefund, ZielWahl } from "./installieren-felder.tsx";
 import { OptionenFelder, PlatzierungsBox } from "./installieren-teile.tsx";
 import { grundText, installationsFehler } from "./installieren-texte.ts";
 import { MitInstallationsRecht } from "./recht.tsx";
 
 /*
- * "Installieren" (BAULISTE.md Z-402; mockup openInstall): customer, server, the signed manifest
- * (manifest.yml and its .minisig, until manifests are imported with Z-501), its options and the
- * settings of the level `installation`, the host and the reason. The placement is asked anew on
+ * "Installieren" (BAULISTE.md Z-402; mockup openInstall): customer, server, app and version of an
+ * imported manifest (Z-501, the upload of Z-402 is gone; a pre-release only for an internal
+ * customer), its options and the settings of the level `installation`, the host and the reason. The placement is asked anew on
  * every change of customer, server, manifest or options; making the installation decides the same.
  * When it finds a required value of the operator missing, the dialog asks for it (Z-404) and the
  * Zentrale stores it with the installation, for every installation of the app.
@@ -53,20 +53,12 @@ const Platzierung = (props: { a: Auswahl }) => (
   </Loading>
 );
 
+/** The chosen version's form, once its text came from the Zentrale */
 const ManifestTeil = (props: { a: Auswahl }) => (
-  <>
-    <DateiFeld
-      label={m.installieren_manifest()}
-      hint={m.installieren_manifest_hinweis()}
-      accept=".yml,.yaml"
-      onText={props.a.manifestSetzen}
-    />
-    <DateiFeld
-      label={m.installieren_signatur()}
-      hint={m.installieren_signatur_hinweis()}
-      accept=".minisig"
-      onText={props.a.setSignatur}
-    />
+  <Loading
+    on={props.a.version()}
+    fallback={<p class="text-xs text-muted-foreground">{m.installieren_laden()}</p>}
+  >
     <ManifestBefund geprueft={props.a.geprueft()} />
     <Show when={props.a.gelesen()}>
       {(mf) => (
@@ -84,7 +76,7 @@ const ManifestTeil = (props: { a: Auswahl }) => (
         </>
       )}
     </Show>
-  </>
+  </Loading>
 );
 
 /**
@@ -141,6 +133,7 @@ const Formular = (props: {
   return (
     <form class="grid gap-4" onSubmit={senden}>
       <ZielWahl a={a} />
+      <AppWahl a={a} />
       <ManifestTeil a={a} />
       <Loading fallback={<p class="text-xs text-muted-foreground">{m.installieren_laden()}</p>}>
         <AdressFeld a={a} />

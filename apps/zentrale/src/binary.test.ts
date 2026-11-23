@@ -1,9 +1,10 @@
 import { Database } from "bun:sqlite";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { oeffneDatenbank } from "./db/oeffnen.ts";
+import { schreiben } from "./modules/audit/index.ts";
 import { schluesselAus } from "./modules/geheim/verschluesseln.ts";
 import { serverAnlegen } from "./modules/server/index.ts";
 import { testAnfrage } from "./testhilfen/agent.ts";
@@ -17,6 +18,8 @@ const KEY = Buffer.alloc(32, 7).toString("base64");
 const URL_ = "http://localhost:28300";
 const AGENT_ = "http://localhost:28300";
 const target = process.arch === "arm64" ? "linux-arm64" : "linux-x64";
+const REPO = join(import.meta.dirname, "../../..");
+const MANIFESTE = join(import.meta.dirname, "testhilfen/manifeste");
 
 beforeAll(() => {
   const entry = join(import.meta.dirname, "main.ts");
@@ -188,6 +191,56 @@ describe("the compiled Zentrale", () => {
       },
     });
     expect(await alt.exited).toBe(1);
+  }, 30_000);
+
+  // Z-501: `steuerzentrale manifest importieren <pfad>` with `<pfad>.minisig` beside it
+  it("imports a signed manifest on command, and refuses another text for its version", async () => {
+    const daten = join(ordner, "manifest");
+    mkdirSync(daten, { recursive: true });
+    const schluessel = schluesselAus(KEY);
+    if (!schluessel.ok) throw new Error("test key");
+    const offen = oeffneDatenbank(join(daten, "zentrale.db"), 1, {
+      aktuell: schluessel.schluessel,
+      alt: [],
+    });
+    const kontext = { betreiberId: "b1", akteur: "test", jetzt: 1, grund: "Test" };
+    schreiben(offen.schreibDb, kontext, "test", (w) =>
+      w.einfuegen("betreiber", { betreiberId: "b1", name: "Teufel IT", angelegtAm: 1 }),
+    );
+    offen.schliessen();
+    const dateien = join(ordner, "agent-dateien");
+    mkdirSync(dateien, { recursive: true });
+    copyFileSync(join(REPO, "test/schluessel/test.pub"), join(dateien, "minisign.pub"));
+    const importieren = (name: string) => {
+      const pfad = join(ordner, `${name}.yml`);
+      copyFileSync(join(MANIFESTE, `${name}.yml`), pfad);
+      copyFileSync(join(MANIFESTE, `${name}.yml.minisig`), `${pfad}.minisig`);
+      return Bun.spawn([binary, "manifest", "importieren", pfad], {
+        env: {
+          STEUERZENTRALE_DATA: daten,
+          STEUERZENTRALE_SECRET_KEY: KEY,
+          STEUERZENTRALE_URL: URL_,
+          STEUERZENTRALE_AGENT_URL: AGENT_,
+          STEUERZENTRALE_AGENT_DATEIEN: dateien,
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+    };
+    const erster = importieren("probe");
+    expect(await erster.exited).toBe(0);
+    expect(await new Response(erster.stdout).text()).toContain('"manifest imported"');
+    const anders = importieren("probe-anders");
+    expect(await anders.exited).toBe(1);
+    expect(await new Response(anders.stderr).text()).toContain("version_vergeben");
+    const sqlite = new Database(join(daten, "zentrale.db"), { readonly: true });
+    const zeilen = sqlite
+      .query<{ app: string; version: string; importiert_von: string }, []>(
+        "SELECT app, version, importiert_von FROM manifeste",
+      )
+      .all();
+    sqlite.close();
+    expect(zeilen).toEqual([{ app: "probe", version: "1.0.0", importiert_von: "befehl" }]);
   }, 30_000);
 
   it("refuses to start without the address of the interface", async () => {
