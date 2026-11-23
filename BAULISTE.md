@@ -390,7 +390,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
 
 ## Phase 7 – Server-Pflege, Kündigung, Support, Release
 
-- [ ] **Z-701 Betriebssystem** – Status von unattended-upgrades, ausstehende Pakete, „Neustart
+- [x] **Z-701 Betriebssystem** – Status von unattended-upgrades, ausstehende Pakete, „Neustart
   nötig“; Neustart als Auftrag im Wartungsfenster außerhalb aller Sperrzeiten der Apps auf dem
   Server.
   nach: Z-305, Z-502
