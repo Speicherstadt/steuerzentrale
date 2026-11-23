@@ -562,7 +562,7 @@ jobs:
           bun scripts/release-kandidat.ts unit "$BRUECKE:5000/steuerzentrale@$DIGEST" "$RUNNER_TEMP/quadlet-vm"
           sudo incus file push --create-dirs "$RUNNER_TEMP/quadlet-vm/steuerzentrale.container" "$VM/home/sz-zentrale/.config/containers/systemd/steuerzentrale.container"
           vm sh -c 'chown -R sz-zentrale: /home/sz-zentrale && chmod 600 /home/sz-zentrale/steuerzentrale.env'
-          als='als() { u="$1"; shift; uid="$(id -u "$u")"; runuser -u "$u" -- env -i HOME="$(getent passwd "$u" | cut -d: -f6)" XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" PATH=/usr/local/bin:/usr/bin:/bin "$@"; }'
+          als='als() ( u="$1"; shift; uid="$(id -u "$u")"; cd / && runuser -u "$u" -- env -i HOME="$(getent passwd "$u" | cut -d: -f6)" XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" PATH=/usr/local/bin:/usr/bin:/bin "$@"; )'
           echo "ALS=$als" >> "$GITHUB_ENV"
           vm bash -c "$als; head -c 32 /dev/urandom | base64 | als sz-zentrale podman secret create steuerzentrale-secret-key -"
           # 5. start, /health on loopback

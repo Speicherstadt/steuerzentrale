@@ -40,15 +40,15 @@ Server aus und aktualisiert mit ihnen die Agenten ([Updates des Agenten](agent-u
 - Root auf dem Server. Alle Befehle unten laufen als Root.
 
 Befehle als ein anderer Nutzer laufen über eine kleine Funktion, die dessen systemd und Podman
-erreicht (der Nutzer hat keine Login-Shell):
+erreicht (der Nutzer hat keine Login-Shell; `cd /`, weil er `/root` nicht lesen darf):
 
 ```sh
-als() {
+als() (
   u="$1"; shift; uid="$(id -u "$u")"
-  runuser -u "$u" -- env -i HOME="$(getent passwd "$u" | cut -d: -f6)" \
+  cd / && runuser -u "$u" -- env -i HOME="$(getent passwd "$u" | cut -d: -f6)" \
     XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
     PATH=/usr/local/bin:/usr/bin:/bin "$@"
-}
+)
 ```
 
 ## 1. Pakete
