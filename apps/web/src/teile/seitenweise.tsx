@@ -16,30 +16,46 @@ export const Seitenweise = <T,>(props: {
   zeigen: (eintraege: () => T[]) => JSX.Element;
 }) => {
   const erste = createMemo(() => props.laden());
-  const [weitere, setWeitere] = createSignal<Seite<T>[]>([]);
+  // the pages read on, with the first page they follow: when what is read changes, the first page
+  // is a new answer and the pages of the list before (and one still on its way) no longer count
+  const [weitere, setWeitere] = createSignal<{
+    zu: Antwort<Seite<T>> | undefined;
+    seiten: Seite<T>[];
+    fehler: string;
+  }>({ zu: undefined, seiten: [], fehler: "" });
   const [laedt, setLaedt] = createSignal(false);
-  const [mehrFehler, setMehrFehler] = createSignal("");
+  const dazu = () => {
+    const w = weitere();
+    return w.zu === erste() ? w : { seiten: [], fehler: "" };
+  };
   const eintraege = () => {
     const a = erste();
-    return a.ok ? [...a.daten.eintraege, ...weitere().flatMap((s) => s.eintraege)] : [];
+    return a.ok ? [...a.daten.eintraege, ...dazu().seiten.flatMap((s) => s.eintraege)] : [];
   };
   const weiter = () => {
     const a = erste();
     if (!a.ok) return null;
-    const letzte = weitere().at(-1);
+    const letzte = dazu().seiten.at(-1);
     return letzte ? letzte.weiter : a.daten.weiter;
   };
   const fehler = () => {
     const a = erste();
-    return a.ok ? mehrFehler() : fehlerText(a);
+    return a.ok ? dazu().fehler : fehlerText(a);
   };
   const mehr = async () => {
+    const zu = erste();
     const ab = weiter();
     if (!ab || laedt()) return;
     setLaedt(true);
     const a = await props.laden(ab);
-    if (a.ok) setWeitere((s) => [...s, a.daten]);
-    setMehrFehler(a.ok ? "" : fehlerText(a));
+    setWeitere((w) => {
+      const seiten = w.zu === zu ? w.seiten : [];
+      return {
+        zu,
+        seiten: a.ok ? [...seiten, a.daten] : seiten,
+        fehler: a.ok ? "" : fehlerText(a),
+      };
+    });
     setLaedt(false);
   };
   return (
