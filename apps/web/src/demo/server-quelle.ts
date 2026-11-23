@@ -1,9 +1,12 @@
 import type { ServerDerZentrale, ServerFakten, ServerQuelle } from "../daten/server.ts";
 import type { Server } from "../daten/typen.ts";
+import { pruefungenDerDemo } from "../daten/zustand.ts";
+import { demo } from "./index.ts";
 
 /**
- * The demo's servers, answering as the Zentrale's API would (routes/server.ts in apps/zentrale);
- * a revocation lasts until the page reloads
+ * The demo's servers, answering as the Zentrale's API would (routes/server.ts in apps/zentrale), a
+ * server's own page with its checks (Z-702) as packages/planung rates the demo's values; a
+ * revocation lasts until the page reloads
  */
 const ARTEN = { gemeinsam: "gemeinsam", eigen: "eigen", kunde: "beim_kunden" } as const;
 
@@ -84,7 +87,14 @@ export const demoServerQuelle = (start: Server[], jetzt: () => number): ServerQu
     liste: async () => ok([...liste].sort((a, b) => a.name.localeCompare(b.name, "de"))),
     server: async (id) => {
       const sv = liste.find((s) => s.serverId === id);
-      return sv ? ok(sv) : fehlt;
+      const roh = start.find((s) => s.id === id);
+      if (!sv || !roh) return fehlt;
+      // at the demo's own morning, which its backups and certificates are written against
+      const pruefungen = pruefungenDerDemo({ ...demo, server: start }, roh).map((p) => ({
+        ...p,
+        seit: null,
+      }));
+      return ok({ ...sv, pruefungen });
     },
     sperren: async (id) => {
       const sv = liste.find((s) => s.serverId === id);

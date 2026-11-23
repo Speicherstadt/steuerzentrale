@@ -1,3 +1,4 @@
+import type { Serverpruefung } from "@steuerzentrale/planung";
 import { type Antwort, api } from "../anmeldung/api.ts";
 import { server as demoServer } from "../demo/server.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
@@ -7,8 +8,8 @@ import type { AgentZustand } from "./typen.ts";
  * Where the server pages read the servers of the Zentrale (BAULISTE.md Z-303, Z-304): the API once
  * someone is signed in (main.tsx puts it in), else the demo fixtures in memory. It carries what the
  * API has: the servers, what the agent reported at joining, the state of its connection and its
- * newest facts. Load, installations, checks and events still come from the demo data by the
- * server's id (server-ansicht.ts), so a server of the Zentrale has none of them yet.
+ * newest facts, and on a server's own page its checks (Z-702). Load and the checks of the operating
+ * system still come from the demo data by the server's id (server-ansicht.ts) until Z-701.
  */
 
 /** The facts of a server as its agent read them (packages/protokoll, `fakten`); null: unreadable */
@@ -29,7 +30,14 @@ export type ServerFakten = {
   portsBelegt: { port: number; proto: "tcp" | "udp" }[] | null;
   port25Ausgehend: boolean | null;
   uhrzeitAbweichungMs: number | null;
+  /** For the checks (Z-702); an agent from before them does not send them */
+  portsOffen?: { port: number; proto: "tcp" | "udp" }[] | null;
+  zertifikate?: { host: string; gueltigBis: number }[] | null;
+  uhrSynchron?: boolean | null;
 };
+
+/** A check of the server (Z-702) as the Zentrale rated it, with the start of its open finding */
+export type ServerPruefung = Serverpruefung & { seit: number | null };
 
 /** The state of a server's agent (apps/zentrale, modules/verbindung/zustand.ts) */
 export type AgentVerbindung =
@@ -54,6 +62,8 @@ export type ServerDerZentrale = {
   /** The newest facts and when the Zentrale got them; null before the agent's first report */
   fakten: ServerFakten | null;
   faktenAm: number | null;
+  /** Its checks (Z-702); only GET /api/v1/server/:id has them, not the list */
+  pruefungen?: ServerPruefung[];
 };
 
 export type ServerQuelle = {
