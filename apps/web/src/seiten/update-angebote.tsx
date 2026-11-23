@@ -1,19 +1,23 @@
-import { Icon, m } from "@steuerzentrale/ui";
+import { Button, Icon, m } from "@steuerzentrale/ui";
 import { CircleCheck, TriangleAlert } from "@steuerzentrale/ui/icons";
-import { createMemo, For, Loading, Show } from "solid-js";
+import { createMemo, createSignal, For, Loading, Match, refresh, Show, Switch } from "solid-js";
 import { type Angebot, appsQuelle, type InstallationsAngebot } from "../daten/apps.ts";
+import { bestand } from "../daten/quelle.ts";
+import { planText, updateMisslungen, updateText } from "../daten/update-texte.ts";
 import { welleName } from "../rahmen/texte.ts";
 import { Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
-import { KommtNoch } from "../teile/kommt-noch.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuInstallation } from "../teile/verweise.tsx";
 import { Marke, Zustand } from "../teile/zeichen.tsx";
 import { Fehler } from "./anmeldung-teile.tsx";
+import { installationsRecht } from "./recht.tsx";
+import { UpdateDialog } from "./update-dialog.tsx";
 
 /*
- * The page "Updates" from the Zentrale (BAULISTE.md Z-501): which imported versions each
- * installation is offered (a pre-release only to an internal customer), and what is new in the
- * registries without a manifest. Running an update comes with Z-503, the page says so.
+ * The page "Updates" from the Zentrale (BAULISTE.md Z-501, Z-503): which imported versions each
+ * installation is offered (a pre-release only to an internal customer), where the plan stands for
+ * it, its last update with how it ended, an update by hand for owner and technik
+ * (update-dialog.tsx), and what is new in the registries without a manifest.
  */
 
 const AngebotsMarke = (props: { v: Angebot }) => (
@@ -28,7 +32,28 @@ const AngebotsMarke = (props: { v: Angebot }) => (
   </Marke>
 );
 
-const Zeile = (props: { i: InstallationsAngebot }) => (
+const text = (i: InstallationsAngebot) => updateText(i.update, bestand().jetzt);
+
+/** The last update: a good one as a sign, one rolled back or failed in the warning's colour */
+const UpdateZustand = (props: { i: InstallationsAngebot }) => (
+  <Switch fallback={<span>{text(props.i)}</span>}>
+    <Match when={props.i.update.letzter?.phase === "aktualisiert"}>
+      <Zustand icon={CircleCheck} farbe="text-ok" text={text(props.i)} />
+    </Match>
+    <Match when={updateMisslungen(props.i.update)}>
+      <span class="font-medium text-warn">{text(props.i)}</span>
+    </Match>
+  </Switch>
+);
+
+/** Whether an update by hand can be asked for now: a newer version, none under way */
+const aktualisierbar = (i: InstallationsAngebot) => i.angeboten.length > 0 && !i.update.laeuft;
+
+const Zeile = (props: {
+  i: InstallationsAngebot;
+  darf: boolean;
+  waehlen: (i: InstallationsAngebot) => void;
+}) => (
   <Reihe>
     <td>
       <ZuInstallation id={props.i.installationId} class="font-mono text-xs">
@@ -48,12 +73,35 @@ const Zeile = (props: { i: InstallationsAngebot }) => (
         </div>
       </Show>
     </td>
+    <td class="text-xs">{planText(props.i.plan, bestand().jetzt)}</td>
+    <td class="text-xs">
+      <UpdateZustand i={props.i} />
+    </td>
+    <Show when={props.darf}>
+      <td class="text-right">
+        <Show when={aktualisierbar(props.i)}>
+          <Button
+            size="sm"
+            aria-label={m.upd_knopf_installation({ name: props.i.installationId })}
+            onClick={() => props.waehlen(props.i)}
+          >
+            {m.upd_knopf()}
+          </Button>
+        </Show>
+      </td>
+    </Show>
   </Reihe>
 );
 
-/** The versions each installation is offered */
+/**
+ * The versions each installation is offered, where the plan stands for it and its last update,
+ * with an update by hand for owner and technik; read anew once an update is asked for
+ */
 export const Angebote = () => {
   const antwort = createMemo(() => appsQuelle().angebote());
+  const darf = installationsRecht();
+  const [gewaehlt, setGewaehlt] = createSignal<InstallationsAngebot | undefined>();
+  const [hinweis, setHinweis] = createSignal("");
   const liste = () => {
     const a = antwort();
     return a.ok ? a.daten : [];
@@ -61,7 +109,7 @@ export const Angebote = () => {
   return (
     <Karte>
       <KartenKopf titel={m.upd_angebote()} text={m.upd_angebote_text()} />
-      <KartenInhalt>
+      <KartenInhalt class="grid gap-3">
         <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
           <Show when={!antwort().ok}>
             <Fehler text={m.apps_versionen_fehler()} />
@@ -74,13 +122,30 @@ export const Angebote = () => {
               { name: m.upd_spalte_installiert() },
               { name: m.inst_welle() },
               { name: m.upd_spalte_angeboten() },
+              { name: m.upd_spalte_plan() },
+              { name: m.upd_spalte_update() },
+              ...(darf() ? [{ name: m.upd_spalte_aktion(), class: "sr-only" }] : []),
             ]}
-            minBreite={640}
+            minBreite={980}
             leer={m.upd_keine_installationen()}
             anzahl={liste().length}
           >
-            <For each={liste()}>{(i) => <Zeile i={i} />}</For>
+            <For each={liste()}>
+              {(i) => <Zeile i={i} darf={darf()} waehlen={(x) => setGewaehlt(x)} />}
+            </For>
           </Tabelle>
+          <p role="status" class={["text-xs text-muted-foreground", { hidden: !hinweis() }]}>
+            {hinweis()}
+          </p>
+          <UpdateDialog
+            i={gewaehlt()}
+            onClose={() => setGewaehlt(undefined)}
+            angefordert={() => {
+              setGewaehlt(undefined);
+              setHinweis(m.upd_angefordert());
+              refresh(antwort);
+            }}
+          />
         </Loading>
       </KartenInhalt>
     </Karte>
@@ -127,15 +192,10 @@ export const NeuInRegistry = () => {
   );
 };
 
-/** Signed in: the offers and the registries' news; running them comes with Z-503 */
+/** Signed in: the offers with plan and last update, and the registries' news */
 export const UpdatesDerZentrale = () => (
-  <>
-    <KommtNoch punkt="Z-503" text={m.upd_ausfuehren_spaeter()} />
-    <div class="grid gap-4 lg:grid-cols-3">
-      <div class="lg:col-span-2">
-        <Angebote />
-      </div>
-      <NeuInRegistry />
-    </div>
-  </>
+  <div class="grid gap-4">
+    <Angebote />
+    <NeuInRegistry />
+  </div>
 );

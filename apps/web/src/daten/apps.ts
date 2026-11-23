@@ -3,9 +3,10 @@ import { type Antwort, api } from "../anmeldung/api.ts";
 
 /*
  * Where the pages Apps and Updates and the dialog "App installieren" read the imported manifests
- * and versions (BAULISTE.md Z-501; apps/zentrale, routes/manifeste.ts): the Zentrale's API once
- * someone is signed in (main.tsx puts it in), else the demo in memory, which answers alike
- * (src/demo/apps-quelle.ts). Errors come back as values (src/anmeldung/api.ts).
+ * and versions (BAULISTE.md Z-501; apps/zentrale, routes/manifeste.ts) and run an update by hand
+ * (Z-503; routes/updates.ts): the Zentrale's API once someone is signed in (main.tsx puts it in),
+ * else the demo in memory, which answers alike (src/demo/apps-quelle.ts). Errors come back as
+ * values (src/anmeldung/api.ts).
  */
 
 /** Available: its manifest is imported; manifest missing: only the registry has it */
@@ -60,6 +61,47 @@ export type ImportAntwort = Omit<ManifestDerZentrale, "text"> & { neu: boolean }
 /** A version an installation is offered (packages/planung, angeboteneVersionen) */
 export type Angebot = { version: string; dringend: boolean; vorabversion: boolean };
 
+/** Where an update stands: backing up, updating, or how it ended (Z-503) */
+export type UpdatePhase =
+  | "sichern"
+  | "aktualisieren"
+  | "aktualisiert"
+  | "zurueckgenommen"
+  | "ruecknahme_unvollstaendig"
+  | "gescheitert"
+  | "abgebrochen";
+
+/** The last update of an installation (apps/zentrale, modules/updates/lesen.ts) */
+export type LetztesUpdate = {
+  vonVersion: string;
+  nachVersion: string;
+  anlass: "hand" | "welle" | "dringend";
+  welle: string | null;
+  sperrzeitUebergangen: boolean;
+  angefordertAm: number;
+  phase: UpdatePhase;
+  endeAm: number | null;
+  fehler: string | null;
+  dauerMs: number | null;
+};
+
+export type UpdateStand = { letzter: LetztesUpdate | null; laeuft: boolean };
+
+/** Why the plan holds an installation back (packages/planung, `Wartegrund`) */
+export type Wartegrund =
+  | "angehalten"
+  | "nur_von_hand"
+  | "vorabversion"
+  | "intern_laeuft"
+  | "freigabe_noetig"
+  | "kein_termin";
+
+/** Where the plan stands for an installation: its wave and next slot, or why it waits */
+export type PlanStand = { welle: "intern" | "alle"; version: string } & (
+  | { art: "termin"; ab: number; sperrzeitUebergangen: boolean }
+  | { art: "wartet"; grund: Wartegrund }
+);
+
 export type InstallationsAngebot = {
   installationId: string;
   kundeId: string;
@@ -67,6 +109,15 @@ export type InstallationsAngebot = {
   version: string;
   intern: boolean;
   angeboten: Angebot[];
+  /** Null while it runs the newest version it is offered */
+  plan: PlanStand | null;
+  update: UpdateStand;
+};
+
+/** What an update by hand answers: its two jobs, the backup first */
+export type UpdateAngefordert = {
+  backup: { auftragId: string; zustand: string };
+  update: { auftragId: string; zustand: string };
 };
 
 export type AppsQuelle = {
@@ -79,8 +130,14 @@ export type AppsQuelle = {
   ) => Promise<Antwort<ImportAntwort>>;
   /** "Registry abfragen": answers once every registry answered */
   abfragen: () => Promise<Antwort<AppDerZentrale[]>>;
-  /** What each installation of the operator is offered */
+  /** What each installation of the operator is offered, its plan and its last update */
   angebote: () => Promise<Antwort<InstallationsAngebot[]>>;
+  /** Owner and technik, with a reason: an update to a version the installation is offered (Z-503) */
+  update: (
+    installationId: string,
+    version: string,
+    grund: string,
+  ) => Promise<Antwort<UpdateAngefordert>>;
 };
 
 const appsAus = (a: Antwort<{ apps: AppDerZentrale[] }>): Antwort<AppDerZentrale[]> =>
@@ -100,6 +157,10 @@ export const apiApps: AppsQuelle = {
     const a = await api<{ installationen: InstallationsAngebot[] }>("/api/v1/updates");
     return a.ok ? { ...a, daten: a.daten.installationen } : a;
   },
+  update: (installationId, version, grund) =>
+    api<UpdateAngefordert>(`/api/v1/installationen/${encodeURIComponent(installationId)}/update`, {
+      body: { version, grund },
+    }),
 };
 
 /** The demo, loaded on its first call: it reads manifests with packages/manifest (YAML and Zod) */
@@ -115,6 +176,7 @@ const spaeterDemo = (): AppsQuelle => {
     importieren: async (e, grund) => (await laden()).importieren(e, grund),
     abfragen: async () => (await laden()).abfragen(),
     angebote: async () => (await laden()).angebote(),
+    update: async (id, version, grund) => (await laden()).update(id, version, grund),
   };
 };
 
