@@ -334,7 +334,13 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   --if-exists` mit `datenbank` und `nutzer` aus dem Manifest, App starten, Health; bei `volume`: Units
   stoppen, Volume ersetzen, starten).
   Fertig, wenn: die Daten nach dem Wiederherstellen dem Snapshot entsprechen (Test je Art) und der
-  Vorgang im Audit-Log steht.
+  Vorgang im Audit-Log steht; dazu (Tests): in der CI gegen Podman und MinIO kehren nach einem
+  Wiederherstellen die Daten eines älteren Laufs zurück und spätere Änderungen sind weg (Volume der
+  Beispiel-App über HTTP gelesen; `pg_dump` mit einem Postgres-Container); vor dem Wiederherstellen
+  entsteht ein Backup vom Ist-Zustand, scheitert es, wird nichts zurückgespielt; ein Lauf einer
+  anderen Installation wird abgelehnt; nach einem Fehler laufen die Units wieder; ein Zeitlimit lässt
+  keinen Prozess des Zurückspielens übrig; kein Betreiber erreicht das Wiederherstellen eines
+  anderen (Test je Endpunkt); Snapshot wählen und Wiederherstellen in Playwright.
 
 ## Phase 6 – Updates
 
