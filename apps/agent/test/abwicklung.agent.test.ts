@@ -54,8 +54,9 @@ const ZUFALL = crypto.randomUUID().replaceAll("-", "").slice(0, 6);
 const K = `test-l${ZUFALL}`;
 const AGENT = `/usr/local/bin/sz-test-agent-l${ZUFALL}`;
 const PASSWORT = `pw-${crypto.randomUUID()}`;
-const MINIO_PORT = 29441;
-const PORT = 29191;
+/** Ports of this file alone: the other agent test files run side by side (echte-apps uses 29441, 29191) */
+const MINIO_PORT = 29451;
+const PORT = 29211;
 /** The test MinIO has no region set (backup-hilfen.ts) */
 const REGION = "us-east-1";
 
@@ -133,7 +134,7 @@ describe.skipIf(!bereit)("archive and deletion of the example app after a contra
     binary = agentInstallieren(AGENT);
     minio = await minioStarten(`sz-test-minio-l${ZUFALL}`, MINIO_PORT);
     agent = echterAgent({ agent: AGENT });
-    zugang = await zugangAnlegen(`sz-${K}`, praefix);
+    zugang = await zugangAnlegen(`sz-${K}`, praefix, MINIO_PORT);
   }, 600_000);
 
   afterAll(() => {
@@ -169,9 +170,15 @@ describe.skipIf(!bereit)("archive and deletion of the example app after a contra
     expect(r.ok ? "ok" : r.fehler).toBe("ok");
     const gemeldet = (r.daten?.objekte ?? []) as { datei: string; bytes: number }[];
     expect(gemeldet.map((o) => o.datei)).toContain("volume-daten.tar");
-    const archiv = await objekte(`${praefix}archiv/`);
+    const archiv = await objekte(`${praefix}archiv/`, ADMIN, MINIO_PORT);
     expect(archiv).toEqual(gemeldet.map((o) => `${praefix}archiv/${o.datei}`).sort());
-    const tar = await s3Anfrage(zugang, "GET", `/${praefix}archiv/volume-daten.tar`);
+    const tar = await s3Anfrage(
+      zugang,
+      "GET",
+      `/${praefix}archiv/volume-daten.tar`,
+      {},
+      MINIO_PORT,
+    );
     expect(tar.status).toBe(200);
     expect(tar.text).toContain("beispiel.db");
     // nothing of the archive is left in the user's home
@@ -192,7 +199,7 @@ describe.skipIf(!bereit)("archive and deletion of the example app after a contra
 
   it("leaves no object below the prefix after the Zentrale's step, and none outside it deleted", async () => {
     await ablegen(nachbar, new Uint8Array(new TextEncoder().encode("fremd")));
-    expect((await objekte(praefix)).length).toBeGreaterThan(0);
+    expect((await objekte(praefix, ADMIN, MINIO_PORT)).length).toBeGreaterThan(0);
     const r = await praefixLoeschen(
       {
         fetch,
@@ -205,7 +212,7 @@ describe.skipIf(!bereit)("archive and deletion of the example app after a contra
       praefix,
     );
     expect(r.ok ? "ok" : r.fehler).toBe("ok");
-    expect(await objekte(praefix)).toEqual([]);
-    expect(await objekte(`b-test/${K}x/`)).toEqual([nachbar]);
+    expect(await objekte(praefix, ADMIN, MINIO_PORT)).toEqual([]);
+    expect(await objekte(`b-test/${K}x/`, ADMIN, MINIO_PORT)).toEqual([nachbar]);
   }, 300_000);
 });

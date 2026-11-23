@@ -28,7 +28,8 @@ export const BUCKET = "sicherung";
 export const ADMIN = { schluesselId: "szadmin", geheim: `szadmin-${crypto.randomUUID()}` };
 /** The test MinIO has no region set, so it signs in its default one, as restic assumes too */
 const REGION = "us-east-1";
-const AM_RUNNER = `http://127.0.0.1:${MINIO_PORT}`;
+/** The MinIO on the port as the runner reaches it: each test file has a port of its own */
+const amRunner = (port: number) => `http://127.0.0.1:${port}`;
 
 export type S3Schluessel = { schluesselId: string; geheim: string };
 
@@ -158,12 +159,16 @@ export const snapshots = (repository: string, passwort: string): Snapshot[] => {
  * An installation's own access to the prefix, made as the Zentrale makes it: a service account
  * under the admin with `backupPolicy`, through `add-service-account`, keys from `zugangErzeugen`
  */
-export const zugangAnlegen = async (name: string, praefix: string): Promise<S3Schluessel> => {
+export const zugangAnlegen = async (
+  name: string,
+  praefix: string,
+  port = MINIO_PORT,
+): Promise<S3Schluessel> => {
   const { accessKey, secretKey } = zugangErzeugen();
   const r = await dienstkontoAnlegen(
     {
       fetch,
-      endpunkt: AM_RUNNER,
+      endpunkt: amRunner(port),
       region: REGION,
       admin: { accessKey: ADMIN.schluesselId, secretKey: ADMIN.geheim },
       jetzt: Date.now,
@@ -185,8 +190,9 @@ export const s3Anfrage = async (
   methode: "GET" | "DELETE",
   pfad: string,
   abfrage: Record<string, string> = {},
+  port = MINIO_PORT,
 ): Promise<{ status: number; text: string }> => {
-  const url = new URL(`${AM_RUNNER}/${BUCKET}${pfad}`);
+  const url = new URL(`${amRunner(port)}/${BUCKET}${pfad}`);
   for (const [k, v] of Object.entries(abfrage)) url.searchParams.set(k, v);
   const koepfe = await signieren({
     methode,
@@ -201,8 +207,12 @@ export const s3Anfrage = async (
 };
 
 /** The keys of the objects below the prefix (ListObjectsV2, one page), as the access sees them */
-export const objekte = async (praefix: string, zugang: S3Schluessel = ADMIN): Promise<string[]> => {
-  const a = await s3Anfrage(zugang, "GET", "/", { "list-type": "2", prefix: praefix });
+export const objekte = async (
+  praefix: string,
+  zugang: S3Schluessel = ADMIN,
+  port = MINIO_PORT,
+): Promise<string[]> => {
+  const a = await s3Anfrage(zugang, "GET", "/", { "list-type": "2", prefix: praefix }, port);
   if (a.status !== 200) throw new Error(`ListObjectsV2 ${praefix}: HTTP ${a.status} ${a.text}`);
   if (a.text.includes("<IsTruncated>true</IsTruncated>"))
     throw new Error(`ListObjectsV2 ${praefix}: more than one page`);
