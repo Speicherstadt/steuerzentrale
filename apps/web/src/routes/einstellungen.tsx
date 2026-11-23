@@ -2,9 +2,9 @@ import { m, Tabs } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
 import { bestand } from "../daten/quelle.ts";
 import { AppWerte } from "../seiten/einstellungen-apps.tsx";
+import { BackupZielReiter } from "../seiten/einstellungen-backup.tsx";
 import { Dns } from "../seiten/einstellungen-dns.tsx";
 import {
-  Backup,
   Benachrichtigungen,
   Darstellung,
   Konten,
@@ -13,8 +13,8 @@ import {
 import { Seitenkopf } from "../teile/karte.tsx";
 
 /**
- * The operator's values per app (Z-404: a form from each app's manifest), backup target, DNS,
- * notifications, accounts, the Zentrale, the look
+ * The operator's values per app (Z-404: a form from each app's manifest), backup target (Z-601),
+ * DNS (Z-407), notifications, accounts, the Zentrale, the look
  */
 
 const REITER = ["werte", "backup", "dns", "melden", "konten", "zentrale", "darstellung"] as const;
@@ -39,7 +39,7 @@ const Einstellungen = () => {
               </div>
             ),
           },
-          { id: "backup", label: m.einst_backup(), content: () => <Backup b={b} /> },
+          { id: "backup", label: m.einst_backup(), content: () => <BackupZielReiter /> },
           { id: "dns", label: m.einst_dns(), content: () => <Dns /> },
           { id: "melden", label: m.einst_melden(), content: () => <Benachrichtigungen b={b} /> },
           { id: "konten", label: m.einst_konten(), content: () => <Konten /> },

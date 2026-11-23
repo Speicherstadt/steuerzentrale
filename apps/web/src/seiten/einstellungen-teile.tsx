@@ -13,10 +13,11 @@ import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 
 /**
  * The tabs of the settings, read-only until their items let them be changed (each change with a
- * reason, DESIGN.md); the operator's values per app are in einstellungen-apps.tsx (Z-404), DNS in
- * einstellungen-dns.tsx (Z-407); "Darstellung" is the viewer's own and takes effect at once. The
- * accounts are the operator's members from the Zentrale (Z-406); backup target and notifications
- * come with Z-601 and Z-703, so signed in their tabs say so and only the demo shows values.
+ * reason, DESIGN.md); the operator's values per app are in einstellungen-apps.tsx (Z-404), the
+ * backup target in einstellungen-backup.tsx (Z-601), DNS in einstellungen-dns.tsx (Z-407);
+ * "Darstellung" is the viewer's own and takes effect at once. The accounts are the operator's
+ * members from the Zentrale (Z-406); notifications come with Z-703, so signed in their tab says so
+ * and only the demo shows values.
  */
 
 /** A tab of the demo, or signed in the item that brings it */
@@ -27,25 +28,6 @@ const ErstMit = (props: { punkt: string; text: string; children: JSX.Element }) 
 );
 
 const mono = (text: string) => <span class="font-mono text-xs">{text}</span>;
-
-export const Backup = (props: { b: Bestand }) => (
-  <ErstMit punkt="Z-601" text={m.einst_backup_text()}>
-    <Karte>
-      <KartenKopf titel={m.einst_backup()} text={m.einst_backup_text()} />
-      <KartenInhalt>
-        <Angaben
-          zeilen={[
-            { name: m.einst_s3(), wert: mono(props.b.betreiber.s3) },
-            { name: m.einst_zugang(), wert: m.inst_wert_gesetzt() },
-            { name: m.einst_zeitplan(), wert: m.einst_zeitplan_wert() },
-            { name: m.einst_aufbewahrung(), wert: m.einst_aufbewahrung_wert() },
-            { name: m.inst_pruef(), wert: m.einst_pruef_wert() },
-          ]}
-        />
-      </KartenInhalt>
-    </Karte>
-  </ErstMit>
-);
 
 export const Benachrichtigungen = (props: { b: Bestand }) => (
   <ErstMit punkt="Z-703" text={m.einst_melden_text()}>

@@ -1,5 +1,6 @@
 import { m } from "@steuerzentrale/ui";
-import { Show } from "solid-js";
+import { createMemo, Loading, Show } from "solid-js";
+import { backupQuelle } from "../daten/backups.ts";
 import { anzeige, type InstallationAnsicht } from "../daten/installation-ansicht.ts";
 import { bestand, mitDemo } from "../daten/quelle.ts";
 import type { ServerAnsicht } from "../daten/server-ansicht.ts";
@@ -11,8 +12,8 @@ import { Marke } from "../teile/zeichen.tsx";
 
 /**
  * The four key figures of the overview (DESIGN.md, "Bausteine"): servers and installations from
- * the Zentrale (BAULISTE.md Z-406); updates and backups have no API yet, so signed in they say
- * which item brings them (Z-503, Z-601) and only the demo shows its figures
+ * the Zentrale (BAULISTE.md Z-406), backups too (Z-601); updates have no API yet, so signed in they
+ * say which item brings them (Z-503) and only the demo shows its figures
  */
 
 export const ServerZahl = (props: { server: ServerAnsicht[] }) => {
@@ -86,23 +87,6 @@ const UpdateDemo = (props: { b: Bestand }) => {
   );
 };
 
-const BackupDemo = (props: { b: Bestand }) => {
-  const alle = () => props.b.installationen;
-  const ok = () => alle().filter((i) => i.backup.ok).length;
-  const rot = () => alle().filter((i) => i.pruefRestore === "gescheitert").length;
-  return (
-    <Kennzahl
-      name={m.uebersicht_backups_heute()}
-      wert={`${ok()}/${alle().length}`}
-      marke={
-        <Marke>{rot() ? m.uebersicht_pruef_rot({ n: rot() }) : m.uebersicht_pruef_ok()}</Marke>
-      }
-      zeile1={m.uebersicht_backups_gescheitert({ n: alle().length - ok() })}
-      zeile2={m.uebersicht_pruef_woechentlich()}
-    />
-  );
-};
-
 /** A figure the Zentrale cannot give yet: no number, the item that brings it */
 const KommtNoch = (props: { name: string; punkt: string; text: string }) => (
   <Kennzahl
@@ -125,17 +109,24 @@ export const UpdateZahl = () => (
   </Show>
 );
 
-export const BackupZahl = () => (
-  <Show
-    when={mitDemo()}
-    fallback={
-      <KommtNoch
-        name={m.uebersicht_backups_heute()}
-        punkt="Z-601"
-        text={m.uebersicht_backups_spaeter()}
+/** The installations with parts to back up whose last run succeeded, from GET /api/v1/backups */
+export const BackupZahl = () => {
+  const antwort = createMemo(() => backupQuelle().uebersicht());
+  const zeilen = () => {
+    const a = antwort();
+    return a.ok ? a.daten.filter((z) => z.teile.length > 0) : [];
+  };
+  const ok = () => zeilen().filter((z) => z.letzter?.ok).length;
+  const gescheitert = () => zeilen().filter((z) => z.letzter && !z.letzter.ok).length;
+  return (
+    <Loading fallback={null}>
+      <Kennzahl
+        name={m.bak_letzter_ok()}
+        wert={`${ok()}/${zeilen().length}`}
+        marke={<Marke>{m.bak_restic()}</Marke>}
+        zeile1={m.uebersicht_backups_gescheitert({ n: gescheitert() })}
+        zeile2={m.bak_pruef_spaeter()}
       />
-    }
-  >
-    <BackupDemo b={bestand()} />
-  </Show>
-);
+    </Loading>
+  );
+};

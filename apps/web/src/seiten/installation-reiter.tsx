@@ -1,15 +1,12 @@
 import { Icon, m } from "@steuerzentrale/ui";
-import { CircleCheck, CircleDashed, TriangleAlert } from "@steuerzentrale/ui/icons";
+import { CircleCheck, CircleDashed } from "@steuerzentrale/ui/icons";
 import { For, Show } from "solid-js";
 import { appVon } from "../daten/ableitungen.ts";
 import type { Bestand, Ebene, Installation, Variable } from "../daten/typen.ts";
-import { gb } from "../format/zahl.ts";
-import { zeitpunkt } from "../format/zeit.ts";
 import { Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
-import { Zustand } from "../teile/zeichen.tsx";
 
-/** The tabs "Einstellungen" and "Backups" of an installation the demo knows */
+/** The tab "Einstellungen" of an installation the demo knows */
 
 const EBENEN: Ebene[] = ["installation", "betreiber", "auto"];
 
@@ -105,76 +102,5 @@ export const InstallationEinstellungen = (props: { b: Bestand; i: Installation }
         </Karte>
       </Show>
     </div>
-  );
-};
-
-export const InstallationBackups = (props: { b: Bestand; i: Installation }) => {
-  const app = () => appVon(props.b, props.i.app);
-  return (
-    <Karte class="overflow-hidden">
-      <KartenKopf titel={m.inst_snapshots()} text={m.inst_snapshots_text({ art: app().backup })} />
-      <div class="border-t">
-        <Tabelle
-          name={m.inst_snapshots()}
-          rahmen={false}
-          minBreite={520}
-          leer={m.inst_keine_snapshots()}
-          anzahl={props.i.snapshots.length}
-          spalten={[
-            { name: m.inst_zeitpunkt() },
-            { name: m.inst_groesse() },
-            { name: m.inst_pruef() },
-          ]}
-        >
-          <For each={props.i.snapshots}>
-            {(s) => (
-              <Reihe>
-                <td class="tabular-nums">
-                  <Show
-                    when={s.gb !== null}
-                    fallback={
-                      <span class="text-warn">
-                        {m.inst_snapshot_gescheitert({
-                          zeit: zeitpunkt(s.zeitpunkt, props.b.jetzt),
-                        })}
-                      </span>
-                    }
-                  >
-                    {zeitpunkt(s.zeitpunkt, props.b.jetzt)}
-                  </Show>
-                </td>
-                <td class="font-mono text-xs">{s.gb === null ? "–" : gb(s.gb)}</td>
-                <td>
-                  <Show
-                    when={s.pruefRestore}
-                    fallback={<span class="text-muted-foreground">–</span>}
-                  >
-                    {(p) => (
-                      <Show
-                        when={p() === "ok"}
-                        fallback={
-                          <Show
-                            when={p() === "gescheitert"}
-                            fallback={<span class="text-muted-foreground">{m.pruef_offen()}</span>}
-                          >
-                            <Zustand
-                              icon={TriangleAlert}
-                              farbe="text-warn"
-                              text={m.pruef_gescheitert()}
-                            />
-                          </Show>
-                        }
-                      >
-                        <Zustand icon={CircleCheck} farbe="text-ok" text={m.pruef_ok()} />
-                      </Show>
-                    )}
-                  </Show>
-                </td>
-              </Reihe>
-            )}
-          </For>
-        </Tabelle>
-      </div>
-    </Karte>
   );
 };
