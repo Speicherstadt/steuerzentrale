@@ -409,7 +409,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Fertig, wenn: jede Prüfung einen Test mit Grenzfall hat und ihr Ergebnis in der Übersicht steht;
   ein Befund ein Ereignis bei Beginn und Behebung erzeugt, nicht bei jedem Lauf, und kein Betreiber
   die Prüfungen eines anderen sieht (Test).
-- [ ] **Z-703 Benachrichtigungen und Webhooks** – Ereignisse nach Schwere per Mail (SMTP) und
+- [x] **Z-703 Benachrichtigungen und Webhooks** – Ereignisse nach Schwere per Mail (SMTP) und
   Webhook; Webhooks signiert (HMAC) und mit Wiederholung, dieselbe Zustellung nutzt später das
   Portal (Z-903); Ruhezeiten; eine Meldung je Störung, nicht je Prüfung.
   Fertig, wenn: eine Störung, die 10 Prüfungen lang besteht, eine Mail erzeugt (Mailpit) und ihre

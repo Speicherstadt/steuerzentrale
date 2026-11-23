@@ -104,7 +104,6 @@ mit welchem Punkt sie kommen:
 | Seite oder Teil | kommt mit |
 | --- | --- |
 | Einstellungen → DNS | Z-407 |
-| Einstellungen → Benachrichtigungen | Z-703 |
 | Auslastung eines Servers (CPU, RAM), Pakete mit Namen; das Betriebssystem steht seit Z-701 in der Karte „Wartung“ | noch ohne Punkt |
 
 Die Beschreibungen der acht Apps (Seite „Apps“, Sperrzeiten in der Seitenleiste) stammen aus

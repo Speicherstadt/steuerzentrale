@@ -2,6 +2,11 @@ import { setLocale } from "@steuerzentrale/ui";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiApps, appsQuelle, appsQuelleEinsetzen } from "./daten/apps.ts";
 import { apiBackups, backupQuelle, backupQuelleEinsetzen } from "./daten/backups.ts";
+import {
+  apiBenachrichtigungen,
+  benachrichtigungsQuelle,
+  benachrichtigungsQuelleEinsetzen,
+} from "./daten/benachrichtigungen.ts";
 import { apiBetrieb, betriebQuelle, betriebQuelleEinsetzen } from "./daten/betrieb.ts";
 import {
   apiEinstellungen,
@@ -18,7 +23,7 @@ import { apiKunden, kundenQuelle, kundenQuelleEinsetzen } from "./daten/kunden.t
 import { apiLeistungen, leistungenQuelle, leistungenQuelleEinsetzen } from "./daten/leistungen.ts";
 import { apiMitglieder, mitgliederQuelleEinsetzen } from "./daten/mitglieder.ts";
 import { bestand, bestandEinsetzen, ohneDemo } from "./daten/quelle.ts";
-import { apiRolle, rolleLesen, rollenQuelleEinsetzen } from "./daten/rolle.ts";
+import { apiRolle, rollenQuelleEinsetzen } from "./daten/rolle.ts";
 import { apiServer, serverQuelle, serverQuelleEinsetzen } from "./daten/server.ts";
 import { apiSupport, supportQuelle, supportQuelleEinsetzen } from "./daten/support.ts";
 import { aufraeumen, oeffne, warten } from "./seiten/test-dom.tsx";
@@ -50,6 +55,7 @@ const LEER: Record<string, unknown> = {
   "/api/v1/backup-ziel": { endpunkt: null, region: null, bucket: null, zugangGesetzt: false },
   "/api/v1/apps": { apps: [] },
   "/api/v1/updates": { installationen: [] },
+  "/api/v1/benachrichtigungen": { smtp: null, ruhezeit: null, empfaenger: [], zustellungen: [] },
   "/api/v1/support-zugaenge": { zugaenge: [] },
   "/api/v1/leistungen": { monat: "2026-11", kunden: [] },
 };
@@ -93,6 +99,7 @@ const vorher = {
   kunden: kundenQuelle(),
   einstellungen: einstellungenQuelle(),
   backups: backupQuelle(),
+  benachrichtigungen: benachrichtigungsQuelle(),
   apps: appsQuelle(),
   support: supportQuelle(),
   leistungen: leistungenQuelle(),
@@ -109,6 +116,7 @@ beforeAll(() => {
   ichQuelleEinsetzen(apiIch);
   mitgliederQuelleEinsetzen(apiMitglieder);
   backupQuelleEinsetzen(apiBackups);
+  benachrichtigungsQuelleEinsetzen(apiBenachrichtigungen);
   appsQuelleEinsetzen(apiApps);
   supportQuelleEinsetzen(apiSupport);
   leistungenQuelleEinsetzen(apiLeistungen);
@@ -122,6 +130,7 @@ afterAll(() => {
   kundenQuelleEinsetzen(vorher.kunden);
   einstellungenQuelleEinsetzen(vorher.einstellungen);
   backupQuelleEinsetzen(vorher.backups);
+  benachrichtigungsQuelleEinsetzen(vorher.benachrichtigungen);
   appsQuelleEinsetzen(vorher.apps);
   supportQuelleEinsetzen(vorher.support);
   leistungenQuelleEinsetzen(vorher.leistungen);
@@ -166,14 +175,6 @@ describe("signed in, against a Zentrale without data", () => {
     expect(root.textContent).toContain("Keine Aufträge.");
     expect(root.textContent).toContain("0 Installationen bekommen eine neuere Version");
     expect(root.textContent).toContain("Letzter Lauf erfolgreich0/0");
-  });
-
-  it("says which item brings a page without an API", async () => {
-    const { root } = await oeffne("/einstellungen?tab=melden");
-    await vi.waitFor(() => {
-      if (!root.textContent?.includes("kommt mit Z-703")) throw new Error("not yet");
-    });
-    expect((await rolleLesen()).ok).toBe(true);
   });
 
   it("shows the services of the Zentrale and downloads the month from it (Z-804)", async () => {
