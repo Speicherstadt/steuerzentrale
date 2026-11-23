@@ -25,7 +25,7 @@ const fehlerText = (a: Antwort<unknown>) =>
 
 const mono = (text: string) => <span class="font-mono text-xs">{text}</span>;
 
-const schema = (domain: string | null) => (domain ? `<app>.<kürzel>.${domain}` : "–");
+const schema = (domain: string | null) => (domain ? m.einst_dns_schema({ domain }) : "–");
 
 const NurLesen = (props: { e: DnsEinstellungen }) => (
   <Angaben
@@ -72,7 +72,7 @@ const Formular = (props: { e: DnsEinstellungen; gespeichert: () => void }) => {
         name="domain"
         required
         autocomplete="off"
-        placeholder="apps.example.de"
+        placeholder={m.einst_dns_domain_platzhalter()}
         value={props.e.domain ?? ""}
         hint={m.einst_dns_domain_hinweis()}
       />

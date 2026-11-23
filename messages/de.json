@@ -766,5 +766,7 @@
   "zeit_vor_minuten": "vor {n} Min.",
   "zeit_vor_sekunden": "vor {n} s",
   "zeit_vor_stunden": "vor {n} h",
-  "zeit_vor_tagen": "vor {n} Tg."
+  "zeit_vor_tagen": "vor {n} Tg.",
+  "einst_dns_schema": "<app>.<kürzel>.{domain}",
+  "einst_dns_domain_platzhalter": "apps.example.de"
 }
