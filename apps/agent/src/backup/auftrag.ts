@@ -11,6 +11,7 @@ import { type EinrichtungsDeps, mitZeitlimit } from "../einrichtung/auftrag.ts";
 import { SYSTEMD_NUTZER } from "../einrichtung/haus.ts";
 import { laeufer } from "../einrichtung/lauf.ts";
 import { alsNutzer, homeVon, type Nutzer, nutzerName } from "../einrichtung/nutzer.ts";
+import type { PruefZiel } from "../zustand/ziel.ts";
 import { BACKUP_ORDNER, type BackupDatei, backupDateiPfad } from "./datei.ts";
 import { neuesterLauf } from "./stand.ts";
 
@@ -47,11 +48,16 @@ export type BackupDeps = EinrichtungsDeps & {
 
 const fehler = (text: string): Ergebnis => ({ ok: false, fehler: text });
 
-/** The finished installation's user and units, or why the job is refused (also Z-602) */
+/**
+ * The finished installation's user, units and the target of its health check, or why the job is
+ * refused (also Z-602, Z-603)
+ */
 export const fertigeInstallation = async (
   deps: Pick<EinrichtungsDeps, "gedaechtnis" | "nutzer">,
   name: string,
-): Promise<{ ok: true; n: Nutzer; units: string[] } | { ok: false; grund: string }> => {
+): Promise<
+  { ok: true; n: Nutzer; units: string[]; ziel: PruefZiel } | { ok: false; grund: string }
+> => {
   const g = await deps.gedaechtnis.lesen();
   if (!g.ok) return { ok: false, grund: `abgelehnt: ${g.grund}` };
   const eintrag = g.stand.get(name);
@@ -60,11 +66,13 @@ export const fertigeInstallation = async (
       ok: false,
       grund: `abgelehnt: ${name} ist keine fertig eingerichtete Installation dieses Agenten`,
     };
-  const units = eintrag.pruefung?.units;
-  if (units === undefined)
+  const pruefung = eintrag.pruefung;
+  if (pruefung === undefined)
     return { ok: false, grund: `abgelehnt: das Gedächtnis kennt die Units von ${name} nicht` };
   const n = await deps.nutzer(nutzerName(name));
-  return n ? { ok: true, n, units } : { ok: false, grund: `abgelehnt: ${nutzerName(name)} fehlt` };
+  return n
+    ? { ok: true, n, units: pruefung.units, ziel: pruefung.ziel }
+    : { ok: false, grund: `abgelehnt: ${nutzerName(name)} fehlt` };
 };
 
 /** Each folder from the home down, so none of them is a symlink the user put there (haus.ts) */

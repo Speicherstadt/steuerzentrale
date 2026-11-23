@@ -26,6 +26,9 @@ import {
   pforteAuftragPruefen,
   pruefRestoreAuftragPruefen,
   STANDARD_ZEITLIMIT_S,
+  WIEDERHERSTELLEN_AKTION,
+  WIEDERHERSTELLEN_ZEITLIMIT_S,
+  wiederherstellenAuftragPruefen,
 } from "@steuerzentrale/manifest";
 import type { AuftragZustand } from "@steuerzentrale/protokoll";
 import { type Kontext, type Schreiber, schreiben } from "../audit/index.ts";
@@ -48,7 +51,8 @@ import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
  * a manifest that offers them, and so are the backup jobs (Z-601, backup.ts), only for a manifest
  * with parts to back up; setting up backups is checked with its field `backup`, which the row does
  * not keep either. The test restore (Z-602, backup/pruef-restore.ts) is checked with the copy's data
- * in `einrichtung`, like a setup.
+ * in `einrichtung`, like a setup. A restore (Z-603, backup/wiederherstellen.ts) names a snapshot per
+ * part that is played back and nothing else.
  */
 
 export type NeuerAuftrag = {
@@ -114,6 +118,12 @@ const gegenManifest = (neu: NeuerAuftrag): Geprueft => {
     return pruef.ok
       ? { ok: true, manifest: geprueft.manifest, zeitlimitS: PRUEF_RESTORE_ZEITLIMIT_S }
       : { ok: false, grund: "argumente_ungueltig", detail: pruef.grund };
+  }
+  if (neu.aktion === WIEDERHERSTELLEN_AKTION) {
+    const zurueck = wiederherstellenAuftragPruefen(geprueft.manifest, neu);
+    return zurueck.ok
+      ? { ok: true, manifest: geprueft.manifest, zeitlimitS: WIEDERHERSTELLEN_ZEITLIMIT_S }
+      : { ok: false, grund: "argumente_ungueltig", detail: zurueck.grund };
   }
   if (istPforteAktion(neu.aktion)) {
     const pforte = pforteAuftragPruefen(geprueft.manifest, neu);

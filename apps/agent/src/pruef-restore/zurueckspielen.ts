@@ -17,8 +17,9 @@ import type { Gespielt, SpielEingabe } from "./spielen.ts";
  * standard input through a pipe without a name, never in an argv. The volumes first, before any
  * container of the target ran; a dump once its database container alone runs and its server
  * answers. A command's export is not played back and is named in the result. The first part that
- * fails ends it; the rest are `nicht_versucht`. The Prüf-Restore plays back into its copy; Z-603
- * will play back into the installation itself.
+ * fails ends it; the rest are `nicht_versucht`. The Prüf-Restore plays back into its copy;
+ * restoring (Z-603, src/wiederherstellen) into the installation itself, with the snapshots of its
+ * job instead of the newest, and each part in a transient unit of the user (`inUnit`).
  */
 
 /**
@@ -46,6 +47,13 @@ export type Zurueckspielen = {
   teile: readonly RestoreTeil[];
   /** The target's network unit: restic runs in the target's network */
   netz: { unit: string };
+  /** The snapshot of each part by its tag (restoring, Z-603); without, the newest of each */
+  snapshots?: Readonly<Record<string, string>>;
+  /**
+   * The binary's argv as the target's user wrapped into a transient unit of its own (restoring,
+   * Z-603), made when the part starts; without, the binary runs under the agent
+   */
+  inUnit?: (argv: readonly string[]) => string[];
 };
 
 /** A database's server answers within two minutes of its container's start */
@@ -75,8 +83,20 @@ const antwortLesen = (aus: string): Gespielt | undefined => {
   }
 };
 
-const eingabeVon = (quelle: string, d: BackupDatei, t: RestoreTeil): SpielEingabe | undefined => {
-  const zugang = { quelle, repository: d.repository, zugang: d.zugang, passwort: d.passwort };
+const eingabeVon = (
+  a: Zurueckspielen,
+  d: BackupDatei,
+  t: RestoreTeil,
+): SpielEingabe | undefined => {
+  const snapshot = a.snapshots?.[t.tag];
+  const zugang = {
+    quelle: a.quelle,
+    repository: d.repository,
+    zugang: d.zugang,
+    passwort: d.passwort,
+    ...(snapshot === undefined ? {} : { snapshot }),
+    ...(a.inUnit ? { unit: true as const } : {}),
+  };
   if (t.art === "volume")
     return { ...zugang, teil: { art: "volume", tag: t.tag, volume: t.volume, pfad: t.pfad } };
   if (t.art === "pg_dump")
@@ -87,10 +107,17 @@ const eingabeVon = (quelle: string, d: BackupDatei, t: RestoreTeil): SpielEingab
   return undefined;
 };
 
-type Kontext = { deps: ZurueckDeps; lauf: Lauf; n: Nutzer; ziel: string; signal: AbortSignal };
+type Kontext = {
+  deps: ZurueckDeps;
+  lauf: Lauf;
+  n: Nutzer;
+  a: Zurueckspielen;
+  signal: AbortSignal;
+};
 
 const spielen = async (k: Kontext, eingabe: SpielEingabe): Promise<Gespielt> => {
-  const argv = alsNutzer(k.n, [k.deps.agent, "zurueckspielen", k.ziel]);
+  const binary = [k.deps.agent, "zurueckspielen", k.a.ziel];
+  const argv = alsNutzer(k.n, k.a.inUnit ? k.a.inUnit(binary) : binary);
   const r = await k.deps
     .lesen(argv, k.signal, { eingabe: JSON.stringify(eingabe) })
     .catch(() => ({ code: null, aus: "" }));
@@ -127,8 +154,8 @@ const datenbankStarten = async (
   return bereit ? undefined : `${t.container}: die Datenbank antwortet nicht`;
 };
 
-const teilSpielen = async (k: Kontext, d: BackupDatei, quelle: string, t: RestoreTeil) => {
-  const eingabe = eingabeVon(quelle, d, t);
+const teilSpielen = async (k: Kontext, d: BackupDatei, t: RestoreTeil) => {
+  const eingabe = eingabeVon(k.a, d, t);
   if (eingabe === undefined) return undefined;
   if (t.art === "pg_dump") {
     const grund = await datenbankStarten(k, t);
@@ -180,7 +207,7 @@ export const zurueckspielen = async (
   if (!q.ok) return nein(q.grund);
   const n = await deps.nutzer(nutzerName(a.ziel));
   if (!n) return nein(`${nutzerName(a.ziel)} fehlt`);
-  const k: Kontext = { deps, lauf: laeufer(deps, signal), n, ziel: a.ziel, signal };
+  const k: Kontext = { deps, lauf: laeufer(deps, signal), n, a, signal };
   const volumes = a.teile.flatMap((t) => (t.art === "volume" ? [t.unit] : []));
   // the network for restic, and the volumes, which `podman volume import` needs to be there
   const da = await k.lauf(
@@ -190,7 +217,7 @@ export const zurueckspielen = async (
   if (!da.ok) return nein(da.grund);
   for (const i of reihenfolge(a.teile)) {
     const t = a.teile[i] as RestoreTeil;
-    const g = await teilSpielen(k, q.datei, a.quelle, t);
+    const g = await teilSpielen(k, q.datei, t);
     teile[i] = ergebnis(t, g);
     if (g && !g.ok) return nein(`${t.tag}: ${g.grund}`);
   }

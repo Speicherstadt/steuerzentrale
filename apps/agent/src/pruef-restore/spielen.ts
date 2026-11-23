@@ -17,6 +17,10 @@ import type { SpawnMitAusgabe } from "../zustand/pruefen.ts";
  *   and `chmod`): tar has no entry for the root, and an imported volume is no longer empty, so
  *   Podman no longer gives it the owner of the image's folder on the first start;
  * - `pg_dump`: `restic dump <snapshot> /<file>` into `podman exec -i <container> pg_restore …`.
+ * Restoring an installation (Z-603) names the snapshot instead of the newest: restic finds a
+ * snapshot by its ID without regard to `--host` and `--tag`, so the snapshot `ls` prints must be
+ * of the source's host and carry the part's tag, or nothing is played back. It runs in a transient
+ * unit of its own then (`unit`), and restic's container in that unit's cgroup (backup/restic.ts).
  * A reason names the step and an exit code, never what restic, Podman or pg_restore wrote. As root
  * it refuses: Podman would use root's storage.
  */
@@ -30,6 +34,13 @@ export const SpielEingabe = z.object({
   repository: wort,
   zugang: z.object({ schluesselId: wort, geheim: wort }),
   passwort: wort,
+  /** The snapshot to play back (Z-603); without, the newest of the part's tag */
+  snapshot: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
+  /** Runs in a transient unit of its own (Z-603): restic's container stays in its cgroup */
+  unit: z.literal(true).optional(),
   teil: z.discriminatedUnion("art", [
     z.object({ art: z.literal("volume"), tag: wort, volume: wort, pfad: wort }),
     z.object({
@@ -60,8 +71,18 @@ type Wurzel = { uid: number; gid: number; modus: number };
 /** The snapshot, and for a volume owner and mode of its folder in the snapshot */
 type Gefunden = { snapshot: string; wurzel?: Wurzel };
 
-/** The snapshot of `ls --json` (its first line) and the node of the volume's folder */
-export const lsLesen = (aus: string, pfad: string): Gefunden | undefined => {
+/** What a snapshot given by its ID must be: of this host, with this tag (Z-603) */
+export type Erwartet = { snapshot: string; host: string; tag: string };
+
+const istErwartet = (n: Record<string, unknown>, e: Erwartet | undefined): boolean =>
+  e === undefined ||
+  (n.id === e.snapshot && n.hostname === e.host && Array.isArray(n.tags) && n.tags.includes(e.tag));
+
+/**
+ * The snapshot of `ls --json` (its first line) and the node of the volume's folder; a snapshot
+ * other than the one expected is none
+ */
+export const lsLesen = (aus: string, pfad: string, erwartet?: Erwartet): Gefunden | undefined => {
   let gefunden: Gefunden | undefined;
   for (const zeile of aus.split("\n")) {
     let n: Record<string, unknown>;
@@ -70,9 +91,10 @@ export const lsLesen = (aus: string, pfad: string): Gefunden | undefined => {
     } catch {
       continue;
     }
-    if (n.struct_type === "snapshot" && typeof n.id === "string" && SNAPSHOT.test(n.id))
+    if (n.struct_type === "snapshot" && typeof n.id === "string" && SNAPSHOT.test(n.id)) {
+      if (!istErwartet(n, erwartet)) return undefined;
       gefunden = { snapshot: n.id };
-    else if (gefunden && n.struct_type === "node" && n.path === pfad && n.type === "dir") {
+    } else if (gefunden && n.struct_type === "node" && n.path === pfad && n.type === "dir") {
       const ganz = (x: unknown) => (Number.isSafeInteger(x) && (x as number) >= 0 ? x : undefined);
       const [uid, gid, modus] = [ganz(n.uid), ganz(n.gid), ganz(n.mode)] as (number | undefined)[];
       // Go's FileMode: the permission bits are the low nine (restic, data/node.go)
@@ -124,15 +146,27 @@ export const teilSpielen = async (
   e: SpielEingabe,
   signal: AbortSignal = new AbortController().signal,
 ): Promise<Gespielt> => {
-  const r: Repo = { installation: e.quelle, repository: e.repository, netz: ziel };
+  const r: Repo = {
+    installation: e.quelle,
+    repository: e.repository,
+    netz: ziel,
+    ...(e.unit ? { inUnit: true } : {}),
+  };
   const geheim: Geheim = { passwort: e.passwort, zugang: zugangIni(e.zugang) };
   const t = e.teil;
+  const erwartet =
+    e.snapshot === undefined ? undefined : { snapshot: e.snapshot, host: e.quelle, tag: t.tag };
   try {
     const ordner = t.art === "volume" ? elternOrdner(t.pfad) : "/";
-    const ls = await deps.restic({ argv: lsArgv(r, t.tag, ordner) }, geheim, signal);
+    const ls = await deps.restic({ argv: lsArgv(r, t.tag, ordner, e.snapshot) }, geheim, signal);
     if (ls.code !== 0) return nein(`Snapshot suchen: ${resticGrund(ls.code)}`);
-    const g = lsLesen(ls.aus, t.art === "volume" ? t.pfad : "/");
-    if (!g) return nein(`kein Snapshot mit ${t.tag}`);
+    const g = lsLesen(ls.aus, t.art === "volume" ? t.pfad : "/", erwartet);
+    if (!g)
+      return nein(
+        erwartet
+          ? `Snapshot ${erwartet.snapshot} ist keiner von ${t.tag} dieser Installation`
+          : `kein Snapshot mit ${t.tag}`,
+      );
     const s = g.snapshot;
     if (t.art === "pg_dump") {
       const d = await deps.restic(

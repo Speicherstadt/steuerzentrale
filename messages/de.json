@@ -818,5 +818,22 @@
   "aktion_fehler_kein_backup": "Es gibt noch kein gelungenes Backup, das sich zurückspielen ließe.",
   "aktion_fehler_server_belegt": "Auf dem Server läuft gerade ein anderer Prüf-Restore.",
   "aktion_fehler_kein_platz": "Auf dem Server ist kein Platz für eine Kopie der Installation.",
-  "aktion_fehler_keine_ports": "Auf dem Server ist kein Port für die Kopie frei."
+  "aktion_fehler_keine_ports": "Auf dem Server ist kein Port für die Kopie frei.",
+  "auftrag_installation_wiederherstellen": "Wiederherstellen",
+  "wh_spalte": "Aktion",
+  "wh_knopf": "Wiederherstellen",
+  "wh_knopf_lauf": "Lauf vom {zeit} wiederherstellen",
+  "wh_titel": "Lauf wiederherstellen?",
+  "wh_text": "Ziel: {name}, Stand {zeit}. Der Agent spielt die Snapshots dieses Laufs zurück; die App ist dabei nicht erreichbar. Die Zentrale legt die Aufträge an und schreibt sie mit Grund ins Audit-Log.",
+  "wh_hinweis_titel": "Vorher wird der Ist-Zustand gesichert",
+  "wh_hinweis": "Erst wenn dieses Backup gelingt, spielt der Agent den gewählten Lauf zurück; scheitert es, bleibt alles, wie es ist. So lässt sich auch ein falsch gewählter Lauf rückgängig machen.",
+  "wh_grund_platzhalter": "z. B. Auftrag des Kunden vom 20.11.",
+  "wh_angefordert": "Wiederherstellen angefordert; zuerst wird der Ist-Zustand gesichert.",
+  "wh_name": "Wiederherstellen",
+  "wh_sichern": "läuft: Backup vom Ist-Zustand, dann Stand {stand}",
+  "wh_zurueckspielen": "läuft: Stand {stand} wird zurückgespielt",
+  "wh_gelungen": "{zeit}, gelungen: Stand {stand}",
+  "wh_gescheitert": "{zeit}, gescheitert: {grund}",
+  "aktion_fehler_lauf_unbekannt": "Diesen Lauf kennt die Zentrale für diese Installation nicht.",
+  "aktion_fehler_lauf_gescheitert": "Aus einem gescheiterten Lauf lässt sich nicht wiederherstellen."
 }

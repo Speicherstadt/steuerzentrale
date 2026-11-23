@@ -101,6 +101,8 @@ export const ROUTEN = {
   "POST /api/v1/installationen/:installationId/backup": recht("backups:schreiben"),
   // "Prüf-Restore jetzt" (Z-602), like "Backup jetzt"
   "POST /api/v1/installationen/:installationId/pruef-restore": recht("backups:schreiben"),
+  // Z-603: restoring a run, with the backup of the current state before it
+  "POST /api/v1/installationen/:installationId/wiederherstellen": recht("backups:schreiben"),
   // agent.<domain>: the install script, the binaries and the token's exchange; the token is the key
   "GET /install.sh": oeffentlich,
   "GET /agent/:datei": oeffentlich,

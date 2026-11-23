@@ -57,7 +57,9 @@ und der Reiter einer Installation zeigen jeden gemeldeten Lauf, ein gescheiterte
 Kopie mit eigenen Ports auf dem Server der Installation zurück, prüft ihre Health und entfernt sie
 wieder; ist dort kein Platz, meldet die Zentrale das, statt einen anderen Server zu nehmen. Den letzten
 Prüf-Restore zeigen die Seite Backups und der Reiter der Installation, einen gescheiterten auch die
-Übersicht; „Prüf-Restore jetzt“ startet einen mit Grund ([Backups](docs/backups.md)).
+Übersicht; „Prüf-Restore jetzt“ startet einen mit Grund. Im Reiter Backups lässt sich ein gelungener
+Lauf mit Grund wiederherstellen: vorher sichert der Agent den Ist-Zustand, und scheitert das, wird
+nichts zurückgespielt ([Backups](docs/backups.md)).
 
 **Einstellungen:** die Einstellungen jeder App entstehen als Formular aus ihrem Manifest. Unter
 Einstellungen → Apps pflegt der Betreiber seine Werte je App; ein Geheimnis erscheint nur als

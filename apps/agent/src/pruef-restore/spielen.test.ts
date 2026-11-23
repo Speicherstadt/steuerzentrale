@@ -212,6 +212,58 @@ describe("teilSpielen", () => {
   });
 });
 
+describe("teilSpielen with the snapshot of a job (Z-603)", () => {
+  /** `ls --json` of a snapshot of this host with these tags */
+  const lsVon = (hostname: string, tags: string[]) => ({
+    aus: [JSON.stringify({ ...JSON.parse(LS.split("\n")[0] ?? ""), hostname, tags })]
+      .concat(LS.split("\n").slice(1))
+      .join("\n"),
+  });
+  const MIT: SpielEingabe = { ...VOLUME, snapshot: SNAPSHOT, unit: true };
+
+  it("lists that snapshot by its ID and keeps restic's container in the unit's cgroup", async () => {
+    const w = welt({ ls: lsVon(QUELLE, ["volume:daten"]) });
+    expect(await teilSpielen(w.deps, ZIEL, MIT)).toEqual({ ok: true, snapshot: SNAPSHOT });
+    const [ls, dump] = w.restic.map((r) => r.aufruf);
+    expect(nachImage(ls?.argv ?? []).slice(3)).toEqual(["ls", "--json", SNAPSHOT, "/sicherung"]);
+    for (const a of [ls, dump])
+      expect(a?.argv.slice(0, 5)).toEqual(["podman", "run", "--rm", "--cgroups", "split"]);
+    expect(nachImage(dump?.argv ?? []).slice(3)).toEqual([
+      "dump",
+      "--archive",
+      "tar",
+      `${SNAPSHOT}:/sicherung/daten`,
+      "/",
+    ]);
+  });
+
+  it.each([
+    ["of another installation", lsVon("andere-a1b2c3", ["volume:daten"])],
+    ["of another part", lsVon(QUELLE, ["pg_dump:db:beispiel"])],
+    ["without tags", lsVon(QUELLE, [])],
+    ["another than asked", { aus: LS.replace(SNAPSHOT, "e".repeat(64)) }],
+  ])("plays nothing back from a snapshot %s", async (_was, ls) => {
+    const w = welt({ ls });
+    expect(await teilSpielen(w.deps, ZIEL, MIT)).toEqual({
+      ok: false,
+      grund: `Snapshot ${SNAPSHOT} ist keiner von volume:daten dieser Installation`,
+    });
+    expect(w.restic).toHaveLength(1);
+    expect(w.podman).toEqual([]);
+  });
+
+  it("refuses a snapshot that is no full ID", async () => {
+    const w = welt();
+    const r = await spielenBefehl([ZIEL], {
+      ...w.deps,
+      uid: () => 1000,
+      eingabe: async () => JSON.stringify({ ...MIT, snapshot: "latest" }),
+    });
+    expect(r.code).toBe(1);
+    expect(w.restic).toEqual([]);
+  });
+});
+
 describe("lsLesen", () => {
   it("reads the snapshot and the folder's owner and permission bits", () => {
     expect(lsLesen(LS, "/sicherung/daten")).toEqual({

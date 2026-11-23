@@ -6,6 +6,8 @@ import type {
   BackupZeile,
   BackupZiel,
   PruefRestoreStand,
+  WiederherstellenStand,
+  Wiederherstellung,
 } from "../daten/backups.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { demo } from "./index.ts";
@@ -17,7 +19,8 @@ import { demo } from "./index.ts";
  * id, and its newest test restore (Z-602) from the demo's `pruefRestore`: done the night after the
  * last but one snapshot, failed last night with the mockup's reason, or `offen`, done 9 days ago
  * and so due. "Backup jetzt" and "Prüf-Restore jetzt" make a job that stays with the agent, as without
- * an agent in the Zentrale. A change lasts until the page reloads.
+ * an agent in the Zentrale; restoring a run (Z-603) makes its two jobs and stays at backing up the
+ * current state. A change lasts until the page reloads.
  */
 
 /** What each app's manifest backs up (manifeste/<app>/<version>/manifest.yml, `backup`) */
@@ -65,6 +68,7 @@ const laeufeVon = (i: Installation): BackupLauf[] =>
   i.snapshots.map((s) => {
     const ok = s.gb !== null;
     return {
+      id: `backup-${snapshot(`${i.id}:${s.zeitpunkt}`).slice(0, 32)}`,
       zeitpunkt: s.zeitpunkt,
       ok,
       grund: ok ? null : (i.grund ?? "restic exit 1"),
@@ -105,8 +109,18 @@ export const pruefRestoreVon = (i: Installation): PruefRestoreStand => {
   };
 };
 
-const derInstallation = (b: Bestand, id: string): BackupsDerInstallation => {
+/** The demo's restores by installation, kept until the page reloads */
+type Wiederherstellungen = Map<string, Wiederherstellung>;
+
+const OHNE: WiederherstellenStand = { letzter: null, laeuft: false };
+
+const derInstallation = (
+  b: Bestand,
+  id: string,
+  wh: Wiederherstellungen = new Map(),
+): BackupsDerInstallation => {
   const i = b.installationen.find((x) => x.id === id);
+  const w = wh.get(id);
   return {
     installationId: id,
     teile: i ? (BACKUP_TEILE[i.app] ?? []) : [],
@@ -114,11 +128,12 @@ const derInstallation = (b: Bestand, id: string): BackupsDerInstallation => {
     eingerichtet: i !== undefined,
     laeufe: i ? laeufeVon(i) : [],
     pruefRestore: i ? pruefRestoreVon(i) : { letzter: null, laeuft: false },
+    wiederherstellen: w ? { letzter: w, laeuft: w.endeAm === null } : OHNE,
   };
 };
 
-const zeile = (b: Bestand, i: Installation): BackupZeile => {
-  const { laeufe, ...rest } = derInstallation(b, i.id);
+const zeile = (b: Bestand, i: Installation, wh: Wiederherstellungen): BackupZeile => {
+  const { laeufe, ...rest } = derInstallation(b, i.id, wh);
   return {
     ...rest,
     app: i.app,
@@ -141,14 +156,40 @@ const ZIEL: BackupZiel = {
 
 const ok = <T>(daten: T, status = 200) => ({ ok: true, status, daten }) as const;
 
+const nein = (status: number, fehler: string) => ({ ok: false, status, fehler }) as const;
+
 export const demoBackups = (b: Bestand = demo, start: BackupZiel = ZIEL): BackupQuelle => {
   let ziel = { ...start };
   let nummer = 0;
-  const auftrag = (id: string, aktion: string) => {
-    if (!derInstallation(b, id).eingerichtet)
-      return { ok: false, status: 409, fehler: "nicht_eingerichtet" } as const;
+  const wh: Wiederherstellungen = new Map();
+  const neuerAuftrag = (aktion: string, zustand = "zugestellt") => {
     nummer += 1;
-    return ok({ auftragId: `demo-${aktion}-${nummer}`, aktion, zustand: "zugestellt" }, 201);
+    return { auftragId: `demo-${aktion}-${nummer}`, aktion, zustand };
+  };
+  const auftrag = (id: string, aktion: string) =>
+    derInstallation(b, id).eingerichtet
+      ? ok(neuerAuftrag(aktion), 201)
+      : nein(409, "nicht_eingerichtet");
+  /** Like the Zentrale: a successful run of this installation, nothing under way */
+  const wiederherstellen = (id: string, laufId: string) => {
+    const stand = derInstallation(b, id, wh);
+    if (!stand.eingerichtet) return nein(409, "nicht_eingerichtet");
+    if (stand.wiederherstellen.laeuft) return nein(409, "auftrag_offen");
+    const lauf = stand.laeufe.find((l) => l.id === laufId);
+    if (!lauf) return nein(422, "lauf_unbekannt");
+    if (!lauf.ok) return nein(422, "lauf_gescheitert");
+    wh.set(id, {
+      angefordertAm: b.jetzt,
+      laufZeitpunkt: lauf.zeitpunkt,
+      phase: "sichern",
+      endeAm: null,
+      fehler: null,
+      teile: [],
+      dauerMs: null,
+    });
+    const backup = neuerAuftrag("installation_backup");
+    const zurueck = neuerAuftrag("installation_wiederherstellen", "wartend");
+    return ok({ backup, wiederherstellen: zurueck }, 201);
   };
   return {
     ziel: async () => ok({ ...ziel }),
@@ -163,9 +204,10 @@ export const demoBackups = (b: Bestand = demo, start: BackupZiel = ZIEL): Backup
       };
       return ok({ ...ziel });
     },
-    uebersicht: async () => ok(b.installationen.map((i) => zeile(b, i))),
-    derInstallation: async (id) => ok(derInstallation(b, id)),
+    uebersicht: async () => ok(b.installationen.map((i) => zeile(b, i, wh))),
+    derInstallation: async (id) => ok(derInstallation(b, id, wh)),
     jetzt: async (id) => auftrag(id, "installation_backup"),
     pruefRestore: async (id) => auftrag(id, "installation_pruef_restore"),
+    wiederherstellen: async (id, lauf) => wiederherstellen(id, lauf),
   };
 };

@@ -102,6 +102,21 @@ Der Agent prüft außerdem, dass die Units der Installation aus genau diesem Man
 (Labels), lässt Prüf-Restores nacheinander neben den Einrichtungsaufträgen laufen und lehnt einen
 Einrichtungsauftrag für einen Namen `restore-<6>` ab.
 
+Das Wiederherstellen (`installation_wiederherstellen`, siehe [Backups](backups.md)) ist ebenso
+eingebaut: Es nennt die Installation und je Teil `volume` und `pg_dump` des Manifests den Snapshot
+des gewählten Laufs als Argument `snapshot:<tag>` mit der vollen ID (64 Zeichen `0–9 a–f`); jedes
+andere Argument, ein Snapshot für einen `befehl`, ein fehlender oder eine abgekürzte ID wird
+abgelehnt, ebenso ein Feld `einrichtung` oder `backup`. Zeitlimit höchstens viereinhalb Stunden.
+Beide Seiten prüfen ihn mit `wiederherstellenAuftragPruefen` in `packages/manifest`; was wohin
+zurückgespielt wird, kommt aus dem signierten Manifest. Der Agent nimmt ihn nur für eine
+Installation an, die er fertig eingerichtet hat, deren Units aus genau diesem Manifest gerendert sind
+(Labels) und deren Backup bei ihm eingerichtet ist, und lässt ihn nacheinander mit den
+Einrichtungsaufträgen laufen. Jeden Teil spielt er in einer vorübergehenden Unit des Nutzers zurück
+(`systemd-run --user --wait --collect` mit `RuntimeMaxSec`), die er nach einem Fehler oder dem
+Zeitlimit stoppt, mit allen Prozessen darin; danach startet er die Units der Installation wieder.
+Gelungen meldet er `{ teile: [{ tag, snapshot, zurueckgespielt, grund }], dauerMs }` wie der
+Prüf-Restore.
+
 Die beiden Aufträge der [Backups](backups.md) sind ebenfalls eingebaut:
 `installation_backup_einrichten` (Zeitlimit höchstens 30 Minuten) und `installation_backup`
 („Backup jetzt“, höchstens vier Stunden und zwei Minuten), mit dem signierten Manifest und dem Namen
@@ -147,6 +162,12 @@ beendet ihn nicht, wenn `podman exec` stirbt. Deshalb tut der Agent zweierlei:
 Endet der Befehl vor dem Zeitlimit von selbst, beendet der Agent nichts. Dasselbe gilt für die
 Schritte `schritte.einrichten` beim [Installieren](installieren.md).
 
+Beim Wiederherstellen läuft das Zurückspielen jedes Teils in einer vorübergehenden Unit des Nutzers
+der Installation (`systemd-run --user`): `RuntimeMaxSec` beendet sie zum Ende des Auftrags mit allen
+Prozessen ihrer cgroup, auch restic und conmon, die Podman dort mit `--cgroups split` startet; nach
+einem Fehler oder dem Zeitlimit stoppt der Agent sie zusätzlich über ihren festen Namen
+`sz_wiederherstellen.service` ([Backups](backups.md), „Wiederherstellen“).
+
 ## Doppelt zugestellt, Neustart
 
 Die Zentrale schickt einem Agenten bei jeder Verbindung alle Aufträge, die bereit sind oder bei ihm
@@ -160,8 +181,9 @@ Lief ein Auftrag, als der Agent neu startete, meldet er ihn nach dem Neustart al
 das Manifest als `idempotent` markiert, führt er dann noch einmal aus, ebenso die Aufträge der
 Pforte und einen Einrichtungsauftrag (der erkennt am Gedächtnis der Installationen, was schon
 eingerichtet ist, [Apps installieren](installieren.md)) und einen Prüf-Restore (die Kopie, die
-der Neustart zurückließ, baut der Agent beim Start ab); `installation_konfigurieren` nicht, er
-startet die App neu und gilt nach einem Neustart des Agenten als gescheitert. Ist die Datei unlesbar,
+der Neustart zurückließ, baut der Agent beim Start ab); `installation_konfigurieren` und
+`installation_wiederherstellen` nicht, beide stoppen oder starten die App und gelten nach einem
+Neustart des Agenten als gescheitert. Ist die Datei unlesbar,
 führt der Agent keinen Auftrag aus, weil er einen doppelten nicht mehr erkennen könnte. Erledigte
 Aufträge vergisst er nach 30 Tagen.
 

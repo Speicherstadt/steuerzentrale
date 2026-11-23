@@ -75,6 +75,18 @@ export {
 } from "./backup/pruef-restore.ts";
 export { AGENT_BINARY, BACKUP_SERVICE, BACKUP_TIMER, backupUnits } from "./backup/units.ts";
 export {
+  snapshotArgument,
+  WIEDERHERSTELLEN_AKTION,
+  WIEDERHERSTELLEN_ZEITLIMIT_S,
+  type WiederherstellenAnfrage,
+  type WiederherstellenAuftrag,
+  type WiederherstellenDaten,
+  type WiederherstellenGeprueft,
+  wiederherstellenArgumente,
+  wiederherstellenAuftragPruefen,
+  wiederherstellenDatenLesen,
+} from "./backup/wiederherstellen.ts";
+export {
   PRUEF_RESTORE_HEALTH_S,
   type RestoreTeil,
   type RestoreTeile,

@@ -15,7 +15,8 @@ import { serverAnlegen } from "./server.ts";
  * replaced as the real agent does) and then the result with their number. Setting up backups
  * (Z-601) it reports done; "Backup jetzt" it reports done after the run, as the real agent sends it
  * (`backup_stand` with a snapshot per part). A test restore (Z-602) it reports done with the
- * snapshot each part was restored from and its duration, as the real agent does. It reports the
+ * snapshot each part was restored from and its duration, as the real agent does, and so a restore
+ * (Z-603), with the snapshot its job names. It reports the
  * state of installations and an SSH login when a test tells it to (Z-403, Z-406). No Podman, no
  * server.
  */
@@ -150,6 +151,20 @@ const pruefRestoreGelungen = (n: Nachricht) => ({
   },
 });
 
+/** A restore done: each part played back from the snapshot the job names (Z-603) */
+const wiederherstellenGelungen = (n: Nachricht) => ({
+  ok: true,
+  daten: {
+    installation: n.installationId,
+    teile: Object.entries(n.argumente as Record<string, string>).map(([schluessel, snapshot]) => ({
+      tag: schluessel.replace(/^snapshot:/, ""),
+      snapshot,
+      zurueckgespielt: true,
+    })),
+    dauerMs: 37_000,
+  },
+});
+
 /** Done as the real agent reports configuring anew (apps/agent, Z-404) */
 const konfiguriert = (n: Nachricht) => ({
   ok: true,
@@ -174,6 +189,8 @@ const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   if (n.aktion === "installation_backup") return backupJetzt(ws, n);
   if (n.aktion === "installation_pruef_restore")
     return ws.send(ergebnis(auftragId, pruefRestoreGelungen(n)));
+  if (n.aktion === "installation_wiederherstellen")
+    return ws.send(ergebnis(auftragId, wiederherstellenGelungen(n)));
   if (n.aktion === "installation_log_auszug") {
     ws.send(JSON.stringify({ typ: "log_auszug", protokoll: 1, auftragId, zeilen: LOG_ZEILEN }));
     return ws.send(ergebnis(auftragId, { ok: true, daten: { zeilen: LOG_ZEILEN.length } }));

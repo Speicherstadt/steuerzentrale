@@ -22,6 +22,8 @@ import {
   resteAbbauen,
 } from "../pruef-restore/auftrag.ts";
 import type { Planer } from "../verbindung/verbinden.ts";
+import { wiederherstellenAufraeumen } from "../wiederherstellen/aufraeumen.ts";
+import { wiederherstellenAusfuehren } from "../wiederherstellen/auftrag.ts";
 import type { PruefDeps, SpawnMitAusgabe } from "../zustand/pruefen.ts";
 import { ausfuehren as befehlAusfuehren, type Ergebnis, type Spawn } from "./ausfuehren.ts";
 import {
@@ -36,8 +38,8 @@ import { type Geladen, type Stand, standLaden, standSchreiber } from "./zustand.
  * The agent's side of jobs (BAULISTE.md Z-305): it acknowledges a job, checks it (pruefen.ts),
  * reports that it runs, runs it (ausfuehren.ts as the installation's user; a job of the Pforte
  * through its admin API, src/pforte; a setup job by src/einrichtung; a restart or log excerpt by
- * src/aktionen, whose lines go out as `log_auszug` before the result; a backup job by src/backup)
- * and reports the result.
+ * src/aktionen, whose lines go out as `log_auszug` before the result; a backup job by src/backup;
+ * a restore by src/wiederherstellen) and reports the result.
  * Idempotent by the job's
  * id through its record (zustand.ts): a finished job sent again gets its stored result, a running
  * one only an acknowledgement. A job that was running when the agent stopped is reported failed
@@ -92,8 +94,9 @@ export type Auftraege = {
   /** Handles a job; `senden` reaches the Zentrale over the current connection, if any */
   empfangen: (n: AuftragNachricht, senden: (text: string) => void) => Promise<void>;
   /**
-   * Tears down what a Prüf-Restore left when the agent stopped in its middle (Z-602): called once
-   * when the service starts, in the line of the Prüf-Restores
+   * Sets right what a job left when the agent stopped in its middle, called once when the service
+   * starts: tears down a Prüf-Restore's copy (Z-602), in the line of the Prüf-Restores; stops a
+   * restore's transient unit and starts the backup's timer (Z-603), in the line of the setups
    */
   aufraeumen: () => Promise<void>;
 };
@@ -143,17 +146,27 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
   };
   // one Prüf-Restore at a time, beside the setups: it may take hours and changes no installation
   const pruefReihe = reihe();
-  const aufraeumen = () =>
+  // started with `void` (cli.ts): a rejection would end the service, so a throw is logged
+  const gefangen = (e: unknown) => ({ ok: false as const, grund: String(e).slice(0, 500) });
+  const kopienAbbauen = () =>
     pruefReihe(async () => {
-      // started with `void` (cli.ts): a rejection would end the service, so a throw is logged
-      const r = await resteAbbauen(system).catch((e: unknown) => ({
-        ok: false as const,
-        grund: String(e).slice(0, 500),
-      }));
+      const r = await resteAbbauen(system).catch(gefangen);
       if (!r.ok) deps.log("pruef-restore leftovers not torn down", { grund: r.grund });
       else if (r.abgebaut.length > 0)
         deps.log("pruef-restore leftovers torn down", { kopien: r.abgebaut });
     });
+  // in the line of the setups, where a restore runs: done before any job that came after the start
+  const wiederherstellenReste = () =>
+    einrichtungReihe(async () => {
+      const r = await wiederherstellenAufraeumen(system).catch(gefangen);
+      if (!r.ok) return deps.log("restore leftovers not cleaned up", { grund: r.grund });
+      for (const f of r.fehler) deps.log("restore leftovers not cleaned up", f);
+      if (r.installationen.length > 0)
+        deps.log("restore leftovers cleaned up", { installationen: r.installationen });
+    });
+  const aufraeumen = async () => {
+    await Promise.all([kopienAbbauen(), wiederherstellenReste()]);
+  };
   const ausfuehren = async (
     plan: JederPlan,
     auszugSenden: (zeilen: string[]) => void,
@@ -164,6 +177,9 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
       return einrichtungReihe(() => einrichtungAusfuehren(system, plan));
     if (plan.art === "aktion")
       return einrichtungReihe(() => aktionAusfuehren(system, plan, auszugSenden));
+    // a restore stops and starts the installation's units: never beside a setup or an action
+    if (plan.art === "wiederherstellen")
+      return einrichtungReihe(() => wiederherstellenAusfuehren(pruef, plan));
     // setting up a backup writes into the home like a setup; a run may take hours and waits for none
     if (plan.art === "backup")
       return plan.auftrag.art === "einrichten"
