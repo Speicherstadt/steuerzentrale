@@ -19,8 +19,10 @@ import { serverAnlegen } from "./server.ts";
  * (Z-603), with the snapshot its job names. An update (Z-503) it reports as the real agent does in
  * `daten`: `aktualisiert`, or `zurueckgenommen` with its reason for a host that starts with
  * `laeuft-zurueck`. It reports the
- * state of installations and an SSH login when a test tells it to (Z-403, Z-406). No Podman, no
- * server.
+ * state of installations and an SSH login when a test tells it to (Z-403, Z-406). A reboot of the
+ * server (Z-701) of its current boot it answers as the real agent does: the connection ends, it
+ * comes back on a new boot id, and the job the Zentrale sends again it reports done with that id.
+ * No Podman, no server.
  */
 
 // The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite
@@ -78,7 +80,7 @@ const beitreten = async (befehl: string): Promise<string> => {
 };
 
 /** The facts of a small Debian server with room for an app (packages/protokoll, beispiele-v1.ts) */
-const fakten = (zeit: number) => ({
+const fakten = (zeit: number, bootId: string) => ({
   typ: "fakten",
   protokoll: 1,
   zeit,
@@ -97,7 +99,13 @@ const fakten = (zeit: number) => ({
   portsBelegt: [{ port: 443, proto: "tcp" }],
   port25Ausgehend: false,
   uhrzeitAbweichungMs: 12,
+  bootId,
+  gestartetAm: zeit - 3 * 86_400_000,
+  unattendedUpgrades: { installiert: true, aktiv: true, letzterLauf: zeit - 3600_000 },
 });
+
+/** The stand-in's connection and boot, both replaced by a reboot */
+type Lage = { ws: WebSocket; bootId: string; zertifikat: string };
 
 /** What the stand-in agent reads from the journal of every installation */
 export const LOG_ZEILEN = [
@@ -185,9 +193,11 @@ const konfiguriert = (n: Nachricht) => ({
  * Takes a job; a setup of a `kaputt…` host it reports failed, of a `laeuft…` host done, with its
  * route; configuring anew and a restart done, a log excerpt with its lines
  */
-const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
+const auftragNehmen = (lage: Lage, n: Nachricht) => {
+  const { ws } = lage;
   const auftragId = n.auftragId as string;
   ws.send(JSON.stringify({ typ: "bestaetigt", protokoll: 1, auftragId }));
+  if (n.aktion === "server_neustart") return neustarten(lage, n);
   const einrichtung = n.einrichtung as { installation?: { host?: string } } | undefined;
   const host = einrichtung?.installation?.host ?? (n.argumente as { host?: string }).host;
   if (n.aktion === "installation_konfigurieren")
@@ -212,11 +222,35 @@ const auftragNehmen = (ws: WebSocket, n: Nachricht) => {
   if (host?.startsWith("laeuft")) ws.send(ergebnis(auftragId, { ok: true, daten: {} }));
 };
 
-const verbinden = (zertifikat: string): Promise<WebSocket> =>
+/**
+ * The reboot of its boot: running, then gone and back on a new boot; the job sent again for the old
+ * boot is done (apps/agent, neustart/neustart.ts)
+ */
+const neustarten = (lage: Lage, n: Nachricht) => {
+  const auftragId = n.auftragId as string;
+  const { bootId } = n.argumente as { bootId: string };
+  if (bootId !== lage.bootId)
+    return lage.ws.send(ergebnis(auftragId, { ok: true, daten: { bootId: lage.bootId } }));
+  lage.ws.send(
+    JSON.stringify({
+      typ: "fortschritt",
+      protokoll: 1,
+      auftragId,
+      schritt: n.aktion,
+      zeit: Date.now(),
+    }),
+  );
+  lage.ws.close();
+  lage.bootId = randomUUID();
+  void verbinden(lage);
+};
+
+const verbinden = (lage: Lage): Promise<WebSocket> =>
   new Promise((bereit, fehler) => {
     const ws = new NodeWebSocket(`ws://${ZENTRALE}/api/v1/agent/verbindung`, {
-      headers: { [FINGERABDRUCK_HEADER]: fingerabdruck(zertifikat) },
+      headers: { [FINGERABDRUCK_HEADER]: fingerabdruck(lage.zertifikat) },
     });
+    lage.ws = ws;
     ws.onopen = () =>
       ws.send(
         JSON.stringify({
@@ -230,10 +264,10 @@ const verbinden = (zertifikat: string): Promise<WebSocket> =>
     ws.onmessage = (event) => {
       const n = JSON.parse(String(event.data)) as Nachricht;
       if (n.typ === "willkommen") {
-        ws.send(JSON.stringify(fakten(Date.now())));
+        ws.send(JSON.stringify(fakten(Date.now(), lage.bootId)));
         bereit(ws);
       }
-      if (n.typ === "auftrag") auftragNehmen(ws, n);
+      if (n.typ === "auftrag") auftragNehmen(lage, n);
     };
     ws.onerror = () => fehler(new Error("the agent's connection failed"));
   });
@@ -244,7 +278,9 @@ export const agentVerbinden = async (
   name: string,
 ): Promise<TestAgent> => {
   const server = await serverAnlegen(request, name);
-  const ws = await verbinden(await beitreten(server.befehl));
+  const zertifikat = await beitreten(server.befehl);
+  const lage = { bootId: randomUUID(), zertifikat } as Lage;
+  await verbinden(lage);
   await expect
     .poll(async () => {
       const s = await request.get(`/api/v1/server/${server.serverId}`);
@@ -256,9 +292,11 @@ export const agentVerbinden = async (
     serverId: server.serverId,
     name: server.name,
     melden: (installationen) =>
-      ws.send(JSON.stringify({ typ: "zustand", protokoll: 1, zeit: Date.now(), installationen })),
+      lage.ws.send(
+        JSON.stringify({ typ: "zustand", protokoll: 1, zeit: Date.now(), installationen }),
+      ),
     sshAnmelden: (nutzer) =>
-      ws.send(
+      lage.ws.send(
         JSON.stringify({
           typ: "ssh_anmeldung",
           protokoll: 1,
@@ -268,6 +306,6 @@ export const agentVerbinden = async (
           methode: "publickey",
         }),
       ),
-    trennen: () => ws.close(),
+    trennen: () => lage.ws.close(),
   };
 };
