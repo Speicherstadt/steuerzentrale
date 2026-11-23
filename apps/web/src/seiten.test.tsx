@@ -214,8 +214,23 @@ describe("servers of the Zentrale", () => {
       portsBelegt: [{ port: 22, proto: "tcp" }],
       port25Ausgehend: false,
       uhrzeitAbweichungMs: 12,
+      bootId: "8f4c1c9e-2d3a-4b5c-9d6e-7f8091a2b3c4",
+      gestartetAm: JETZT - 38 * 86_400_000,
+      unattendedUpgrades: { installiert: true, aktiv: true, letzterLauf: JETZT - 3600_000 },
     },
     faktenAm: JETZT - 60_000,
+    neustart: {
+      noetig: true,
+      plan: { art: "warten", grund: "sperrzeit", ab: JETZT + 2 * 86_400_000 },
+      letzter: {
+        auftragId: "n-1",
+        zustand: "gescheitert",
+        vonHand: false,
+        angelegtAm: JETZT - 86_400_000,
+        geaendertAm: JETZT - 86_000_000,
+        fehler: "Neustart nicht erfolgt: Agent neu gestartet",
+      },
+    },
   };
   const ohneFakten: ServerDerZentrale = {
     ...mitFakten,
@@ -227,6 +242,7 @@ describe("servers of the Zentrale", () => {
     agent: { zustand: "getrennt", letzterHeartbeat: null },
     fakten: null,
     faktenAm: null,
+    neustart: { noetig: null, plan: { art: "warten", grund: "unbekannt" }, letzter: null },
   };
   const vorher = serverQuelle();
   beforeEach(() => {
@@ -238,6 +254,7 @@ describe("servers of the Zentrale", () => {
         return sv ? { ok: true, status: 200, daten: sv } : { ok: false, status: 404, fehler: "x" };
       },
       sperren: async () => ({ ok: false, status: 409, fehler: "x" }),
+      neustart: async () => ({ ok: false, status: 409, fehler: "x" }),
     });
   });
   afterEach(() => serverQuelleEinsetzen(vorher));
@@ -270,6 +287,12 @@ describe("servers of the Zentrale", () => {
       "203.0.113.10 → neu.example.org",
       "22/tcp",
       "Port 25 ausgehendgesperrt",
+      // Z-701: the operating system and the reboot
+      "unattended-upgradesan, zuletzt",
+      "Ausstehende Pakete3",
+      "Neustart nötigja, für Kernel 6.12.48+deb13-arm64",
+      "Nächster Neustartwartet auf das Ende einer Sperrzeit",
+      "Letzter Neustartgescheitert: Neustart nicht erfolgt: Agent neu gestartet",
     ])
       expect(text).toContain(teil);
     expect(text).not.toContain("Prüfungen");

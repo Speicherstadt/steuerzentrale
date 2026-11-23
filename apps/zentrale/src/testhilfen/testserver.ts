@@ -1,11 +1,11 @@
 import { join } from "node:path";
-import { AGENT_UPDATE_AKTION } from "@steuerzentrale/manifest";
+import { AGENT_UPDATE_AKTION, SERVER_NEUSTART_AKTION } from "@steuerzentrale/manifest";
 import { and, desc, eq } from "drizzle-orm";
 import { oeffneDatenbank } from "../db/oeffnen.ts";
 import { auftraege, betreiber, ereignisse, server } from "../db/schema.ts";
 import { parseEnv } from "../env.ts";
 import { schreiben } from "../modules/audit/index.ts";
-import { serverAnlegen } from "../modules/server/index.ts";
+import { letzteHeartbeats, serverAnlegen, serverFakten } from "../modules/server/index.ts";
 
 /*
  * For CI's test servers only (job `server` in .github/workflows/ci.yml, plan.md "Was sich in der CI
@@ -17,9 +17,13 @@ import { serverAnlegen } from "../modules/server/index.ts";
  *   bun apps/zentrale/src/testhilfen/testserver.ts fingerabdruck <id> → the fingerprint
  *   bun apps/zentrale/src/testhilfen/testserver.ts wartungsfenster <id> → the window all day (Z-504)
  *   bun apps/zentrale/src/testhilfen/testserver.ts agent <id>         → {"version","update","ereignisse"}
+ *   bun apps/zentrale/src/testhilfen/testserver.ts neustart <id>      → {"neustart","fakten",…} (Z-701)
  *
  * `agent` names the agent version of the last `hallo`, the newest job `agent_update` (version,
  * state, result) and the events of the server, for the test of the agent's update (Z-504).
+ * `neustart` names the newest job `server_neustart` (state, result, when it ended), the boot id
+ * and "reboot needed" of the newest facts and when they came, the last heartbeat and the events of
+ * the server, for the test of the reboot (Z-701).
  *
  * It reads the Zentrale's environment (STEUERZENTRALE_DATA, _SECRET_KEY, _URL, _AGENT_URL).
  */
@@ -97,9 +101,47 @@ if (befehl === "anlegen") {
   console.log(
     JSON.stringify({ version: zeile?.version ?? null, update: update ?? null, ereignisse: arten }),
   );
+} else if (befehl === "neustart") {
+  const zeile = db
+    .select()
+    .from(server)
+    .where(and(eq(server.betreiberId, BETREIBER), eq(server.serverId, wert)))
+    .get();
+  const neustart = db
+    .select({
+      zustand: auftraege.zustand,
+      ergebnis: auftraege.ergebnis,
+      argumente: auftraege.argumente,
+      geaendertAm: auftraege.geaendertAm,
+    })
+    .from(auftraege)
+    .where(
+      and(
+        eq(auftraege.betreiberId, BETREIBER),
+        eq(auftraege.serverId, wert),
+        eq(auftraege.aktion, SERVER_NEUSTART_AKTION),
+      ),
+    )
+    .orderBy(desc(auftraege.angelegtAm))
+    .get();
+  const f = zeile ? serverFakten(zeile) : null;
+  const arten = db
+    .select({ art: ereignisse.art, text: ereignisse.text })
+    .from(ereignisse)
+    .where(and(eq(ereignisse.betreiberId, BETREIBER), eq(ereignisse.ziel, `server:${wert}`)))
+    .all();
+  console.log(
+    JSON.stringify({
+      neustart: neustart ?? null,
+      fakten: f ? { bootId: f.bootId, neustartNoetig: f.neustartNoetig } : null,
+      faktenAm: zeile?.faktenAm ?? null,
+      letzterHeartbeat: letzteHeartbeats(db, BETREIBER, wert).get(wert) ?? null,
+      ereignisse: arten,
+    }),
+  );
 } else {
   console.error(
-    "usage: testserver.ts anlegen <name> | fingerabdruck | wartungsfenster | agent <serverId>",
+    "usage: testserver.ts anlegen <name> | fingerabdruck | wartungsfenster | agent | neustart <serverId>",
   );
   process.exitCode = 2;
 }

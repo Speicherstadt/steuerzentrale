@@ -71,7 +71,8 @@ Neustart der Zentrale wiederholt und vergisst keinen. Jedes Ereignis nennt den S
   auffiel; der Eintrag führt zum Server ([Übersicht und Betrieb](uebersicht.md)). Unbekannte Prüfungen
   stehen dort nicht: meist ist der Agent still oder getrennt, und das hat seinen eigenen Eintrag.
 - **Server-Seite**: die Karte „Prüfungen“ mit jeder Prüfung, ihrem Messwert und „OK“ oder „Prüfen“;
-  ist der Agent still, steht nur der letzte bekannte Stand da, ohne Urteil. Die Prüfungen des
-  Betriebssystems (Kernel, Sicherheitsupdates, Neustart) folgen mit dem nächsten Punkt.
+  ist der Agent still, steht nur der letzte bekannte Stand da, ohne Urteil. Was der Agent über das
+  Betriebssystem meldet (unattended-upgrades, ausstehende Pakete, „Neustart nötig“), steht in der
+  Karte „Wartung“ ([Betriebssystem und Neustarts](betriebssystem.md)).
 - **API**: `GET /api/v1/server/<id>` liefert `pruefungen`, je Prüfung Ergebnis, Messwerte und `seit`
   (der Beginn des offenen Befunds oder `null`).

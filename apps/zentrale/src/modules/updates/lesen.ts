@@ -1,4 +1,8 @@
-import { AGENT_UPDATE_AKTION, UPDATE_AKTION } from "@steuerzentrale/manifest";
+import {
+  AGENT_UPDATE_AKTION,
+  SERVER_NEUSTART_AKTION,
+  UPDATE_AKTION,
+} from "@steuerzentrale/manifest";
 import { versionVergleichen } from "@steuerzentrale/planung";
 import { ENDZUSTAENDE } from "@steuerzentrale/protokoll";
 import { and, desc, eq, inArray, or } from "drizzle-orm";
@@ -79,7 +83,7 @@ export const updateStand = (db: Db, betreiberId: string, installationId: string)
 
 /**
  * Whether an update job of the operator is open on the server: one at a time per server, the
- * update of its agent (Z-504) counted too
+ * update of its agent (Z-504) and a reboot of the server (Z-701) counted too
  */
 export const updateAufServer = (db: Db, betreiberId: string, serverId: string): boolean =>
   db
@@ -89,7 +93,7 @@ export const updateAufServer = (db: Db, betreiberId: string, serverId: string): 
       and(
         eq(auftraege.betreiberId, betreiberId),
         eq(auftraege.serverId, serverId),
-        inArray(auftraege.aktion, [UPDATE_AKTION, AGENT_UPDATE_AKTION]),
+        inArray(auftraege.aktion, [UPDATE_AKTION, AGENT_UPDATE_AKTION, SERVER_NEUSTART_AKTION]),
       ),
     )
     .all()
