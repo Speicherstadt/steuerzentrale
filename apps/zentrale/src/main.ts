@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { promises as dnsPromises } from "node:dns";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { pforteUnit } from "@steuerzentrale/manifest";
 import { TRENNUNG, VERSION } from "@steuerzentrale/protokoll";
 import type { Server } from "bun";
 import { websocket } from "hono/bun";
@@ -31,6 +32,7 @@ import { updateSchleife } from "./modules/updates/index.ts";
 import { stilleSchleife } from "./modules/verbindung/stille.ts";
 import { verbindungen } from "./modules/verbindung/verbindungen.ts";
 import { versionen, versionsSchleife } from "./modules/versionen/index.ts";
+import { pforteKonfiguration, vorneArgumente } from "./modules/vorne/index.ts";
 
 const log = (line: string) => console.log(line);
 
@@ -141,6 +143,34 @@ if (process.argv[2] === "manifest" && process.argv[3] === "importieren") {
   }
   console.error(JSON.stringify({ msg: "manifest refused", grund: r.grund, detail: r.detail }));
   process.exit(1);
+}
+
+// `steuerzentrale pforte <netz>… [--intern]` (Z-1004): the Pforte's configuration on stdin, printed
+// with the Zentrale's routes and the operators' CAs for its admin API (docs/installation.md)
+if (process.argv[2] === "pforte") {
+  const args = vorneArgumente(process.argv.slice(3));
+  if (!args.ok) {
+    console.error(JSON.stringify({ msg: args.grund }));
+    process.exit(2);
+  }
+  const text = (await Bun.stdin.text()).trim();
+  const r = await pforteKonfiguration(
+    { ...datenbank, schluessel: env.schluessel, env, jetzt: Date.now() },
+    text === "" ? null : JSON.parse(text),
+    args,
+  );
+  if (!r.ok) {
+    console.error(JSON.stringify({ msg: "no configuration for the Pforte", grund: r.grund }));
+    process.exit(1);
+  }
+  console.log(JSON.stringify(r.konfiguration));
+  process.exit(0);
+}
+// `steuerzentrale pforte-unit` (Z-1004): the Pforte's Quadlet unit as the agent writes it, for the
+// Zentrale's own server, whose Pforte must run before its agent can join (docs/installation.md)
+if (process.argv[2] === "pforte-unit") {
+  process.stdout.write(pforteUnit());
+  process.exit(0);
 }
 
 const { db, schreibDb } = datenbank;
@@ -322,10 +352,18 @@ const app = createApp({
   abwicklungAnstossen: abwicklung.anstossen,
   versionen: neueVersionen,
   versand,
+  ...(env.web === undefined ? {} : { web: env.web }),
 });
 // `websocket` carries the agents' connections (src/routes/verbindung.ts)
 const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch, websocket });
 log(JSON.stringify({ msg: "listening", url: server.url.href, version: VERSION }));
+// As PID 1 of its container (Z-1004) a signal without a handler is ignored: `podman stop` would
+// wait its 10 s and kill. Every write is a transaction of its own, so stopping at once is safe
+for (const signal of ["SIGTERM", "SIGINT"] as const)
+  process.on(signal, () => {
+    log(JSON.stringify({ msg: "stopping", signal }));
+    process.exit(0);
+  });
 if (!env.agentDateien)
   log(
     JSON.stringify({

@@ -116,6 +116,11 @@ liegt getrennt davon beim Betreiber. `steuerzentrale wiederherstellen <datei>` s
 neuen Server in ein leeres Datenverzeichnis, und die Agenten verbinden sich mit ihren Zertifikaten von
 selbst wieder ([Zentrale sichern](docs/zentrale-sichern.md)).
 
+**Installation:** ein Release besteht aus dem Image der Zentrale (amd64 und arm64) mit ihrer
+Quadlet-Unit und den signierten Agent-Dateien. Im Ein-Server-Betrieb laufen Zentrale, Pforte und Agent
+auf einem Server: die Zentrale rootless unter eigenem Nutzer, die Pforte davor mit der Oberfläche nur
+über WireGuard und `agent.<domain>` mit Client-Zertifikaten ([Installation](docs/installation.md)).
+
 **Sicherheit:** das Bedrohungsmodell nennt zu jeder Bedrohung die Maßnahme und ihren Test, dazu den
 Notzugang per SSH und die technischen und organisatorischen Maßnahmen nach Art. 32 DSGVO als Anlage
 zum Auftragsverarbeitungsvertrag ([Sicherheit](docs/sicherheit.md)).

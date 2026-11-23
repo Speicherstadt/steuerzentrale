@@ -450,10 +450,196 @@ jobs:
           sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent --no-pager -n 100 || true
           sudo incus exec "$VM" -- journalctl -u steuerzentrale-agent-pruefen --no-pager -n 50 || true
 
+  # BAULISTE.md Z-1004: the release candidate. The Zentrale's image for amd64 and arm64 (only COPY,
+  # so no emulation), pushed only to a local registry on the runner; the agent files with SHA256SUMS
+  # and the image's archive, signed with the public test key; all of it as workflow artifact. Then
+  # docs/installation.md in an Incus VM (Debian 13), Zentrale, Pforte and agent on one server, with
+  # the test's differences only: the image from the runner's registry over HTTP, the agent files
+  # signed with the test key (install.sh --testmodus), certificates from Caddy's local CA instead of
+  # ACME (`--intern`), the interface reached from the runner instead of over WireGuard. No tag, no
+  # real key, no push anywhere else: that is a person's (BAULISTE.md, "Schritte für Menschen")
+  release-kandidat:
+    needs: changes
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      VM: sz-test-zentrale
+      UI_HOST: zentrale.sz-test.internal
+      AGENT_HOST: agent.sz-test.internal
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: sudo apt-get install -y -q minisign
+      - run: bun run build
+      # The local registry of the tests (CNCF distribution 3.0.0 by digest: registry-1.docker.io,
+      # library/registry, tag 3.0.0, queried 2026-11-23 with scripts/digest.ts), in the host's
+      # network so the VM reaches it on the bridge
+      - name: Image for amd64 and arm64 in the local registry
+        run: |
+          podman run -d --rm --name sz-test-registry --network host -e REGISTRY_HTTP_ADDR=0.0.0.0:5000 \
+            docker.io/library/registry@sha256:6c5666b861f3505b116bb9aa9b25175e71210414bd010d92035ff64018f9457e
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5000/v2/ && break; sleep 1; done
+          kontext="$RUNNER_TEMP/kontext"
+          bun scripts/release-kandidat.ts kontext "$kontext"
+          podman build --platform linux/amd64,linux/arm64 --manifest localhost/steuerzentrale:kandidat \
+            -f "$kontext/Containerfile" "$kontext"
+          podman manifest push --all --tls-verify=false --digestfile "$RUNNER_TEMP/digest" \
+            localhost/steuerzentrale:kandidat docker://localhost:5000/steuerzentrale:kandidat
+          digest="$(cat "$RUNNER_TEMP/digest")"
+          echo "DIGEST=$digest" >> "$GITHUB_ENV"
+          # one image per architecture behind the digest
+          skopeo inspect --raw --tls-verify=false "docker://localhost:5000/steuerzentrale@$digest" |
+            jq -e '[.manifests[].platform.architecture] | sort == ["amd64", "arm64"]'
+      - name: Release candidate, signed with the test key
+        run: |
+          a="$RUNNER_TEMP/release-kandidat"
+          mkdir -p "$a"
+          bun scripts/agent-dateien.ts "$a/agent-dateien"
+          skopeo copy --all --src-tls-verify=false "docker://localhost:5000/steuerzentrale@$DIGEST" \
+            "oci-archive:$a/steuerzentrale-image.tar"
+          bun scripts/release-kandidat.ts unit "ghcr.io/speicherstadt/steuerzentrale@$DIGEST" "$a/quadlet"
+          echo "$DIGEST" > "$a/DIGEST"
+          bun scripts/release-kandidat.ts signieren "$a" steuerzentrale-image.tar quadlet/steuerzentrale.container DIGEST
+          # both signatures hold, and a release build refuses the key they were made with
+          for d in "$a" "$a/agent-dateien"; do
+            (cd "$d" && minisign -Vm SHA256SUMS -p minisign.pub && sha256sum -c SHA256SUMS)
+          done
+          if bun scripts/release-schluessel.ts "$a/minisign.pub"; then echo "a release took the test key"; exit 1; fi
+          ls -lR "$a"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: release-kandidat
+          path: ${{ runner.temp }}/release-kandidat
+          retention-days: 14
+      - name: Incus
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q incus incus-agent qemu-system-x86 ovmf
+          sudo incus admin init --minimal
+          if sudo iptables -n -L DOCKER-USER >/dev/null 2>&1; then
+            sudo iptables -I DOCKER-USER -i incusbr0 -j ACCEPT
+            sudo iptables -I DOCKER-USER -o incusbr0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          fi
+      - name: VM
+        run: |
+          sudo incus launch images:debian/13 "$VM" --vm -c limits.cpu=2 -c limits.memory=3GiB
+          for i in $(seq 1 120); do sudo incus exec "$VM" -- true 2>/dev/null && break; sleep 2; done
+          sudo incus exec "$VM" -- sh -c 'for i in $(seq 1 60); do getent hosts deb.debian.org >/dev/null && exit 0; sleep 2; done; exit 1'
+          host="$(sudo incus network get incusbr0 ipv4.address | cut -d/ -f1)"
+          echo "BRUECKE=$host" >> "$GITHUB_ENV"
+          echo "VM_IP=$(sudo incus list "$VM" -c 4 -f csv | grep -o '^[0-9.]*' | head -1)" >> "$GITHUB_ENV"
+      # docs/installation.md, steps 1 to 6, as written there; the differences of the test are named
+      - name: The Zentrale as docs/installation.md says
+        run: |
+          vm() { sudo incus exec "$VM" -- "$@"; }
+          a="$RUNNER_TEMP/release-kandidat"
+          # 1. packages
+          vm sh -c 'apt-get update -q && apt-get install -y -q podman curl ca-certificates minisign jq'
+          # (test) the runner's registry over HTTP, the hosts on this VM
+          printf '[[registry]]\nlocation = "%s:5000"\ninsecure = true\n' "$BRUECKE" > "$RUNNER_TEMP/registry.conf"
+          sudo incus file push --create-dirs "$RUNNER_TEMP/registry.conf" "$VM/etc/containers/registries.conf.d/sz-test-registry.conf"
+          vm sh -c "printf '127.0.0.1 $UI_HOST $AGENT_HOST\n' >> /etc/hosts"
+          # 2. users and ports
+          vm sh -c 'printf "net.ipv4.ip_unprivileged_port_start=80\n" > /etc/sysctl.d/90-steuerzentrale.conf && sysctl -q -p /etc/sysctl.d/90-steuerzentrale.conf'
+          vm useradd --create-home --home-dir /home/sz-zentrale --shell /usr/sbin/nologin --comment "Zentrale der Steuerzentrale" sz-zentrale
+          vm useradd --create-home --home-dir /home/sz-pforte --shell /usr/sbin/nologin --comment "Pforte der Steuerzentrale" sz-pforte
+          vm loginctl enable-linger sz-zentrale
+          vm loginctl enable-linger sz-pforte
+          for u in sz-zentrale sz-pforte; do
+            vm sh -c "for i in \$(seq 1 30); do test -d /run/user/\$(id -u $u) && exit 0; sleep 1; done; exit 1"
+          done
+          # 3. agent files, checked against the key (the test key here, the release key in production)
+          sudo incus file push -r "$a/agent-dateien" "$VM/home/sz-zentrale/"
+          vm chmod -R a+rX /home/sz-zentrale/agent-dateien
+          vm sh -c 'cd /home/sz-zentrale/agent-dateien && minisign -Vm SHA256SUMS -p minisign.pub && sha256sum -c SHA256SUMS'
+          # 4. the key as a Podman secret, the addresses, the unit (image from the runner's registry)
+          printf 'STEUERZENTRALE_URL=https://%s\nSTEUERZENTRALE_AGENT_URL=https://%s\n' "$UI_HOST" "$AGENT_HOST" > "$RUNNER_TEMP/steuerzentrale.env"
+          sudo incus file push "$RUNNER_TEMP/steuerzentrale.env" "$VM/home/sz-zentrale/steuerzentrale.env"
+          bun scripts/release-kandidat.ts unit "$BRUECKE:5000/steuerzentrale@$DIGEST" "$RUNNER_TEMP/quadlet-vm"
+          sudo incus file push --create-dirs "$RUNNER_TEMP/quadlet-vm/steuerzentrale.container" "$VM/home/sz-zentrale/.config/containers/systemd/steuerzentrale.container"
+          vm sh -c 'chown -R sz-zentrale: /home/sz-zentrale && chmod 600 /home/sz-zentrale/steuerzentrale.env'
+          als='als() { u="$1"; shift; uid="$(id -u "$u")"; runuser -u "$u" -- env -i HOME="$(getent passwd "$u" | cut -d: -f6)" XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" PATH=/usr/local/bin:/usr/bin:/bin "$@"; }'
+          echo "ALS=$als" >> "$GITHUB_ENV"
+          vm bash -c "$als; head -c 32 /dev/urandom | base64 | als sz-zentrale podman secret create steuerzentrale-secret-key -"
+          # 5. start, /health on loopback
+          vm bash -c "$als; als sz-zentrale systemctl --user daemon-reload && als sz-zentrale systemctl --user start steuerzentrale"
+          vm sh -c 'for i in $(seq 1 60); do curl -fsS http://127.0.0.1:8300/health && exit 0; sleep 2; done; exit 1'
+          # 6. the Pforte: its unit from the Zentrale, then the Zentrale's routes into it
+          vm bash -c "$als; als sz-zentrale podman exec steuerzentrale steuerzentrale pforte-unit > /root/sz-pforte.container"
+          vm sh -c 'install -D -o sz-pforte -g sz-pforte -m 0644 /root/sz-pforte.container /home/sz-pforte/.config/containers/systemd/sz-pforte.container && chown -R sz-pforte: /home/sz-pforte/.config'
+          vm bash -c "$als; als sz-pforte systemctl --user daemon-reload && als sz-pforte systemctl --user start sz-pforte"
+          vm sh -c 'for i in $(seq 1 120); do test -S /home/sz-pforte/pforte/admin.sock && exit 0; sleep 2; done; exit 1'
+          # (test) the interface from the runner's bridge address, not over WireGuard; certificates from Caddy's local CA
+          echo "NETZ=$BRUECKE/32" >> "$GITHUB_ENV"
+          pforte_laden="$als; sock=/home/sz-pforte/pforte/admin.sock; curl -fsS --unix-socket \$sock http://localhost/config/ | als sz-zentrale podman exec -i steuerzentrale steuerzentrale pforte $BRUECKE/32 --intern > /root/pforte.json && curl -fsS --unix-socket \$sock -H 'content-type: application/json' --data-binary @/root/pforte.json http://localhost/load"
+          echo "PFORTE_LADEN=$pforte_laden" >> "$GITHUB_ENV"
+          vm bash -c "$pforte_laden"
+      - name: The first owner, a server, its agent
+        run: |
+          vm() { sudo incus exec "$VM" -- "$@"; }
+          # the CA of Caddy's local issuer (test only): for the runner, the VM's curl and the agent
+          ca="$RUNNER_TEMP/pforte-ca.pem"
+          for i in $(seq 1 30); do vm bash -c "$ALS; als sz-pforte podman exec sz-pforte cat /data/caddy/pki/authorities/local/root.crt" > "$ca" 2>/dev/null && test -s "$ca" && break; sleep 2; done
+          test -s "$ca"
+          echo "$VM_IP $UI_HOST $AGENT_HOST" | sudo tee -a /etc/hosts
+          export NODE_EXTRA_CA_CERTS="$ca"
+          curl -fsS --cacert "$ca" "https://$UI_HOST/health"
+          # the interface is served by the image, and agent.<domain> opens only the agent's paths
+          curl -fsS --cacert "$ca" "https://$UI_HOST/erster-inhaber" | grep -qi '<!doctype html>'
+          # the setup code for the first owner is in the Zentrale's log, once
+          uid="$(vm id -u sz-zentrale)"
+          for i in $(seq 1 30); do
+            code="$(vm journalctl _UID="$uid" -o cat --no-pager | grep -m1 '"setup code for the first owner"' | jq -r .code || true)"
+            test -n "$code" && break; sleep 2
+          done
+          test -n "$code"
+          kekse="$RUNNER_TEMP/kekse.json"
+          neu="$(bun apps/zentrale/src/testhilfen/erster-server.ts "https://$UI_HOST" "$kekse" einrichten "$code")"
+          echo "SERVER_ID=$(jq -r .serverId <<< "$neu")" >> "$GITHUB_ENV"
+          # 7. with an operator there is a CA: the Pforte again, now with agent.<domain>
+          vm bash -c "$PFORTE_LADEN"
+          for i in $(seq 1 30); do curl -fsS --cacert "$ca" "https://$AGENT_HOST/health" && break; sleep 2; done
+          test "$(curl -s -o /dev/null -w '%{http_code}' --cacert "$ca" "https://$AGENT_HOST/api/v1/ich")" = 404
+          # 8. the install command on the same server (the test key: --testmodus; the VM trusts the test CA)
+          crt=/usr/local/share/ca-certificates/sz-test-pforte.crt
+          sudo incus file push "$ca" "$VM$crt"
+          vm update-ca-certificates
+          printf '[Service]\nEnvironment=NODE_EXTRA_CA_CERTS=%s\n' "$crt" > "$RUNNER_TEMP/sz-test-pforte.conf"
+          sudo incus file push --create-dirs "$RUNNER_TEMP/sz-test-pforte.conf" "$VM/etc/systemd/system/steuerzentrale-agent.service.d/sz-test-pforte.conf"
+          befehl="$(jq -r .befehl <<< "$neu" | sed 's/| sudo sh -s --/| sh -s --/') --testmodus"
+          echo "$befehl"
+          sudo incus exec "$VM" --env NODE_EXTRA_CA_CERTS="$crt" -- sh -c "$befehl"
+          vm systemctl is-active steuerzentrale-agent
+          # the agent joined and is connected, as the interface shows it
+          stand() { bun apps/zentrale/src/testhilfen/erster-server.ts "https://$UI_HOST" "$kekse" server "$SERVER_ID"; }
+          for i in $(seq 1 30); do test "$(stand | jq -r .agent.zustand)" = verbunden && break; sleep 2; done
+          stand | tee "$RUNNER_TEMP/server.json"
+          test "$(jq -r .agent.zustand "$RUNNER_TEMP/server.json")" = verbunden
+          test "$(jq -r .agentVersion "$RUNNER_TEMP/server.json")" = "$(cat "$RUNNER_TEMP/release-kandidat/agent-dateien/VERSION")"
+          # the Zentrale stops at once on SIGTERM (PID 1 of its container) and comes back after a reboot
+          vm bash -c "$ALS; s=\$(date +%s); als sz-zentrale systemctl --user stop steuerzentrale; test \$(( \$(date +%s) - s )) -lt 8"
+          timeout 60 sudo incus exec "$VM" -- systemctl reboot || true
+          sleep 10
+          for i in $(seq 1 120); do vm true 2>/dev/null && break; sleep 2; done
+          vm sh -c 'for i in $(seq 1 90); do curl -fsS http://127.0.0.1:8300/health && exit 0; sleep 2; done; exit 1'
+          for i in $(seq 1 60); do test "$(stand | jq -r .agent.zustand)" = verbunden && break; sleep 3; done
+          test "$(stand | jq -r .agent.zustand)" = verbunden
+      - if: failure()
+        run: |
+          vm() { sudo incus exec "$VM" -- "$@"; }
+          vm journalctl --no-pager -n 200 || true
+          vm bash -c "$ALS; als sz-zentrale systemctl --user status steuerzentrale --no-pager; als sz-pforte systemctl --user status sz-pforte --no-pager" || true
+          vm cat /root/pforte.json || true
+          vm journalctl -u steuerzentrale-agent --no-pager -n 100 || true
+
   # One result for the rules on main (required check "check"), however many parts the jobs split into
   check:
     if: ${{ always() && !github.event.pull_request.draft }}
-    needs: [changes, unit, agent, e2e, server]
+    needs: [changes, unit, agent, e2e, server, release-kandidat]
     runs-on: ubuntu-latest
     steps:
       # A part may be skipped only when the pull request changes no code (job changes); otherwise every
@@ -461,7 +647,7 @@ jobs:
       - env:
           CODE: ${{ needs.changes.outputs.code }}
         run: |
-          for result in "${{ needs.unit.result }}" "${{ needs.agent.result }}" "${{ needs.e2e.result }}" "${{ needs.server.result }}"; do
+          for result in "${{ needs.unit.result }}" "${{ needs.agent.result }}" "${{ needs.e2e.result }}" "${{ needs.server.result }}" "${{ needs.release-kandidat.result }}"; do
             if [ "$result" = success ]; then continue; fi
             if [ "$result" = skipped ] && [ "$CODE" = false ]; then continue; fi
             echo "A part ended with: $result"

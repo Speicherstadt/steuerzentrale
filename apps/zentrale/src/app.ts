@@ -9,6 +9,7 @@ import type { Versand } from "./modules/benachrichtigung/index.ts";
 import type { Auslieferung } from "./modules/server/index.ts";
 import type { Verbindungen } from "./modules/verbindung/verbindungen.ts";
 import type { Versionen } from "./modules/versionen/index.ts";
+import { webDatei } from "./modules/web/index.ts";
 import { abwicklungRouten } from "./routes/abwicklung.ts";
 import { agentRouten } from "./routes/agent.ts";
 import { aktionenRouten } from "./routes/aktionen.ts";
@@ -67,6 +68,8 @@ export type AppDeps = {
   abwicklungAnstossen?: () => void;
   /** How notifications go out, for the test message (modules/benachrichtigung, Z-703) */
   versand?: Versand;
+  /** The built interface (STEUERZENTRALE_WEB, modules/web); unset: no files are served */
+  web?: string;
 };
 
 const AUTH_BASIS = "/api/auth";
@@ -138,6 +141,14 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   leistungenRouten(route, deps);
   agentRouten(route, deps);
   verbindungRouten(route, deps);
+  // The interface's files and the SPA's routes: only what no route took (Z-1004)
+  app.notFound((c) => {
+    const datei =
+      c.req.method === "GET" && deps.web
+        ? webDatei(deps.web, new URL(c.req.url).pathname)
+        : undefined;
+    return datei ? new Response(Bun.file(datei)) : c.text("404 Not Found", 404);
+  });
 
   return app;
 };

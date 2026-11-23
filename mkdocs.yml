@@ -59,6 +59,7 @@ markdown_extensions:
 nav:
   - Steuerzentrale: index.md
   - Betrieb:
+      - Installation: installation.md
       - Übersicht und Betrieb: uebersicht.md
       - Anmeldung und Rollen: anmeldung.md
       - Kunden und Verträge: kunden.md

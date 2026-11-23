@@ -181,6 +181,14 @@ export {
 } from "./pforte/grund.ts";
 export { PFORTE_ADMIN_VERZEICHNIS, PFORTE_UNIT, pforteUnit } from "./pforte/unit.ts";
 export {
+  AGENT_PFADE,
+  FINGERABDRUCK_KOPF,
+  ZENTRALE_AGENT_ID,
+  ZENTRALE_UI_ID,
+  type ZentraleVorne,
+  zentraleInPforte,
+} from "./pforte/zentrale.ts";
+export {
   type Befund as PlatzBefund,
   festePorts,
   istOeffentlich as istOeffentlicheIpv4,
