@@ -25,7 +25,8 @@ export const schwereReicht = (schwere: string, ab: Schwere): boolean => rang(sch
 export const meldeSchwere = (
   ereignis: { schwere: string },
   behebt: { schwere: string } | undefined,
-): Schwere => SCHWEREN[Math.max(rang(ereignis.schwere), behebt ? rang(behebt.schwere) : 0)] ?? "info";
+): Schwere =>
+  SCHWEREN[Math.max(rang(ereignis.schwere), behebt ? rang(behebt.schwere) : 0)] ?? "info";
 
 const uhrzeit = (text: string): [number, number] => {
   const [h, m] = text.split(":").map(Number);

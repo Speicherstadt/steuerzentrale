@@ -125,7 +125,7 @@ export const zustellungenSenden = async (deps: ZustellDeps): Promise<Gesendete> 
     const e = ereignisVon(deps.db, z);
     const g: Gesendet =
       r && e
-        ? await senden(deps, r, e, z, jetzt)
+        ? await senden(deps, r, e, z, deps.now())
         : { ok: false, fehler: "event or recipient gone" };
     ergebnisSchreiben(deps.schreibDb, z, g, deps.now(), !(r && e));
     ergebnis[g.ok ? "zugestellt" : "gescheitert"] += 1;

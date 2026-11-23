@@ -69,6 +69,7 @@ nav:
       - Einstellungen: einstellungen.md
       - Health und Zustand: zustand.md
       - Prüfungen der Server: pruefungen.md
+      - Benachrichtigungen und Webhooks: benachrichtigungen.md
       - Neustart, Log-Auszug, nur lesen: aktionen.md
       - Pforte: pforte.md
       - Manifeste und Versionen: manifeste.md

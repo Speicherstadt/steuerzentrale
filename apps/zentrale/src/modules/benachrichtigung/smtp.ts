@@ -196,8 +196,7 @@ const dialog = async (start: Sockel, z: SmtpZugang, mail: Mail, o: SmtpOptionen)
   return socket;
 };
 
-/** Sends one message; never throws, a failure comes back as a value without any secret */
-export const mailSenden = (z: SmtpZugang, mail: Mail, o: SmtpOptionen): Promise<Gesendet> =>
+const verschicken = (z: SmtpZugang, mail: Mail, o: SmtpOptionen): Promise<Gesendet> =>
   new Promise((fertig) => {
     const socket = verbinden(z, o);
     let letzter: Sockel = socket;
@@ -223,3 +222,12 @@ export const mailSenden = (z: SmtpZugang, mail: Mail, o: SmtpOptionen): Promise<
         }),
     );
   });
+
+/** An address that cannot end a command's line or its angle brackets (the API checks more) */
+const ADRESSE = /^[^\s<>@]+@[^\s<>@]+$/;
+
+/** Sends one message; never throws, a failure comes back as a value without any secret */
+export const mailSenden = (z: SmtpZugang, mail: Mail, o: SmtpOptionen): Promise<Gesendet> =>
+  !ADRESSE.test(z.absender) || !ADRESSE.test(mail.an)
+    ? Promise.resolve({ ok: false, fehler: "SMTP: an address that is not one" })
+    : verschicken(z, mail, o);

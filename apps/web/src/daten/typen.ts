@@ -212,7 +212,6 @@ export type Betreiber = {
   werte: Record<string, string>;
   geheimGesetzt: string[];
   s3: string;
-  benachrichtigung: { smtp: string; an: string; webhook: string; ruhezeit: string };
 };
 
 export type Bestand = {

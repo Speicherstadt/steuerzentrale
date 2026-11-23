@@ -106,7 +106,6 @@ mit welchem Punkt sie kommen:
 | Support-Zugänge, Support-Minuten eines Kunden | Z-802 |
 | Leistungen | Z-804 |
 | Einstellungen → DNS | Z-407 |
-| Einstellungen → Benachrichtigungen | Z-703 |
 | Auslastung eines Servers, Prüfungen des Betriebssystems (Kernel, Sicherheitsupdates, Neustart) | Z-701 |
 
 Die Beschreibungen der acht Apps (Seite „Apps“, Sperrzeiten in der Seitenleiste) stammen aus

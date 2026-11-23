@@ -112,6 +112,19 @@ describe("mailSenden", () => {
     });
   });
 
+  it("sends no command for an address that would end its line or bracket", async () => {
+    const n = await nachbau();
+    for (const [an, absender] of [
+      ["betrieb@betreiber.test>\r\nRCPT TO:<fremd@x.test", "zentrale@betreiber.test"],
+      ["betrieb@betreiber.test", "zentrale@betreiber.test\r\nDATA"],
+      ["bet rieb@betreiber.test", "zentrale@betreiber.test"],
+    ] as const)
+      expect(
+        await mailSenden(zugang(n.port, { absender }), { ...MAIL, an }, { zeitlimitMs: 5000 }),
+      ).toEqual({ ok: false, fehler: "SMTP: an address that is not one" });
+    expect(n.befehle).toEqual([]);
+  });
+
   it("reports a server that is not there", async () => {
     const n = await nachbau();
     await n.stoppen();

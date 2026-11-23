@@ -79,13 +79,12 @@ const neueFuer = (db: Db, betreiberId: string, jetzt: number): Neu[] => {
     const schwere = schwereFuer(db, e);
     return an
       .filter((r) => e.zeitpunkt >= r.angelegtAm && schwereReicht(schwere, r.abSchwere))
-      .map((r) => zustellungId(e.ereignisId, r.empfaengerId))
-      .filter((id) => !schon.has(id))
-      .map((id) => ({
+      .filter((r) => !schon.has(zustellungId(e.ereignisId, r.empfaengerId)))
+      .map((r) => ({
         betreiberId,
-        zustellungId: id,
+        zustellungId: zustellungId(e.ereignisId, r.empfaengerId),
         ereignisId: e.ereignisId,
-        empfaengerId: id.slice(e.ereignisId.length + 1),
+        empfaengerId: r.empfaengerId,
         schwere,
         zustand: "wartet" as const,
         versuche: 0,

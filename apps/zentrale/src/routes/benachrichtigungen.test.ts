@@ -202,7 +202,8 @@ describe("recipients", () => {
     const angelegt = await json(teufel, "/api/v1/benachrichtigungen/empfaenger", {
       body: { ...webhook, url: e.url() },
     });
-    // the API takes https only; this receiver on localhost speaks http, so the row is turned to it
+    // the API takes https only; this receiver on localhost speaks http, so the tests' way out
+    // below sends the https recipient's message to it instead
     expect(angelegt.status).toBe(400);
     const ok = await json(teufel, "/api/v1/benachrichtigungen/empfaenger", { body: webhook });
     const id = String(ok.daten.empfaengerId);
