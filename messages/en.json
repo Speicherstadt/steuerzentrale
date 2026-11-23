@@ -818,5 +818,22 @@
   "aktion_fehler_kein_backup": "There is no successful backup yet that could be restored.",
   "aktion_fehler_server_belegt": "Another test restore is running on the server.",
   "aktion_fehler_kein_platz": "The server has no room for a copy of the installation.",
-  "aktion_fehler_keine_ports": "The server has no free port for the copy."
+  "aktion_fehler_keine_ports": "The server has no free port for the copy.",
+  "auftrag_installation_wiederherstellen": "Restore",
+  "wh_spalte": "Action",
+  "wh_knopf": "Restore",
+  "wh_knopf_lauf": "Restore the run of {zeit}",
+  "wh_titel": "Restore this run?",
+  "wh_text": "Target: {name}, state of {zeit}. The agent plays back this run's snapshots; the app cannot be reached meanwhile. The Zentrale makes the jobs and writes them to the audit log with the reason.",
+  "wh_hinweis_titel": "The current state is backed up first",
+  "wh_hinweis": "Only once this backup succeeds does the agent play back the chosen run; if it fails, everything stays as it is. So even a run chosen by mistake can be undone.",
+  "wh_grund_platzhalter": "e.g. the customer's request of 20 Nov",
+  "wh_angefordert": "Restore requested; the current state is backed up first.",
+  "wh_name": "Restore",
+  "wh_sichern": "running: backing up the current state, then the state of {stand}",
+  "wh_zurueckspielen": "running: playing back the state of {stand}",
+  "wh_gelungen": "{zeit}, succeeded: state of {stand}",
+  "wh_gescheitert": "{zeit}, failed: {grund}",
+  "aktion_fehler_lauf_unbekannt": "The Zentrale does not know this run for this installation.",
+  "aktion_fehler_lauf_gescheitert": "A failed run cannot be restored."
 }

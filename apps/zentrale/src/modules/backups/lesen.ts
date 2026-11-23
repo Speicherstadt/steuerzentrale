@@ -6,14 +6,16 @@ import { type Installation, installationenListe } from "../installationen/lesen.
 import { kundenListe } from "../kunden/index.ts";
 import { type PruefRestoreStand, pruefRestoreStand } from "../pruef-restore/lesen.ts";
 import { serverListe } from "../server/index.ts";
+import { type WiederherstellenStand, wiederherstellenStand } from "../wiederherstellen/lesen.ts";
 import { backupEingerichtet } from "./auftraege.ts";
 import { zugangLesen } from "./zugaenge.ts";
 
 /*
  * Reading backups (BAULISTE.md Z-601), always within one operator: per installation the parts its
  * manifest names, where its own S3 access stands, whether its backups are set up on the server, the
- * runs its agent reported, newest first, and its newest test restore (Z-602). Nothing secret: no
- * access, no password, no repository.
+ * runs its agent reported, newest first, each with the id a restore names it by, its newest test
+ * restore (Z-602) and its newest restore (Z-603). Nothing secret: no access, no password, no
+ * repository.
  */
 
 /** How many runs the page of an installation shows */
@@ -21,6 +23,8 @@ export const LAEUFE_MAX = 100;
 
 export type Teil = { art: "pg_dump" | "volume" | "befehl"; name: string };
 export type Lauf = {
+  /** What `POST …/wiederherstellen` names the run by (Z-603) */
+  id: string;
   zeitpunkt: number;
   ok: boolean;
   grund: string | null;
@@ -34,6 +38,7 @@ export type BackupsDerInstallation = {
   eingerichtet: boolean;
   laeufe: Lauf[];
   pruefRestore: PruefRestoreStand;
+  wiederherstellen: WiederherstellenStand;
 };
 
 /** The parts the installation's manifest backs up, each with what it names */
@@ -55,6 +60,7 @@ const laeufeVon = (db: Db, betreiberId: string, installationId: string, max: num
     .limit(max)
     .all()
     .map((b) => ({
+      id: b.backupId,
       zeitpunkt: b.zeitpunkt,
       ok: b.ok,
       grund: b.grund,
@@ -68,6 +74,7 @@ const stand = (db: Db, i: Installation, max: number): BackupsDerInstallation => 
   eingerichtet: backupEingerichtet(db, i.betreiberId, i.installationId),
   laeufe: laeufeVon(db, i.betreiberId, i.installationId, max),
   pruefRestore: pruefRestoreStand(db, i.betreiberId, i.installationId),
+  wiederherstellen: wiederherstellenStand(db, i.betreiberId, i.installationId),
 });
 
 export const backupsDerInstallation = (db: Db, i: Installation): BackupsDerInstallation =>

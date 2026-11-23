@@ -18,7 +18,9 @@ import { auftragsUmgebung } from "./auftraege.ts";
 const ORDNER = join(import.meta.dirname, "manifeste");
 const REPO = join(import.meta.dirname, "../../../..");
 
-export const signiert = (app: "probe" | "stumm" | "gesperrt" | "aktionen" | "gesichert") => ({
+export const signiert = (
+  app: "probe" | "stumm" | "gesperrt" | "aktionen" | "gesichert" | "gesichert-gesperrt",
+) => ({
   manifest: readFileSync(join(ORDNER, `${app}.yml`), "utf8"),
   signatur: readFileSync(join(ORDNER, `${app}.yml.minisig`), "utf8"),
 });

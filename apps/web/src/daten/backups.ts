@@ -5,8 +5,9 @@ import { demoBackups } from "../demo/backups.ts";
  * Backups (BAULISTE.md Z-601; docs/plan.md, "S3-Ziel und Zugang je Installation (Z-601)", "Backup
  * auf dem Server (Z-601)"), as the Zentrale's API answers (apps/zentrale, routes/backups.ts): the
  * operator's S3 target with its admin access only as set, the backups of every installation for
- * the page "Backups", those of one installation with its runs and its newest test restore (Z-602),
- * "Backup jetzt" and "Prüf-Restore jetzt". Signed in the API, else the demo in memory.
+ * the page "Backups", those of one installation with its runs, its newest test restore (Z-602) and
+ * its newest restore (Z-603), "Backup jetzt", "Prüf-Restore jetzt" and restoring a run. Signed in
+ * the API, else the demo in memory.
  */
 
 export type BackupZiel = {
@@ -31,8 +32,9 @@ export type BackupTeil = { art: "pg_dump" | "volume" | "befehl"; name: string };
 /** A part of a run: its restic tag and snapshot, or why it failed */
 export type LaufTeil = { tag: string; ok: boolean; snapshot?: string; fehler?: string };
 
-/** One run as the agent reported it */
+/** One run as the agent reported it, with the id a restore names it by */
 export type BackupLauf = {
+  id: string;
   zeitpunkt: number;
   ok: boolean;
   grund: string | null;
@@ -60,6 +62,25 @@ export type PruefRestoreLauf = {
 /** The newest test restore and whether one is under way */
 export type PruefRestoreStand = { letzter: PruefRestoreLauf | null; laeuft: boolean };
 
+/**
+ * Where a restore stands (apps/zentrale, modules/wiederherstellen/lesen.ts): backing up the current
+ * state, playing the run back, or ended
+ */
+export type WiederherstellenPhase = "sichern" | "zurueckspielen" | "gelungen" | "gescheitert";
+
+export type Wiederherstellung = {
+  angefordertAm: number;
+  laufZeitpunkt: number;
+  phase: WiederherstellenPhase;
+  endeAm: number | null;
+  fehler: string | null;
+  teile: PruefRestoreTeil[];
+  dauerMs: number | null;
+};
+
+/** The newest restore and whether it is under way */
+export type WiederherstellenStand = { letzter: Wiederherstellung | null; laeuft: boolean };
+
 export type ZugangsZustand = "anlegen" | "angelegt" | "loeschen" | "geloescht";
 
 export type BackupsDerInstallation = {
@@ -69,6 +90,7 @@ export type BackupsDerInstallation = {
   eingerichtet: boolean;
   laeufe: BackupLauf[];
   pruefRestore: PruefRestoreStand;
+  wiederherstellen: WiederherstellenStand;
 };
 
 /** A line of the page "Backups" */
@@ -85,6 +107,9 @@ export type BackupZeile = Omit<BackupsDerInstallation, "laeufe"> & {
 
 export type BackupAuftrag = { auftragId: string; aktion: string; zustand: string };
 
+/** The two jobs of a restore: the backup of the current state, the restore waiting for it */
+export type WiederherstellenAuftraege = { backup: BackupAuftrag; wiederherstellen: BackupAuftrag };
+
 export type BackupQuelle = {
   ziel: () => Promise<Antwort<BackupZiel>>;
   zielSetzen: (neu: BackupZielAenderung, grund: string) => Promise<Antwort<BackupZiel>>;
@@ -92,6 +117,11 @@ export type BackupQuelle = {
   derInstallation: (id: string) => Promise<Antwort<BackupsDerInstallation>>;
   jetzt: (id: string, grund: string) => Promise<Antwort<BackupAuftrag>>;
   pruefRestore: (id: string, grund: string) => Promise<Antwort<BackupAuftrag>>;
+  wiederherstellen: (
+    id: string,
+    lauf: string,
+    grund: string,
+  ) => Promise<Antwort<WiederherstellenAuftraege>>;
 };
 
 const pfad = (id: string) => `/api/v1/installationen/${encodeURIComponent(id)}`;
@@ -115,6 +145,8 @@ export const apiBackups: BackupQuelle = {
     });
     return a.ok ? { ...a, daten: a.daten.auftrag } : a;
   },
+  wiederherstellen: (id, lauf, grund) =>
+    api<WiederherstellenAuftraege>(`${pfad(id)}/wiederherstellen`, { body: { lauf, grund } }),
 };
 
 let quelle: BackupQuelle = demoBackups();

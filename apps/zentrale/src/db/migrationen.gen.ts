@@ -63,5 +63,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0015_pruef_restores",
     "sql": "CREATE TABLE `pruef_restores` (\n\t`betreiber_id` text NOT NULL,\n\t`auftrag_id` text NOT NULL,\n\t`installation_id` text NOT NULL,\n\t`server_id` text NOT NULL,\n\t`kopie` text NOT NULL,\n\t`zeitpunkt` integer NOT NULL,\n\t`ok` integer NOT NULL,\n\t`grund` text,\n\t`teile` text NOT NULL,\n\t`dauer_ms` integer,\n\tPRIMARY KEY(`betreiber_id`, `auftrag_id`),\n\tFOREIGN KEY (`betreiber_id`,`installation_id`) REFERENCES `installationen`(`betreiber_id`,`installation_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `pruef_restores_installation` ON `pruef_restores` (`betreiber_id`,`installation_id`,`zeitpunkt`);--> statement-breakpoint\nCREATE INDEX `pruef_restores_zeitpunkt` ON `pruef_restores` (`zeitpunkt`);"
+  },
+  {
+    "tag": "0016_wiederherstellungen",
+    "sql": "CREATE TABLE `wiederherstellungen` (\n\t`betreiber_id` text NOT NULL,\n\t`auftrag_id` text NOT NULL,\n\t`backup_auftrag_id` text NOT NULL,\n\t`installation_id` text NOT NULL,\n\t`server_id` text NOT NULL,\n\t`backup_id` text NOT NULL,\n\t`lauf_zeitpunkt` integer NOT NULL,\n\t`angefordert_am` integer NOT NULL,\n\t`ende_am` integer,\n\t`ok` integer,\n\t`fehler` text,\n\t`teile` text NOT NULL,\n\t`dauer_ms` integer,\n\tPRIMARY KEY(`betreiber_id`, `auftrag_id`),\n\tFOREIGN KEY (`betreiber_id`,`installation_id`) REFERENCES `installationen`(`betreiber_id`,`installation_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `wiederherstellungen_installation` ON `wiederherstellungen` (`betreiber_id`,`installation_id`,`angefordert_am`);--> statement-breakpoint\nCREATE INDEX `wiederherstellungen_backup_auftrag` ON `wiederherstellungen` (`betreiber_id`,`backup_auftrag_id`);"
   }
 ];

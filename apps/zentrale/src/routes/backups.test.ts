@@ -188,6 +188,7 @@ describe("the backups of an installation", () => {
         eingerichtet: false,
         laeufe: [],
         pruefRestore: { letzter: null, laeuft: false },
+        wiederherstellen: { letzter: null, laeuft: false },
       },
     });
     erledigt(auftragVon(EINRICHTUNG_AKTIONEN.einrichten)?.auftragId ?? "");
@@ -253,12 +254,19 @@ describe("the backups of an installation", () => {
     const seite = await json(support, `${backupPfad()}/backups`);
     expect(seite.daten.laeufe).toEqual([
       {
+        id: expect.stringMatching(/^backup-[0-9a-f]{32}$/),
         zeitpunkt: server.jetzt() - 3_600_000,
         ok: false,
         grund: "befehl:sichern: die Quelle endete mit Code 1",
         teile: lauf(0, false).teile,
       },
-      { zeitpunkt: server.jetzt() - 7_200_000, ok: true, grund: null, teile: lauf(0, true).teile },
+      {
+        id: expect.stringMatching(/^backup-[0-9a-f]{32}$/),
+        zeitpunkt: server.jetzt() - 7_200_000,
+        ok: true,
+        grund: null,
+        teile: lauf(0, true).teile,
+      },
     ]);
     const { daten } = await json(support, "/api/v1/backups");
     expect(daten.installationen).toEqual([

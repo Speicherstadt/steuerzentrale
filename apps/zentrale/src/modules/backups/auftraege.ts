@@ -1,4 +1,8 @@
-import { BACKUP_AKTIONEN, type BackupZugang } from "@steuerzentrale/manifest";
+import {
+  BACKUP_AKTIONEN,
+  type BackupZugang,
+  WIEDERHERSTELLEN_AKTION,
+} from "@steuerzentrale/manifest";
 import { ENDZUSTAENDE } from "@steuerzentrale/protokoll";
 import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "../../db/oeffnen.ts";
@@ -15,7 +19,8 @@ import { zugangLesen } from "./zugaenge.ts";
  * The backup jobs of an installation (BAULISTE.md Z-601; docs/plan.md, "Backup auf dem Server
  * (Z-601)"): `installation_backup_einrichten` once its access is made at MinIO (abgleich.ts), and
  * `installation_backup` for "Backup jetzt", with a reason, by owner and technik: only for a running
- * installation whose backups are set up, and not while a backup job of it is open. Both carry the
+ * installation whose backups are set up, and not while a backup job of it is open, nor while a
+ * restore of it is (Z-603): a backup then would keep half-restored data. Both carry the
  * installation's signed manifest; the field `backup` goes in only when the job is sent.
  */
 
@@ -39,7 +44,12 @@ export const backupAuftragVorbereiten = (
     ...(backup ? { backup } : {}),
   });
 
-const backupAuftraege = (db: Db, betreiberId: string, installationId: string) =>
+const backupAuftraege = (
+  db: Db,
+  betreiberId: string,
+  installationId: string,
+  aktionen: readonly string[] = Object.values(BACKUP_AKTIONEN),
+) =>
   db
     .select()
     .from(auftraege)
@@ -47,7 +57,7 @@ const backupAuftraege = (db: Db, betreiberId: string, installationId: string) =>
       and(
         eq(auftraege.betreiberId, betreiberId),
         eq(auftraege.installationId, installationId),
-        inArray(auftraege.aktion, Object.values(BACKUP_AKTIONEN)),
+        inArray(auftraege.aktion, [...aktionen]),
       ),
     )
     .all();
@@ -69,6 +79,7 @@ export type BackupAusgeloest =
         | "laeuft_nicht"
         | "nicht_eingerichtet"
         | "backup_laeuft"
+        | "auftrag_offen"
         | "nicht_ausfuehrbar";
       detail?: string;
     };
@@ -90,6 +101,10 @@ export const backupJetzt = (
     (a) => !ENDZUSTAENDE.has(a.zustand),
   );
   if (offen) return { ok: false, grund: "backup_laeuft" };
+  const wiederherstellen = backupAuftraege(deps.db, betreiberId, installationId, [
+    WIEDERHERSTELLEN_AKTION,
+  ]).some((a) => !ENDZUSTAENDE.has(a.zustand));
+  if (wiederherstellen) return { ok: false, grund: "auftrag_offen" };
   const vorbereitet = backupAuftragVorbereiten(deps, kontext, i, BACKUP_AKTIONEN.jetzt);
   if (!vorbereitet.ok)
     return {

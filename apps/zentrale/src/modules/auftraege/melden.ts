@@ -8,6 +8,7 @@ import { fortschrittSetzen, schreiben } from "../audit/index.ts";
 import { installationFortschreiben } from "../installationen/zustand.ts";
 import { pruefRestoreAbschliessen } from "../pruef-restore/ende.ts";
 import type { Server } from "../server/index.ts";
+import { wiederherstellenFortschreiben } from "../wiederherstellen/ende.ts";
 import { nachfolgerFortschreiben } from "./abhaengigkeiten.ts";
 import { type Auftrag, auftragLesen } from "./lesen.ts";
 import { type AuftragDeps, zustellen } from "./zustellen.ts";
@@ -19,7 +20,8 @@ import { type AuftragDeps, zustellen } from "./zustellen.ts";
  * goes through `schreiben`; a step of a running job is a measurement (docs/plan.md, "Aufträge").
  * A job that ends moves its waiting jobs on, which go to their agents at once; a setup job that
  * ends sets its installation's state in the same transaction (Z-402), a test restore that ends
- * frees its copy's ports and keeps its result (Z-602).
+ * frees its copy's ports and keeps its result (Z-602), and the end of a restore or of the backup
+ * before it keeps the restore's result (Z-603).
  */
 
 export type AuftragsMeldung = Extract<
@@ -70,6 +72,7 @@ export const auftragMelden = (
     installationFortschreiben(w, deps, a, u.zustand, jetzt);
     const ergebnis = n.typ === "ergebnis" ? n.ergebnis : undefined;
     pruefRestoreAbschliessen(w, deps.db, a, u.zustand, ergebnis, jetzt);
+    wiederherstellenFortschreiben(w, deps.db, a, u.zustand, ergebnis, jetzt);
     return nachfolgerFortschreiben(
       w,
       deps.db,
