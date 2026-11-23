@@ -43,6 +43,17 @@ describe("month as text", () => {
       expect(monatAusText(falsch), falsch).toBeUndefined();
   });
 
+  it("takes only a month it writes back the same and whose bounds lie in that year", () => {
+    // Date.UTC reads the years 0 to 99 as 1900 to 1999: "0050-01" would sum January 1950 as "50-01"
+    for (const text of ["0050-01", "0099-12", "0999-06"])
+      expect(monatAusText(text), text).toBeUndefined();
+    for (const text of ["1000-01", "2026-11", "9999-12"]) {
+      const m = monatAusText(text);
+      expect(m && monatText(m), text).toBe(text);
+      expect(m && new Date(monatsGrenzen(m).von + 12 * 3_600_000).getUTCFullYear()).toBe(m?.jahr);
+    }
+  });
+
   it("writes it back with two digits", () => {
     expect(monatText({ jahr: 2026, monat: 3 })).toBe("2026-03");
   });

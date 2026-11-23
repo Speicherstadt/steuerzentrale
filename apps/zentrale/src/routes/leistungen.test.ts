@@ -126,6 +126,11 @@ describe("GET /api/v1/leistungen", () => {
     expect((await lesen(teufel, "?monat=2026-11&format=xls")).status).toBe(400);
   });
 
+  it("refuses a year before 1000, which would sum another month under another name", async () => {
+    expect((await lesen(teufel, "?monat=0050-01")).status).toBe(400);
+    expect((await teufel.anfrage("/api/v1/leistungen?monat=0050-01&format=csv")).status).toBe(400);
+  });
+
   it("shows no operator another's customers, accesses, runs or checks", async () => {
     const { daten } = await lesen(partner, "?monat=2026-11");
     expect(daten.kunden).toHaveLength(1);
