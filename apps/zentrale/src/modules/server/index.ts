@@ -1,4 +1,10 @@
-export { type Auslieferung, auslieferung, DATEIEN, istDatei } from "./auslieferung.ts";
+export {
+  type AgentStand,
+  type Auslieferung,
+  auslieferung,
+  DATEIEN,
+  istDatei,
+} from "./auslieferung.ts";
 export { type Beitritt, beitreten } from "./beitritt.ts";
 export { agentCa, CA_GEHEIMNIS } from "./ca.ts";
 export { type Drossel, drossel, drosselSchluessel } from "./drossel.ts";

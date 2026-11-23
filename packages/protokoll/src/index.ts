@@ -15,6 +15,7 @@ export {
   AELTESTE_VERSION,
   AUFWERTUNGEN,
   type Aufwertung,
+  fuerVersion,
   type Gelesen,
   MAX_NACHRICHT_BYTES,
   PROTOKOLL_VERSION,
@@ -49,5 +50,12 @@ export {
 
 export { FAKTEN_MS, HEARTBEAT_MS, ROTIEREN_VOR_MS, VERBINDUNG_PFAD } from "./verbindung.ts";
 
+/**
+ * Set by `bun build --define` only when STEUERZENTRALE_BAU_VERSION is (scripts/compile.ts): CI builds
+ * a newer agent for the test of its update (BAULISTE.md Z-504); otherwise undeclared at run time
+ */
+declare const STEUERZENTRALE_BAU_VERSION: string | undefined;
+
 /** The version of the Steuerzentrale, the same for Zentrale and agent; kept equal to package.json (test) */
-export const VERSION = "0.0.0";
+export const VERSION: string =
+  typeof STEUERZENTRALE_BAU_VERSION === "string" ? STEUERZENTRALE_BAU_VERSION : "0.0.0";

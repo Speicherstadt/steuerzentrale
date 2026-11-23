@@ -1,6 +1,9 @@
 import { homedir } from "node:os";
-import { pforteGrundkonfiguration } from "@steuerzentrale/manifest";
+import { AGENT_BINARY, pforteGrundkonfiguration } from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
+import type { AgentUpdateDeps } from "./agent-update/aktualisieren.ts";
+import { updateBestaetigen } from "./agent-update/marke.ts";
+import { PRUEFEN_BEFEHL, type RueckkehrDeps, updatePruefen } from "./agent-update/rueckkehr.ts";
 import { echtZeilenLesen } from "./aktionen/journal.ts";
 import { auftraegeAnnehmen } from "./auftraege/auftraege.ts";
 import { echtSpawn } from "./auftraege/ausfuehren.ts";
@@ -9,7 +12,7 @@ import { type SichernBefehlDeps, sichernBefehl } from "./backup/befehl.ts";
 import { echtRestic, eigenLesen } from "./backup/echt.ts";
 import { backupMelder } from "./backup/melden.ts";
 import { beitreten } from "./beitritt/beitreten.ts";
-import { type Dateien, echteDateien } from "./dateien.ts";
+import { type Dateien, echteDateien, echtesBinaer } from "./dateien.ts";
 import { dienstPruefen } from "./dienst.ts";
 import { echteHausDateien } from "./einrichtung/echt.ts";
 import { type Gedaechtnis, gedaechtnisOeffnen } from "./einrichtung/gedaechtnis.ts";
@@ -40,6 +43,7 @@ export const USAGE = [
   "       steuerzentrale-agent fakten",
   "       steuerzentrale-agent sichern <installation> [--repository-anlegen]",
   "       steuerzentrale-agent zurueckspielen <installation> < teil.json",
+  `       steuerzentrale-agent ${PRUEFEN_BEFEHL}`,
 ].join("\n");
 
 export type CliDeps = {
@@ -61,6 +65,8 @@ export type CliDeps = {
   sichern: SichernBefehlDeps;
   /** A part played back as the target installation's user (src/pruef-restore, Z-602) */
   spielen: SpielBefehlDeps;
+  /** The check after an update of the agent, run by systemd from the old binary (Z-504) */
+  rueckkehr: RueckkehrDeps;
   /** Other directories than /etc/steuerzentrale and /var/lib/steuerzentrale, for tests */
   konfig?: string;
   zustand?: string;
@@ -90,6 +96,26 @@ const zustandMelden = (gedaechtnis: Gedaechtnis, nutzer: NutzerLesen) =>
     jsonLog,
   );
 
+/** Its own update (Z-504): the binary from its Zentrale, then a restart by systemd */
+const agentUpdateDeps = (
+  zentrale: string,
+  pfade: Pfade,
+  architektur: "amd64" | "arm64",
+): AgentUpdateDeps => ({
+  zentrale,
+  architektur,
+  binary: AGENT_BINARY,
+  marke: pfade.agentUpdate,
+  version: VERSION,
+  protokoll: PROTOKOLL_VERSION,
+  holen: (url, init) => fetch(url, init),
+  dateien: echteDateien,
+  binaer: echtesBinaer,
+  lesen: echtLesen,
+  spawn: echtSpawn,
+  jetzt: Date.now,
+});
+
 const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, vertrauen) => {
   // one record of installations for jobs and checks, so a finished setup is checked at once
   const gedaechtnis = gedaechtnisOeffnen(echteDateien, pfade.installationen, Date.now);
@@ -118,6 +144,9 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
     planen,
     jetzt: Date.now,
     log: jsonLog,
+    agentUpdate: agentUpdateDeps(zentrale, pfade, architektur),
+    // the result is kept and sent; systemd (Restart=always) starts the new binary
+    neustarten: () => planen(() => process.exit(0), 2000),
   });
   // a copy of a Prüf-Restore (Z-602) or a restore (Z-603) the agent did not finish before it stopped
   void auftraege.aufraeumen();
@@ -152,6 +181,14 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
         }),
       },
       auftraege,
+      verbunden: () =>
+        updateBestaetigen({
+          dateien: echteDateien,
+          binaer: echtesBinaer,
+          pfad: pfade.agentUpdate,
+          version: VERSION,
+          log: jsonLog,
+        }),
     },
     zentrale,
   );
@@ -175,6 +212,14 @@ const echteDeps = (): CliDeps => ({
     eingabe: () => Bun.stdin.text(),
     restic: echtRestic(),
     lesen: eigenLesen,
+  },
+  rueckkehr: {
+    dateien: echteDateien,
+    binaer: echtesBinaer,
+    binary: AGENT_BINARY,
+    marke: pfadeIn().agentUpdate,
+    spawn: echtSpawn,
+    uid: () => process.getuid?.() ?? 0,
   },
 });
 
@@ -239,5 +284,7 @@ export const runCli = async (args: string[], deps: CliDeps = echteDeps()): Promi
   if (befehl === "sichern") return sichernBefehl(rest, deps.sichern);
   // a part of a backup played back as the target's user, started by the agent (Z-602)
   if (befehl === "zurueckspielen") return spielenBefehl(rest, deps.spielen);
+  // the check after its own update, run by systemd from the old binary (Z-504)
+  if (befehl === PRUEFEN_BEFEHL && rest.length === 0) return updatePruefen(deps.rueckkehr);
   return { code: 2, out: USAGE };
 };

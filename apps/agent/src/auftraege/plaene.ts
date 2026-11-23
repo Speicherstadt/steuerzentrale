@@ -1,4 +1,9 @@
-import type { OeffentlicherSchluessel, PforteAuftrag, Zweck } from "@steuerzentrale/manifest";
+import type {
+  AgentUpdateAuftrag,
+  OeffentlicherSchluessel,
+  PforteAuftrag,
+  Zweck,
+} from "@steuerzentrale/manifest";
 import type { NachrichtVonDerZentrale } from "@steuerzentrale/protokoll";
 import type { Aktion } from "../aktionen/auftrag.ts";
 import type { Backup } from "../backup/auftrag.ts";
@@ -121,8 +126,22 @@ export type UpdatePlan = {
   idempotent: false;
 };
 
+/** What the update of the agent does: load, check and put in place a new binary (src/agent-update) */
+export type AgentUpdatePlan = {
+  art: "agent_update";
+  aktion: string;
+  auftrag: AgentUpdateAuftrag;
+  zeitlimitMs: number;
+  /**
+   * Not run again after a restart of the agent: the restart it asks for itself comes after its
+   * result is kept, and any other means it stopped halfway; the Zentrale tries again a day later
+   */
+  idempotent: false;
+};
+
 export type JederPlan =
   | Plan
+  | AgentUpdatePlan
   | PfortePlan
   | EinrichtungPlan
   | AktionPlan

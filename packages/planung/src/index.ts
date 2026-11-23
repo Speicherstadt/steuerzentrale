@@ -2,6 +2,13 @@
 // checks as pure functions (docs/plan.md, "Projektstruktur").
 
 export {
+  type AgentServer,
+  type AgentUpdateEntscheid,
+  type AgentWartegrund,
+  agentUpdatePruefen,
+  VERSUCH_PAUSE_MS,
+} from "./agent.ts";
+export {
   type Aktiv,
   type Bewertung,
   type BewertungJetzt,

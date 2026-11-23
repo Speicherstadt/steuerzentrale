@@ -35,6 +35,18 @@ const deps = (eingabe = ""): CliDeps & { gesendet: unknown[]; gestartet: unknown
       restic: async () => ({ code: 0, aus: "" }),
       lesen: async () => ({ code: 0, aus: "" }),
     },
+    rueckkehr: {
+      dateien: speicher().dateien,
+      binaer: {
+        lesen: async () => undefined,
+        schreiben: async () => {},
+        loeschen: async () => {},
+      },
+      binary: "/usr/local/bin/steuerzentrale-agent",
+      marke: "/var/lib/steuerzentrale/agent-update.json",
+      spawn: async () => ({ code: 0 }),
+      uid: () => 0,
+    },
     gesendet,
   };
 };
@@ -64,6 +76,13 @@ describe("agent command line", () => {
       grund: "sichern runs as the installation's user",
     });
     expect((await runCli(["sichern"], deps())).code).toBe(2);
+  });
+
+  it("checks an update of the agent without arguments only (Z-504)", async () => {
+    expect(JSON.parse((await runCli(["agent-update-pruefen"], deps())).out)).toEqual({
+      msg: "no agent update to check",
+    });
+    expect((await runCli(["agent-update-pruefen", "--jetzt"], deps())).code).toBe(2);
   });
 
   it("prints the facts it would report (Z-304)", async () => {

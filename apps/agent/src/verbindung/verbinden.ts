@@ -51,6 +51,8 @@ export type VerbindenDeps = {
   meldungen?: Pick<MeldungenDeps, "fakten" | "anmeldungen" | "zustand" | "backups">;
   /** Takes the jobs the Zentrale sends (Z-305, src/auftraege); without, jobs are left alone */
   auftraege?: Pick<Auftraege, "empfangen">;
+  /** At each `willkommen`: confirms an update of the agent to this version (Z-504, src/agent-update) */
+  verbunden?: () => Promise<void>;
 };
 
 /** The WebSocket address for the Zentrale's origin: wss for https, ws for http (test mode only) */
@@ -161,6 +163,9 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
     if (n.typ === "willkommen") {
       versuch = 0;
       log("connected");
+      deps
+        .verbunden?.()
+        .catch((fehler) => log("agent update not confirmed", { fehler: String(fehler) }));
       herzschlag(s, n.zertifikatGueltigBis);
       meldungen.starten(
         (text) => s.senden(text),

@@ -1,7 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
+  AGENT_APP,
+  AGENT_UPDATE_AKTION,
+  AGENT_UPDATE_ZEITLIMIT_S,
   AKTION_ZEITLIMIT_S,
   type ArgumentWert,
+  agentUpdateAuftragPruefen,
   aktionsAuftragPruefen,
   BACKUP_AKTIONEN,
   BACKUP_EINRICHTEN_ZEITLIMIT_S,
@@ -60,7 +64,9 @@ import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
  * part that is played back and nothing else. An update (Z-503, einrichtung/update.ts) is checked with
  * the installation's data for the new version in `einrichtung`, like a setup; the snapshots of the
  * backup just before it are not known when it is made (modules/updates, ende.ts sets them), so it
- * is checked with a stand-in for each until then.
+ * is checked with a stand-in for each until then. The update of the agent itself (Z-504,
+ * agent-update.ts) carries SHA256SUMS and its signature in the place of a manifest; its row names
+ * the agent as its app and the new version.
  */
 
 export type NeuerAuftrag = {
@@ -121,6 +127,26 @@ const mitSnapshots = (m: Manifest, neu: NeuerAuftrag): Record<string, ArgumentWe
   const lauf = teile.teile.map((t) => ({ tag: t.tag, snapshot: STELLVERTRETER }));
   const a = updateArgumente(m, neu.installationId, lauf);
   return a.ok ? a.argumente : neu.argumente;
+};
+
+/** What the row keeps of a checked job: its app and version, and its time limit */
+type Kennung =
+  | { ok: true; app: string; version: string; zeitlimitS: number }
+  | { ok: false; grund: AnlageFehler; detail?: string };
+
+/** The update of the agent (Z-504): no manifest, a fixed shape; the agent checks the signature */
+const agentUpdateKennung = (neu: NeuerAuftrag): Kennung => {
+  const g = agentUpdateAuftragPruefen(neu);
+  return g.ok
+    ? { ok: true, app: AGENT_APP, version: g.auftrag.version, zeitlimitS: AGENT_UPDATE_ZEITLIMIT_S }
+    : { ok: false, grund: "argumente_ungueltig", detail: g.grund };
+};
+
+const kennung = (neu: NeuerAuftrag): Kennung => {
+  if (neu.aktion === AGENT_UPDATE_AKTION) return agentUpdateKennung(neu);
+  const g = gegenManifest(neu);
+  if (!g.ok) return g;
+  return { ok: true, app: g.manifest.id, version: g.manifest.version, zeitlimitS: g.zeitlimitS };
 };
 
 /** The job against its manifest: a command it names, with arguments that fit */
@@ -206,7 +232,7 @@ export const auftragVorbereiten = (
   const server = serverLesen(deps.db, betreiberId, neu.serverId);
   if (!server) return { ok: false, grund: "server_unbekannt" };
   if (server.gesperrtAm !== null) return { ok: false, grund: "server_gesperrt" };
-  const geprueft = gegenManifest(neu);
+  const geprueft = kennung(neu);
   if (!geprueft.ok) return geprueft;
   const auftragId = neu.auftragId ?? randomUUID();
   const bekannt = (id: string) =>
@@ -231,8 +257,8 @@ export const auftragVorbereiten = (
     serverId: neu.serverId,
     installationId: neu.installationId,
     aktion: neu.aktion,
-    app: geprueft.manifest.id,
-    version: geprueft.manifest.version,
+    app: geprueft.app,
+    version: geprueft.version,
     manifestHash: createHash("sha256").update(neu.manifest, "utf8").digest("hex"),
     manifest: neu.manifest,
     signatur: neu.signatur,
