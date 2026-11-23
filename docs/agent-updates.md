@@ -54,6 +54,10 @@ Version; eine Adresse trägt er nicht. Der Agent
 6. benennt das neue Binary in einem Schritt um (`rename`), meldet `{ version, vorher }`, nimmt keinen
    Auftrag mehr an und beendet sich; systemd (`Restart=always`) startet den neuen Agenten.
 
+Läuft beim Eintreffen ein anderer Auftrag, lehnt der Agent das Update ab. Ein Auftrag, der kommt,
+während das Update läuft, wartet auf dessen Ende: Gelingt es, bleibt er für den neuen Agenten liegen
+(die Zentrale schickt ihn nach dessen `hallo` wieder); scheitert es, läuft er danach.
+
 Bis Schritt 6 ändert sich am Agenten nichts: Eine falsche Signatur, Prüfsumme oder fehlende Zeile
 lehnt er ab („abgelehnt: …“), ein Fehler beim Laden oder in systemd meldet er als „Agent-Update
 gescheitert: …; nichts geändert“, und was er schon geschrieben hatte, räumt er weg.
@@ -79,6 +83,7 @@ Agent, und `steuerzentrale-agent.alt` liegt für eine Rückkehr von Hand bereit.
 | der Agent lehnt ab oder scheitert (Signatur, Prüfsumme, Laden, ein anderer Auftrag läuft) | `agent_update_gescheitert` (Fehler), mit dem Grund; der Agent bleibt |
 | der neue Agent meldet sich mit der höheren Version | `agent_aktualisiert` (Info) |
 | ein Agent meldet sich mit einer niedrigeren Version als zuvor (Rückkehr) | `agent_zurueckgekehrt` (Fehler) |
+| nach einem gelungenen Auftrag meldet sich wieder der alte Agent, ohne dass der neue je `hallo` sagte (die Prüfung legte ihn zurück) | `agent_zurueckgekehrt` (Fehler), einmal je Auftrag |
 
 Ein gelungener Auftrag sagt nur, dass das neue Binary liegt; ob es läuft, zeigt das nächste `hallo`.
 Nach einem Fehlschlag oder einer Rückkehr versucht die Zentrale dieselbe Version 24 Stunden später
