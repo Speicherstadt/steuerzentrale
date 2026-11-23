@@ -145,7 +145,11 @@ const ausfuehrer = (deps: AuftraegeDeps) => {
   const pruefReihe = reihe();
   const aufraeumen = () =>
     pruefReihe(async () => {
-      const r = await resteAbbauen(system);
+      // started with `void` (cli.ts): a rejection would end the service, so a throw is logged
+      const r = await resteAbbauen(system).catch((e: unknown) => ({
+        ok: false as const,
+        grund: String(e).slice(0, 500),
+      }));
       if (!r.ok) deps.log("pruef-restore leftovers not torn down", { grund: r.grund });
       else if (r.abgebaut.length > 0)
         deps.log("pruef-restore leftovers torn down", { kopien: r.abgebaut });
