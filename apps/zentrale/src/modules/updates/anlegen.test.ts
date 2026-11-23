@@ -213,4 +213,43 @@ describe("the backup before an update", () => {
     });
     expect(u.db.select().from(installationKonfigurationen).all()).toEqual([]);
   });
+
+  it("sends no update into a freeze window that began while the backup before ran", async () => {
+    // CLAUDE.md "Never": update during an app's freeze window; a backup run may take hours
+    const u = updateUmgebung(minio);
+    // the 6th of a month, 22:00 UTC: the manifest's window from the 7th to the 12th is not yet
+    u.uhr.ms = Date.UTC(2027, 1, 6, 22, 0, 0);
+    u.zielSetzen();
+    const id = u.laufend("gesichert-gesperrt");
+    u.melden(u.auftrag(id, "pforte_route_setzen")?.auftragId ?? "", true);
+    await backupAbgleichen({ ...u.deps, fetch });
+    u.melden(u.auftrag(id, BACKUP_AKTIONEN.einrichten)?.auftragId ?? "", true);
+    u.versionen("update-1.3.0");
+    const r = u.anlegen(id, { anlass: "welle", welle: "alle" });
+    if (!r.ok) throw new Error(r.grund);
+    // the backup ends on the 7th, 01:00 Europe/Berlin, inside the window
+    u.uhr.ms = Date.UTC(2027, 1, 7, 0, 0, 0);
+    u.gesichert(id);
+    expect(u.agent.filter((n) => n.aktion === UPDATE_AKTION)).toEqual([]);
+    expect(u.updateAuftraege(id).update?.zustand).toBe("abgebrochen");
+    expect(updateStand(u.db, "b1", id).letzter).toMatchObject({
+      phase: "abgebrochen",
+      fehler: "Sperrzeit nach dem Backup vor dem Update: Umsatzsteuer-Voranmeldung",
+    });
+    expect(installationLesen(u.db, "b1", id)?.version).toBe("1.0.4");
+  });
+
+  it("sends an update the owner passed a freeze window over also when its backup ends in it", async () => {
+    const u = updateUmgebung(minio);
+    u.uhr.ms = Date.UTC(2027, 1, 8, 10, 0, 0);
+    u.zielSetzen();
+    const id = u.laufend("gesichert-gesperrt");
+    u.melden(u.auftrag(id, "pforte_route_setzen")?.auftragId ?? "", true);
+    await backupAbgleichen({ ...u.deps, fetch });
+    u.melden(u.auftrag(id, BACKUP_AKTIONEN.einrichten)?.auftragId ?? "", true);
+    u.versionen("update-1.3.0");
+    expect(u.anlegen(id, { sperrzeitUebergehen: true }).ok).toBe(true);
+    u.gesichert(id);
+    expect(u.agent.filter((n) => n.aktion === UPDATE_AKTION)).toHaveLength(1);
+  });
 });
