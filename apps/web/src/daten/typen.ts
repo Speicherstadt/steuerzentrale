@@ -132,6 +132,10 @@ export type Kunde = {
   name: string;
   kontakt: { name: string; email: string; telefon: string | null };
   notiz: string | null;
+  /** The short name in the addresses `<app>.<kuerzel>.<domain>` (Z-407) */
+  kuerzel: string;
+  /** False while an installation of the customer runs or is being set up */
+  kuerzelAenderbar: boolean;
   angelegtAm: number;
   vertrag: { sla: Sla; beginn: number; ende: number | null };
   /** Our own customer, whose installations go first in the wave "intern" (Z-502; demo only) */

@@ -18,6 +18,8 @@ const FEHLER: Record<string, () => string> = {
   ungueltig: m.kunden_fehler_ungueltig,
   ende_vor_beginn: m.kunden_fehler_ende_vor_beginn,
   kein_kunde: m.kunden_fehler_kein_kunde,
+  kuerzel_vergeben: m.kunden_fehler_kuerzel_vergeben,
+  kuerzel_fest: m.kunden_fehler_kuerzel_fest,
   keine_berechtigung: m.fehler_keine_berechtigung,
   netz: m.fehler_netz,
 };
@@ -87,7 +89,36 @@ const stammdatenAus = (werte: Record<string, string>): Stammdaten => ({
     ...(werte.telefon ? { telefon: werte.telefon } : {}),
   },
   ...(werte.notiz ? { notiz: werte.notiz } : {}),
+  ...(werte.kuerzel ? { kuerzel: werte.kuerzel } : {}),
 });
+
+// KUERZEL of packages/manifest as an HTML pattern, which matches the whole value
+const KUERZEL_MUSTER = "[a-z0-9]([a-z0-9\\-]{0,28}[a-z0-9])?";
+
+/**
+ * The short name in the addresses (Z-407): free for a new customer (empty: the Zentrale suggests
+ * one from the name), fixed while an installation of the customer runs; a disabled field is not
+ * sent, so the Zentrale keeps it
+ */
+const KuerzelFeld = (props: { kunde: Kunde | undefined }) => (
+  <Input
+    label={m.kunde_feld_kuerzel()}
+    name="kuerzel"
+    required={props.kunde !== undefined}
+    maxlength={30}
+    pattern={KUERZEL_MUSTER}
+    autocomplete="off"
+    value={props.kunde?.kuerzel ?? ""}
+    disabled={props.kunde ? !props.kunde.kuerzelAenderbar : false}
+    hint={
+      !props.kunde
+        ? m.kunde_kuerzel_hinweis_neu()
+        : props.kunde.kuerzelAenderbar
+          ? m.kunde_kuerzel_hinweis()
+          : m.kunde_kuerzel_fest()
+    }
+  />
+);
 
 const KundenFelder = (props: { kunde?: Kunde; heute: number }) => (
   <>
@@ -99,6 +130,7 @@ const KundenFelder = (props: { kunde?: Kunde; heute: number }) => (
       autocomplete="off"
       value={props.kunde?.name ?? ""}
     />
+    <KuerzelFeld kunde={props.kunde} />
     <Input
       label={m.kunde_feld_ansprechpartner()}
       name="ansprechpartner"

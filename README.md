@@ -34,6 +34,13 @@ Platzierung zeigt bei jeder Änderung, ob die App passt, mit jedem Grund. Die In
 zeigen die Installationen der Zentrale mit Zustand und Aufträgen; eine gescheiterte Einrichtung lässt
 sich mit Grund entfernen ([Apps installieren](docs/installieren.md)).
 
+**Adressen und DNS:** jeder Kunde hat ein Kürzel, und der Dialog schlägt die Adresse
+`<app>.<kürzel>.<domain>` vor. Unter Einstellungen → DNS setzt der Betreiber Domain, Cloudflare-Zone und
+API-Token; der Token liegt verschlüsselt in der Zentrale, erscheint nur als „gesetzt“ und erreicht nie
+einen Server. Für einen Host unter der Domain setzt die Zentrale A und AAAA und löscht sie mit der
+Installation, nur Einträge mit ihrem eigenen Kommentar; ein Fehler wird wiederholt und als Ereignis
+gemeldet ([Adressen und DNS](docs/dns.md)).
+
 **Einstellungen:** die Einstellungen jeder App entstehen als Formular aus ihrem Manifest. Unter
 Einstellungen → Apps pflegt der Betreiber seine Werte je App; ein Geheimnis erscheint nur als
 „gesetzt“, ein leeres geheimes Feld behält den Wert. Fehlt beim Installieren ein Pflichtwert des

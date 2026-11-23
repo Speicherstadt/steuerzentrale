@@ -117,6 +117,9 @@ const Kopf = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => (
         <div class="flex flex-wrap items-center gap-2">
           <h1 class="text-2xl font-semibold tracking-tight break-words">{props.k.name}</h1>
           <Marke class="bg-accent">{m.kunde_sla({ sla: slaName(props.k.vertrag.sla) })}</Marke>
+          <Marke class="bg-accent font-mono">
+            {m.kunde_kuerzel_anzeige({ kuerzel: props.k.kuerzel })}
+          </Marke>
         </div>
         <p class="text-muted-foreground break-words">
           {m.kunde_kontakt({

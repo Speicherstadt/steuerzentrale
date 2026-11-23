@@ -87,6 +87,30 @@ const ManifestTeil = (props: { a: Auswahl }) => (
   </>
 );
 
+/**
+ * The host, filled with the suggested address (Z-407) until the person types another; a new
+ * customer or manifest brings a new suggestion
+ */
+const AdressFeld = (props: { a: Auswahl }) => {
+  const [host, setHost] = createSignal(() => props.a.vorschlag() ?? "");
+  const hinweis = () => {
+    const domain = props.a.domain();
+    return domain ? m.installieren_host_hinweis_domain({ domain }) : m.installieren_host_hinweis();
+  };
+  return (
+    <Input
+      label={m.installieren_host()}
+      name="host"
+      required
+      autocomplete="off"
+      placeholder={m.installieren_host_platzhalter()}
+      value={host()}
+      onInput={(event) => setHost(event.currentTarget.value)}
+      hint={hinweis()}
+    />
+  );
+};
+
 const Formular = (props: {
   kundeId: string | undefined;
   onAngelegt: (i: InstallationDerZentrale) => void;
@@ -118,14 +142,9 @@ const Formular = (props: {
     <form class="grid gap-4" onSubmit={senden}>
       <ZielWahl a={a} />
       <ManifestTeil a={a} />
-      <Input
-        label={m.installieren_host()}
-        name="host"
-        required
-        autocomplete="off"
-        placeholder={m.installieren_host_platzhalter()}
-        hint={m.installieren_host_hinweis()}
-      />
+      <Loading fallback={<p class="text-xs text-muted-foreground">{m.installieren_laden()}</p>}>
+        <AdressFeld a={a} />
+      </Loading>
       <Platzierung a={a} />
       <Input
         label={m.feld_grund()}

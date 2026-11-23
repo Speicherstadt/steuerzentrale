@@ -1,3 +1,4 @@
+import { freiesKuerzel, kuerzelVorschlag } from "@steuerzentrale/manifest";
 import type { KundenQuelle } from "../daten/kunden.ts";
 import type { Kunde } from "../daten/typen.ts";
 
@@ -10,6 +11,10 @@ export const demoKunden = (start: Kunde[], jetzt: () => number): KundenQuelle =>
   const ok = <T>(daten: T) => ({ ok: true, status: 200, daten }) as const;
   const fehlt = { ok: false, status: 404, fehler: "kein_kunde" } as const;
   const frueh = { ok: false, status: 409, fehler: "ende_vor_beginn" } as const;
+  const vergeben = { ok: false, status: 409, fehler: "kuerzel_vergeben" } as const;
+  const fest = { ok: false, status: 409, fehler: "kuerzel_fest" } as const;
+  const belegt = (kuerzel: string, ausser?: string) =>
+    liste.some((k) => k.kuerzel === kuerzel && k.id !== ausser);
   const aendern = (id: string, aenderung: (k: Kunde) => Kunde) => {
     const alt = liste.find((k) => k.id === id);
     if (!alt) return fehlt;
@@ -30,21 +35,30 @@ export const demoKunden = (start: Kunde[], jetzt: () => number): KundenQuelle =>
       return k ? ok(k) : fehlt;
     },
     anlegen: async (neu) => {
+      if (neu.kuerzel !== undefined && belegt(neu.kuerzel)) return vergeben;
       const kunde: Kunde = {
         id: crypto.randomUUID(),
         ...stamm({ ...neu, beginn: neu.vertrag.beginn }),
+        kuerzel: neu.kuerzel ?? freiesKuerzel(kuerzelVorschlag(neu.name), (k) => belegt(k)),
+        kuerzelAenderbar: true,
         angelegtAm: jetzt(),
         vertrag: { sla: neu.vertrag.sla, beginn: neu.vertrag.beginn, ende: null },
       };
       liste = [...liste, kunde];
       return { ok: true, status: 201, daten: kunde };
     },
-    aendern: async (id, daten) =>
-      aendern(id, (k) => ({
+    aendern: async (id, daten) => {
+      const alt = liste.find((k) => k.id === id);
+      const neuesKuerzel = daten.kuerzel !== undefined && daten.kuerzel !== alt?.kuerzel;
+      if (alt && neuesKuerzel && !alt.kuerzelAenderbar) return fest;
+      if (alt && neuesKuerzel && belegt(daten.kuerzel ?? "", id)) return vergeben;
+      return aendern(id, (k) => ({
         ...k,
         ...stamm(daten),
+        kuerzel: daten.kuerzel ?? k.kuerzel,
         vertrag: { ...k.vertrag, beginn: daten.beginn },
-      })),
+      }));
+    },
     kuendigen: async (id, ende) => aendern(id, (k) => ({ ...k, vertrag: { ...k.vertrag, ende } })),
     zuruecknehmen: async (id) =>
       aendern(id, (k) => ({ ...k, vertrag: { ...k.vertrag, ende: null } })),

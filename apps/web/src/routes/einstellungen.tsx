@@ -2,11 +2,11 @@ import { m, Tabs } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
 import { bestand } from "../daten/quelle.ts";
 import { AppWerte } from "../seiten/einstellungen-apps.tsx";
+import { Dns } from "../seiten/einstellungen-dns.tsx";
 import {
   Backup,
   Benachrichtigungen,
   Darstellung,
-  Dns,
   Konten,
   Zentrale,
 } from "../seiten/einstellungen-teile.tsx";
@@ -40,7 +40,7 @@ const Einstellungen = () => {
             ),
           },
           { id: "backup", label: m.einst_backup(), content: () => <Backup b={b} /> },
-          { id: "dns", label: m.einst_dns(), content: () => <Dns b={b} /> },
+          { id: "dns", label: m.einst_dns(), content: () => <Dns /> },
           { id: "melden", label: m.einst_melden(), content: () => <Benachrichtigungen b={b} /> },
           { id: "konten", label: m.einst_konten(), content: () => <Konten b={b} /> },
           { id: "zentrale", label: m.app_name(), content: () => <Zentrale b={b} /> },

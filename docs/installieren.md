@@ -48,8 +48,9 @@ Dann, in dieser Reihenfolge:
    Betreibers, mit denen, die der Dialog dazu angibt ([Einstellungen](einstellungen.md)). Passt die
    App nicht, lehnt die Zentrale mit jedem Grund ab; fehlt ein Pflichtwert der Ebene `betreiber`,
    steht sein Name im Grund (`betreiberwert_fehlt`).
-2. **Host**: eindeutig unter den nicht entfernten Installationen des Betreibers. Den DNS-Eintrag setzt
-   die Zentrale erst mit Z-407.
+2. **Host**: eindeutig unter den nicht entfernten Installationen des Betreibers. Liegt er unter der
+   Domain des Betreibers, setzt die Zentrale nach dem Anlegen A und AAAA ([DNS](dns.md)); einen anderen
+   Host setzt der Betreiber selbst.
 3. **Einstellungen der Ebene `installation`** aus dem Dialog, geprüft gegen das Formular des
    Manifests (`einstellungenPruefen`): nur Einstellungen dieser Ebene, die mit den gewählten Optionen
    gelten, mit einem Wert ihres Typs; ein Pflichtfeld ohne Wert und ohne Vorgabe wird abgelehnt.
@@ -110,7 +111,10 @@ Vertrag nicht gekündigt ist, nur den Rollen Inhaber und Technik. Der Dialog fra
 - **Fehlende Werte des Betreibers**, nur wenn die Platzierung einen Pflichtwert der Ebene
   `betreiber` vermisst: ein Feld je fehlendem Wert; die Zentrale speichert ihn mit der Installation
   für alle Installationen der App ([Einstellungen](einstellungen.md));
-- **Adresse** (Host) und **Grund** fürs Audit-Log.
+- **Adresse** (Host), vorgeschlagen als `<app>.<kürzel>.<domain>` aus der App des Manifests, dem
+  Kürzel des Kunden und der Domain der DNS-Einstellungen; ohne Domain bleibt das Feld leer. Ein neuer
+  Kunde oder ein neues Manifest bringt einen neuen Vorschlag ([DNS](dns.md));
+- **Grund** fürs Audit-Log.
 
 Sobald Kunde, Server, Manifest und Signatur da sind, fragt der Dialog die **Platzierung** ab und
 wiederholt das bei jeder Änderung von Kunde, Server, Manifest, Signatur oder Optionen; nur dieses

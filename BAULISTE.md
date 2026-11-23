@@ -285,7 +285,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Schwere. Spätere Punkte stellen ihre Seite (Backups, Updates, Support-Zugänge, Leistungen) selbst
   auf echte Daten um.
   Fertig, wenn: die E2E-Fälle dieser Seiten gegen Zentrale und Agent laufen.
-- [ ] **Z-407 Adressen und DNS** – Adresse `<app>.<kunde>.<domain>`; die Zentrale setzt A und AAAA
+- [x] **Z-407 Adressen und DNS** – Adresse `<app>.<kunde>.<domain>`; die Zentrale setzt A und AAAA
   über die Cloudflare-API und entfernt sie mit der Installation.
   nach: Z-402
   Fertig, wenn: in der CI gegen eine nachgebaute Cloudflare-API eine Installation ihren Eintrag
