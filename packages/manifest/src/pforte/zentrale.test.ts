@@ -110,6 +110,25 @@ describe("the Zentrale behind the Pforte of its server", () => {
     });
   });
 
+  // docs/pforte.md: no installation may take a name of the Zentrale. An installation's route set
+  // before the Zentrale's would keep the interface's host for every address outside the networks,
+  // and agent.<domain> for every path but the agent's: refused, not loaded
+  it("refuses a Pforte where an installation's route has a host or the port of the Zentrale", () => {
+    for (const fremd of [
+      { "@id": "fremd", match: [{ host: ["zentrale.example.de"] }], handle: [] },
+      { "@id": "fremd", match: [{ host: ["Agent.Example.de"] }], handle: [] },
+      {
+        "@id": "fremd",
+        match: [{ host: ["fremd.example.de"] }],
+        handle: [{ handler: "reverse_proxy", upstreams: [{ dial: "127.0.0.1:8300" }] }],
+      },
+    ]) {
+      const vorher = ok(null);
+      server(vorher).routes.unshift(fremd as Server["routes"][number]);
+      expect(zentraleInPforte(vorher, vorne).ok).toBe(false);
+    }
+  });
+
   it("takes certificates from Caddy's local CA only when asked to, for tests", () => {
     expect(ok(null)).not.toHaveProperty("apps.tls");
     expect(ok(null, { ...vorne, zertifikate: "intern" })).toHaveProperty("apps.tls");
