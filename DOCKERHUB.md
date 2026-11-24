@@ -9,7 +9,7 @@ jedem Server verbindet sich selbst und führt nur aus, was das signierte Manifes
 - **Tags:** `X.Y.Z`, `X.Y`, `latest`; Vorabversionen `X.Y.Z-rc.N` und `next`.
 - **Einrichten:** rootless als Podman-Quadlet mit der Unit aus dem
   [GitHub-Release](https://github.com/Speicherstadt/steuerzentrale/releases), per Digest, nicht per
-  Tag: [Installation](https://speicherstadt.github.io/steuerzentrale/installation.html).
-- **Demo:** [im Browser](https://speicherstadt.github.io/steuerzentrale/demo/), ohne Server.
+  Tag: [Installation](https://speicherstadt.org/steuerzentrale/installation.html).
+- **Demo:** [im Browser](https://speicherstadt.org/steuerzentrale/demo/), ohne Server.
 
 Lizenz: AGPL-3.0.

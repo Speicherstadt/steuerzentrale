@@ -13,7 +13,7 @@ export default defineConfig({
   testMatch: /\.shot\.ts$/,
   workers: 1,
   reporter: "list",
-  use: { baseURL: `http://localhost:${port}/demo/`, locale: "de-DE", trace: "off" },
+  use: { baseURL: `http://localhost:${port}/steuerzentrale/demo/`, locale: "de-DE", trace: "off" },
   projects: [
     {
       name: "desktop",
@@ -30,6 +30,6 @@ export default defineConfig({
     command: `bun run --cwd apps/web build:demo && bun run --cwd apps/web vite preview --outDir dist-demo --port ${port} --strictPort`,
     port,
     reuseExistingServer: false,
-    env: { STEUERZENTRALE_WEB_BASE: "/demo/" },
+    env: { STEUERZENTRALE_WEB_BASE: "/steuerzentrale/demo/" },
   },
 });
