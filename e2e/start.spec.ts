@@ -20,7 +20,7 @@ test.describe("the interface", { tag: "@phone" }, () => {
   // the apps with a released manifest first; apps other tests imported (Z-501) follow them
   test("shows the apps of the Speicherstadt", async ({ page }) => {
     await page.goto("/apps");
-    const apps = page.locator("main section h2");
+    const apps = page.locator("main section h2 a");
     await expect
       .poll(async () => (await apps.allTextContents()).slice(0, 6))
       .toEqual(["Haben", "Belegt", "Kontext", "Schreibzeug", "Stellwerk", "Kennwort"]);

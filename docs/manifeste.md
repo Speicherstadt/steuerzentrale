@@ -33,6 +33,14 @@ Version.
 
 ### Über die Oberfläche
 
+Die Seite **Apps** zeigt je App eine Kachel: Symbol, Name, ein Satz Beschreibung, die neueste
+importierte Version, die Zahl der Installationen und höchstens einen Hinweis (eine Sperrzeit, die
+gerade gilt; eine neue Version, deren Manifest noch fehlt; Installationen hinter der neuesten
+Version). „Installieren“ auf der Kachel öffnet den Dialog „App installieren“ mit dieser App. Ein Klick
+auf die Kachel öffnet die Seite der App mit den Abschnitten Versionen, Betrieb (Ressourcen, Netz,
+Anmeldung, Health, Backup), Sperrzeiten, Aktionen, Einstellungen (Anzahl je Ebene) und
+Installationen.
+
 Auf der Seite **Apps** öffnet „Manifest importieren“ einen Dialog mit beiden Dateien und dem Grund.
 Importieren dürfen Inhaber und Technik; der Import steht mit Grund im Audit-Log des Betreibers
 (`manifest.importieren`, Text und Signatur nur als „[ausgelassen]“).
@@ -60,19 +68,19 @@ verschiedenem Text gilt das der zuerst angelegten, die andere behält ihr eigene
 
 ## Versionen aus den Registries
 
-Die Zentrale fragt beim Start, danach **alle 6 Stunden** und auf Knopfdruck („Registry abfragen“,
+Die Zentrale fragt beim Start, danach **alle 6 Stunden** und auf Knopfdruck („Nach neuen Versionen suchen“,
 Inhaber und Technik) die Registry jeder App nach ihren Tags: das Image des HTTP-Dienstes, sonst des
 ersten Containers, aus dem neuesten importierten Manifest. Sie spricht die OCI-Distribution-API
 (`GET /v2/<name>/tags/list`, Seite für Seite über den `Link`-Kopf) und holt sich ein anonymes Token,
 wenn die Registry danach fragt (`WWW-Authenticate: Bearer`, wie ghcr.io und Docker Hub). Nur Tags in
 SemVer zählen, ein führendes `v` ist erlaubt; `latest` oder `sha-…` sind keine Versionen.
 
-Je App zeigt die Seite **Apps** jede Version mit ihrem Zustand:
+Die Seite einer App (unter **Apps**) zeigt im Abschnitt „Versionen“ jede Version mit ihrem Zustand:
 
 | Zustand | Bedeutung |
 | --- | --- |
 | verfügbar | das Manifest ist importiert; die Version kann installiert und aktualisiert werden |
-| neue Version, Manifest fehlt | die Registry hat sie, ein signiertes Manifest fehlt noch; nichts geschieht, bis es importiert ist |
+| Manifest fehlt | die Registry hat sie, ein signiertes Manifest fehlt noch; nichts geschieht, bis es importiert ist |
 
 Als „neu“ gilt ein Tag, der neuer ist als die neueste importierte Version (eine Vorabversion verglichen
 mit allen, eine andere mit den übrigen); einen älteren hat man bewusst übersprungen. Dazu steht an jeder
@@ -98,7 +106,7 @@ von Hand im Dialog (`409 nur_intern`). Die Regel ist eine reine Funktion in `pac
 | Recht | Inhaber | Technik | Support |
 | --- | --- | --- | --- |
 | Apps, Versionen und Manifeste sehen | ja | ja | ja |
-| Manifest importieren, Registry abfragen | ja | ja | – |
+| Manifest importieren, nach neuen Versionen suchen | ja | ja | – |
 | Kunden als intern markieren | ja | – | – |
 
 Wer ein Manifest importiert hat, erfährt nur der eigene Betreiber; bei einem anderen steht

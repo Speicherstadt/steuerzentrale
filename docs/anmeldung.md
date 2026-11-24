@@ -70,7 +70,7 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 | Kunden anlegen, ändern, kündigen | ja | ja | – |
 | Kunden als intern markieren | ja | – | – |
 | Apps, Versionen und Manifeste sehen | ja | ja | ja |
-| Manifest importieren, Registry abfragen | ja | ja | – |
+| Manifest importieren, nach neuen Versionen suchen | ja | ja | – |
 | Server hinzufügen | ja | ja | – |
 | Installationen und Platzierung sehen | ja | ja | ja |
 | Installationen anlegen, gescheiterte entfernen | ja | ja | – |

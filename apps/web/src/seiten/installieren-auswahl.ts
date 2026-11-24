@@ -73,8 +73,12 @@ export type Auswahl = {
  * internal one), and the chosen version's manifest read from its text; a new app or version starts
  * without options (`ohneOptionen`)
  */
-const versionsWahl = (intern: () => boolean, ohneOptionen: () => void) => {
-  const [app, setApp] = createSignal("");
+const versionsWahl = (
+  intern: () => boolean,
+  ohneOptionen: () => void,
+  vorgewaehlt: () => string | undefined,
+) => {
+  const [app, setApp] = createSignal(() => vorgewaehlt() ?? "");
   const [version, setVersion] = createSignal("");
   const apps = createMemo(() => appsQuelle().liste());
   const versionenDer = (name: string) => {
@@ -115,7 +119,10 @@ const versionsWahl = (intern: () => boolean, ohneOptionen: () => void) => {
   };
 };
 
-export const auswahlZustand = (vorgewaehlt: () => string | undefined): Auswahl => {
+export const auswahlZustand = (
+  vorgewaehlt: () => string | undefined,
+  vorgewaehlteApp: () => string | undefined = () => undefined,
+): Auswahl => {
   const [kundeId, setKundeId] = createSignal(() => vorgewaehlt() ?? "");
   const [serverId, setServerId] = createSignal("");
   const [optionen, setOptionen] = createSignal<string[]>([]);
@@ -128,6 +135,7 @@ export const auswahlZustand = (vorgewaehlt: () => string | undefined): Auswahl =
   const wahl = versionsWahl(
     () => kunde()?.intern ?? false,
     () => setOptionen([]),
+    vorgewaehlteApp,
   );
   const { app, version, gelesen } = wahl;
   const einstellungen = createMemo(() => {

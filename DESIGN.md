@@ -13,7 +13,7 @@ Widerspruch gilt diese Datei; eine neue Regel kommt im selben Pull Request hierh
 - **Zustand mit Grund**: Grün, Gelb, Rot, Unbekannt immer mit einem Satz, warum („Backup älter als
   26 h: Platte zu 91 % voll“). Grün heißt geprüft und in Ordnung, sonst nichts.
 - **Nur, was das Manifest anbietet**: eine Aktion, die eine App nicht kann, fehlt; sie ist nicht
-  ausgegraut. Auf der Seite „Apps“ steht sie als „nicht unterstützt“ mit dem Issue.
+  ausgegraut. Auf der Seite einer App (unter „Apps“) steht sie als „nicht unterstützt“ mit dem Issue.
 - **Jede schreibende Aktion fragt nach dem Grund** und nennt ihr Ziel; der Grund steht im Audit-Log.
 - **Keine App fest eingebaut**: Formulare, Prüfungen und Texte kommen aus dem Manifest.
 - **Eine Hauptaktion je Ansicht**, dunkel gefüllt; alles andere umrandet oder im Menü.
