@@ -16,7 +16,8 @@ Danach:
 bun install          # übersetzt auch die Texte aus messages/ (Paraglide)
 bun run check        # typecheck, lint, test, build
 bun run test:agent   # der Agent gegen Podman; ohne Podman übersprungen, mit CI=true ein Fehler
-bun run e2e          # Playwright gegen Zentrale (Port 28300) und Oberfläche (Port 5182)
+bun run e2e          # Playwright gegen Zentrale (Port 28300) und Oberfläche (Port 5182); dazu eine
+                     # zweite für „Nur für mich“ (Zentrale 28310, Oberfläche 5183)
 bun run dev:zentrale # Zentrale auf Port 18300 (STEUERZENTRALE_SECRET_KEY setzen; Einrichtungscode im Log)
 bun run dev:web      # Oberfläche auf Port 5181, /api geht an die Zentrale
 bun run dev:demo     # Oberfläche auf Port 5181 mit den Demodaten, ohne Zentrale und ohne Anmeldung

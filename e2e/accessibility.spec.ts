@@ -32,6 +32,8 @@ const pages = [
   "/einrichtung",
   "/einladung",
   "/erster-inhaber",
+  // the question after the first owner (Z-805); answered, it points to the settings
+  "/betriebsart",
 ];
 
 test.use({ locale: "de-DE" });

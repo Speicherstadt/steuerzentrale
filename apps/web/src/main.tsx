@@ -12,6 +12,7 @@ import {
   benachrichtigungsQuelleEinsetzen,
 } from "./daten/benachrichtigungen.ts";
 import { apiBetrieb, betriebQuelleEinsetzen } from "./daten/betrieb.ts";
+import { apiBetriebsart, betriebsartQuelleEinsetzen } from "./daten/betriebsart.ts";
 import { apiDns, dnsQuelleEinsetzen } from "./daten/dns.ts";
 import { apiEinstellungen, einstellungenQuelleEinsetzen } from "./daten/einstellungen.ts";
 import { apiIch, ichQuelleEinsetzen } from "./daten/ich.ts";
@@ -45,6 +46,7 @@ if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
   rollenQuelleEinsetzen(apiRolle);
   betriebQuelleEinsetzen(apiBetrieb);
   ichQuelleEinsetzen(apiIch);
+  betriebsartQuelleEinsetzen(apiBetriebsart);
   mitgliederQuelleEinsetzen(apiMitglieder);
   supportQuelleEinsetzen(apiSupport);
   leistungenQuelleEinsetzen(apiLeistungen);

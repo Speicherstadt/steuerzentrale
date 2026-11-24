@@ -1,5 +1,6 @@
 import type { JSX } from "@solidjs/web";
 import { createMemo, Loading, Show } from "solid-js";
+import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { darfInstallieren, darfInternMarkieren, rolleLesen } from "../daten/rolle.ts";
 import type { Rolle } from "../daten/typen.ts";
 
@@ -47,12 +48,27 @@ export const MitRechtOderZugang = (props: { zugang: boolean; children: JSX.Eleme
   );
 };
 
-/** Shows its children only to the owner: marking a customer as internal (Z-501) */
-export const NurInhaber = (props: { children: JSX.Element }) => {
+/**
+ * Shows its children only to the owner: marking a customer as internal (Z-501), changing the
+ * Betriebsart (Z-805); `sonst` is what another role sees instead
+ */
+export const NurInhaber = (props: { children: JSX.Element; sonst?: JSX.Element }) => {
   const darf = recht(darfInternMarkieren);
   return (
     <Loading fallback={null}>
-      <Show when={darf()}>{props.children}</Show>
+      <Show when={darf()} fallback={props.sonst}>
+        {props.children}
+      </Show>
+    </Loading>
+  );
+};
+
+/** Shows its children unless the operator runs "Nur für mich" (Z-805): customers' things only */
+export const FuerKunden = (props: { children: JSX.Element }) => {
+  const art = createMemo(() => betriebsartLesen());
+  return (
+    <Loading fallback={null}>
+      <Show when={!nurFuerMich(art())}>{props.children}</Show>
     </Loading>
   );
 };

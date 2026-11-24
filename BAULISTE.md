@@ -467,7 +467,7 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Z-1004.
   Fertig, wenn: ein Release-Kandidat in der CI entsteht und sich nach der Doku in einer Incus-VM
   installieren lässt.
-- [ ] **Z-805 Betriebsart: nur für mich oder für Kunden** – nach dem ersten Inhaber fragt die
+- [x] **Z-805 Betriebsart: nur für mich oder für Kunden** – nach dem ersten Inhaber fragt die
   Zentrale einmal: „Nur für mich“ (eigene Apps auf eigenen Servern) oder „Für Kunden“ (Hosting für
   andere). Inhaber kann es unter Einstellungen mit Grund ändern. „Nur für mich“ blendet Kunden,
   Verträge, Kündigung, Support-Zugänge und Leistungen in Menü, Übersicht und Dialogen aus; „App

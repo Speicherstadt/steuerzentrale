@@ -77,6 +77,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
 | 👥 [Kunden und Verträge](https://speicherstadt.org/steuerzentrale/kunden.html) | Ansprechperson, SLA, Vertragsende; nach der Kündigung letztes Backup, Archiv-Link für den Kunden und Löschung mit Protokoll |
 | 🛟 [Support-Zugang](https://speicherstadt.org/steuerzentrale/support.html) | Zeitlich begrenzt, mit Grund, für den Kunden sichtbar |
 | 📈 [Leistungen](https://speicherstadt.org/steuerzentrale/leistungen.html) | Je Kunde und Monat: Installationen, Speicher, Support-Zeit, Verfügbarkeit; Export als CSV |
+| 🏠 [Nur für mich oder für Kunden](https://speicherstadt.org/steuerzentrale/anmeldung.html#nur-fur-mich-oder-fur-kunden) | Einmal nach der Einrichtung gewählt, später vom Inhaber mit Grund geändert; „Nur für mich“ blendet Kunden, Verträge, Support-Zugänge und Leistungen aus |
 | 🔐 [Anmeldung und Rollen](https://speicherstadt.org/steuerzentrale/anmeldung.html) | Passkey oder Passwort mit TOTP, Rollen Inhaber, Technik, Support; Oberfläche nur über WireGuard |
 | 🛡️ [Sicherheit](https://speicherstadt.org/steuerzentrale/sicherheit.html) | Bedrohungsmodell mit Test je Bedrohung, Notzugang per SSH, TOMs nach Art. 32 DSGVO |
 | 🧩 [Manifest für App-Entwickler](https://speicherstadt.org/steuerzentrale/manifest.html) | Ein Schema für Units, Volumes, Secrets, Health, Backup, Aktionen und Einstellungen einer App |
@@ -135,7 +136,9 @@ Zentrale kann auch auf einem Server laufen, der selbst Apps betreibt.
 <summary><b>Für wen ist das?</b></summary>
 
 Für alle, die mehr als eine Installation der Speicherstadt-Apps betreuen: IT-Dienstleister und Hoster mit Kunden,
-aber auch eine Firma mit mehreren Standorten. Für eine einzelne App auf einem Server reicht deren eigene Anleitung.
+aber auch eine Firma mit mehreren Standorten. Wer die Apps nur für sich betreibt, wählt nach der Einrichtung „Nur für
+mich“: dann gibt es keine Kunden, Verträge und Support-Zugänge. Für eine einzelne App auf einem Server reicht deren
+eigene Anleitung.
 </details>
 
 <details>

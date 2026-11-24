@@ -28,8 +28,13 @@ import { serverAnlegen } from "./server.ts";
  * No Podman, no server.
  */
 
-// The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite
+// The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite;
+// the one the install command names, so the Zentrale "Nur für mich" (Z-805) gets its own agents
 const ZENTRALE = "127.0.0.1:28300";
+const zentraleAus = (befehl: string): string => {
+  const port = /:(\d+)\/install\.sh/.exec(befehl)?.[1];
+  return port ? `127.0.0.1:${port}` : ZENTRALE;
+};
 // What the Pforte hands the Zentrale (apps/zentrale, modules/verbindung/herkunft.ts)
 const FINGERABDRUCK_HEADER = "x-sz-client-fingerabdruck";
 
@@ -70,7 +75,7 @@ const fingerabdruck = (pem: string) =>
  */
 const beitreten = async (befehl: string): Promise<string> => {
   const token = /--token (\S+)/.exec(befehl)?.[1] ?? "";
-  const antwort = await fetch(`http://${ZENTRALE}/api/v1/agent/beitreten`, {
+  const antwort = await fetch(`http://${zentraleAus(befehl)}/api/v1/agent/beitreten`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -122,6 +127,8 @@ type Lage = {
   bootId: string;
   zertifikat: string;
   anders: Record<string, unknown>;
+  /** host:port of the Zentrale the agent joined */
+  zentrale: string;
 };
 
 /** What the stand-in agent reads from the journal of every installation */
@@ -307,7 +314,7 @@ const neustarten = (lage: Lage, n: Nachricht) => {
 
 const verbinden = (lage: Lage): Promise<WebSocket> =>
   new Promise((bereit, fehler) => {
-    const ws = new NodeWebSocket(`ws://${ZENTRALE}/api/v1/agent/verbindung`, {
+    const ws = new NodeWebSocket(`ws://${lage.zentrale}/api/v1/agent/verbindung`, {
       headers: { [FINGERABDRUCK_HEADER]: fingerabdruck(lage.zertifikat) },
     });
     lage.ws = ws;
@@ -343,7 +350,8 @@ export const agentVerbinden = async (
 ): Promise<TestAgent> => {
   const server = await serverAnlegen(request, name);
   const zertifikat = await beitreten(server.befehl);
-  const lage = { bootId: randomUUID(), zertifikat, anders } as Lage;
+  const zentrale = zentraleAus(server.befehl);
+  const lage = { bootId: randomUUID(), zertifikat, anders, zentrale } as Lage;
   await verbinden(lage);
   await expect
     .poll(async () => {

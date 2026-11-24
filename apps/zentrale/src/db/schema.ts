@@ -23,6 +23,13 @@ export const betreiber = sqliteTable("betreiber", {
   betreiberId: text("betreiber_id").primaryKey(),
   name: text("name").notNull(),
   angelegtAm: integer("angelegt_am").notNull(),
+  /**
+   * Z-805: `selbst` ("Nur für mich") or `kunden` ("Für Kunden"); null until the first owner
+   * answered. Operators from before the column count as `kunden` (set in the migration)
+   */
+  betriebsart: text("betriebsart", { enum: ["selbst", "kunden"] }),
+  /** Z-805: the fixed internal customer that owns every installation in `selbst`, once made */
+  eigenerKundeId: text("eigener_kunde_id"),
 });
 
 /** Append-only (triggers in the migration): who did what to which target, when and why */

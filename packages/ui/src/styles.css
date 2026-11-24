@@ -99,6 +99,11 @@
 }
 
 @layer base {
+  /* Tailwind 4 dropped the pointer cursor of buttons; clickable ones show it again */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
   * {
     border-color: var(--border);
   }

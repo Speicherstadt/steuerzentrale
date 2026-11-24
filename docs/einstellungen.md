@@ -101,6 +101,25 @@ gestartet“, abgebrochen) lässt die alten Werte gültig. In beiden Fällen wir
 damit kein Geheimnis eines erledigten Auftrags liegen bleibt. Was der Agent dabei auf dem Server
 tut, steht im Projektplan unter „Neu konfigurieren“.
 
+## Betriebsart
+
+Der Reiter **Betriebsart** zeigt, ob die Zentrale „Nur für mich“ oder „Für Kunden“ arbeitet (die
+Frage nach dem ersten Inhaber, siehe [Anmeldung](anmeldung.md#nur-fur-mich-oder-fur-kunden)). Nur
+der Inhaber ändert sie, mit Grund; der Wechsel steht mit dem Grund im Audit-Log. Technik und Support
+sehen sie nur.
+
+- **Zu „Nur für mich“**: Die Zentrale legt den festen internen Kunden an oder nimmt den von früher
+  wieder. Das geht nur, solange keine Installation (außer entfernten) einem anderen Kunden gehört;
+  sonst antwortet sie `409 fremde_installationen`. Danach antworten die ausgeblendeten Endpunkte mit
+  `409 betriebsart`: Kunden anlegen, ändern, kündigen, intern markieren, Support-Zugang starten,
+  Leistungen; eine Installation lässt sich nur für den internen Kunden anlegen. Lesen bleibt, was
+  die Oberfläche noch braucht (Kunden, Installationen).
+- **Zu „Für Kunden“**: ändert nichts außer der Betriebsart; keine Installation geht verloren, der
+  interne Kunde bleibt als Kunde stehen.
+
+In der Demo (`bun run dev:demo`) ist derselbe Reiter der Umschalter zwischen beiden Arten; sie
+beginnt mit „Für Kunden“ und lehnt „Nur für mich“ trotz der Beispielkunden nicht ab.
+
 ## API
 
 | Route | Recht | Körper | Antwort |
@@ -109,6 +128,10 @@ tut, steht im Projektplan unter „Neu konfigurieren“.
 | `PUT /api/v1/apps/:app/einstellungen` | Inhaber, Technik | `werte`, `grund` | wie `GET` |
 | `POST /api/v1/installationen` | Inhaber, Technik | wie bisher, dazu `betreiberWerte` | `201` mit der Installation |
 | `PUT /api/v1/installationen/:installationId/einstellungen` | Inhaber, Technik | `einstellungen`, `grund` | die Seite der Installation mit dem neuen Auftrag |
+| `PUT /api/v1/betriebsart` | Inhaber | `betriebsart` (`selbst` oder `kunden`), `grund` (nur bei der ersten Antwort entbehrlich) | `{ betriebsart, eigenerKundeId }`; `409 fremde_installationen` |
+
+`GET /api/v1/ich` nennt unter `betreiber` dazu `betriebsart` (`selbst`, `kunden` oder `null`, solange
+nicht beantwortet) und `eigenerKundeId`.
 
 `GET /api/v1/installationen/:installationId` liefert dazu `formular` (`felder` der Ebene
 `installation`, `gesetzt`: die Namen ihrer gesetzten Geheimnisse). Kein Betreiber erreicht die
@@ -126,6 +149,15 @@ Datenbank.
 - `apps/zentrale/src/routes/einstellungen.test.ts`: jede Route über HTTP, Rollen, die Trennung der
   Betreiber je Endpunkt, der fehlende Pflichtwert blockiert die Installation, der Dialog speichert
   in der Transaktion der Installation, kein Geheimnis in Antwort, Audit-Log oder Datenbankdatei.
+- `apps/zentrale/src/routes/betriebsart.test.ts`: Wechsel in beide Richtungen ohne Verlust einer
+  Installation und mit Grund im Audit-Log, nur der Inhaber (je Rolle), `409` bei Installationen
+  fremder Kunden, `409 betriebsart` an jedem ausgeblendeten Endpunkt, ein anderer Betreiber bleibt
+  unberührt.
+- `apps/web/src/seiten/betriebsart.test.tsx` und `apps/web/src/rahmen/navigation.test.ts`: der
+  Reiter je Rolle, das Menü ohne Kunden, Support-Zugänge und Leistungen, der Dialog ohne Kunden.
+- `e2e/selbst.setup.ts` und `e2e/betriebsart-selbst.spec.ts` (Desktop und Handy, gegen eine zweite
+  Zentrale): die Frage kommt nach dem ersten Inhaber und ohne Antwort wieder; „Nur für mich“ zeigt
+  im Menü keine Kunden, Support-Zugänge und Leistungen und installiert ohne Kundenauswahl.
 - `e2e/einstellungen.spec.ts` (Desktop und Handy, axe): Werte des Betreibers im Dialog und neu
   konfigurieren; der Stellvertreter des Agenten meldet den Auftrag als erfolgreich. Den Agenten
   selbst prüft die CI gegen Podman.

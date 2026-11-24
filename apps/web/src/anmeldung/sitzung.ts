@@ -5,10 +5,16 @@ import { api } from "./api.ts";
  * second factor (docs/plan.md, "Anmeldung an der Zentrale"). The server checks every route itself;
  * this only spares a page that would answer 401 or 403 everywhere.
  */
-export type Zustand = "bereit" | "abgemeldet" | "einrichtung" | "unbekannt";
+export type Zustand = "bereit" | "abgemeldet" | "einrichtung" | "betriebsart" | "unbekannt";
 
 /** Pages outside the shell: they work without a session or set one up */
-export const OHNE_RAHMEN = ["/anmelden", "/einrichtung", "/einladung", "/erster-inhaber"] as const;
+export const OHNE_RAHMEN = [
+  "/anmelden",
+  "/einrichtung",
+  "/einladung",
+  "/erster-inhaber",
+  "/betriebsart",
+] as const;
 
 export const ohneRahmen = (pfad: string): boolean =>
   OHNE_RAHMEN.some((frei) => pfad === frei || pfad.startsWith(`${frei}/`));
@@ -18,6 +24,7 @@ export const zielFuer = (pfad: string, zustand: Zustand): string | undefined => 
   if (ohneRahmen(pfad)) return undefined;
   if (zustand === "abgemeldet") return "/anmelden";
   if (zustand === "einrichtung") return "/einrichtung";
+  if (zustand === "betriebsart") return "/betriebsart";
   return undefined;
 };
 
@@ -30,10 +37,22 @@ export type Einrichtung = {
 
 export const einrichtungLesen = () => api<Einrichtung>("/api/v1/einrichtung");
 
+/**
+ * Whether the owner still has to answer "Nur für mich" or "Für Kunden" (Z-805): asked again before
+ * every page of the shell until answered; another role cannot answer and goes on
+ */
+const betriebsartOffen = async (): Promise<boolean> => {
+  const ich = await api<{ rolle: string; betreiber: { betriebsart: string | null } }>(
+    "/api/v1/ich",
+  );
+  return ich.ok && ich.daten.rolle === "inhaber" && ich.daten.betreiber.betriebsart === null;
+};
+
 export const sitzungsZustand = async (): Promise<Zustand> => {
   const antwort = await einrichtungLesen();
-  if (antwort.ok) return antwort.daten.zweiterFaktor ? "bereit" : "einrichtung";
-  return antwort.status === 401 ? "abgemeldet" : "unbekannt";
+  if (!antwort.ok) return antwort.status === 401 ? "abgemeldet" : "unbekannt";
+  if (!antwort.daten.zweiterFaktor) return "einrichtung";
+  return (await betriebsartOffen()) ? "betriebsart" : "bereit";
 };
 
 /**

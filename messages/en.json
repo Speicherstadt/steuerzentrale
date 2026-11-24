@@ -1125,5 +1125,21 @@
   "abw_protokoll": "Deletion log",
   "abw_fehler_kein_archiv": "This installation has no archive.",
   "abw_fehler_frist_abgelaufen": "The 30 days after the contract's end are over; the Zentrale signs no more links.",
-  "abw_fehler_kein_zugang": "The installation's S3 access is missing; without it there is no link."
+  "abw_fehler_kein_zugang": "The installation's S3 access is missing; without it there is no link.",
+  "betriebsart_titel": "Mode of operation",
+  "betriebsart_text": "Whether the Zentrale runs only your own apps or apps for customers. Only the owner changes it, with a reason in the audit log.",
+  "betriebsart_selbst": "Just for me",
+  "betriebsart_selbst_text": "Your own apps on your own servers: no customers, contracts, support accesses or services.",
+  "betriebsart_kunden": "For customers",
+  "betriebsart_kunden_text": "Hosting for others: customers with contracts, support accesses and services per month.",
+  "betriebsart_offen": "not chosen yet",
+  "betriebsart_grund_platzhalter": "e.g. We now host for customers too",
+  "betriebsart_gespeichert": "Mode of operation saved.",
+  "betriebsart_fehler_ungueltig": "Please choose a mode of operation and give a reason.",
+  "betriebsart_fehler_fremde": "“Just for me” is not possible while installations of other customers exist.",
+  "betriebsart_frage": "What is this Zentrale for?",
+  "betriebsart_frage_text": "One more question, then you are ready.",
+  "betriebsart_frage_spaeter": "The owner can change this later under settings.",
+  "betriebsart_schon": "The mode of operation is already chosen: {art}. The owner changes it under settings.",
+  "betriebsart_zu_einstellungen": "Go to settings"
 }

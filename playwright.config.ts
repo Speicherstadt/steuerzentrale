@@ -27,6 +27,13 @@ process.env.SZ_E2E_DATEN ??= mkdtempSync(join(tmpdir(), "sz-test-e2e-"));
 const daten = process.env.SZ_E2E_DATEN;
 const testSchluessel = Buffer.alloc(32, 7).toString("base64");
 const inhaberSitzung = join(daten, "inhaber.json");
+// Z-805: a second Zentrale whose owner answers "Nur für mich", with its own database and interface,
+// since the first one's other customers' installations rule that out (e2e/betriebsart-selbst.spec.ts)
+const selbstPort = 5183;
+const selbstZentralePort = 28310;
+const selbstDaten = join(daten, "selbst");
+mkdirSync(selbstDaten, { recursive: true });
+const selbstSitzung = join(selbstDaten, "inhaber.json");
 // The public test key as the Zentrale's `minisign.pub` (beside install.sh): it checks an uploaded
 // manifest with it (Z-402), and e2e/hilfen/installationen.ts signs with the test key's secret half
 const agentDateien = join(daten, "agent-dateien");
@@ -54,14 +61,43 @@ export default defineConfig({
     {
       name: "desktop",
       dependencies: ["einrichtung"],
+      testIgnore: /selbst/,
       use: { ...devices["Desktop Chrome"], launchOptions, storageState: inhaberSitzung },
     },
     {
       name: "phone",
       grep: /@phone/,
       dependencies: ["einrichtung"],
+      testIgnore: /selbst/,
       use: { ...devices["Pixel 7"], launchOptions, storageState: inhaberSitzung },
     },
+    // the second Zentrale, "Nur für mich" (Z-805): its own first owner, then the spec on both
+    {
+      name: "einrichtung-selbst",
+      testMatch: /selbst\.setup\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        baseURL: `http://localhost:${selbstPort}`,
+      },
+    },
+    ...(
+      [
+        ["selbst-desktop", devices["Desktop Chrome"]],
+        ["selbst-phone", devices["Pixel 7"]],
+      ] as const
+    ).map(([name, geraet]) => ({
+      name,
+      testMatch: /betriebsart-selbst\.spec\.ts/,
+      dependencies: ["einrichtung-selbst"],
+      ...(name === "selbst-phone" ? { grep: /@phone/ } : {}),
+      use: {
+        ...geraet,
+        launchOptions,
+        baseURL: `http://localhost:${selbstPort}`,
+        storageState: selbstSitzung,
+      },
+    })),
   ],
   webServer: [
     {
@@ -85,6 +121,22 @@ export default defineConfig({
       },
     },
     {
+      command: `bun apps/zentrale/src/main.ts > ${join(selbstDaten, "zentrale.log")} 2>&1`,
+      port: selbstZentralePort,
+      reuseExistingServer: false,
+      env: {
+        STEUERZENTRALE_PORT: String(selbstZentralePort),
+        STEUERZENTRALE_DATA: selbstDaten,
+        STEUERZENTRALE_SECRET_KEY: testSchluessel,
+        STEUERZENTRALE_URL: `http://localhost:${selbstPort}`,
+        STEUERZENTRALE_AGENT_URL: `http://localhost:${selbstZentralePort}`,
+        STEUERZENTRALE_AGENT_DATEIEN: agentDateien,
+        STEUERZENTRALE_CLOUDFLARE_API: `http://127.0.0.1:${cloudflarePort}/client/v4`,
+        STEUERZENTRALE_REGISTRY_HTTP: `http://127.0.0.1:${registryPort}`,
+        STEUERZENTRALE_AUSSEN_PRUEFUNG: "aus",
+      },
+    },
+    {
       command: `bun apps/zentrale/src/testhilfen/cloudflare.ts ${cloudflarePort}`,
       port: cloudflarePort,
       reuseExistingServer: false,
@@ -104,6 +156,13 @@ export default defineConfig({
       port,
       reuseExistingServer: false,
       env: { STEUERZENTRALE_API_PORT: String(zentralePort) },
+    },
+    {
+      // the same interface for the second Zentrale, built into a folder of its own
+      command: `cd apps/web && bunx vite build --mode demo --outDir dist-selbst && bunx vite preview --outDir dist-selbst --port ${selbstPort} --strictPort`,
+      port: selbstPort,
+      reuseExistingServer: false,
+      env: { STEUERZENTRALE_API_PORT: String(selbstZentralePort) },
     },
   ],
 });

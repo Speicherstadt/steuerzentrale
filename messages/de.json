@@ -1125,5 +1125,21 @@
   "abw_protokoll": "Löschprotokoll",
   "abw_fehler_kein_archiv": "Für diese Installation gibt es kein Archiv.",
   "abw_fehler_frist_abgelaufen": "Die 30 Tage nach dem Vertragsende sind vorbei; die Zentrale signiert keinen Link mehr.",
-  "abw_fehler_kein_zugang": "Der S3-Zugang der Installation fehlt; ohne ihn gibt es keinen Link."
+  "abw_fehler_kein_zugang": "Der S3-Zugang der Installation fehlt; ohne ihn gibt es keinen Link.",
+  "betriebsart_titel": "Betriebsart",
+  "betriebsart_text": "Ob die Zentrale nur Ihre eigenen Apps betreibt oder Apps für Kunden. Nur der Inhaber ändert sie, mit Grund im Audit-Log.",
+  "betriebsart_selbst": "Nur für mich",
+  "betriebsart_selbst_text": "Eigene Apps auf eigenen Servern: keine Kunden, Verträge, Support-Zugänge und Leistungen.",
+  "betriebsart_kunden": "Für Kunden",
+  "betriebsart_kunden_text": "Hosting für andere: Kunden mit Verträgen, Support-Zugänge und Leistungen je Monat.",
+  "betriebsart_offen": "noch nicht gewählt",
+  "betriebsart_grund_platzhalter": "z. B. Wir hosten jetzt auch für Kunden",
+  "betriebsart_gespeichert": "Betriebsart gespeichert.",
+  "betriebsart_fehler_ungueltig": "Bitte eine Betriebsart wählen und einen Grund nennen.",
+  "betriebsart_fehler_fremde": "„Nur für mich“ geht nicht, solange Installationen anderer Kunden bestehen.",
+  "betriebsart_frage": "Wofür ist diese Zentrale?",
+  "betriebsart_frage_text": "Eine Frage noch, dann geht es los.",
+  "betriebsart_frage_spaeter": "Der Inhaber kann das später unter Einstellungen ändern.",
+  "betriebsart_schon": "Die Betriebsart ist schon gewählt: {art}. Der Inhaber ändert sie unter Einstellungen.",
+  "betriebsart_zu_einstellungen": "Zu den Einstellungen"
 }

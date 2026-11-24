@@ -76,6 +76,20 @@ export const GRUPPEN: Gruppe[] = [
   },
 ];
 
+/** What "Nur für mich" hides (Z-805): customers with their contracts, support accesses, services */
+export const NUR_FUER_KUNDEN: readonly Pfad[] = ["/kunden", "/support", "/leistungen"];
+
+/** The groups of the sidebar for the Betriebsart; a group left empty goes too */
+export const sichtbareGruppen = (gruppen: Gruppe[], nurFuerMich: boolean): Gruppe[] =>
+  nurFuerMich
+    ? gruppen
+        .map((g) => ({
+          ...g,
+          bereiche: g.bereiche.filter((b) => !NUR_FUER_KUNDEN.includes(b.pfad)),
+        }))
+        .filter((g) => g.bereiche.length > 0)
+    : gruppen;
+
 const BEREICHE = GRUPPEN.flatMap((g) => g.bereiche);
 
 export type Stufe = { name: string; pfad?: Pfad };

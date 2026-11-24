@@ -8,7 +8,7 @@ import {
   zugangStarten,
 } from "../modules/support/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
-import type { Registrar } from "./zugang.ts";
+import { nurFuerKunden, type Registrar } from "./zugang.ts";
 
 /*
  * Support accesses (BAULISTE.md Z-802; docs/plan.md, "Support-Zugang"): every role lists them and
@@ -56,6 +56,8 @@ export const supportRouten = (route: Registrar, deps: RoutenDeps): void => {
   route("POST /api/v1/support-zugaenge", async (c) => {
     const angaben = await eingabe(c, startSchema);
     if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
+    const gesperrt = nurFuerKunden(deps.db, c);
+    if (gesperrt) return gesperrt;
     const kontext = {
       betreiberId: c.get("betreiberId"),
       akteur: c.get("nutzerId"),
