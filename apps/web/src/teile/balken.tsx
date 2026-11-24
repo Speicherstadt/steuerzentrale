@@ -32,15 +32,12 @@ export const Messer = (props: { name: string; wert: number; grenze: number }) =>
 /** A short bar with the number beside it, for table cells */
 export const Mini = (props: { name: string; wert: number; grenze: number }) => (
   <div class="flex items-center gap-2">
-    <Balken
-      name={props.name}
-      wert={props.wert}
-      warn={props.wert >= props.grenze}
-      class="h-1.5 w-14"
-    />
+    <span class="w-14 shrink-0">
+      <Balken name={props.name} wert={props.wert} warn={props.wert >= props.grenze} class="h-1.5" />
+    </span>
     <span
       class={[
-        "w-10 text-xs tabular-nums",
+        "min-w-10 text-xs whitespace-nowrap tabular-nums",
         props.wert >= props.grenze ? "font-medium text-warn" : "text-muted-foreground",
       ]}
     >

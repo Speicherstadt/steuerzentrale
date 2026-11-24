@@ -45,7 +45,9 @@ test.describe("addresses and DNS", { tag: "@phone" }, () => {
     await ohneBefund(page);
     await dialog.getByRole("button", { name: "Anlegen" }).click();
     await expect(page).toHaveURL(/\/kunden\/[0-9a-f-]{36}$/);
-    await expect(page.getByText(`Kürzel ${k}`)).toBeVisible();
+    // in the card "Vertrag": the row "Kürzel" with it
+    const zeile = page.locator("dl > div").filter({ hasText: "Kürzel" });
+    await expect(zeile.getByText(k, { exact: true })).toBeVisible();
     await ohneBefund(page);
   });
 

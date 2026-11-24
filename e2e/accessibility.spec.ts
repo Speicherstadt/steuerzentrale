@@ -7,18 +7,23 @@ import { serverAnlegen } from "./hilfen/server.ts";
 // Every page of the route tree, in light and dark, on the desktop and a phone, checked with axe; the
 // `pages` check (checks.json) reads the paths in this file. Signed in, every page reads the
 // Zentrale (Z-406), with whatever the other tests made there; the detail pages open one object of
-// each kind made over the API (ECHT), the demo ids in the list only name them.
+// each kind made over the API (ECHT), the demo ids in the list only name them; a tab (`?tab=`)
+// opens on the same kind of object.
 // The session is the first owner's (e2e/einrichtung.setup.ts).
 const pages = [
   "/",
   "/server",
   "/server/shared-2",
+  "/server/shared-2?tab=auslastung",
+  "/server/shared-2?tab=technik",
   "/apps",
   "/apps/lind-haben",
   "/updates",
   "/backups",
   "/kunden",
   "/kunden/praxis-weber",
+  "/kunden/praxis-weber?tab=leistungen",
+  "/kunden/praxis-weber?tab=support",
   "/support",
   "/leistungen",
   "/katalog",
@@ -76,7 +81,9 @@ for (const theme of ["light", "dark"] as const) {
 
     for (const path of pages) {
       test(`axe finds nothing on ${path} @phone`, async ({ page }) => {
-        const ziel = (await ECHT[path]?.(page)) ?? path;
+        const [ohneTab = path, tab] = path.split("?");
+        const echt = await ECHT[ohneTab]?.(page);
+        const ziel = echt ? `${echt}${tab ? `?${tab}` : ""}` : path;
         await page.goto(ziel);
         await expect(page).toHaveURL(ziel);
         await pruefen(page);

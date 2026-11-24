@@ -1,4 +1,4 @@
-import type { NeustartEntscheid, Serverpruefung } from "@steuerzentrale/planung";
+import type { NeustartEntscheid, PlattenStunde, Serverpruefung } from "@steuerzentrale/planung";
 import { type Antwort, api } from "../anmeldung/api.ts";
 import { server as demoServer } from "../demo/server.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
@@ -11,7 +11,7 @@ import type { AgentZustand } from "./typen.ts";
  * API has: the servers, what the agent reported at joining, the state of its connection and its
  * newest facts, where its reboot stands (Z-701), and on a server's own page its checks (Z-702).
  * Load and the demo's checks of the operating system come from the demo data by the server's id
- * (server-ansicht.ts).
+ * (server-ansicht.ts). How full its disks were comes from the history of its facts.
  */
 
 /** The facts of a server as its agent read them (packages/protokoll, `fakten`); null: unreadable */
@@ -103,6 +103,8 @@ export type NeustartAngelegt = {
 export type ServerQuelle = {
   liste: () => Promise<Antwort<ServerDerZentrale[]>>;
   server: (id: string) => Promise<Antwort<ServerDerZentrale>>;
+  /** How full its disks were over the last `tage` days, per hour, oldest first */
+  platten: (id: string, tage: number) => Promise<Antwort<PlattenStunde[]>>;
   /** Revokes the server's certificate: its agent is refused from now on */
   sperren: (id: string, grund: string) => Promise<Antwort<ServerDerZentrale>>;
   /** Reboots the server by hand (Z-701): its installations are backed up first */
@@ -117,6 +119,10 @@ export const apiServer: ServerQuelle = {
     return antwort.ok ? { ...antwort, daten: antwort.daten.server } : antwort;
   },
   server: (id) => api<ServerDerZentrale>(pfad(id)),
+  platten: async (id, tage) => {
+    const antwort = await api<{ stunden: PlattenStunde[] }>(`${pfad(id)}/platten?tage=${tage}`);
+    return antwort.ok ? { ...antwort, daten: antwort.daten.stunden } : antwort;
+  },
   sperren: (id, grund) => api<ServerDerZentrale>(`${pfad(id)}/sperren`, { body: { grund } }),
   neustart: (id, grund) => api<NeustartAngelegt>(`${pfad(id)}/neustart`, { body: { grund } }),
 };

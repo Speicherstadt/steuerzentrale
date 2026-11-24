@@ -165,8 +165,26 @@ unbekannt, auch als Filter.
 
 ## Server- und Kundenseite
 
-Die Seite eines Servers zeigt die Installationen darauf und die Ereignisse des Servers und seiner
-Installationen; die Seite eines Kunden seine Installationen, ihre Server und ihre Ereignisse. Beide
+Die Seite **Server** ist eine Tabelle: Name mit der Art in Worten („für mehrere Kunden“, „eigener
+Server eines Kunden“, „steht beim Kunden“), Zustand in Worten mit Symbol („Platte fast voll“,
+„meldet sich nicht, zuletzt vor 6 Min.“, „Neustart nötig, geplant morgen 03:30“, „verbunden“),
+Platte, Apps („4 Apps · 2 Kunden“) und System; eine volle Platte, ein stiller Agent und ein nötiger
+Neustart zuerst. Spalten für CPU und RAM gibt es nur, wenn etwas sie gemessen hat; der Agent meldet
+sie noch nicht, nur die Demo hat Werte. In „Nur für mich“ nennt die Tabelle weder Art noch Kunden.
+
+Die Seite eines Servers hat im Kopf Name und Art, den Zustand in einem Satz, die erste IPv4 und das
+System, daneben **Neu starten** ([Betriebssystem und Neustarts](betriebssystem.md)). Die Reiter
+stehen in der Adresse (`?tab=`):
+
+| Reiter | Inhalt |
+| --- | --- |
+| Überblick | Auslastung (Platte aus den Fakten), Betriebssystem, Wartungsfenster, Prüfungen und Agent mit Zertifikat je in einer Zeile; die ersten vier Apps mit Zustand und „Zuletzt passiert“ |
+| Auslastung | wie voll jede Platte war, 24 Stunden, 7 oder 30 Tage, auf einer Skala von 0 bis 100 % (`GET /api/v1/server/<id>/platten`); CPU und Arbeitsspeicher, sobald der Agent sie meldet |
+| Apps | die Apps darauf als Tabelle wie auf der Seite „Apps“ |
+| Verlauf | die Ereignisse des Servers und seiner Apps |
+| Technik | System und Netz aus den Fakten mit dem Zertifikat des Agenten, die Karte „Wartung“, alle Prüfungen und (nur in der Demo) die Pakete, die auf einen Neustart warten |
+
+Die Seite eines Kunden beschreibt [Kunden und Verträge](kunden.md#die-seite-eines-kunden). Beide
 nehmen die Installationen aus `GET /api/v1/installationen`.
 
 ## Was noch kommt
@@ -177,7 +195,7 @@ mit welchem Punkt sie kommen:
 | Seite oder Teil | kommt mit |
 | --- | --- |
 | Einstellungen → DNS | Z-407 |
-| Auslastung eines Servers (CPU, RAM), Pakete mit Namen; das Betriebssystem steht seit Z-701 in der Karte „Wartung“ | noch ohne Punkt |
+| CPU und Arbeitsspeicher eines Servers, Pakete mit Namen; die Platte zeigt der Reiter „Auslastung“, das Betriebssystem seit Z-701 die Karte „Wartung“ | noch ohne Punkt |
 
 Name, Symbol und Kurztext der Apps (Katalog) stehen in `apps/web/src/demo/apps.ts`; alles
 Technische (Version, Container, Ports, Health, Backup, Sperrzeiten, Einstellungen) liest die Demo aus

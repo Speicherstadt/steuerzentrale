@@ -33,7 +33,7 @@ export const agentText = (
     : m.agent_getrennt_seit({ seit });
 };
 
-type PruefText = { icon: IconNode; name: string; detail: string };
+export type PruefText = { icon: IconNode; name: string; detail: string };
 
 /** Name, icon and detail of a check of the operating system (demo only) */
 export const pruefText = (p: Pruefung): PruefText => {

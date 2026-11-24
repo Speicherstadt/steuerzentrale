@@ -55,8 +55,9 @@ Kundenseite und später das Portal zeigen:
   abgelaufen ist, und schreibt das Ereignis einmal mit dem Zeitpunkt des Ablaufs)
 
 Die Seite **Support-Zugänge** zeigt die laufenden Zugänge mit Restzeit und die beendeten mit Dauer
-und dem, was geschah (Log-Auszug, Neustart oder kein Eingriff). Die Kundenseite nennt die
-Support-Minuten des laufenden Monats.
+und dem, was geschah (Log-Auszug, Neustart oder kein Eingriff). Der Reiter „Support“ der
+Kundenseite zeigt dasselbe für die Apps des Kunden und startet dort einen Zugang; „Überblick“ und
+„Leistungen“ nennen die Support-Minuten des laufenden Monats.
 
 ## API
 

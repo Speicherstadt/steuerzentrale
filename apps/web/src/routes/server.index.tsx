@@ -1,157 +1,108 @@
 import { m } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
 import { createMemo, For, Loading, refresh, Show } from "solid-js";
-import { sperrzeitenDer } from "../daten/ableitungen.ts";
-import { aufServer, einmal, type InstallationAnsicht } from "../daten/installation-ansicht.ts";
+import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
-import { ansichtZustand, type ServerAnsicht } from "../daten/server-ansicht.ts";
-import type { Bestand } from "../daten/typen.ts";
-import { PLATTE_WARNUNG } from "../daten/zustand.ts";
+import { lastGemessen, type ServerZeile, serverZeilen } from "../daten/server-liste.ts";
+import { PLATTE_STOERUNG, PLATTE_WARNUNG } from "../daten/zustand.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { ServerHinzufuegen } from "../seiten/server-hinzufuegen.tsx";
-import { agentText } from "../seiten/server-texte.ts";
+import { appsText, artText, StandWorte } from "../seiten/server-zustand.tsx";
 import { Mini } from "../teile/balken.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuServer } from "../teile/verweise.tsx";
-import { AgentZeichen, ArtZeichen, ServerZeichen } from "../teile/zeichen.tsx";
 
 /**
- * Shared servers, servers of their own and servers at the customer, each with its agent and its
- * facts (BAULISTE.md Z-304) and the installations on it (Z-406), all from the Zentrale; the freeze
- * windows from the descriptions of the installed apps, the load only in the demo (Z-702).
+ * Every server in one table (BAULISTE.md Z-304; docs/plan.md, "Server und Kunden (Oberfläche
+ * 2026-11)"): its name and kind in words, its state in words with an icon, CPU and RAM where
+ * something measured them (the agent does not report them yet: the demo's values), how full its
+ * disk is from the agent's facts, its apps and their customers, and its operating system; what
+ * needs attention first, the whole row opens the server. In "Nur für mich" no customers are
+ * counted and no kind is named, as every server is the operator's own.
  */
 
 const Leer = () => <span class="text-xs text-muted-foreground">–</span>;
 
-const System = (props: { a: ServerAnsicht }) => (
-  <>
-    <Show
-      when={props.a.neustart}
-      fallback={
-        <span class="text-muted-foreground">
-          {props.a.updates === null
-            ? m.server_unbekannt()
-            : props.a.updates
-              ? m.server_updates_offen({ n: props.a.updates })
-              : m.server_aktuell()}
-        </span>
-      }
-    >
-      <span class="font-medium text-warn">{m.server_zustand_neustart()}</span>
+const Last = (props: { name: string; wert: number | null; grenze: number }) => (
+  <td>
+    <Show when={props.wert !== null} fallback={<Leer />}>
+      <Mini name={props.name} wert={props.wert ?? 0} grenze={props.grenze} />
     </Show>
-    <Show when={props.a.kernel.laeuft}>
-      {(k) => <span class="block text-muted-foreground">{m.server_kernel({ version: k() })}</span>}
-    </Show>
-  </>
+  </td>
 );
 
-const Zeile = (props: { b: Bestand; a: ServerAnsicht; installationen: InstallationAnsicht[] }) => {
-  const hier = () => aufServer(props.installationen, props.a.id);
-  const kunden = () => einmal(hier().map((i) => i.kundeName));
-  const sperren = () =>
-    sperrzeitenDer(
-      props.b,
-      hier().map((i) => i.app),
-    );
-  const unterzeile = () =>
-    [props.a.host, props.a.os, props.a.arch].filter(Boolean).join(" · ") || m.server_keine_fakten();
-  return (
-    <Reihe>
-      <td>
-        <ZuServer id={props.a.id}>
-          <span class="block font-medium whitespace-nowrap">{props.a.name}</span>
-          <span class="block font-mono text-xs whitespace-nowrap text-muted-foreground">
-            {unterzeile()}
-          </span>
-        </ZuServer>
-      </td>
-      <td>
-        <ArtZeichen art={props.a.art} />
-      </td>
-      <td>
-        <AgentZeichen zustand={props.a.agent.zustand} text={agentText(props.b, props.a)} />
-        <Show when={props.a.agent.version}>
-          {(v) => (
-            <span class="mt-1 block font-mono text-xs text-muted-foreground">
-              {m.server_agent_version({ version: v() })}
-            </span>
-          )}
-        </Show>
-      </td>
-      <td>
-        <ServerZeichen zustand={ansichtZustand(props.b, props.a)} />
-      </td>
-      <td class="text-xs">
-        <span class="font-medium tabular-nums">
-          {m.server_installationen_kunden({
-            n: hier().length,
-            kunden: kunden().length,
-          })}
+const Zeile = (props: { z: ServerZeile; mitLast: boolean; fuerKunden: boolean; jetzt: number }) => (
+  <Reihe class="relative [&>td]:align-middle">
+    <td>
+      <ZuServer
+        id={props.z.a.id}
+        class="block font-medium whitespace-nowrap after:absolute after:inset-0 after:content-['']"
+      >
+        {props.z.a.name}
+      </ZuServer>
+      <Show when={props.fuerKunden}>
+        <span class="block text-xs whitespace-nowrap text-muted-foreground">
+          {artText(props.z.a.art)}
         </span>
-        <span class="block max-w-[180px] truncate text-muted-foreground">
-          {kunden().join(", ")}
-        </span>
-      </td>
-      <td>
-        <Show when={props.a.demo}>
-          {(d) => (
-            <Mini
-              name={m.server_ram_von({ name: props.a.name })}
-              wert={d().ram}
-              grenze={PLATTE_WARNUNG}
-            />
-          )}
-        </Show>
-        <Show when={props.a.ramGb} fallback={<Leer />}>
-          {(gb) => (
-            <span class="text-xs text-muted-foreground">{m.einheit_gb({ wert: gb() })}</span>
-          )}
-        </Show>
-      </td>
-      <td>
-        <Show when={props.a.platte !== null} fallback={<Leer />}>
-          <Mini
-            name={m.server_platte_von({ name: props.a.name })}
-            wert={props.a.platte ?? 0}
-            grenze={PLATTE_WARNUNG}
-          />
-        </Show>
-      </td>
-      <td class="text-xs whitespace-nowrap">
-        <System a={props.a} />
-      </td>
-      <td class="text-xs whitespace-nowrap tabular-nums">
-        {props.a.wartung.von}–{props.a.wartung.bis}
-        <Show when={sperren().length > 0}>
-          <span class="block text-muted-foreground">
-            {m.server_sperrzeit({
-              apps: sperren()
-                .map((z) => z.appName)
-                .join(", "),
-            })}
-          </span>
-        </Show>
-      </td>
-    </Reihe>
-  );
-};
+      </Show>
+    </td>
+    <td class="whitespace-nowrap">
+      <StandWorte stand={props.z.stand} jetzt={props.jetzt} />
+    </td>
+    <Show when={props.mitLast}>
+      <Last
+        name={m.server_cpu_von({ name: props.z.a.name })}
+        wert={props.z.cpu}
+        grenze={PLATTE_STOERUNG}
+      />
+      <Last
+        name={m.server_ram_von({ name: props.z.a.name })}
+        wert={props.z.ram}
+        grenze={PLATTE_STOERUNG}
+      />
+    </Show>
+    <Last
+      name={m.server_platte_von({ name: props.z.a.name })}
+      wert={props.z.a.platte}
+      grenze={PLATTE_WARNUNG}
+    />
+    <td class="whitespace-nowrap">
+      {appsText(
+        props.z.apps,
+        props.fuerKunden && props.z.a.art === "gemeinsam" ? props.z.kunden : null,
+      )}
+    </td>
+    <td class="whitespace-nowrap text-muted-foreground">
+      {props.z.a.os ?? m.server_keine_fakten()}
+    </td>
+  </Reihe>
+);
 
 const ServerListe = () => {
-  const b = bestand();
   const antwort = createMemo(() => uebersichtLaden());
-  const daten = () => {
+  const art = createMemo(() => betriebsartLesen());
+  const zeilen = createMemo(() => {
     const a = antwort();
-    return a.ok ? a.daten : { installationen: [], server: [] };
-  };
-  const liste = () => daten().server;
+    return a.ok ? serverZeilen(bestand(), a.daten.server, a.daten.installationen) : [];
+  });
   const fehler = () => {
     const a = antwort();
     return a.ok ? "" : fehlerText(a);
   };
+  const spalten = () => [
+    { name: m.server_spalte_server() },
+    { name: m.server_spalte_zustand() },
+    ...(lastGemessen(zeilen())
+      ? [{ name: m.server_spalte_cpu() }, { name: m.server_spalte_ram() }]
+      : []),
+    { name: m.server_spalte_platte() },
+    { name: m.nav_apps() },
+    { name: m.server_spalte_system() },
+  ];
   return (
-    <div class="grid gap-6">
+    <div class="grid grid-cols-[minmax(0,1fr)] gap-6">
       <Seitenkopf
         titel={m.nav_server()}
         text={m.server_text()}
@@ -161,23 +112,20 @@ const ServerListe = () => {
         <Fehler text={fehler()} />
         <Tabelle
           name={m.server_tabelle()}
-          minBreite={1120}
+          minBreite={lastGemessen(zeilen()) ? 1040 : 820}
           leer={m.server_keine()}
-          anzahl={liste().length}
-          spalten={[
-            { name: m.server_spalte_server() },
-            { name: m.server_spalte_art() },
-            { name: m.server_spalte_agent() },
-            { name: m.server_spalte_zustand() },
-            { name: m.nav_apps() },
-            { name: m.server_spalte_ram() },
-            { name: m.server_spalte_platte() },
-            { name: m.server_spalte_system() },
-            { name: m.server_spalte_wartung() },
-          ]}
+          anzahl={zeilen().length}
+          spalten={spalten()}
         >
-          <For each={liste()}>
-            {(a) => <Zeile b={b} a={a} installationen={daten().installationen} />}
+          <For each={zeilen()}>
+            {(z) => (
+              <Zeile
+                z={z}
+                mitLast={lastGemessen(zeilen())}
+                fuerKunden={!nurFuerMich(art())}
+                jetzt={bestand().jetzt}
+              />
+            )}
           </For>
         </Tabelle>
       </Loading>

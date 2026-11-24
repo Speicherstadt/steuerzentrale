@@ -249,3 +249,78 @@ describe("the servers of the operator", () => {
     expect((await technik.json(pfad, { body: { grund: "x" } })).status).toBe(200);
   });
 });
+
+type Stunden = { stunden: { stunde: number; platten: { mount: string; prozent: number }[] }[] };
+
+// The tab "Auslastung" of a server's page: how full its disks were, per hour from its facts
+describe("GET /api/v1/server/:serverId/platten", () => {
+  const STUNDE = 3_600_000;
+  const nachricht = VOM_AGENTEN_V1.find((n) => n.typ === "fakten") as Record<string, unknown>;
+  const melden = (
+    server: ReturnType<typeof testServer>,
+    betreiberId: string,
+    serverId: string,
+    zeitpunkt: number,
+    freiMb: number,
+  ) =>
+    faktenAnfuegen(server.deps.schreibDb, {
+      betreiberId,
+      serverId,
+      zeitpunkt,
+      daten: JSON.stringify({ ...nachricht, platten: [{ mount: "/", gesamtMb: 1000, freiMb }] }),
+    });
+
+  it("gives the fullest reading of each hour of the last 30 days, oldest first", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const { serverId } = await serverHinzufuegen(inhaber);
+    const jetzt = server.jetzt();
+    melden(server, inhaber.betreiberId, serverId, jetzt - 31 * 24 * STUNDE, 900);
+    melden(server, inhaber.betreiberId, serverId, jetzt - 2 * STUNDE, 600);
+    melden(server, inhaber.betreiberId, serverId, jetzt, 500);
+    const { status, daten } = await inhaber.json(`/api/v1/server/${serverId}/platten`);
+    expect(status).toBe(200);
+    expect((daten as Stunden).stunden.map((s) => s.platten)).toEqual([
+      [{ mount: "/", prozent: 40 }],
+      [{ mount: "/", prozent: 50 }],
+    ]);
+    const tag = (await inhaber.json(`/api/v1/server/${serverId}/platten?tage=1`)).daten;
+    expect((tag as Stunden).stunden).toHaveLength(2);
+  });
+
+  it("refuses a number of days that is not 1 to 30", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const { serverId } = await serverHinzufuegen(inhaber);
+    for (const tage of ["0", "31", "x", "-1", "1.5"])
+      expect((await inhaber.json(`/api/v1/server/${serverId}/platten?tage=${tage}`)).status).toBe(
+        400,
+      );
+  });
+
+  it("shows no operator another's server or readings", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
+    const { serverId } = await serverHinzufuegen(inhaber);
+    const eigener = await serverHinzufuegen(partner);
+    // a reading of the partner under the id of the owner's server, and the other way round
+    melden(server, partner.betreiberId, serverId, server.jetzt(), 100);
+    melden(server, inhaber.betreiberId, eigener.serverId, server.jetzt(), 100);
+    melden(server, inhaber.betreiberId, serverId, server.jetzt(), 500);
+    expect((await partner.json(`/api/v1/server/${serverId}/platten`)).status).toBe(404);
+    const eigen = (await inhaber.json(`/api/v1/server/${serverId}/platten`)).daten as Stunden;
+    expect(eigen.stunden.map((s) => s.platten)).toEqual([[{ mount: "/", prozent: 50 }]]);
+    const fremd = (await partner.json(`/api/v1/server/${eigener.serverId}/platten`))
+      .daten as Stunden;
+    expect(fremd.stunden).toEqual([]);
+  });
+
+  it("is read by every role that reads the servers", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const support = await server.eingeladen(inhaber, "support");
+    const { serverId } = await serverHinzufuegen(inhaber);
+    expect((await support.json(`/api/v1/server/${serverId}/platten`)).status).toBe(200);
+  });
+});

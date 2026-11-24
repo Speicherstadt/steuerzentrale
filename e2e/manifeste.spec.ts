@@ -99,13 +99,16 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
       };
       expect(await versionen()).toEqual(["1.0.0"]);
 
-      await page.getByRole("button", { name: "Als intern markieren" }).click();
+      await page.getByRole("button", { name: "Mehr …" }).click();
+      await page.getByRole("menuitem", { name: "Als intern markieren" }).click();
       const dialog = page.getByRole("dialog", { name: `${kunde.name} als intern markieren` });
       await dialog.getByLabel("Grund").fill("unsere eigene Installation");
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Als intern markieren" }).click();
       await expect(dialog).toBeHidden();
-      await expect(page.getByRole("button", { name: "Nicht mehr intern" })).toBeVisible();
+      await page.getByRole("button", { name: "Mehr …" }).click();
+      await expect(page.getByRole("menuitem", { name: "Nicht mehr intern" })).toBeVisible();
+      await page.keyboard.press("Escape");
       await expect(page.locator("main")).toContainText("Welle");
       expect(await versionen()).toEqual(["2.0.0-rc.1", "1.0.0"]);
 

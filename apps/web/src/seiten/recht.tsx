@@ -24,6 +24,9 @@ const recht = (pruefen: (rolle: Rolle) => boolean): (() => boolean) => {
  */
 export const installationsRecht = (): (() => boolean) => recht(darfInstallieren);
 
+/** Whether the signed-in role is the owner: marks a customer as internal (Z-501) */
+export const inhaberRecht = (): (() => boolean) => recht(darfInternMarkieren);
+
 /** Whether the signed-in role reads the audit log (the tab "Änderungen" of the Protokoll) */
 export const auditRecht = (): (() => boolean) => recht(darfAuditLesen);
 

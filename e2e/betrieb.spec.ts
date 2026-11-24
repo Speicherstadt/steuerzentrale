@@ -91,7 +91,7 @@ test.describe("real data", { tag: "@phone" }, () => {
     try {
       await page.goto(`/server/${i.agent.serverId}`);
       await expect(
-        page.getByRole("link", { name: new RegExp(`${i.kunde.name} · probe`) }),
+        page.getByRole("link", { name: new RegExp(`probe.* · ${i.kunde.name}`) }),
       ).toBeVisible();
       await ohneBefund(page);
       await page.goto(`/kunden/${i.kunde.id}`);

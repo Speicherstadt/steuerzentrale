@@ -65,17 +65,22 @@ const TEXT: Record<ReturnType<typeof stufeVon>, string> = {
   gut: "text-muted-foreground",
 };
 
+/** The icon of a state alone, where its words stand elsewhere or are not needed */
+export const ZustandIcon = (props: { z: AppZustand }) => (
+  <Icon
+    icon={ZEICHEN[stufeVon(props.z)].icon}
+    size={15}
+    class={`shrink-0 ${ZEICHEN[stufeVon(props.z)].farbe}`}
+  />
+);
+
 /**
  * Icon and words of a state; the icon repeats the words, so it is hidden from screen readers.
  * `satz`: the head of an app's page, where a well-running app says so in a sentence
  */
 export const ZustandWorte = (props: { z: AppZustand; satz?: string }) => (
   <span class="inline-flex items-center gap-1.5">
-    <Icon
-      icon={ZEICHEN[stufeVon(props.z)].icon}
-      size={15}
-      class={`shrink-0 ${ZEICHEN[stufeVon(props.z)].farbe}`}
-    />
+    <ZustandIcon z={props.z} />
     <span class={props.satz ? "" : TEXT[stufeVon(props.z)]}>
       {props.satz ?? zustandText(props.z)}
     </span>

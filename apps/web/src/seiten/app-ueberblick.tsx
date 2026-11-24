@@ -1,28 +1,17 @@
-import type { JSX } from "@solidjs/web";
-import { Button, Icon, m } from "@steuerzentrale/ui";
-import {
-  Activity,
-  Archive,
-  CircleCheck,
-  Globe,
-  HardDrive,
-  type IconNode,
-  RefreshCw,
-  TriangleAlert,
-} from "@steuerzentrale/ui/icons";
+import { Button, m } from "@steuerzentrale/ui";
+import { Activity, Archive, Globe, HardDrive, RefreshCw } from "@steuerzentrale/ui/icons";
 import { Link } from "@tanstack/solid-router";
-import { createMemo, createSignal, For, Loading, refresh, Show } from "solid-js";
+import { createMemo, createSignal, Loading, refresh, Show } from "solid-js";
 import { appsQuelle } from "../daten/apps.ts";
 import { type AussenDerInstallation, aussenQuelle } from "../daten/aussen.ts";
 import { laufBytes } from "../daten/backups.ts";
-import { betriebQuelle } from "../daten/betrieb.ts";
 import type { Einzelansicht } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
-import { datum, zeitpunkt } from "../format/zeit.ts";
+import { datum } from "../format/zeit.ts";
 import { slaName } from "../rahmen/texte.ts";
 import { Angaben, Karte } from "../teile/karte.tsx";
+import { Gut, Punkt, Urteil } from "../teile/punkte.tsx";
 import { ZuKunde, ZuServer } from "../teile/verweise.tsx";
-import { Zustand } from "../teile/zeichen.tsx";
 import {
   aussenZeile,
   backupZeile,
@@ -38,6 +27,7 @@ import { BackupJetzt, backupsLaden } from "./installation-backups.tsx";
 import { aktionsText, auftragsZustandText } from "./installieren-texte.ts";
 import { MitInstallationsRecht } from "./recht.tsx";
 import { UpdateDialog } from "./update-dialog.tsx";
+import { Zuletzt } from "./zuletzt.tsx";
 
 /*
  * The tab "Überblick" of an app (docs/plan.md, "Navigation (Oberfläche 2026-11)"): five rows, each
@@ -46,42 +36,6 @@ import { UpdateDialog } from "./update-dialog.tsx";
  * availability of this and the last month (Z-704) and the server (Z-304); beside them the customer
  * and the last three events of the app (Z-406).
  */
-
-const Gut = () => <Zustand icon={CircleCheck} farbe="text-ok" text={m.app_in_ordnung()} />;
-const Pruefen = () => (
-  <Zustand icon={TriangleAlert} farbe="text-warn" text={m.pruefung_pruefen()} />
-);
-
-/** A mark for a judgement: in order, to look at, or nothing to judge */
-const Urteil = (props: { ok: boolean | null }) => (
-  <Show when={props.ok !== null}>
-    <Show when={props.ok} fallback={<Pruefen />}>
-      <Gut />
-    </Show>
-  </Show>
-);
-
-/** One row: icon, title, one line, and on the right a mark or what to do */
-const Punkt = (props: {
-  icon: IconNode;
-  titel: string;
-  text: string;
-  testid: string;
-  rechts?: JSX.Element;
-}) => (
-  <li class="flex flex-wrap items-center gap-3 py-3.5 sm:flex-nowrap" data-testid={props.testid}>
-    <span class="flex size-8 shrink-0 items-center justify-center rounded-md border">
-      <Icon icon={props.icon} />
-    </span>
-    <div class="min-w-0 flex-1">
-      <p class="font-medium">{props.titel}</p>
-      <p class="break-words text-muted-foreground">{props.text}</p>
-    </div>
-    <Show when={props.rechts}>
-      <div class="ml-11 shrink-0 sm:ml-0">{props.rechts}</div>
-    </Show>
-  </li>
-);
 
 const Erreichbar = (props: { a: Einzelansicht; d: AussenDerInstallation | undefined }) => {
   const z = () => aussenZeile(props.d?.aussen ?? null, bestand().jetzt);
@@ -230,57 +184,26 @@ const KundeKarte = (props: { a: Einzelansicht }) => (
   </Karte>
 );
 
-const Zuletzt = (props: { a: Einzelansicht }) => {
-  const antwort = createMemo(() =>
-    betriebQuelle().ereignisse({ ziel: [`installation:${props.a.id}`] }),
-  );
-  // its events and its jobs (setup, removal) together, the newest three
-  const eintraege = () => {
-    const r = antwort();
-    const ereignisse = r.ok
-      ? r.daten.eintraege.map((e) => ({ zeitpunkt: e.zeitpunkt, text: e.text }))
-      : [];
-    const auftraege = props.a.auftraege.map((x) => ({
+/** Its events and its jobs (setup, removal) together, the newest three */
+const AppZuletzt = (props: { a: Einzelansicht }) => (
+  <Zuletzt
+    ziele={[`installation:${props.a.id}`]}
+    dazu={props.a.auftraege.map((x) => ({
       zeitpunkt: x.geaendertAm,
       text: `${aktionsText(x.aktion)}: ${auftragsZustandText(x.zustand)}`,
-    }));
-    return [...ereignisse, ...auftraege].sort((x, y) => y.zeitpunkt - x.zeitpunkt).slice(0, 3);
-  };
-  return (
-    <Karte>
-      <div class="grid gap-1 p-5 pb-2">
-        <h2 class="font-semibold leading-none">{m.app_zuletzt()}</h2>
-      </div>
-      <Loading fallback={<p class="px-5 pb-5 text-muted-foreground">{m.ereig_laden()}</p>}>
-        <ul class="divide-y px-5" data-testid="zuletzt">
-          <For
-            each={eintraege()}
-            fallback={<li class="py-3 text-muted-foreground">{m.ereignisse_keine()}</li>}
-          >
-            {(e) => (
-              <li class="grid grid-cols-[8rem_minmax(0,1fr)] gap-3 py-3">
-                <span class="text-xs text-muted-foreground tabular-nums">
-                  {zeitpunkt(e.zeitpunkt, bestand().jetzt)}
-                </span>
-                <span class="break-words">{e.text}</span>
-              </li>
-            )}
-          </For>
-        </ul>
-      </Loading>
-      <div class="border-t px-5 py-3">
-        <Link
-          to="/apps/$id"
-          params={{ id: props.a.id }}
-          search={{ tab: "verlauf" }}
-          class="underline underline-offset-4"
-        >
-          {m.app_ganzer_verlauf()}
-        </Link>
-      </div>
-    </Karte>
-  );
-};
+    }))}
+    link={
+      <Link
+        to="/apps/$id"
+        params={{ id: props.a.id }}
+        search={{ tab: "verlauf" }}
+        class="underline underline-offset-4"
+      >
+        {m.app_ganzer_verlauf()}
+      </Link>
+    }
+  />
+);
 
 export const AppUeberblick = (props: {
   a: Einzelansicht;
@@ -318,7 +241,7 @@ export const AppUeberblick = (props: {
         <Show when={props.fuerKunden}>
           <KundeKarte a={props.a} />
         </Show>
-        <Zuletzt a={props.a} />
+        <AppZuletzt a={props.a} />
       </div>
       <UpdateDialog
         i={angebot()}

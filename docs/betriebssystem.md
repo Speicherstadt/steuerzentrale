@@ -15,8 +15,9 @@ Servers, nie in einer Sperrzeit einer App auf ihm und nie ohne Backup davor.
 
 ## Was die Seite eines Servers zeigt
 
-Die Karte **Wartung** zeigt, was der Agent mit seinen Fakten meldet (beim Verbinden und alle 15
-Minuten):
+Im Reiter **Überblick** fasst die Zeile „Betriebssystem“ zusammen: System, ob Sicherheitsupdates
+offen sind und ob ein Neustart nötig ist. Im Reiter **Technik** zeigt die Karte **Wartung**, was der
+Agent mit seinen Fakten meldet (beim Verbinden und alle 15 Minuten):
 
 | Zeile | Woher |
 | --- | --- |

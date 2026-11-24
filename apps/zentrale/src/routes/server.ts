@@ -1,3 +1,4 @@
+import { PLATTEN_TAGE_MAX } from "@steuerzentrale/planung";
 import { TRENNUNG } from "@steuerzentrale/protokoll";
 import { z } from "zod";
 import { kundeLesen } from "../modules/kunden/index.ts";
@@ -6,6 +7,7 @@ import { pruefungenLesen } from "../modules/pruefungen/index.ts";
 import {
   ARTEN,
   letzteHeartbeats,
+  plattenVerlauf,
   type Server,
   serverAnlegen,
   serverFakten,
@@ -41,6 +43,14 @@ const anlegenSchema = z
   .refine((s) => (s.art === "gemeinsam") === (s.kundeId === undefined), {
     message: "kundeId with eigen and beim_kunden only",
   });
+
+/** `tage` as a whole number from 1 to the days the facts are kept, all of them without it */
+const tageAusText = (text: string | undefined): number | undefined => {
+  if (text === undefined) return PLATTEN_TAGE_MAX;
+  if (!/^\d{1,2}$/.test(text)) return undefined;
+  const tage = Number(text);
+  return tage >= 1 && tage <= PLATTEN_TAGE_MAX ? tage : undefined;
+};
 
 const grundSchema = z.object({ grund: z.string().trim().min(1).max(500) }).strict();
 
@@ -99,6 +109,23 @@ const STATUS: Record<string, 404 | 409 | 422> = {
   backup_fehlt: 409,
   sperrzeit: 409,
   nicht_ausfuehrbar: 422,
+};
+
+/**
+ * How full a server's disks were (the tab "Auslastung" of its page): per hour from the history of
+ * its facts, only of a server of the session's operator; any other is 404
+ */
+export const serverPlattenRouten = (route: Registrar, deps: RoutenDeps): void => {
+  route("GET /api/v1/server/:serverId/platten", (c) => {
+    const betreiberId = c.get("betreiberId");
+    const tage = tageAusText(c.req.query("tage"));
+    if (tage === undefined) return c.json({ fehler: "ungueltig" }, 400);
+    const sv = serverLesen(deps.db, betreiberId, c.req.param("serverId") ?? "");
+    if (!sv) return c.json({ fehler: "kein_server" }, 404);
+    return c.json({
+      stunden: plattenVerlauf(deps.db, betreiberId, sv.serverId, tage, deps.now()),
+    });
+  });
 };
 
 export const serverRouten = (route: Registrar, deps: RoutenDeps): void => {

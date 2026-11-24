@@ -70,9 +70,12 @@ Neustart der Zentrale wiederholt und vergisst keinen. Jedes Ereignis nennt den S
 - **Übersicht**: jede rote Prüfung als Störung, jede gelbe als Warnung, mit dem Server und was
   auffiel; der Eintrag führt zum Server ([Übersicht und Betrieb](uebersicht.md)). Unbekannte Prüfungen
   stehen dort nicht: meist ist der Agent still oder getrennt, und das hat seinen eigenen Eintrag.
-- **Server-Seite**: die Karte „Prüfungen“ mit jeder Prüfung, ihrem Messwert und „OK“ oder „Prüfen“;
-  ist der Agent still, steht nur der letzte bekannte Stand da, ohne Urteil. Was der Agent über das
-  Betriebssystem meldet (unattended-upgrades, ausstehende Pakete, „Neustart nötig“), steht in der
-  Karte „Wartung“ ([Betriebssystem und Neustarts](betriebssystem.md)).
+- **Server-Seite**: im Reiter „Überblick“ die Zeile „Prüfungen“, „9 von 9 in Ordnung“ mit den Namen
+  oder jede auffällige Prüfung mit ihrem Messwert; im Reiter „Technik“ die Karte „Prüfungen“ mit
+  jeder Prüfung, ihrem Messwert und „OK“ oder „Prüfen“. Ist der Agent still, steht nur der letzte
+  bekannte Stand da, ohne Urteil. Was der Agent über das Betriebssystem meldet (unattended-upgrades,
+  ausstehende Pakete, „Neustart nötig“), steht in der Karte „Wartung“ daneben
+  ([Betriebssystem und Neustarts](betriebssystem.md)).
+- **Seite „Server“**: der Zustand jedes Servers in Worten, eine volle Platte zuerst.
 - **API**: `GET /api/v1/server/<id>` liefert `pruefungen`, je Prüfung Ergebnis, Messwerte und `seit`
   (der Beginn des offenen Befunds oder `null`).

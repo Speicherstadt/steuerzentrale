@@ -1,4 +1,10 @@
-import { neustartPruefen } from "@steuerzentrale/planung";
+import {
+  neustartPruefen,
+  type PlattenStunde,
+  plattenVon,
+  STUNDE_MS,
+  stundeVon,
+} from "@steuerzentrale/planung";
 import type {
   NeustartStand,
   ServerDerZentrale,
@@ -74,6 +80,23 @@ export const demoFakten = (sv: Server, jetzt: number): ServerFakten => {
   };
 };
 
+/**
+ * How full the demo server's disk was, hour by hour up to its last report: it grew by a twelfth
+ * of today's share over 30 days, a little up and down with the day
+ */
+export const demoPlatten = (sv: Server, tage: number, bis: number): PlattenStunde[] => {
+  const ende = stundeVon(bis);
+  const dauer = 30 * 24 * STUNDE_MS;
+  const stunden: PlattenStunde[] = [];
+  for (let stunde = plattenVon(tage, bis); stunde <= ende; stunde += STUNDE_MS) {
+    const rest = (ende - stunde) / dauer;
+    const tag = Math.sin(((ende - stunde) / (24 * STUNDE_MS)) * 2 * Math.PI) * 0.3;
+    const prozent = Math.round((sv.platte * (1 - rest / 12) + tag) * 10) / 10;
+    stunden.push({ stunde, platten: [{ mount: "/", prozent: Math.min(100, prozent) }] });
+  }
+  return stunden;
+};
+
 /** Where the demo server's reboot stands, as the Zentrale's plan would decide it now */
 const demoNeustart = (sv: Omit<ServerDerZentrale, "neustart">, jetzt: number): NeustartStand => ({
   noetig: sv.fakten?.neustartNoetig ?? null,
@@ -143,6 +166,12 @@ export const demoServerQuelle = (start: Server[], jetzt: () => number): ServerQu
         seit: null,
       }));
       return ok({ ...sv, pruefungen });
+    },
+    platten: async (id, tage) => {
+      const sv = liste.find((s) => s.serverId === id);
+      const roh = start.find((s) => s.id === id);
+      if (!sv || !roh) return fehlt;
+      return ok(demoPlatten(roh, tage, sv.faktenAm ?? jetzt()));
     },
     neustart: async (id) => {
       const sv = liste.find((s) => s.serverId === id);

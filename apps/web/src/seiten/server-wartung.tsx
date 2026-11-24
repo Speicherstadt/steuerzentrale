@@ -143,13 +143,10 @@ export const NeustartKnopf = (props: { a: ServerAnsicht; neu: () => void }) => {
   );
 };
 
-export const Wartung = (props: Hier & { neu: () => void }) => (
+/** The card of the tab "Technik"; the button "Neu starten" stands in the page's head */
+export const Wartung = (props: Hier) => (
   <Karte>
-    <KartenKopf
-      titel={m.server_wartung()}
-      text={m.server_wartung_text()}
-      aktion={<NeustartKnopf a={props.a} neu={() => props.neu()} />}
-    />
+    <KartenKopf titel={m.server_wartung()} text={m.server_wartung_text()} />
     <KartenInhalt class="grid gap-4">
       <Angaben zeilen={systemZeilen(props)} />
       <div class="border-t pt-4">

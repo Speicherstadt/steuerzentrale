@@ -49,8 +49,8 @@ kuerzel_fest`); der Dialog zeigt das Feld dann gesperrt. Die Adresse einer beste
 Ein Kunde kann **intern** sein: das sind wir selbst, mit einer eigenen Installation jeder App. Seine
 Installationen bilden die Welle „intern“ ([Updates](updates.md)) und bekommen als einzige eine
 Vorabversion angeboten ([Manifeste und Versionen](manifeste.md)). Markieren oder die Markierung
-aufheben darf nur der Inhaber, mit Grund, auf der Kundenseite („Als intern markieren“,
-„Nicht mehr intern“). Die Kundenseite bietet einem internen Kunden keine Kündigung an.
+aufheben darf nur der Inhaber, mit Grund, auf der Kundenseite unter „Mehr …“ („Als intern
+markieren“, „Nicht mehr intern“). Die Kundenseite bietet einem internen Kunden keine Kündigung an.
 
 ## Kündigung
 
@@ -169,9 +169,21 @@ Fehler: `400 ungueltig` (Feld fehlt oder passt nicht, auch ohne Grund oder mit e
 nicht um 00:00 in Berlin beginnt), `404 kein_kunde`,
 `409 ende_vor_beginn`.
 
-## Was noch fehlt
+## Die Seite eines Kunden
 
-Die Kundenseite zeigt die Installationen eines Kunden erst mit Z-406; bis dahin kommen
-Installationen, Ereignisse und Support-Zugänge aus den Demodaten, und ein Kunde der Zentrale hat
-noch keine. `bun run dev:demo` zeigt Kunden aus den Demodaten; was man dort anlegt oder ändert,
-bleibt bis zum Neuladen der Seite im Browser.
+Im Kopf stehen Name, die Apps in einem Satz („3 Apps, alle laufen“) und der Vertrag („Basis-Vertrag
+seit 14.03.2026“), daneben **App installieren**, **Ändern** und unter **Mehr …** „Kündigen …“ und
+„Als intern markieren“. Nach einer Kündigung steht darunter das Vertragsende mit dem Tag der
+Löschung und **Kündigung zurücknehmen**. Die Reiter stehen in der Adresse (`?tab=`):
+
+| Reiter | Inhalt | Woher |
+| --- | --- | --- |
+| Überblick | die Apps mit Adresse, Version, Server und Zustand; „Dieser Monat“ (Apps, Daten, Verfügbarkeit, Support); Vertrag und Kontakt | `GET /api/v1/installationen`, `/leistungen` des laufenden Monats, der Kunde |
+| Support | die Support-Zugänge zu seinen Apps, laufend und beendet, und „Zugang starten“ | `GET /api/v1/support-zugaenge?kundeId=…` |
+| Leistungen | die Verfügbarkeit jeder App und aller zusammen in den letzten sechs Monaten, unter 99,9 % gelb, ein Monat ohne Prüfung leer; was der Vertrag enthält mit Support und Daten des Monats | `GET /api/v1/installationen/<id>/aussen` je App, `/leistungen` |
+| Verlauf | die Ereignisse seiner Apps | `GET /api/v1/ereignisse` |
+
+„Alle zusammen“ ist der Anteil aller gemessenen Minuten der Apps, so zählt eine App mit wenigen
+Minuten weniger. In der Betriebsart „Nur für mich“ gibt es keine Kundenseiten im Menü.
+`bun run dev:demo` zeigt Kunden aus den Demodaten; was man dort anlegt oder ändert, bleibt bis zum
+Neuladen der Seite im Browser.
