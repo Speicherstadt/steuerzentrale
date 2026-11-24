@@ -174,7 +174,9 @@ startet nur Befehle mit festen Argumenten, keine Shell:
 | Zeitdienst synchron | `timedatectl show --property=NTPSynchronized --value` |
 
 Die Zentrale zeigt die neuesten Fakten am Server (Oberfläche und `GET /api/v1/server`) und bewahrt
-ihren Verlauf 30 Tage auf. Die Platzierung und die [Prüfungen](pruefungen.md) rechnen mit genau
+ihren Verlauf 30 Tage auf. Aus diesem Verlauf zeigt der Reiter „Auslastung“ eines Servers, wie voll
+jede Platte war (`GET /api/v1/server/<id>/platten?tage=30`: je Stunde und Mountpunkt der höchste
+Wert, 1 bis 30 Tage, für jede Rolle, die Server liest). Die Platzierung und die [Prüfungen](pruefungen.md) rechnen mit genau
 diesen Werten; für die Platzierung zählt als Platte die, auf der die Home-Verzeichnisse der
 Installationen liegen. Zum Nachsehen auf dem Server zeigt `steuerzentrale-agent fakten` dieselben
 Fakten.

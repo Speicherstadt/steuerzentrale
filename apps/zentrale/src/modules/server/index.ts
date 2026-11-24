@@ -16,6 +16,7 @@ export {
   serverFakten,
 } from "./fakten.ts";
 export { letzteHeartbeats, serverListe } from "./liste.ts";
+export { plattenVerlauf } from "./platten.ts";
 export {
   neuesZertifikatUebernehmen,
   type Rotiert,

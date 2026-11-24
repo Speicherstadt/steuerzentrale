@@ -181,7 +181,13 @@ describe("pages", () => {
   it("claim no check as OK on a server whose agent is silent", async () => {
     // kraft: agent silent for 6 minutes, the checks run every 5; as on the installation page,
     // the last known values are no fresh check (no green without a check)
-    const root = await oeffne("/server/kraft");
+    const ueberblick = await oeffne("/server/kraft");
+    const zeile = ueberblick.querySelector("[data-testid=pruefungen]");
+    expect(zeile?.textContent).toContain("Agent still: letzter bekannter Stand");
+    expect(zeile?.textContent).not.toContain("in Ordnung");
+    expect(zeile?.textContent).not.toContain("Prüfen");
+    dispose();
+    const root = await oeffne("/server/kraft?tab=technik");
     const karte = [...root.querySelectorAll("main section")].find(
       (s) => s.querySelector("h2")?.textContent === "Prüfungen",
     );
@@ -302,6 +308,7 @@ describe("servers of the Zentrale", () => {
         const sv = liste.find((s) => s.serverId === id);
         return sv ? { ok: true, status: 200, daten: sv } : { ok: false, status: 404, fehler: "x" };
       },
+      platten: async () => ({ ok: true, status: 200, daten: [] }),
       sperren: async () => ({ ok: false, status: 409, fehler: "x" }),
       neustart: async () => ({ ok: false, status: 409, fehler: "x" }),
     });
@@ -316,16 +323,25 @@ describe("servers of the Zentrale", () => {
     flush();
     await new Promise((fertig) => setTimeout(fertig, 0));
     const neu = zeileVon(root, "Neuer Server");
-    expect(neu).toContain("neu.example.org · Debian GNU/Linux 13 · arm64");
-    expect(neu).toContain("Neustart");
+    expect(neu).toContain("für mehrere Kunden");
+    expect(neu).toContain("Debian GNU/Linux 13");
+    expect(neu).toContain("Neustart nötig");
     expect(neu).toContain("50 %");
+    // CPU and RAM come from no source of the Zentrale: no such columns
+    expect([...root.querySelectorAll("main thead th")].map((th) => th.textContent)).toEqual([
+      "Server",
+      "Zustand",
+      "Platte",
+      "Apps",
+      "System",
+    ]);
     const leer = zeileVon(root, "Leerer Server");
     expect(leer).toContain("noch keine Fakten");
     expect(leer).toContain("noch keine Meldung");
   });
 
   it("show the facts on the server page", async () => {
-    const root = await oeffne("/server/s-fakten");
+    const root = await oeffne("/server/s-fakten?tab=technik");
     flush();
     await new Promise((fertig) => setTimeout(fertig, 0));
     expect(ueberschrift(root)).toBe("Neuer Server");
@@ -342,6 +358,8 @@ describe("servers of the Zentrale", () => {
       "Neustart nötigja, für Kernel 6.12.48+deb13-arm64",
       "Nächster Neustartwartet auf das Ende einer Sperrzeit",
       "Letzter Neustartgescheitert: Neustart nicht erfolgt: Agent neu gestartet",
+      "neu.example.org",
+      "Debian GNU/Linux 13, arm64",
     ])
       expect(text).toContain(teil);
     expect(text).not.toContain("Prüfungen");
@@ -370,7 +388,7 @@ describe("servers of the Zentrale", () => {
       ...serverQuelle(),
       server: async () => ({ ok: true, status: 200, daten: mitPruefungen }),
     });
-    const root = await oeffne("/server/s-pruefungen");
+    const root = await oeffne("/server/s-pruefungen?tab=technik");
     flush();
     await new Promise((fertig) => setTimeout(fertig, 0));
     const karte = [...root.querySelectorAll("section")].find((s) =>

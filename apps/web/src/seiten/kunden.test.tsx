@@ -7,6 +7,7 @@ import { apiKunden, kundenQuelleEinsetzen } from "../daten/kunden.ts";
 import { kunden } from "../demo/kunden.ts";
 import { demoKunden } from "../demo/kunden-quelle.ts";
 import { routeTree } from "../routeTree.gen.ts";
+import { menuePunkt } from "./test-dom.tsx";
 
 // BAULISTE.md Z-801: the customer pages create, change and give notice through their dialogs, each
 // with a reason, against the demo source; with the API source they show what the Zentrale answers
@@ -79,7 +80,8 @@ describe("the customer pages", () => {
     });
     expect(router.state.location.pathname).toMatch(/^\/kunden\/[\w-]+$/);
     expect(ueberschrift(root)).toBe("Muster Design");
-    expect(root.textContent).toContain("Kunde seit 01.12.2026");
+    expect(root.textContent).toContain("noch keine App");
+    expect(root.textContent).toContain("Basis-Vertrag seit 01.12.2026");
   });
 
   it("change a customer's details", async () => {
@@ -93,7 +95,7 @@ describe("the customer pages", () => {
 
   it("give notice with the day of deletion, and take it back", async () => {
     const { root } = await oeffne("/kunden/atelier-nord");
-    knopf(root, "Kündigen …").click();
+    menuePunkt(root, "Kündigen …")?.click();
     flush();
     await ausfuellen(root, { Vertragsende: "2026-11-30", Grund: "Mail vom 18.11." });
     expect(root.textContent).toContain("Gekündigt zum 30.11.2026");
@@ -103,11 +105,12 @@ describe("the customer pages", () => {
     await ausfuellen(root, { Grund: "Kunde bleibt" });
     expect(root.textContent).not.toContain("Gekündigt zum");
     expect(root.textContent).toContain("ungekündigt");
+    expect(menuePunkt(root, "Kündigen …")).toBeDefined();
   });
 
   it("keep the dialog open with the Zentrale's error", async () => {
     const { root } = await oeffne("/kunden/atelier-nord");
-    knopf(root, "Kündigen …").click();
+    menuePunkt(root, "Kündigen …")?.click();
     flush();
     await ausfuellen(root, { Vertragsende: "2020-01-01", Grund: "zu früh" });
     expect(root.querySelector("dialog[open] [role=alert]")?.textContent).toBe(
@@ -146,7 +149,7 @@ describe("a customer's short name (Z-407)", () => {
       Vertragsbeginn: "2026-12-01",
       Grund: "Vertrag vom 20.11.",
     });
-    expect(root.textContent).toContain("Kürzel mueller-soehne");
+    expect(root.textContent).toContain("Kürzelmueller-soehne");
     knopf(root, "Ändern").click();
     flush();
     await ausfuellen(root, { Kürzel: "atelier-nord", Grund: "anderes Kürzel" });
@@ -157,7 +160,7 @@ describe("a customer's short name (Z-407)", () => {
 
   it("keep the short name fixed while an installation runs", async () => {
     const { root } = await oeffne("/kunden/atelier-nord");
-    expect(root.textContent).toContain("Kürzel atelier-nord");
+    expect(root.textContent).toContain("Kürzelatelier-nord");
     knopf(root, "Ändern").click();
     flush();
     const dialog = root.querySelector("dialog[open]");

@@ -91,6 +91,14 @@ export {
   neustartZustellbar,
 } from "./neustart.ts";
 export {
+  PLATTEN_TAGE_MAX,
+  type PlatteGemessen,
+  type PlattenMessung,
+  type PlattenStunde,
+  plattenProStunde,
+  plattenVon,
+} from "./platten.ts";
+export {
   BACKUP_FRIST_MS,
   type BackupInstallation,
   befundFortschreiben,

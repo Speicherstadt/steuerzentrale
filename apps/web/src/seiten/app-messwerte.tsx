@@ -45,7 +45,7 @@ const monatsName = (v: Pick<MonatsAnteil, "jahr" | "monat">) =>
     timeZone: "UTC",
   }).format(Date.UTC(v.jahr, v.monat - 1, 15));
 
-const Messkarte = (props: {
+export const Messkarte = (props: {
   titel: string;
   wert: string;
   notiz: JSX.Element;
@@ -114,7 +114,7 @@ const Verfuegbarkeit = (props: { a: Einzelansicht }) => {
   );
 };
 
-const BEREICHE: { wert: Bereich; name: () => string; vor: () => string }[] = [
+export const BEREICHE: { wert: Bereich; name: () => string; vor: () => string }[] = [
   { wert: "24h", name: () => m.mess_24h(), vor: () => m.mess_vor_24h() },
   { wert: "7t", name: () => m.mess_7t(), vor: () => m.mess_vor_tagen({ tage: 7 }) },
   { wert: "30t", name: () => m.mess_30t(), vor: () => m.mess_vor_tagen({ tage: 30 }) },

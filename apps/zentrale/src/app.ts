@@ -28,7 +28,7 @@ import { kundenRouten } from "./routes/kunden.ts";
 import { leistungenRouten } from "./routes/leistungen.ts";
 import { manifesteRouten } from "./routes/manifeste.ts";
 import { mitgliederRouten } from "./routes/mitglieder.ts";
-import { serverRouten } from "./routes/server.ts";
+import { serverPlattenRouten, serverRouten } from "./routes/server.ts";
 import { supportRouten } from "./routes/support.ts";
 import { updateRouten } from "./routes/updates.ts";
 import { verbindungRouten } from "./routes/verbindung.ts";
@@ -128,6 +128,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   einladungRouten(route, deps);
   kundenRouten(route, deps);
   serverRouten(route, deps);
+  serverPlattenRouten(route, deps);
   installationenRouten(route, deps);
   aktionenRouten(route, deps);
   aussenRouten(route, deps);

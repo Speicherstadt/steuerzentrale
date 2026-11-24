@@ -44,6 +44,8 @@ export type ServerAnsicht = {
   uhrMs: number | null;
   wartung: { von: string; bis: string };
   agent: { version: string | null; zustand: AgentZustand; letzteMeldung: number | null };
+  /** Until when its agent's client certificate is valid; null before it joined */
+  zertifikatBis: number | null;
   faktenAm: number | null;
   /** When the server booted, and unattended-upgrades (Z-701) */
   gestartetAm: number | null;
@@ -97,6 +99,7 @@ export const serverAnsicht = (sv: ServerDerZentrale, demo: Server | undefined): 
     uhrMs: f?.uhrzeitAbweichungMs ?? null,
     wartung: { von: sv.wartungsfenster.von, bis: sv.wartungsfenster.bis },
     agent: { version: sv.agentVersion, ...agentAnzeige(sv) },
+    zertifikatBis: sv.zertifikatGueltigBis,
     faktenAm: sv.faktenAm,
     gestartetAm: f?.gestartetAm ?? null,
     unattended: f?.unattendedUpgrades ?? null,

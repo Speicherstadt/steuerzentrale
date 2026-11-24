@@ -9,8 +9,8 @@ const ohneBefund = async (page: Page) => {
 };
 
 // BAULISTE.md Z-702: the Zentrale checks each server from its agent's facts; a check red or yellow
-// stands in the overview and leads to the server, whose page shows every check with what it
-// measured. The stand-in agent (e2e/hilfen/agent.ts) reports a disk 95 % full and port 5432 open.
+// stands in the overview and leads to the server, whose page names it on "Überblick" and shows
+// every check with what it measured in the tab "Technik". The stand-in agent (e2e/hilfen/agent.ts) reports a disk 95 % full and port 5432 open.
 test.describe("checks of a server", { tag: "@phone" }, () => {
   test("stand in the overview and on the server page", async ({ page }) => {
     const agent = await agentVerbinden(page.request, "Volle Platte", {
@@ -39,6 +39,11 @@ test.describe("checks of a server", { tag: "@phone" }, () => {
         .getByRole("link", { name: `Platte auf Server „${agent.name}“ zu 95 % voll` })
         .click();
       await expect(page).toHaveURL(`/server/${agent.serverId}`);
+      const befund = page.getByTestId("pruefungen");
+      await expect(befund).toContainText("Platte: 95 % belegt (Grenze 90 %)");
+      await expect(befund).toContainText("Offene Ports: 5432/tcp: in keinem Manifest");
+      await ohneBefund(page);
+      await page.getByRole("tab", { name: "Technik" }).click();
       const karte = page.locator("section", {
         has: page.getByRole("heading", { name: "Prüfungen" }),
       });

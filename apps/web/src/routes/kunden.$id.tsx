@@ -1,258 +1,132 @@
-import { Button, Icon, m } from "@steuerzentrale/ui";
-import { Building2, CalendarX, Pencil, Undo2 } from "@steuerzentrale/ui/icons";
+import { letzteMonate, monatText } from "@steuerzentrale/planung";
+import { Button, Icon, m, Tabs } from "@steuerzentrale/ui";
+import { CalendarX, Undo2 } from "@steuerzentrale/ui/icons";
 import { createFileRoute, useNavigate } from "@tanstack/solid-router";
 import { createMemo, createSignal, Loading, Match, refresh, Show, Switch } from "solid-js";
-import { loeschungAm, monatVon, supportMinutenAus } from "../daten/ableitungen.ts";
-import { desKunden, einmal } from "../daten/installation-ansicht.ts";
-import { uebersichtLaden } from "../daten/installationen-laden.ts";
+import { loeschungAm } from "../daten/ableitungen.ts";
+import { appZeilen } from "../daten/apps-liste.ts";
+import { appsListeLaden } from "../daten/installationen-laden.ts";
+import { kundeStand } from "../daten/kunde-ansicht.ts";
 import { kundenQuelle } from "../daten/kunden.ts";
+import { leistungenQuelle } from "../daten/leistungen.ts";
 import { bestand } from "../daten/quelle.ts";
-import { supportQuelle } from "../daten/support.ts";
 import type { Kunde } from "../daten/typen.ts";
-import { minuten } from "../format/zahl.ts";
 import { datum } from "../format/zeit.ts";
-import { slaName, slaText, welleName } from "../rahmen/texte.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
-import { InstallationsListe } from "../seiten/installations-liste.tsx";
-import { Installieren } from "../seiten/installieren.tsx";
-import {
-  KuendigungZuruecknehmen,
-  KundeAendern,
-  KundeIntern,
-  KundeKuendigen,
-} from "../seiten/kunden-dialoge.tsx";
-import { NurInhaber } from "../seiten/recht.tsx";
+import { KundeDialoge, KundeKopf, type Offen } from "../seiten/kunde-kopf.tsx";
+import { KundeLeistungen } from "../seiten/kunde-leistungen.tsx";
+import { KundeSupport } from "../seiten/kunde-support.tsx";
+import { KundeUeberblick } from "../seiten/kunde-ueberblick.tsx";
 import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
-import { Angaben, Hinweisbox, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
+import { Hinweisbox, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
-import { Marke } from "../teile/zeichen.tsx";
 
 /**
- * One customer: contract, contact, its installations and their events (Z-801, Z-406), all from the
- * Zentrale, and the minutes of its support accesses this month (Z-802).
+ * One customer (BAULISTE.md Z-801; docs/plan.md, "Server und Kunden (Oberfläche 2026-11)"): its
+ * head with its apps in one sentence, its contract and actions, the note of a notice, and its tabs
+ * in the URL (`?tab=`): Überblick (apps, this month, contract, contact), Support (its accesses,
+ * Z-802), Leistungen (the availability per month and app, Z-704, and what the contract includes)
+ * and Verlauf (the events of its apps, Z-406). In "Nur für mich" the menu has no customers
+ * (Z-805).
  */
 
-const initialen = (name: string) =>
-  name
-    .split(" ")
-    .map((teil) => teil[0])
-    .join("")
-    .slice(0, 2);
+const REITER = ["ueberblick", "support", "leistungen", "verlauf"] as const;
+type Reiter = (typeof REITER)[number];
 
-type Offen = "aendern" | "kuendigen" | "zuruecknehmen" | "intern" | undefined;
-
-/**
- * Install an app for the customer (Z-402), change, give notice, take the notice back: each opens
- * its dialog with a reason
- */
-const Aktionen = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => {
-  const navigate = useNavigate();
-  return (
-    <div class="flex flex-wrap gap-2">
-      <Show when={props.k.vertrag.ende === null}>
-        <Installieren
-          kundeId={props.k.id}
-          onAngelegt={(i) => void navigate({ to: "/apps/$id", params: { id: i.installationId } })}
-        />
-      </Show>
-      <Button onClick={() => props.oeffne("aendern")}>
-        <Icon icon={Pencil} />
-        {m.kunde_aendern()}
+const Gekuendigt = (props: { ende: number; oeffne: (dialog: Offen) => void }) => (
+  <Hinweisbox
+    icon={<Icon icon={CalendarX} />}
+    titel={m.kunde_gekuendigt_zum({ datum: datum(props.ende) })}
+  >
+    <div class="grid gap-3">
+      <p>{m.kunde_gekuendigt_text({ datum: datum(loeschungAm(props.ende)) })}</p>
+      <Button class="w-fit" onClick={() => props.oeffne("zuruecknehmen")}>
+        <Icon icon={Undo2} />
+        {m.kunde_zuruecknehmen()}
       </Button>
-      <NurInhaber>
-        <Button onClick={() => props.oeffne("intern")}>
-          <Icon icon={Building2} />
-          {props.k.intern ? m.kunde_intern_aufheben() : m.kunde_intern_markieren()}
-        </Button>
-      </NurInhaber>
-      <Show
-        when={props.k.vertrag.ende === null}
-        fallback={
-          <Button onClick={() => props.oeffne("zuruecknehmen")}>
-            <Icon icon={Undo2} />
-            {m.kunde_zuruecknehmen()}
-          </Button>
-        }
-      >
-        <Show when={!props.k.intern}>
-          <Button onClick={() => props.oeffne("kuendigen")}>
-            <Icon icon={CalendarX} />
-            {m.kunde_kuendigen()}
-          </Button>
-        </Show>
-      </Show>
     </div>
-  );
-};
-
-const Kopf = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => (
-  <div class="flex flex-wrap items-center justify-between gap-4">
-    <div class="flex min-w-0 items-center gap-4">
-      <span
-        aria-hidden="true"
-        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent font-medium"
-      >
-        {initialen(props.k.name)}
-      </span>
-      <div class="grid min-w-0 gap-1">
-        <div class="flex flex-wrap items-center gap-2">
-          <h1 class="text-2xl font-semibold tracking-tight break-words">{props.k.name}</h1>
-          <Marke class="bg-accent">{m.kunde_sla({ sla: slaName(props.k.vertrag.sla) })}</Marke>
-          <Marke class="bg-accent font-mono">
-            {m.kunde_kuerzel_anzeige({ kuerzel: props.k.kuerzel })}
-          </Marke>
-          <Show when={props.k.intern}>
-            <Marke class="bg-accent">{m.kunden_intern()}</Marke>
-          </Show>
-        </div>
-        <p class="text-muted-foreground break-words">
-          {m.kunde_kontakt({
-            kontakt: props.k.kontakt.email,
-            seit: datum(props.k.vertrag.beginn),
-          })}
-        </p>
-      </div>
-    </div>
-    <Aktionen k={props.k} oeffne={props.oeffne} />
-  </div>
+  </Hinweisbox>
 );
-
-const VertragsKarte = (props: { k: Kunde; supportMinuten: number }) => (
-  <Karte>
-    <KartenKopf titel={m.kunde_vertrag()} />
-    <KartenInhalt>
-      <Angaben
-        zeilen={[
-          { name: m.kunden_spalte_sla(), wert: slaName(props.k.vertrag.sla) },
-          { name: m.kunde_bedeutet(), wert: slaText(props.k.vertrag.sla) },
-          { name: m.inst_welle(), wert: welleName(props.k.intern ? "intern" : "alle") },
-          { name: m.kunde_feld_beginn(), wert: datum(props.k.vertrag.beginn) },
-          {
-            name: m.kunde_feld_ende(),
-            wert:
-              props.k.vertrag.ende === null ? m.kunde_ungekuendigt() : datum(props.k.vertrag.ende),
-          },
-          { name: m.kunde_support_monat(), wert: minuten(props.supportMinuten) },
-        ]}
-      />
-    </KartenInhalt>
-  </Karte>
-);
-
-const KontaktKarte = (props: { k: Kunde }) => (
-  <Karte>
-    <KartenKopf titel={m.kunde_kontakt_titel()} />
-    <KartenInhalt>
-      <Angaben
-        zeilen={[
-          { name: m.kunde_feld_ansprechpartner(), wert: props.k.kontakt.name },
-          { name: m.anm_email(), wert: props.k.kontakt.email },
-          { name: m.kunde_feld_telefon(), wert: props.k.kontakt.telefon ?? "–" },
-          { name: m.kunde_feld_notiz(), wert: props.k.notiz ?? "–" },
-        ]}
-      />
-    </KartenInhalt>
-  </Karte>
-);
-
-const Dialoge = (props: {
-  k: Kunde;
-  offen: Offen;
-  oeffne: (dialog: Offen) => void;
-  gespeichert: () => void;
-}) => {
-  const schliessen = () => props.oeffne(undefined);
-  const fertig = () => {
-    schliessen();
-    props.gespeichert();
-  };
-  return (
-    <>
-      <KundeAendern
-        open={props.offen === "aendern"}
-        kunde={props.k}
-        onClose={schliessen}
-        gespeichert={fertig}
-      />
-      <KundeKuendigen
-        open={props.offen === "kuendigen"}
-        kunde={props.k}
-        onClose={schliessen}
-        gespeichert={fertig}
-      />
-      <KundeIntern
-        open={props.offen === "intern"}
-        kunde={props.k}
-        onClose={schliessen}
-        gespeichert={fertig}
-      />
-      <Show when={props.k.vertrag.ende}>
-        {(ende) => (
-          <KuendigungZuruecknehmen
-            open={props.offen === "zuruecknehmen"}
-            kunde={props.k}
-            ende={ende()}
-            onClose={schliessen}
-            gespeichert={fertig}
-          />
-        )}
-      </Show>
-    </>
-  );
-};
 
 const Detail = (props: { k: Kunde; gespeichert: () => void }) => {
+  const abfrage = Route.useSearch();
+  const navigate = useNavigate();
   const b = bestand();
   const [offen, setOffen] = createSignal<Offen>();
-  const antwort = createMemo(() => uebersichtLaden());
-  const installationen = () => {
+  const antwort = createMemo(() => appsListeLaden());
+  const zeilen = createMemo(() => {
     const a = antwort();
-    return a.ok ? desKunden(a.daten.installationen, props.k.id) : [];
+    return a.ok
+      ? appZeilen({ ...a.daten, jetzt: b.jetzt }).filter((z) => z.a.kundeId === props.k.id)
+      : [];
+  });
+  // this month as the page "Leistungen" counts it (Z-804)
+  const leistungen = createMemo(() =>
+    leistungenQuelle().imMonat(monatText(letzteMonate(b.jetzt, 1)[0] ?? { jahr: 0, monat: 1 })),
+  );
+  const monat = () => {
+    const l = leistungen();
+    return l.ok ? l.daten.kunden.find((x) => x.kundeId === props.k.id) : undefined;
   };
-  // the support accesses to its installations (Z-802): their minutes this month in Berlin
-  const zugaenge = createMemo(() => supportQuelle().liste({ kundeId: props.k.id }));
-  const supportDiesenMonat = () => {
-    const z = zugaenge();
-    return z.ok ? supportMinutenAus(z.daten, props.k.id, monatVon(b.jetzt), b.jetzt) : 0;
+  const fehler = () => {
+    const a = antwort();
+    return a.ok ? "" : fehlerText(a);
   };
-  return (
-    <div class="grid gap-4">
-      <Kopf k={props.k} oeffne={setOffen} />
-      <Show when={props.k.vertrag.ende}>
-        {(ende) => (
-          <Hinweisbox
-            icon={<Icon icon={CalendarX} />}
-            titel={m.kunde_gekuendigt_zum({ datum: datum(ende()) })}
-          >
-            {m.kunde_gekuendigt_text({ datum: datum(loeschungAm(ende())) })}
-          </Hinweisbox>
-        )}
-      </Show>
-      <div class="grid gap-4 lg:grid-cols-2">
-        <VertragsKarte k={props.k} supportMinuten={supportDiesenMonat()} />
-        <KontaktKarte k={props.k} />
-      </div>
-      <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
-        <Karte>
-          <KartenKopf
-            titel={m.nav_apps()}
-            text={m.kunde_installationen_text({
-              n: installationen().length,
-              server: einmal(installationen().map((i) => i.serverId)).length,
-            })}
-          />
-          <KartenInhalt>
-            <InstallationsListe installationen={installationen()} zeige="app" />
-          </KartenInhalt>
-        </Karte>
+  const waehlen = (tab: string) => {
+    const neu = REITER.find((r) => r === tab);
+    if (neu)
+      void navigate({
+        to: "/kunden/$id",
+        params: { id: props.k.id },
+        search: { tab: neu },
+        replace: true,
+      });
+  };
+  const reiter = () => [
+    {
+      id: "ueberblick",
+      label: m.app_ueberblick(),
+      content: () => <KundeUeberblick k={props.k} zeilen={zeilen()} monat={monat()} />,
+    },
+    {
+      id: "support",
+      label: m.kunde_reiter_support(),
+      content: () => <KundeSupport k={props.k} zeilen={zeilen()} />,
+    },
+    {
+      id: "leistungen",
+      label: m.nav_leistungen(),
+      content: () => <KundeLeistungen k={props.k} zeilen={zeilen()} monat={monat()} />,
+    },
+    {
+      id: "verlauf",
+      label: m.app_verlauf(),
+      content: () => (
         <Karte>
           <KartenKopf titel={m.kunde_verlauf()} text={m.kunde_verlauf_text()} />
           <KartenInhalt class="grid gap-4">
-            <ZielEreignisse ziele={installationen().map((i) => `installation:${i.id}`)} />
+            <ZielEreignisse ziele={zeilen().map((z) => `installation:${z.a.id}`)} />
           </KartenInhalt>
         </Karte>
+      ),
+    },
+  ];
+  return (
+    <div class="grid gap-6">
+      <KundeKopf k={props.k} stand={kundeStand(zeilen())} oeffne={setOffen} />
+      <Show when={props.k.vertrag.ende}>
+        {(ende) => <Gekuendigt ende={ende()} oeffne={setOffen} />}
+      </Show>
+      <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
+        <Fehler text={fehler()} />
+        <Tabs
+          label={m.kunde_reiter()}
+          initial={abfrage().tab ?? "ueberblick"}
+          onChange={waehlen}
+          tabs={reiter()}
+        />
       </Loading>
-      <Dialoge k={props.k} offen={offen()} oeffne={setOffen} gespeichert={props.gespeichert} />
+      <KundeDialoge k={props.k} offen={offen()} oeffne={setOffen} gespeichert={props.gespeichert} />
     </div>
   );
 };
@@ -286,4 +160,10 @@ const KundeSeite = () => {
   );
 };
 
-export const Route = createFileRoute("/kunden/$id")({ component: KundeSeite });
+export const Route = createFileRoute("/kunden/$id")({
+  validateSearch: (suche: Record<string, unknown>): { tab?: Reiter } => {
+    const tab = REITER.find((r) => r === suche.tab);
+    return tab ? { tab } : {};
+  },
+  component: KundeSeite,
+});

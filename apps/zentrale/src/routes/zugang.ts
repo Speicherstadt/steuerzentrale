@@ -76,6 +76,8 @@ export const ROUTEN = {
   "PUT /api/v1/kunden/:kundeId/intern": fuerKunden("kunden:intern"),
   "GET /api/v1/server": recht("server:lesen"),
   "GET /api/v1/server/:serverId": recht("server:lesen"),
+  // how full its disks were, from the history of its facts: read like the server
+  "GET /api/v1/server/:serverId/platten": recht("server:lesen"),
   "POST /api/v1/server": recht("server:anlegen"),
   "POST /api/v1/server/:serverId/sperren": recht("server:sperren"),
   "POST /api/v1/server/:serverId/neustart": recht("server:neustart"),
