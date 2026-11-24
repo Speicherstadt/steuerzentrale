@@ -57,7 +57,8 @@ bei IT Berger ist gestört“, „Platte auf Server „Studio Lind“ zu 91 % vo
 und Zeit und ihren Knöpfen. Ein stiller oder getrennter Agent und eine volle Platte sind die Ursache
 dessen, was die Apps auf dem Server melden: das steht in der Zeile des Servers („dazu: …“), nicht
 in eigenen Zeilen. Jede andere Prüfung eines Servers ist es nicht, ihre Apps behalten ihre Zeilen.
-Was eine App sonst betrifft (ein gescheiterter Neustart einer gestörten App), steht in ihrer Zeile.
+Was eine App sonst betrifft (ein gescheiterter Neustart einer gestörten App), steht in ihrer Zeile,
+ohne dass „dazu“ es noch einmal nennt: es sagt nur, warum sie gestört ist.
 Die Zahl neben „Übersicht“ in der Seitenleiste ist die Zahl dieser Zeilen.
 
 | Zeile | Knöpfe |

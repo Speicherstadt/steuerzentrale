@@ -3,7 +3,7 @@ import { suche } from "../daten/ableitungen.ts";
 import type { InstallationsVerweis, UebersichtEintrag } from "../daten/betrieb.ts";
 import { grundText } from "../daten/bewertung.ts";
 import { bestand } from "../daten/quelle.ts";
-import type { ZuTunZeile } from "../daten/zu-tun.ts";
+import { dazu, type ZuTunZeile } from "../daten/zu-tun.ts";
 import { vor, zeitpunkt } from "../format/zeit.ts";
 import { aktionsText } from "./installieren-texte.ts";
 import { pruefungDetail, pruefungName } from "./server-texte.ts";
@@ -112,14 +112,15 @@ const gruende = (e: UebersichtEintrag): string[] => {
 const DAZU_HOECHSTENS = 2;
 
 /** What else stands in the row: the titles of the first two, then how many more */
-const dazu = (z: ZuTunZeile, fuerKunden: boolean): string[] => {
-  if (z.weitere.length === 0) return [];
-  const genannt = z.weitere.slice(0, DAZU_HOECHSTENS).map((e) => zuTunTitel(e, fuerKunden));
-  const rest = z.weitere.length - genannt.length;
+const dazuText = (z: ZuTunZeile, fuerKunden: boolean): string[] => {
+  const weitere = dazu(z);
+  if (weitere.length === 0) return [];
+  const genannt = weitere.slice(0, DAZU_HOECHSTENS).map((e) => zuTunTitel(e, fuerKunden));
+  const rest = weitere.length - genannt.length;
   const liste = genannt.join("; ");
   return [rest > 0 ? m.zutun_dazu_mehr({ liste, n: rest }) : m.zutun_dazu({ liste })];
 };
 
 /** The line under the title: why and since when, and what else stands in the row */
 export const zuTunGrund = (z: ZuTunZeile, fuerKunden: boolean): string =>
-  [...gruende(z.haupt), ...dazu(z, fuerKunden)].join(" · ");
+  [...gruende(z.haupt), ...dazuText(z, fuerKunden)].join(" · ");

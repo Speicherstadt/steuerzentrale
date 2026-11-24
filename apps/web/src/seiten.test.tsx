@@ -96,6 +96,8 @@ describe("pages", () => {
     // the open fault first, leading to its installation (Z-406: as GET /api/v1/uebersicht orders)
     const erster = zeilen[0];
     expect(erster?.textContent).toContain("Schreibzeug bei IT Berger ist gestört");
+    // its failed restart is about the same app and only restates why it is broken
+    expect(erster?.textContent).not.toContain("dazu:");
     expect(erster?.querySelector("svg")?.getAttribute("aria-label")).toBe("Störung");
     expect(erster?.querySelector("a")?.getAttribute("href")).toBe("/apps/berger-schreibzeug");
     const rang = { Störung: 0, Warnung: 1, Hinweis: 2 } as Record<string, number>;

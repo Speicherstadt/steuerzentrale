@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { UebersichtEintrag } from "./betrieb.ts";
-import { brauchtAufmerksamkeit, ohneManifest, zuTun } from "./zu-tun.ts";
+import { brauchtAufmerksamkeit, dazu, ohneManifest, zuTun } from "./zu-tun.ts";
 
 /*
  * "Zu tun" of the overview (docs/plan.md, "Übersicht (Oberfläche 2026-11)"): one row per thing
@@ -164,6 +164,23 @@ describe("zuTun", () => {
     expect(brauchtAufmerksamkeit(ALLE)).toBe(6);
     expect(brauchtAufmerksamkeit([UNBEKANNT_AUF_S3, PRUEF_ALT])).toBe(0);
     expect(brauchtAufmerksamkeit([])).toBe(0);
+  });
+});
+
+describe("dazu", () => {
+  it("leaves out what is about the row's own app: a failed restart restates why it is broken", () => {
+    const [gestoert, platte, still] = zuTun(ALLE).zeilen;
+    expect(gestoert && dazu(gestoert)).toEqual([]);
+    // a server's row names what its apps report because of it
+    expect(platte && dazu(platte)).toEqual([GELB_AUF_S2]);
+    expect(still && dazu(still)).toEqual([UNBEKANNT_AUF_S3]);
+  });
+
+  it("keeps another app's entries in an app's row", () => {
+    const andere = { ...NEUSTART_GESCHEITERT, installation: inst("x", "s1") };
+    expect(
+      dazu({ haupt: STOERUNG, weitere: [NEUSTART_GESCHEITERT, andere], schwere: "stoerung" }),
+    ).toEqual([andere]);
   });
 });
 

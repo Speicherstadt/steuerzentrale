@@ -62,6 +62,17 @@ export const zuTun = (eintraege: UebersichtEintrag[]): ZuTun => {
   };
 };
 
+/**
+ * What the line of a row names besides its title: the other entries, but none about the row's own
+ * app (a failed restart of a broken app only restates why it is broken)
+ */
+export const dazu = (z: ZuTunZeile): UebersichtEintrag[] => {
+  const eigene = installationVon(z.haupt)?.installationId;
+  return z.weitere.filter(
+    (e) => eigene === undefined || installationVon(e)?.installationId !== eigene,
+  );
+};
+
 /** How many rows of "Zu tun" there are: the number beside "Übersicht" in the sidebar */
 export const brauchtAufmerksamkeit = (eintraege: UebersichtEintrag[]): number =>
   zuTun(eintraege).zeilen.length;
