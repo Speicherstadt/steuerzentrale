@@ -13,19 +13,19 @@ const pages = [
   "/",
   "/server",
   "/server/shared-2",
-  "/installationen",
-  "/installationen/lind-haben",
+  "/apps",
+  "/apps/lind-haben",
   "/updates",
   "/backups",
-  "/auftraege",
   "/kunden",
   "/kunden/praxis-weber",
   "/support",
   "/leistungen",
-  "/apps",
-  "/apps/haben",
-  "/ereignisse",
-  "/audit",
+  "/katalog",
+  "/katalog/haben",
+  "/protokoll",
+  "/protokoll?tab=auftraege",
+  "/protokoll?tab=aenderungen",
   "/einstellungen",
   // outside the shell (Z-104); with the first owner's session the setup shows its finished state
   "/anmelden",
@@ -36,15 +36,24 @@ const pages = [
   "/betriebsart",
 ];
 
+/** Old addresses and where they lead now; the catalog's old /apps has none, /apps means the apps */
+const UMZUEGE = [
+  ["/installationen", "/apps"],
+  ["/installationen/lind-haben", "/apps/lind-haben"],
+  ["/ereignisse", "/protokoll?tab=ereignisse"],
+  ["/auftraege", "/protokoll?tab=auftraege"],
+  ["/audit", "/protokoll?tab=aenderungen"],
+] as const;
+
 test.use({ locale: "de-DE" });
 
 const ECHT: Record<string, (page: Page) => Promise<string>> = {
   "/server/shared-2": async (page) =>
     `/server/${(await serverAnlegen(page.request, "Gemeinsamer Server 2")).serverId}`,
-  "/installationen/lind-haben": async (page) => {
+  "/apps/lind-haben": async (page) => {
     const i = await installationAnlegen(page.request);
     i.agent.trennen();
-    return `/installationen/${i.installationId}`;
+    return `/apps/${i.installationId}`;
   },
   "/kunden/praxis-weber": async (page) =>
     `/kunden/${(await kundeAnlegen(page.request, "Praxis Weber")).id}`,
@@ -70,6 +79,15 @@ for (const theme of ["light", "dark"] as const) {
         const ziel = (await ECHT[path]?.(page)) ?? path;
         await page.goto(ziel);
         await expect(page).toHaveURL(ziel);
+        await pruefen(page);
+      });
+    }
+
+    // the addresses before the navigation of 2026-11 (docs/plan.md) lead to their new page
+    for (const [alt, neu] of UMZUEGE) {
+      test(`axe finds nothing where ${alt} leads @phone`, async ({ page }) => {
+        await page.goto(alt);
+        await expect(page).toHaveURL(neu);
         await pruefen(page);
       });
     }

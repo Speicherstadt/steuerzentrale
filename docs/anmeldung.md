@@ -32,7 +32,7 @@ Nach dem zweiten Faktor fragt die Zentrale den Inhaber einmal, wofür sie da ist
 `/betriebsart`):
 
 - **Nur für mich**: eigene Apps auf eigenen Servern. Kunden, Verträge, Kündigung, Support-Zugänge
-  und Leistungen verschwinden aus Menü, Übersicht und Dialogen; „App installieren“ fragt keinen
+  und Leistungen verschwinden aus Menü (der Eintrag „Kunden“), Übersicht und Dialogen; „App installieren“ fragt keinen
   Kunden. Alle Installationen gehören einem festen internen Kunden des Betreibers, den die Zentrale
   dabei anlegt (`kunden.intern`), also gibt es nur eine Welle.
 - **Für Kunden**: Hosting für andere, mit allem, was dazugehört.

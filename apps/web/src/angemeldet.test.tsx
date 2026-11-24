@@ -78,17 +78,17 @@ const DEMO = [
 const SEITEN = [
   "/",
   "/server",
-  "/installationen",
+  "/apps",
   "/kunden",
-  "/auftraege",
-  "/ereignisse",
-  "/audit",
+  "/protokoll",
+  "/protokoll?tab=auftraege",
+  "/protokoll?tab=aenderungen",
   "/einstellungen",
   "/updates",
   "/backups",
   "/support",
   "/leistungen",
-  "/apps",
+  "/katalog",
 ];
 
 const vorher = {

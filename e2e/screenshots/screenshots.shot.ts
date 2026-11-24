@@ -32,15 +32,12 @@ const SEITEN: { name: string; zeigen: (page: Page) => Promise<void> }[] = [
   { name: "uebersicht", zeigen: (page) => oeffnen(page, "/") },
   { name: "server", zeigen: (page) => oeffnen(page, "/server") },
   { name: "server-detail", zeigen: (page) => erstenOeffnen(page, "/server", "/server") },
-  { name: "installationen", zeigen: (page) => oeffnen(page, "/installationen") },
-  {
-    name: "installation",
-    zeigen: (page) => erstenOeffnen(page, "/installationen", "/installationen"),
-  },
+  { name: "apps", zeigen: (page) => oeffnen(page, "/apps") },
+  { name: "app", zeigen: (page) => erstenOeffnen(page, "/apps", "/apps") },
   { name: "updates", zeigen: (page) => oeffnen(page, "/updates") },
   { name: "backups", zeigen: (page) => oeffnen(page, "/backups") },
   { name: "kunden", zeigen: (page) => oeffnen(page, "/kunden") },
-  { name: "apps", zeigen: (page) => oeffnen(page, "/apps") },
+  { name: "katalog", zeigen: (page) => oeffnen(page, "/katalog") },
 ];
 
 for (const thema of THEMEN) {

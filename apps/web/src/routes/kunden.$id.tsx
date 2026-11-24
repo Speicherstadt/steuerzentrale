@@ -52,9 +52,7 @@ const Aktionen = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => {
       <Show when={props.k.vertrag.ende === null}>
         <Installieren
           kundeId={props.k.id}
-          onAngelegt={(i) =>
-            void navigate({ to: "/installationen/$id", params: { id: i.installationId } })
-          }
+          onAngelegt={(i) => void navigate({ to: "/apps/$id", params: { id: i.installationId } })}
         />
       </Show>
       <Button onClick={() => props.oeffne("aendern")}>
@@ -237,7 +235,7 @@ const Detail = (props: { k: Kunde; gespeichert: () => void }) => {
       <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
         <Karte>
           <KartenKopf
-            titel={m.nav_installationen()}
+            titel={m.nav_apps()}
             text={m.kunde_installationen_text({
               n: installationen().length,
               server: einmal(installationen().map((i) => i.serverId)).length,

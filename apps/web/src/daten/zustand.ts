@@ -82,7 +82,7 @@ export const serverZustand = (b: Bestand, sv: Server): ServerZustand => {
   return pruefungen(sv).every((p) => p.ok) && !z702.some(auffaellig) ? "ok" : "pruefen";
 };
 
-/** The counters of the sidebar: only where there is something to do (DESIGN.md, "Bausteine") */
+/** The counter of Updates in the sidebar: only where there is something to do (DESIGN.md, "Bausteine") */
 export const zaehler = (b: Bestand) => ({
   updates: b.apps.filter((a) =>
     b.installationen.some(
@@ -90,7 +90,4 @@ export const zaehler = (b: Bestand) => ({
         i.app === a.id && a.version !== null && i.version !== a.version && !istGekuendigt(b, i),
     ),
   ).length,
-  auftraege: b.auftraege.filter((a) => a.zustand === "laeuft").length,
-  support: b.zugaenge.filter((z) => z.aktiv).length,
-  ereignisse: b.ereignisse.filter((e) => e.schwere !== "info").length,
 });

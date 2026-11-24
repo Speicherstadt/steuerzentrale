@@ -18,6 +18,9 @@ export const apiRolle: RollenQuelle = async () => {
 export const darfInstallieren = (rolle: Rolle): boolean =>
   rolle === "inhaber" || rolle === "technik";
 
+/** Owner and technik read the audit log; the Zentrale refuses it to support (Z-102) */
+export const darfAuditLesen = (rolle: Rolle): boolean => rolle === "inhaber" || rolle === "technik";
+
 /** Only the owner marks a customer as internal (Z-501) */
 export const darfInternMarkieren = (rolle: Rolle): boolean => rolle === "inhaber";
 

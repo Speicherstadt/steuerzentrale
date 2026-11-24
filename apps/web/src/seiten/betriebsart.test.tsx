@@ -18,7 +18,7 @@ import { demoServerQuelle } from "../demo/server-quelle.ts";
 import { aufraeumen, dialog, eintragen, knopf, oeffne, warten } from "./test-dom.tsx";
 
 // BAULISTE.md Z-805: the Betriebsart in the settings (only the owner changes it, with a reason),
-// and "Nur für mich" hiding customers, support accesses and services in menu and dialog
+// and "Nur für mich" hiding customers (with them support accesses and services) in menu and dialog
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
 
@@ -59,9 +59,8 @@ describe("the Betriebsart", () => {
   it("is switched by the owner with a reason and hides customers in the menu", async () => {
     const { root } = await oeffne("/einstellungen?tab=betriebsart");
     await reiter(root);
-    expect(menue(root)).toEqual(
-      expect.arrayContaining(["Kunden", "Support-Zugänge", "Leistungen"]),
-    );
+    // support accesses and services are reached through Kunden, not the menu (Navigation 2026-11)
+    expect(menue(root)).toContain("Kunden");
     const selbst = root.querySelector<HTMLInputElement>("input[name=betriebsart][value=selbst]");
     expect(root.querySelector<HTMLInputElement>("input[value=kunden]")?.checked).toBe(true);
     selbst?.click();
@@ -72,7 +71,7 @@ describe("the Betriebsart", () => {
     const danach = menue(root);
     for (const name of ["Kunden", "Support-Zugänge", "Leistungen"])
       expect(danach).not.toContain(name);
-    expect(danach).toContain("Installationen");
+    expect(danach).toContain("Apps");
   });
 
   it.each(["technik", "support"] as const)("is read-only for %s", async (r) => {
@@ -87,7 +86,7 @@ describe("the Betriebsart", () => {
     betriebsartQuelleEinsetzen(
       demoBetriebsart({ betriebsart: "selbst", eigenerKundeId: "intern" }),
     );
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     knopf(root, "App installieren")?.click();
     await warten();
     const labels = [...dialog().querySelectorAll("label")].map((l) => l.textContent);

@@ -48,19 +48,17 @@ const ALLE = [
   ["/", "Übersicht"],
   ["/server", "Server"],
   ["/server/holm", "Schreinerei Holm"],
-  ["/installationen", "Installationen"],
-  ["/installationen/kraft-stellwerk", "Ingenieurbüro Kraft · Stellwerk"],
+  ["/apps", "Apps"],
+  ["/apps/kraft-stellwerk", "Ingenieurbüro Kraft · Stellwerk"],
   ["/updates", "Updates"],
   ["/backups", "Backups"],
-  ["/auftraege", "Aufträge"],
   ["/kunden", "Kunden"],
   ["/kunden/sonne", "Café Sonne"],
   ["/support", "Support-Zugänge"],
   ["/leistungen", "Leistungen"],
-  ["/apps", "Apps"],
-  ["/apps/haben", "Haben"],
-  ["/ereignisse", "Ereignisse"],
-  ["/audit", "Audit-Log"],
+  ["/katalog", "Katalog"],
+  ["/katalog/haben", "Haben"],
+  ["/protokoll", "Protokoll"],
   ["/einstellungen", "Einstellungen"],
   ["/anmelden", "Anmelden"],
   ["/einrichtung", "Zweiter Faktor"],
@@ -94,7 +92,7 @@ describe("pages", () => {
     const erster = root.querySelector<HTMLAnchorElement>("main ul li a");
     expect(erster?.textContent).toContain("IT Berger · Schreibzeug");
     expect(erster?.querySelector("svg")?.getAttribute("aria-label")).toBe("Störung");
-    expect(erster?.getAttribute("href")).toBe("/installationen/berger-schreibzeug");
+    expect(erster?.getAttribute("href")).toBe("/apps/berger-schreibzeug");
     const rang = { Störung: 0, Warnung: 1, Hinweis: 2 } as Record<string, number>;
     const schweren = [
       ...root.querySelectorAll("main ul.divide-y > li > a > span:first-child svg"),
@@ -114,8 +112,8 @@ describe("pages", () => {
     expect(eintrag?.getAttribute("href")).toBe("/server/lind");
   });
 
-  it("show the apps with a released manifest on the apps page, and an app only imported (Z-501)", async () => {
-    const root = await oeffne("/apps");
+  it("show the apps with a released manifest in the catalog, and an app only imported (Z-501)", async () => {
+    const root = await oeffne("/katalog");
     const namen = [...root.querySelectorAll("main section h2 a")].map((h) => h.textContent);
     expect(namen).toEqual([
       "Haben",
@@ -140,9 +138,9 @@ describe("pages", () => {
   });
 
   it("mark the current area in the sidebar, also on a detail page", async () => {
-    const root = await oeffne("/installationen/lind-haben");
+    const root = await oeffne("/apps/lind-haben");
     const aktiv = root.querySelector('nav[aria-label="Bereiche"] a[aria-current="page"]');
-    expect(aktiv?.textContent).toContain("Installationen");
+    expect(aktiv?.textContent).toContain("Apps");
     expect(ueberschrift(root)).toBe("Studio Lind · Haben");
   });
 

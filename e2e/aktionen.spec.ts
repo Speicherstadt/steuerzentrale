@@ -33,7 +33,7 @@ test.describe("the actions of an installation", { tag: "@phone" }, () => {
     const i = await installationAnlegen(page.request, neuerHost("laeuft"));
     try {
       await laeuft(page.request, i.installationId);
-      await page.goto(`/installationen/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}`);
       await expect(page.getByRole("button", { name: "Nur lesen" })).toHaveCount(0);
 
       await page.getByRole("button", { name: "Neustart" }).click();
@@ -70,7 +70,7 @@ test.describe("the actions of an installation", { tag: "@phone" }, () => {
     const i = await installationAnlegen(page.request, neuerHost("laeuft"), ohneNeustart());
     try {
       await laeuft(page.request, i.installationId);
-      await page.goto(`/installationen/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}`);
       await expect(page.getByRole("button", { name: "Log-Auszug" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Neustart" })).toHaveCount(0);
       const antwort = await page.request.post(

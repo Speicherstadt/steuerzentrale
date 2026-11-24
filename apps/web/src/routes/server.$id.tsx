@@ -271,7 +271,7 @@ const Detail = (props: { a: ServerAnsicht; neu: () => void }) => {
         <div class="grid gap-4 lg:grid-cols-2">
           <Karte>
             <KartenKopf
-              titel={m.nav_installationen()}
+              titel={m.nav_apps()}
               text={m.server_installationen_text({
                 n: installationen().length,
                 kunden: einmal(installationen().map((i) => i.kundeId)).length,

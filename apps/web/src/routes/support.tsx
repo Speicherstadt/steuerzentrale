@@ -21,6 +21,7 @@ import {
 } from "../seiten/support-zugang.tsx";
 import { Balken } from "../teile/balken.tsx";
 import { Karte, KartenInhalt, KartenKopf, Seitenkopf } from "../teile/karte.tsx";
+import { KundenReiter } from "../teile/reiter-links.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuInstallation } from "../teile/verweise.tsx";
 import { Marke } from "../teile/zeichen.tsx";
@@ -174,6 +175,7 @@ const Support = () => {
           </Loading>
         }
       />
+      <KundenReiter />
       <Loading fallback={<p class="text-muted-foreground">{m.sup_laden()}</p>}>
         <Show when={antwort().ok} fallback={<Fehler text={fehler()} />}>
           <Liste zugaenge={zugaenge()} wahl={wahl()} neu={neu} />

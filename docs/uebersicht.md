@@ -8,13 +8,33 @@ description: >-
 
 # Übersicht und Betrieb
 
-Angemeldet liest die Oberfläche alles aus der Zentrale: Übersicht, Server, Installationen, Kunden,
-Aufträge, Ereignisse, Audit-Log und Einstellungen. Die Demodaten zeigt nur `bun run dev:demo`
-(und die Screenshots); sie antworten dort wie die Zentrale.
+Angemeldet liest die Oberfläche alles aus der Zentrale: Übersicht, Apps, Server, Kunden, Updates,
+Katalog, Protokoll und Einstellungen. Die Demodaten zeigt nur `bun run dev:demo` (und die
+Screenshots); sie antworten dort wie die Zentrale.
+
+## Navigation
+
+Die Seitenleiste hat acht Einträge in zwei Gruppen:
+
+| Gruppe | Eintrag | Was dort steht |
+| --- | --- | --- |
+| Betrieb | Übersicht | was Aufmerksamkeit braucht; der Zähler nennt, wie viele Störungen und Warnungen |
+| Betrieb | Apps | jede laufende App (eine Installation) mit Kunde, Zustand, Version und Server; Reiter „Backups“ |
+| Betrieb | Server | die Server mit Agent, Zustand und Wartung |
+| Betrieb | Kunden | Kunden und Verträge; Reiter „Support-Zugänge“ und „Leistungen“ |
+| Betrieb | Updates | neue Versionen je App; der Zähler nennt die Apps mit einer neueren Version |
+| Verwaltung | Katalog | die Apps der Speicherstadt, wie ihre Manifeste sie beschreiben: woher die Apps kommen |
+| Verwaltung | Protokoll | Reiter „Ereignisse“, „Aufträge“ und „Änderungen“ (das Audit-Log) |
+| Verwaltung | Einstellungen | Werte, Backup-Ziel, DNS, Benachrichtigungen, Konten, Betriebsart |
+
+Der Reiter des Protokolls steht in der Adresse (`/protokoll?tab=auftraege`); „Änderungen“ sehen nur
+Inhaber und Technik. Bei „Nur für mich“ fehlt „Kunden“ und mit ihm Support-Zugänge und Leistungen.
+Alte Adressen führen weiter: `/installationen` und `/installationen/<id>` zu `/apps`,
+`/ereignisse`, `/auftraege` und `/audit` zum passenden Reiter des Protokolls.
 
 ## Übersicht
 
-Oben vier Kennzahlen: Server (wie viele verbunden, nach Art), Installationen (grün, gelb, rot, ohne
+Oben vier Kennzahlen: Server (wie viele verbunden, nach Art), Apps (grün, gelb, rot, ohne
 Zustand, gekündigt), Updates und Backups (bei wie vielen Installationen der letzte Lauf gelang und
 wie viele Prüf-Restores scheiterten, [Backups](backups.md)). Die Kennzahl Updates zählt die
 Installationen auf der neuesten ihnen angebotenen Version, die laufenden Updates, die Installationen
@@ -46,14 +66,14 @@ wird oder deren Einrichtung scheiterte, steht als Auftrag da), und nur Server, d
 und nicht gesperrt ist. Ein Ereignis, dessen Installation oder Server schon einen Eintrag hat, steht
 nicht noch einmal da; das Ereignis `stoerung` selbst auch nicht, weil die offene Störung ihr
 eigener Eintrag ist. Von gescheiterten Aufträgen und Ereignissen nimmt die Übersicht höchstens die
-neuesten 100; alle stehen auf ihren Seiten.
+neuesten 100; alle stehen im Protokoll.
 
 Daneben die sechs neuesten Ereignisse und unten die offenen Aufträge (wartend, bereit, zugestellt,
 bestätigt, läuft).
 
 ## Aufträge, Ereignisse, Audit-Log
 
-Die drei Listen kommen seitenweise, die neuesten zuerst; „Mehr laden“ holt die nächste Seite.
+Die drei Listen, im Protokoll die Reiter „Aufträge“, „Ereignisse“ und „Änderungen“, kommen seitenweise, die neuesten zuerst; „Mehr laden“ holt die nächste Seite.
 
 | Route | Filter | sortiert nach |
 | --- | --- | --- |
@@ -106,7 +126,7 @@ mit welchem Punkt sie kommen:
 | Einstellungen → DNS | Z-407 |
 | Auslastung eines Servers (CPU, RAM), Pakete mit Namen; das Betriebssystem steht seit Z-701 in der Karte „Wartung“ | noch ohne Punkt |
 
-Name, Symbol und Kurztext der Apps (Seite „Apps“) stehen in `apps/web/src/demo/apps.ts`; alles
+Name, Symbol und Kurztext der Apps (Katalog) stehen in `apps/web/src/demo/apps.ts`; alles
 Technische (Version, Container, Ports, Health, Backup, Sperrzeiten, Einstellungen) liest die Demo aus
 den echten Manifesten in `manifeste/`. Die Demo zeigt nur Apps mit einem veröffentlichten Release. Unter Einstellungen → Konten stehen die
 Mitglieder des Betreibers mit Rolle, die Seitenleiste nennt Betreiber und eigenes Konto aus

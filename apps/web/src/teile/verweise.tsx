@@ -12,7 +12,7 @@ import type { Ziel } from "../daten/typen.ts";
 const linkClass = "hover:underline hover:underline-offset-4";
 
 export const ZuInstallation = (props: { id: string; class?: string; children: JSX.Element }) => (
-  <Link to="/installationen/$id" params={{ id: props.id }} class={[linkClass, props.class]}>
+  <Link to="/apps/$id" params={{ id: props.id }} class={[linkClass, props.class]}>
     {props.children}
   </Link>
 );
@@ -44,7 +44,7 @@ export const ZielVerweis = (props: { ziel: Ziel }) => {
       <Match when={server()}>{(s) => <ZuServer id={s().id}>{s().name}</ZuServer>}</Match>
       <Match when={app()}>
         {(a) => (
-          <Link to="/apps" class={linkClass}>
+          <Link to="/katalog" class={linkClass}>
             {[suche(b.apps, a().id)?.name ?? a().id, a().version].filter(Boolean).join(" ")}
           </Link>
         )}

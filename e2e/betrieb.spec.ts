@@ -23,14 +23,14 @@ test.describe("real data", { tag: "@phone" }, () => {
           return ((await a.json()) as { zustand: string }).zustand;
         })
         .toBe("gescheitert");
-      await page.goto("/auftraege");
+      await page.goto("/protokoll?tab=auftraege");
       await page.getByRole("tab", { name: "Gescheitert" }).click();
       const zeile = page.locator("tbody tr", { hasText: i.kunde.name }).first();
       await expect(zeile).toContainText("image ziehen: manifest unknown");
       await expect(zeile).toContainText("Einrichten");
       await ohneBefund(page);
       await zeile.getByRole("link", { name: `${i.kunde.name} · probe` }).click();
-      await expect(page).toHaveURL(`/installationen/${i.installationId}`);
+      await expect(page).toHaveURL(`/apps/${i.installationId}`);
     } finally {
       i.agent.trennen();
     }
@@ -49,7 +49,7 @@ test.describe("real data", { tag: "@phone" }, () => {
         .toBe(1);
       const text = `SSH-Anmeldung auf ${agent.name}: ${nutzer}`;
 
-      await page.goto("/ereignisse");
+      await page.goto("/protokoll?tab=ereignisse");
       await page.getByRole("tab", { name: "Warnungen" }).click();
       const ereignis = page.getByRole("listitem").filter({ hasText: text });
       await expect(ereignis).toBeVisible();
@@ -72,7 +72,7 @@ test.describe("real data", { tag: "@phone" }, () => {
   test("names in the audit log who made an installation, page by page", async ({ page }) => {
     const i = await installationAnlegen(page.request);
     i.agent.trennen();
-    await page.goto("/audit");
+    await page.goto("/protokoll?tab=aenderungen");
     const ziel = page.getByRole("link", { name: `${i.kunde.name} · probe` }).first();
     // other tests write meanwhile: read on until the entry is there
     for (let n = 0; n < 20 && !(await ziel.isVisible()); n++) {
@@ -96,11 +96,11 @@ test.describe("real data", { tag: "@phone" }, () => {
       await ohneBefund(page);
       await page.goto(`/kunden/${i.kunde.id}`);
       const karte = page.locator("section", {
-        has: page.getByRole("heading", { name: "Installationen" }),
+        has: page.getByRole("heading", { name: "Apps" }),
       });
       await expect(karte.getByRole("link", { name: /probe/ })).toHaveAttribute(
         "href",
-        `/installationen/${i.installationId}`,
+        `/apps/${i.installationId}`,
       );
       await expect(karte).toContainText(i.agent.name);
       await ohneBefund(page);

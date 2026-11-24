@@ -26,7 +26,7 @@ test.describe("the check from outside", { tag: "@phone" }, () => {
       expect(daten.aussen).toBeNull();
       expect(daten.verfuegbarkeit).toHaveLength(13);
 
-      await page.goto(`/installationen/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}`);
       // the innermost section with the card's heading: the card itself
       const karte = page
         .locator("section", {

@@ -30,6 +30,8 @@ const inhaberSitzung = join(daten, "inhaber.json");
 // Z-805: a second Zentrale whose owner answers "Nur für mich", with its own database and interface,
 // since the first one's other customers' installations rule that out (e2e/betriebsart-selbst.spec.ts)
 const selbstPort = 5183;
+// The demo build with its fixtures and hash routes (e2e/demo.spec.ts), no Zentrale behind it
+const demoPort = 5184;
 const selbstZentralePort = 28310;
 const selbstDaten = join(daten, "selbst");
 mkdirSync(selbstDaten, { recursive: true });
@@ -61,15 +63,25 @@ export default defineConfig({
     {
       name: "desktop",
       dependencies: ["einrichtung"],
-      testIgnore: /selbst/,
+      testIgnore: /selbst|demo\.spec/,
       use: { ...devices["Desktop Chrome"], launchOptions, storageState: inhaberSitzung },
     },
     {
       name: "phone",
       grep: /@phone/,
       dependencies: ["einrichtung"],
-      testIgnore: /selbst/,
+      testIgnore: /selbst|demo\.spec/,
       use: { ...devices["Pixel 7"], launchOptions, storageState: inhaberSitzung },
+    },
+    // every route of the demo build, which no signed-in spec sees
+    {
+      name: "demo",
+      testMatch: /demo\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        baseURL: `http://localhost:${demoPort}/steuerzentrale/demo/`,
+      },
     },
     // the second Zentrale, "Nur für mich" (Z-805): its own first owner, then the spec on both
     {
@@ -156,6 +168,17 @@ export default defineConfig({
       port,
       reuseExistingServer: false,
       env: { STEUERZENTRALE_API_PORT: String(zentralePort) },
+    },
+    {
+      // the demo as `build:demo` makes it (apps/web/package.json), in a folder of its own
+      command: `cd apps/web && bunx vite build --mode demo --outDir dist-demo-e2e && bunx vite preview --outDir dist-demo-e2e --port ${demoPort} --strictPort`,
+      port: demoPort,
+      reuseExistingServer: false,
+      env: {
+        VITE_OHNE_ANMELDUNG: "1",
+        VITE_DEMO_SEITE: "1",
+        STEUERZENTRALE_WEB_BASE: "/steuerzentrale/demo/",
+      },
     },
     {
       // the same interface for the second Zentrale, built into a folder of its own

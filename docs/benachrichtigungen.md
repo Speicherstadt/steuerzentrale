@@ -8,7 +8,7 @@ description: >-
 
 # Benachrichtigungen und Webhooks
 
-Was in der Zentrale passiert, steht als Ereignis unter „Ereignisse“: eine Störung einer Installation
+Was in der Zentrale passiert, steht als Ereignis im Protokoll unter „Ereignisse“: eine Störung einer Installation
 und ihre Behebung, ein Befund einer Prüfung, ein stiller Agent, ein gescheitertes Backup oder Update.
 Die Zentrale meldet diese Ereignisse an die Empfänger des Betreibers, per Mail oder als Webhook.
 

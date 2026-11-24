@@ -18,8 +18,8 @@ test.describe("the interface", { tag: "@phone" }, () => {
   });
 
   // the apps with a released manifest first; apps other tests imported (Z-501) follow them
-  test("shows the apps of the Speicherstadt", async ({ page }) => {
-    await page.goto("/apps");
+  test("shows the apps of the Speicherstadt in the catalog", async ({ page }) => {
+    await page.goto("/katalog");
     const apps = page.locator("main section h2 a");
     await expect
       .poll(async () => (await apps.allTextContents()).slice(0, 6))
@@ -50,7 +50,7 @@ test.describe("the interface", { tag: "@phone" }, () => {
       await expect(eintrag).toContainText("Health: HTTP 503");
       await expect(eintrag.getByRole("img", { name: "Störung" })).toBeVisible();
       await eintrag.click();
-      await expect(page).toHaveURL(`/installationen/${i.installationId}`);
+      await expect(page).toHaveURL(`/apps/${i.installationId}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(`${i.kunde.name} · probe`);
     } finally {
       i.agent.trennen();
@@ -85,14 +85,14 @@ test.describe("filters", () => {
           return ((await a.json()) as { zustand: string }).zustand;
         })
         .toBe("gescheitert");
-      await page.goto("/installationen");
+      await page.goto("/apps");
       await page.getByRole("button", { name: /^Rot/ }).click();
-      const tabelle = page.getByRole("region", { name: "Installationen" });
+      const tabelle = page.getByRole("region", { name: "Apps" });
       await expect(tabelle.getByRole("link", { name: new RegExp(kaputt.host) })).toBeVisible();
       await expect(tabelle.getByRole("link", { name: new RegExp(unterwegs.host) })).toHaveCount(0);
       await page.getByRole("button", { name: /^Alle/ }).click();
       await page.getByRole("button", { name: "Liste" }).click();
-      await page.getByRole("searchbox", { name: "Installationen suchen" }).fill(unterwegs.host);
+      await page.getByRole("searchbox", { name: "Apps suchen" }).fill(unterwegs.host);
       await expect(tabelle.locator("tbody tr")).toHaveCount(1);
       await expect(tabelle.locator("tbody tr")).toContainText("wird eingerichtet");
     } finally {

@@ -20,7 +20,7 @@ test.describe("a support access", { tag: "@phone" }, () => {
     const grund = `Anfrage aus dem Portal (${info.project.name}): Anmeldung langsam`;
     const i = await installationAnlegen(page.request, neuerHost("support"));
     try {
-      await page.goto(`/installationen/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}`);
       await expect(page.getByText("Support erreicht Log-Auszug und Neustart nur")).toBeVisible();
       await page.getByRole("button", { name: "Zugang starten" }).click();
       const starten = page.getByRole("dialog", { name: "Support-Zugang starten" });
@@ -45,7 +45,7 @@ test.describe("a support access", { tag: "@phone" }, () => {
       await expect(page.getByText(grund)).toBeVisible();
       await ohneBefund(page);
 
-      await page.goto(`/installationen/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}`);
       await page.getByRole("button", { name: "Zugang beenden" }).click();
       await expect(page.getByRole("button", { name: "Zugang starten" })).toBeVisible();
       const danach = (await (

@@ -56,7 +56,7 @@ test.describe("backups", { tag: "@phone" }, () => {
           timeout: 15_000,
         })
         .toBe(true);
-      await page.goto(`/installationen/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}`);
       await page.getByRole("button", { name: "Backup jetzt" }).click();
       const dialog = page.getByRole("dialog", { name: "Backup jetzt" });
       await dialog.getByLabel("Grund").fill("vor dem Update auf 1.1.0");
@@ -79,12 +79,12 @@ test.describe("backups", { tag: "@phone" }, () => {
       await page.goto("/backups");
       const zeile = page
         .getByRole("row")
-        .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) });
+        .filter({ has: page.locator(`a[href="/apps/${i.installationId}"]`) });
       await expect(zeile).toContainText("volume daten");
       await expect(zeile).toContainText("eingerichtet");
       await ohneBefund(page);
 
-      await page.goto(`/installationen/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}`);
       await page.getByRole("button", { name: "Prüf-Restore jetzt" }).click();
       const pruef = page.getByRole("dialog", { name: "Prüf-Restore jetzt" });
       await pruef.getByLabel("Grund").fill("nach dem Wechsel des S3-Ziels");
@@ -106,9 +106,7 @@ test.describe("backups", { tag: "@phone" }, () => {
 
       await page.goto("/backups");
       await expect(
-        page
-          .getByRole("row")
-          .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) }),
+        page.getByRole("row").filter({ has: page.locator(`a[href="/apps/${i.installationId}"]`) }),
       ).toContainText(", gelungen");
       await ohneBefund(page);
     } finally {
@@ -138,7 +136,7 @@ test.describe("backups", { tag: "@phone" }, () => {
         })
         .toBe(true);
 
-      await page.goto(`/installationen/${id}`);
+      await page.goto(`/apps/${id}`);
       await page.getByRole("tab", { name: "Backups" }).click();
       const laeufe = page.getByRole("region", { name: "Läufe" });
       await laeufe.getByRole("button", { name: /^Lauf vom .+ wiederherstellen$/ }).click();

@@ -29,7 +29,7 @@ test.describe("customers", { tag: "@phone" }, () => {
     await expect(page).toHaveURL(/\/kunden\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
     await expect(page.getByText("mia@muster-design.test · Kunde seit 01.12.2026")).toBeVisible();
-    await expect(page.getByText("Installationen: 0, Server: 0")).toBeVisible();
+    await expect(page.getByText("Apps: 0, Server: 0")).toBeVisible();
 
     await page.getByRole("button", { name: "Ändern" }).click();
     const aendern = page.getByRole("dialog", { name: `${name} ändern` });
