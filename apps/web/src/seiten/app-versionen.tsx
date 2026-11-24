@@ -14,14 +14,15 @@ import {
   type Importiert,
 } from "../daten/apps.ts";
 import { zeitpunkt } from "../format/zeit.ts";
+import { Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { Marke, Zustand } from "../teile/zeichen.tsx";
 import { Fehler, felder } from "./anmeldung-teile.tsx";
 import { DateiFeld } from "./installieren-felder.tsx";
 import { installationsFehler } from "./installieren-texte.ts";
 
 /*
- * The versions of an app on the page "Apps" (BAULISTE.md Z-501; design/mockup, viewApps): each
- * imported version, a newer one of the registry as "neue Version, Manifest fehlt", "dringend" and
+ * The versions of an app on its page below "Apps" (BAULISTE.md Z-501; design/mockup, viewApps): each
+ * imported version, a newer one of the registry as "Manifest fehlt", "dringend" and
  * pre-releases marked, what the registry said last; the dialog that imports a signed manifest and
  * the button that asks the registries now, both for owner and technik.
  */
@@ -33,13 +34,12 @@ const DURCH: Record<Importiert["durch"], () => string> = {
   anderer_betreiber: () => m.apps_importiert_anderer(),
 };
 
-const VersionsZeile = (props: { v: AppVersion; jetzt: number }) => (
-  <li class="flex flex-wrap items-center gap-2" data-testid="app-version">
-    <span class="font-mono text-xs">{props.v.version}</span>
+const ZustandsZelle = (props: { v: AppVersion }) => (
+  <div class="flex flex-wrap items-center gap-2">
     <Show
       when={props.v.zustand === "verfuegbar"}
       fallback={
-        <Zustand icon={CircleDashed} farbe="text-warn" text={m.apps_version_manifest_fehlt()} />
+        <Zustand icon={CircleDashed} farbe="text-warn" text={m.apps_zustand_manifest_fehlt()} />
       }
     >
       <Zustand icon={CircleCheck} farbe="text-ok" text={m.apps_version_verfuegbar()} />
@@ -53,14 +53,28 @@ const VersionsZeile = (props: { v: AppVersion; jetzt: number }) => (
     <Show when={props.v.vorabversion}>
       <Marke>{m.version_vorab()}</Marke>
     </Show>
-    <Show when={props.v.importiert}>
-      {(i) => (
-        <span class="text-xs text-muted-foreground">
-          {m.apps_importiert({ zeit: zeitpunkt(i().am, props.jetzt), durch: DURCH[i().durch]() })}
-        </span>
-      )}
-    </Show>
-  </li>
+  </div>
+);
+
+const VersionsZeile = (props: { v: AppVersion; jetzt: number }) => (
+  <tr class="border-t hover:bg-muted/50" data-testid="app-version">
+    <td class="px-5 py-3 font-mono font-medium">{props.v.version}</td>
+    <td class="px-5 py-3">
+      <ZustandsZelle v={props.v} />
+    </td>
+    <td class="px-5 py-3 text-muted-foreground">
+      <Show when={props.v.importiert} fallback="–">
+        {(i) => (
+          <span>
+            {m.apps_importiert_wann({
+              zeit: zeitpunkt(i().am, props.jetzt),
+              durch: DURCH[i().durch](),
+            })}
+          </span>
+        )}
+      </Show>
+    </td>
+  </tr>
 );
 
 const registryText = (a: AppDerZentrale, jetzt: number): { text: string; warn: boolean } => {
@@ -74,19 +88,39 @@ const registryText = (a: AppDerZentrale, jetzt: number): { text: string; warn: b
   };
 };
 
-/** The app's versions, or that none is imported yet */
+/** The app's versions as a table with what the registry said last, or that none is imported */
 export const VersionenTeil = (props: { a: AppDerZentrale | undefined; jetzt: number }) => (
-  <div class="border-t px-5 py-4">
-    <h3 class="mb-2 text-xs font-medium text-muted-foreground">{m.apps_versionen()}</h3>
-    <Show when={props.a} fallback={<p class="text-muted-foreground">{m.apps_kein_manifest()}</p>}>
+  <Karte>
+    <KartenKopf titel={m.apps_versionen()} text={m.apps_versionen_text()} />
+    <Show
+      when={props.a}
+      fallback={<KartenInhalt class="text-muted-foreground">{m.apps_kein_manifest()}</KartenInhalt>}
+    >
       {(a) => (
         <>
-          <ul class="grid gap-1.5">
-            <For each={a().versionen}>{(v) => <VersionsZeile v={v} jetzt={props.jetzt} />}</For>
-          </ul>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-muted text-xs text-muted-foreground">
+                <tr>
+                  <th scope="col" class="px-5 py-2 font-medium">
+                    {m.apps_spalte_version()}
+                  </th>
+                  <th scope="col" class="px-5 py-2 font-medium">
+                    {m.apps_spalte_zustand()}
+                  </th>
+                  <th scope="col" class="px-5 py-2 font-medium">
+                    {m.apps_spalte_importiert()}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <For each={a().versionen}>{(v) => <VersionsZeile v={v} jetzt={props.jetzt} />}</For>
+              </tbody>
+            </table>
+          </div>
           <p
             class={[
-              "mt-2 text-xs",
+              "border-t px-5 py-3 text-xs",
               registryText(a(), props.jetzt).warn ? "text-warn" : "text-muted-foreground",
             ]}
           >
@@ -95,7 +129,7 @@ export const VersionenTeil = (props: { a: AppDerZentrale | undefined; jetzt: num
         </>
       )}
     </Show>
-  </div>
+  </Karte>
 );
 
 /** The import's form: both files and the reason; a refusal stays in the dialog */
@@ -153,7 +187,7 @@ export const ManifestImportieren = (props: { onImportiert: (meldung: string) => 
   const [offen, setOffen] = createSignal(false);
   return (
     <>
-      <Button variant="primary" onClick={() => setOffen(true)}>
+      <Button onClick={() => setOffen(true)}>
         <Icon icon={FileText} size={16} />
         {m.apps_importieren()}
       </Button>
@@ -177,7 +211,7 @@ export const ManifestImportieren = (props: { onImportiert: (meldung: string) => 
   );
 };
 
-/** "Registry abfragen": asks every registry now and waits for their answers */
+/** "Nach neuen Versionen suchen": asks every registry now and waits for their answers */
 export const RegistryAbfragen = (props: { onAbgefragt: () => void }) => {
   const [laeuft, setLaeuft] = createSignal(false);
   const abfragen = async () => {
@@ -187,7 +221,12 @@ export const RegistryAbfragen = (props: { onAbgefragt: () => void }) => {
     props.onAbgefragt();
   };
   return (
-    <Button onClick={() => void abfragen()} disabled={laeuft()}>
+    <Button
+      variant="ghost"
+      title={m.apps_abfragen_hinweis()}
+      onClick={() => void abfragen()}
+      disabled={laeuft()}
+    >
       <Icon icon={RefreshCw} size={16} />
       {laeuft() ? m.apps_abfragen_laeuft() : m.apps_abfragen()}
     </Button>

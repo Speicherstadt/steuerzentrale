@@ -58,6 +58,7 @@ const ALLE = [
   ["/support", "Support-Zugänge"],
   ["/leistungen", "Leistungen"],
   ["/apps", "Apps"],
+  ["/apps/haben", "Haben"],
   ["/ereignisse", "Ereignisse"],
   ["/audit", "Audit-Log"],
   ["/einstellungen", "Einstellungen"],
@@ -115,7 +116,7 @@ describe("pages", () => {
 
   it("show the apps with a released manifest on the apps page, and an app only imported (Z-501)", async () => {
     const root = await oeffne("/apps");
-    const namen = [...root.querySelectorAll("main section h2")].map((h) => h.textContent);
+    const namen = [...root.querySelectorAll("main section h2 a")].map((h) => h.textContent);
     expect(namen).toEqual([
       "Haben",
       "Belegt",
@@ -125,7 +126,9 @@ describe("pages", () => {
       "Kennwort",
       "probe",
     ]);
-    expect(root.textContent).toContain("Haben#945–#948");
+    // the details, the issue of an action Haben lacks among them, stand on its page (versionen.test)
+    expect(root.textContent).toContain("0.13.0 erschienen – Manifest fehlt noch");
+    expect(root.textContent).not.toContain("Haben#945–#948");
   });
 
   it("name the object of a detail page in the path", async () => {

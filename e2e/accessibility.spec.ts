@@ -23,6 +23,7 @@ const pages = [
   "/support",
   "/leistungen",
   "/apps",
+  "/apps/haben",
   "/ereignisse",
   "/audit",
   "/einstellungen",

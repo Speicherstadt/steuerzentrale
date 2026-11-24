@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnmeldenRouteImport } from './routes/anmelden'
-import { Route as AppsRouteImport } from './routes/apps'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AuftraegeRouteImport } from './routes/auftraege'
 import { Route as BackupsRouteImport } from './routes/backups'
@@ -23,6 +22,8 @@ import { Route as ErsterInhaberRouteImport } from './routes/erster-inhaber'
 import { Route as LeistungenRouteImport } from './routes/leistungen'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as UpdatesRouteImport } from './routes/updates'
+import { Route as AppsIndexRouteImport } from './routes/apps.index'
+import { Route as AppsIdRouteImport } from './routes/apps.$id'
 import { Route as InstallationenIndexRouteImport } from './routes/installationen.index'
 import { Route as InstallationenIdRouteImport } from './routes/installationen.$id'
 import { Route as KundenIndexRouteImport } from './routes/kunden.index'
@@ -38,11 +39,6 @@ const IndexRoute = IndexRouteImport.update({
 const AnmeldenRoute = AnmeldenRouteImport.update({
   id: '/anmelden',
   path: '/anmelden',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppsRoute = AppsRouteImport.update({
-  id: '/apps',
-  path: '/apps',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditRoute = AuditRouteImport.update({
@@ -100,6 +96,16 @@ const UpdatesRoute = UpdatesRouteImport.update({
   path: '/updates',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppsIndexRoute = AppsIndexRouteImport.update({
+  id: '/apps/',
+  path: '/apps/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppsIdRoute = AppsIdRouteImport.update({
+  id: '/apps/$id',
+  path: '/apps/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InstallationenIndexRoute = InstallationenIndexRouteImport.update({
   id: '/installationen/',
   path: '/installationen/',
@@ -134,7 +140,6 @@ const ServerIdRoute = ServerIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/anmelden': typeof AnmeldenRoute
-  '/apps': typeof AppsRoute
   '/audit': typeof AuditRoute
   '/auftraege': typeof AuftraegeRoute
   '/backups': typeof BackupsRoute
@@ -146,9 +151,11 @@ export interface FileRoutesByFullPath {
   '/leistungen': typeof LeistungenRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
+  '/apps/$id': typeof AppsIdRoute
   '/installationen/$id': typeof InstallationenIdRoute
   '/kunden/$id': typeof KundenIdRoute
   '/server/$id': typeof ServerIdRoute
+  '/apps/': typeof AppsIndexRoute
   '/installationen/': typeof InstallationenIndexRoute
   '/kunden/': typeof KundenIndexRoute
   '/server/': typeof ServerIndexRoute
@@ -156,7 +163,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/anmelden': typeof AnmeldenRoute
-  '/apps': typeof AppsRoute
   '/audit': typeof AuditRoute
   '/auftraege': typeof AuftraegeRoute
   '/backups': typeof BackupsRoute
@@ -168,9 +174,11 @@ export interface FileRoutesByTo {
   '/leistungen': typeof LeistungenRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
+  '/apps/$id': typeof AppsIdRoute
   '/installationen/$id': typeof InstallationenIdRoute
   '/kunden/$id': typeof KundenIdRoute
   '/server/$id': typeof ServerIdRoute
+  '/apps': typeof AppsIndexRoute
   '/installationen': typeof InstallationenIndexRoute
   '/kunden': typeof KundenIndexRoute
   '/server': typeof ServerIndexRoute
@@ -179,7 +187,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/anmelden': typeof AnmeldenRoute
-  '/apps': typeof AppsRoute
   '/audit': typeof AuditRoute
   '/auftraege': typeof AuftraegeRoute
   '/backups': typeof BackupsRoute
@@ -191,9 +198,11 @@ export interface FileRoutesById {
   '/leistungen': typeof LeistungenRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
+  '/apps/$id': typeof AppsIdRoute
   '/installationen/$id': typeof InstallationenIdRoute
   '/kunden/$id': typeof KundenIdRoute
   '/server/$id': typeof ServerIdRoute
+  '/apps/': typeof AppsIndexRoute
   '/installationen/': typeof InstallationenIndexRoute
   '/kunden/': typeof KundenIndexRoute
   '/server/': typeof ServerIndexRoute
@@ -203,7 +212,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/anmelden'
-    | '/apps'
     | '/audit'
     | '/auftraege'
     | '/backups'
@@ -215,9 +223,11 @@ export interface FileRouteTypes {
     | '/leistungen'
     | '/support'
     | '/updates'
+    | '/apps/$id'
     | '/installationen/$id'
     | '/kunden/$id'
     | '/server/$id'
+    | '/apps/'
     | '/installationen/'
     | '/kunden/'
     | '/server/'
@@ -225,7 +235,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/anmelden'
-    | '/apps'
     | '/audit'
     | '/auftraege'
     | '/backups'
@@ -237,9 +246,11 @@ export interface FileRouteTypes {
     | '/leistungen'
     | '/support'
     | '/updates'
+    | '/apps/$id'
     | '/installationen/$id'
     | '/kunden/$id'
     | '/server/$id'
+    | '/apps'
     | '/installationen'
     | '/kunden'
     | '/server'
@@ -247,7 +258,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/anmelden'
-    | '/apps'
     | '/audit'
     | '/auftraege'
     | '/backups'
@@ -259,9 +269,11 @@ export interface FileRouteTypes {
     | '/leistungen'
     | '/support'
     | '/updates'
+    | '/apps/$id'
     | '/installationen/$id'
     | '/kunden/$id'
     | '/server/$id'
+    | '/apps/'
     | '/installationen/'
     | '/kunden/'
     | '/server/'
@@ -270,7 +282,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnmeldenRoute: typeof AnmeldenRoute
-  AppsRoute: typeof AppsRoute
   AuditRoute: typeof AuditRoute
   AuftraegeRoute: typeof AuftraegeRoute
   BackupsRoute: typeof BackupsRoute
@@ -282,9 +293,11 @@ export interface RootRouteChildren {
   LeistungenRoute: typeof LeistungenRoute
   SupportRoute: typeof SupportRoute
   UpdatesRoute: typeof UpdatesRoute
+  AppsIdRoute: typeof AppsIdRoute
   InstallationenIdRoute: typeof InstallationenIdRoute
   KundenIdRoute: typeof KundenIdRoute
   ServerIdRoute: typeof ServerIdRoute
+  AppsIndexRoute: typeof AppsIndexRoute
   InstallationenIndexRoute: typeof InstallationenIndexRoute
   KundenIndexRoute: typeof KundenIndexRoute
   ServerIndexRoute: typeof ServerIndexRoute
@@ -304,13 +317,6 @@ declare module '@tanstack/solid-router' {
       path: '/anmelden'
       fullPath: '/anmelden'
       preLoaderRoute: typeof AnmeldenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/apps': {
-      id: '/apps'
-      path: '/apps'
-      fullPath: '/apps'
-      preLoaderRoute: typeof AppsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audit': {
@@ -390,6 +396,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof UpdatesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/apps/': {
+      id: '/apps/'
+      path: '/apps'
+      fullPath: '/apps/'
+      preLoaderRoute: typeof AppsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/apps/$id': {
+      id: '/apps/$id'
+      path: '/apps/$id'
+      fullPath: '/apps/$id'
+      preLoaderRoute: typeof AppsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/installationen/': {
       id: '/installationen/'
       path: '/installationen'
@@ -438,7 +458,6 @@ declare module '@tanstack/solid-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnmeldenRoute: AnmeldenRoute,
-  AppsRoute: AppsRoute,
   AuditRoute: AuditRoute,
   AuftraegeRoute: AuftraegeRoute,
   BackupsRoute: BackupsRoute,
@@ -450,9 +469,11 @@ const rootRouteChildren: RootRouteChildren = {
   LeistungenRoute: LeistungenRoute,
   SupportRoute: SupportRoute,
   UpdatesRoute: UpdatesRoute,
+  AppsIdRoute: AppsIdRoute,
   InstallationenIdRoute: InstallationenIdRoute,
   KundenIdRoute: KundenIdRoute,
   ServerIdRoute: ServerIdRoute,
+  AppsIndexRoute: AppsIndexRoute,
   InstallationenIndexRoute: InstallationenIndexRoute,
   KundenIndexRoute: KundenIndexRoute,
   ServerIndexRoute: ServerIndexRoute,

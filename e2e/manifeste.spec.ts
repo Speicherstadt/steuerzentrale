@@ -21,13 +21,13 @@ const ZEICHEN = "abcdefghijklmnopqrstuvwxyz";
 /** An app id no other test or run imports: an imported version never changes */
 const neueApp = () => `probe-${Array.from({ length: 8 }, () => ZEICHEN[randomInt(26)]).join("")}`;
 
-const karte = (page: Page, app: string) =>
-  page.locator("main section", { has: page.getByRole("heading", { name: app, exact: true }) });
+const kachel = (page: Page, app: string) =>
+  page.locator("main section", { has: page.getByRole("link", { name: app, exact: true }) });
 
 // BAULISTE.md Z-501 against the real Zentrale with the first owner's session: a signed manifest
 // imported through the dialog on the page Apps, installed from in the dialog "App installieren",
 // a newer version of the registry (the stand-in, apps/zentrale/src/testhilfen/registry.ts) shown
-// as "neue Version, Manifest fehlt", and a customer marked as internal, who alone gets the
+// on the app's tile and page as "Manifest fehlt", and a customer marked as internal, who alone gets the
 // pre-release offered.
 test.describe("manifests and versions", { tag: "@phone" }, () => {
   test("imports a signed manifest in the dialog, and refuses other text for its version", async ({
@@ -45,7 +45,12 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
     await dialog.getByRole("button", { name: "Importieren" }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByRole("status")).toHaveText(`${app} 1.0.0 ist importiert.`);
-    await expect(karte(page, app).getByTestId("app-version")).toContainText("1.0.0verfügbar");
+    await expect(kachel(page, app)).toContainText("Version 1.0.0");
+    await kachel(page, app).getByRole("link", { name: app, exact: true }).click();
+    await expect(page).toHaveURL(`/apps/${app}`);
+    await expect(page.locator("main h1")).toHaveText(app);
+    await expect(page.getByTestId("app-version")).toContainText("1.0.0verfügbar");
+    await page.goto("/apps");
 
     const anders = manifestDateien(`${eigeneApp(app)}hinweis: anders\n`);
     await page.getByRole("button", { name: "Manifest importieren" }).click();
@@ -60,12 +65,15 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
   test("shows a newer version of the registry as manifest missing", async ({ page }) => {
     await manifestImportieren(page.request);
     await page.goto("/apps");
-    await page.getByRole("button", { name: "Registry abfragen" }).click();
-    const probe = karte(page, "probe");
+    await page.getByRole("button", { name: "Nach neuen Versionen suchen" }).click();
+    await expect(kachel(page, "probe")).toContainText("9.0.0 erschienen – Manifest fehlt noch");
+    await page.goto("/apps/probe");
     await expect(
-      probe.getByTestId("app-version").filter({ hasText: "9.0.0neue Version, Manifest fehlt" }),
+      page.getByTestId("app-version").filter({ hasText: "9.0.0Manifest fehlt" }),
     ).toBeVisible();
-    await expect(probe).toContainText("Registry registry.example.org/probe, abgefragt");
+    await expect(page.locator("main")).toContainText(
+      "Registry registry.example.org/probe, abgefragt",
+    );
     await ohneBefund(page);
   });
 

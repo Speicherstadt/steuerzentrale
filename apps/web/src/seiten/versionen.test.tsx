@@ -14,7 +14,7 @@ import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./te
 
 /*
  * BAULISTE.md Z-501 in the interface, against the demo sources: the page Apps with the imported
- * versions, "neue Version, Manifest fehlt" and the import of a signed manifest; the page Updates
+ * versions, "Manifest fehlt" and the import of a signed manifest; the page Updates
  * with what each installation is offered; a customer marked as internal by the owner only.
  */
 
@@ -41,36 +41,57 @@ const hochladen = async (label: string, text: string, name: string) => {
   await warten();
 };
 
-const karte = (root: HTMLElement, name: string) =>
+const kachel = (root: HTMLElement, name: string) =>
   [...root.querySelectorAll("main section")].find(
     (s) => s.querySelector("h2")?.textContent === name,
   );
 
-/** The page Apps once its cards are there: the demo's installations load on first use */
+/** The page Apps once its tiles are there: the demo's installations load on first use */
 const appsSeite = async () => {
-  const { root } = await oeffne("/apps");
+  const offen = await oeffne("/apps");
   await vi.waitFor(() => {
-    if (!karte(root, "Haben")) throw new Error("no cards yet");
+    if (!kachel(offen.root, "Haben")) throw new Error("no tiles yet");
   });
-  return { root };
+  return offen;
 };
 
-const versionen = (root: HTMLElement, name: string) =>
-  [...(karte(root, name)?.querySelectorAll("[data-testid=app-version]") ?? [])].map(
-    (v) => v.textContent,
-  );
+/** An app's page once its versions are there */
+const appSeite = async (id: string) => {
+  const offen = await oeffne(`/apps/${id}`);
+  await vi.waitFor(() => {
+    if (!offen.root.querySelector("[data-testid=app-version]")) throw new Error("no versions yet");
+  });
+  return offen;
+};
+
+const versionen = (root: HTMLElement) =>
+  [...root.querySelectorAll("[data-testid=app-version]")].map((v) => v.textContent);
 
 describe("the page Apps", () => {
-  it("shows the imported versions and a new one whose manifest is missing", async () => {
+  it("shows one tile per app with its version and only the hint that matters", async () => {
     const { root } = await appsSeite();
-    expect(versionen(root, "Kontext")[0]).toContain("0.1.40neue Version, Manifest fehlt");
-    expect(versionen(root, "Kontext")[1]).toContain("0.1.37verfügbar");
-    expect(karte(root, "Kontext")?.textContent).toContain("0.1.37 · 0.1.40 neu, Manifest fehlt");
-    expect(versionen(root, "probe")[0]).toContain("1.1.0-rc.1verfügbarVorabversion");
+    const kontext = kachel(root, "Kontext");
+    expect(kontext?.textContent).toContain("Version 0.1.37");
+    expect(kontext?.textContent).toContain("0.1.40 erschienen – Manifest fehlt noch");
+    expect(kontext?.querySelector("h2 a")?.getAttribute("href")).toBe("/apps/kontext");
+    expect(kachel(root, "Belegt")?.textContent).not.toContain("Manifest fehlt");
+    // the facts stand on the app's page, not on its tile
+    expect(kontext?.textContent).not.toContain("Health");
+    expect(kontext?.querySelectorAll("li")).toHaveLength(0);
+  });
+
+  it("opens the dialog with the app chosen from its tile", async () => {
+    const { root } = await appsSeite();
+    const knopfDer = kachel(root, "Belegt")?.querySelector<HTMLButtonElement>(
+      'button[aria-label="Belegt installieren"]',
+    );
+    knopfDer?.click();
+    await warten();
+    expect(feld<HTMLSelectElement>("App").value).toBe("belegt");
   });
 
   it("imports a signed manifest with a reason, and says when it was there already", async () => {
-    const { root } = await appsSeite();
+    const { root, router } = await appsSeite();
     knopf(root, "Manifest importieren")?.click();
     await warten();
     const neu = PROBE_MANIFEST.replace("version: 1.0.0", "version: 1.2.0\ndringend: true");
@@ -82,7 +103,10 @@ describe("the page Apps", () => {
     await warten();
     expect(document.querySelector("dialog[open]")).toBeNull();
     expect(root.querySelector("[role=status]")?.textContent).toBe("probe 1.2.0 ist importiert.");
-    expect(versionen(root, "probe")[0]).toContain("1.2.0verfügbardringend");
+    expect(kachel(root, "probe")?.textContent).toContain("Version 1.2.0");
+    await router.navigate({ to: "/apps/$id", params: { id: "probe" } });
+    await warten();
+    expect(versionen(root)[0]).toContain("1.2.0verfügbardringend");
   });
 
   it("refuses another text for an imported version in the dialog", async () => {
@@ -100,11 +124,12 @@ describe("the page Apps", () => {
     );
   });
 
-  it("offers import and the registry query to owner and technik, not to support", async () => {
+  it("offers import, the registry query and installing to owner and technik, not to support", async () => {
     rolle("support");
     const { root } = await appsSeite();
     expect(knopf(root, "Manifest importieren")).toBeUndefined();
-    expect(knopf(root, "Registry abfragen")).toBeUndefined();
+    expect(knopf(root, "Nach neuen Versionen suchen")).toBeUndefined();
+    expect(knopf(root, "Installieren")).toBeUndefined();
   });
 
   it("asks the Zentrale's registries on the button", async () => {
@@ -115,9 +140,46 @@ describe("the page Apps", () => {
     });
     appsQuelleEinsetzen(apiApps);
     const { root } = await appsSeite();
-    knopf(root, "Registry abfragen")?.click();
+    knopf(root, "Nach neuen Versionen suchen")?.click();
     await warten();
     expect(anfragen).toContain("POST /api/v1/versionen/abfragen");
+  });
+});
+
+describe("the page of an app", () => {
+  it("shows the imported versions and a new one whose manifest is missing", async () => {
+    const { root } = await appSeite("kontext");
+    expect(versionen(root)[0]).toContain("0.1.40Manifest fehlt");
+    expect(versionen(root)[1]).toContain("0.1.37verfügbar");
+    const probe = await appSeite("probe");
+    expect(versionen(probe.root)[0]).toContain("1.1.0-rc.1verfügbarVorabversion");
+  });
+
+  it("shows its sections with readable rows, and the actions it lacks with their issue", async () => {
+    const { root } = await appSeite("haben");
+    expect(root.querySelector("main h1")?.textContent).toBe("Haben");
+    const titel = [...root.querySelectorAll("main section h2")].map((h) => h.textContent);
+    expect(titel).toEqual([
+      "Versionen",
+      "Betrieb",
+      "Sperrzeiten",
+      "Aktionen",
+      "Einstellungen",
+      "Installationen",
+    ]);
+    const betrieb = root.querySelectorAll("main section")[1];
+    expect([...(betrieb?.querySelectorAll("dt") ?? [])].map((d) => d.textContent)).toContain(
+      "Arbeitsspeicher",
+    );
+    expect(root.textContent).toContain("Haben#945–#948");
+    expect(root.querySelectorAll("[data-testid=app-ebene]")).toHaveLength(3);
+    expect(root.querySelector('main a[href^="/installationen/"]')).not.toBeNull();
+  });
+
+  it("is not found for an app neither described nor imported", async () => {
+    const { root } = await oeffne("/apps/gibt-es-nicht");
+    await warten();
+    expect(root.querySelector("main h1")?.textContent).toBe("Nicht gefunden");
   });
 });
 

@@ -105,10 +105,14 @@ const AdressFeld = (props: { a: Auswahl }) => {
 
 const Formular = (props: {
   kundeId: string | undefined;
+  app: string | undefined;
   onAngelegt: (i: InstallationDerZentrale) => void;
   onAbbruch: () => void;
 }) => {
-  const a = auswahlZustand(() => props.kundeId);
+  const a = auswahlZustand(
+    () => props.kundeId,
+    () => props.app,
+  );
   const [ablehnung, setAblehnung] = createSignal<Ablehnung>();
   const [laeuft, setLaeuft] = createSignal(false);
   const senden = async (event: SubmitEvent) => {
@@ -160,18 +164,25 @@ const Formular = (props: {
 
 /**
  * The button "App installieren" and its dialog, only for a role that may install
- * (docs/plan.md, "Rollen für Installationen"); `kundeId` preselects the customer
+ * (docs/plan.md, "Rollen für Installationen"); `kundeId` preselects the customer, `app` the app
+ * (the page Apps); there a tile's button is `klein`: outlined, with its own text and label
  */
 export const Installieren = (props: {
   kundeId?: string;
+  app?: string;
+  klein?: { text: string; label: string };
   onAngelegt: (i: InstallationDerZentrale) => void;
 }) => {
   const [offen, setOffen] = createSignal(false);
   return (
     <MitInstallationsRecht>
-      <Button variant="primary" onClick={() => setOffen(true)}>
+      <Button
+        variant={props.klein ? "outline" : "primary"}
+        aria-label={props.klein?.label}
+        onClick={() => setOffen(true)}
+      >
         <Icon icon={Plus} size={16} />
-        {m.installieren()}
+        {props.klein?.text ?? m.installieren()}
       </Button>
       <Dialog
         open={offen()}
@@ -182,6 +193,7 @@ export const Installieren = (props: {
         <Show when={offen()}>
           <Formular
             kundeId={props.kundeId}
+            app={props.app}
             onAbbruch={() => setOffen(false)}
             onAngelegt={(i) => {
               setOffen(false);

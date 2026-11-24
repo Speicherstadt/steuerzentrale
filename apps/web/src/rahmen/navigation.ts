@@ -84,6 +84,8 @@ export type Stufe = { name: string; pfad?: Pfad };
 const objektName = (b: Bestand, bereich: string, id: string): string | undefined => {
   if (bereich === "/server") return suche(b.server, id)?.name;
   if (bereich === "/kunden") return suche(b.kunden, id)?.name;
+  // an app only imported has no description: its id names it
+  if (bereich === "/apps") return suche(b.apps, id)?.name ?? id;
   if (bereich === "/installationen") {
     const i = suche(b.installationen, id);
     return i && titel(b, i);
