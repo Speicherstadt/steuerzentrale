@@ -183,12 +183,18 @@ const ImportFormular = (props: { onFertig: (meldung: string) => void; onAbbruch:
 };
 
 /** "Manifest importieren" and its dialog; `onImportiert` hears what the Zentrale said */
-export const ManifestImportieren = (props: { onImportiert: (meldung: string) => void }) => {
+export const ManifestImportieren = (props: {
+  onImportiert: (meldung: string) => void;
+  /** Small and without icon, as in a table row */
+  klein?: boolean;
+}) => {
   const [offen, setOffen] = createSignal(false);
   return (
     <>
-      <Button onClick={() => setOffen(true)}>
-        <Icon icon={FileText} size={16} />
+      <Button size={props.klein ? "sm" : "md"} onClick={() => setOffen(true)}>
+        <Show when={!props.klein}>
+          <Icon icon={FileText} size={16} />
+        </Show>
         {m.apps_importieren()}
       </Button>
       <Dialog

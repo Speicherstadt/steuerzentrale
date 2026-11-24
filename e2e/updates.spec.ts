@@ -53,8 +53,9 @@ test.describe("updates", { tag: "@phone" }, () => {
       const zeile = page
         .getByRole("row")
         .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) });
-      await expect(zeile).toContainText("noch keins");
-      await zeile.getByRole("button", { name: `Update für ${i.installationId}` }).click();
+      await expect(zeile).toContainText("Update verfügbar");
+      await expect(zeile.getByTitle(/noch keins/)).toBeVisible();
+      await zeile.getByRole("button", { name: `${i.installationId} aktualisieren` }).click();
       const dialog = page.getByRole("dialog", { name: "Installation aktualisieren?" });
       await expect(dialog.getByRole("note")).toContainText("Vorher wird der Ist-Zustand gesichert");
       await expect(dialog.getByLabel("Version")).toHaveValue("1.1.0");
@@ -71,11 +72,16 @@ test.describe("updates", { tag: "@phone" }, () => {
       expect((await backups(page.request, i.installationId)).laeufe).toHaveLength(1);
 
       await page.reload();
-      const neu = page
-        .getByRole("row")
-        .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) });
-      await expect(neu).toContainText("auf 1.1.0 aktualisiert");
-      await expect(neu.getByRole("button", { name: /^Update für / })).toHaveCount(0);
+      // current now: no row of its own, counted among the app's current installations
+      await expect(
+        page.getByRole("row").filter({
+          hasText: /weitere Installationen auf 1\.1\.0 · aktuell|aktualisierbar.*alle \d+ aktuell/,
+        }),
+      ).toHaveCount(1);
+      await expect(page.locator(`a[href="/installationen/${i.installationId}"]`)).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: `${i.installationId} aktualisieren` }),
+      ).toHaveCount(0);
       await ohneBefund(page);
     } finally {
       i.agent.trennen();

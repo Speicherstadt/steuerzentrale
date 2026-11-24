@@ -28,8 +28,16 @@ import { appIcon } from "./app-icon.ts";
  * colour never carries the meaning alone.
  */
 
-export const Zustand = (props: { icon: IconNode; farbe: string; text: string }) => (
-  <span class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground">
+export const Zustand = (props: {
+  icon: IconNode;
+  farbe: string;
+  text: string;
+  titel?: string | undefined;
+}) => (
+  <span
+    title={props.titel}
+    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground"
+  >
     <Icon icon={props.icon} size={14} class={props.farbe} />
     {props.text}
   </span>
