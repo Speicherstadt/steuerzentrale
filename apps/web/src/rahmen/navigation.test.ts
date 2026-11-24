@@ -69,7 +69,7 @@ describe("navigation", () => {
     ]);
     expect(pfadStufen(demo, "/apps/lind-haben")).toEqual([
       { name: "Apps", pfad: "/apps" },
-      { name: "Studio Lind · Haben" },
+      { name: "Haben · Studio Lind" },
     ]);
     expect(pfadStufen(demo, "/katalog/haben")).toEqual([
       { name: "Katalog", pfad: "/katalog" },

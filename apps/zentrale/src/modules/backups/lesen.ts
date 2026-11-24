@@ -28,7 +28,8 @@ export type Lauf = {
   zeitpunkt: number;
   ok: boolean;
   grund: string | null;
-  teile: { tag: string; ok: boolean; snapshot?: string; fehler?: string }[];
+  /** `bytes`: what restic read for the part, as the agent reported it (protocol, Z-804) */
+  teile: { tag: string; ok: boolean; snapshot?: string; bytes?: number; fehler?: string }[];
 };
 
 export type BackupsDerInstallation = {

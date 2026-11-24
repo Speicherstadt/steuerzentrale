@@ -34,7 +34,11 @@ test.describe("the actions of an installation", { tag: "@phone" }, () => {
     try {
       await laeuft(page.request, i.installationId);
       await page.goto(`/apps/${i.installationId}`);
-      await expect(page.getByRole("button", { name: "Nur lesen" })).toHaveCount(0);
+      // the actions beside "Neustart" are in the menu "Mehr …"
+      await page.getByRole("button", { name: "Mehr …" }).click();
+      await expect(page.getByRole("menuitem", { name: "Log-Auszug" })).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: "Nur lesen" })).toHaveCount(0);
+      await page.keyboard.press("Escape");
 
       await page.getByRole("button", { name: "Neustart" }).click();
       const neustart = page.getByRole("dialog", { name: "Neustart" });
@@ -48,7 +52,8 @@ test.describe("the actions of an installation", { tag: "@phone" }, () => {
           expect.objectContaining({ aktion: "installation_neustart", zustand: "erfolgreich" }),
         );
 
-      await page.getByRole("button", { name: "Log-Auszug" }).click();
+      await page.getByRole("button", { name: "Mehr …" }).click();
+      await page.getByRole("menuitem", { name: "Log-Auszug" }).click();
       const log = page.getByRole("dialog", { name: "Log-Auszug" });
       await log.getByLabel("Grund").fill("Anfrage aus dem Portal: Anmeldung langsam");
       await log.getByRole("button", { name: "Anfordern" }).click();
@@ -71,8 +76,9 @@ test.describe("the actions of an installation", { tag: "@phone" }, () => {
     try {
       await laeuft(page.request, i.installationId);
       await page.goto(`/apps/${i.installationId}`);
-      await expect(page.getByRole("button", { name: "Log-Auszug" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Neustart" })).toHaveCount(0);
+      await page.getByRole("button", { name: "Mehr …" }).click();
+      await expect(page.getByRole("menuitem", { name: "Log-Auszug" })).toBeVisible();
       const antwort = await page.request.post(
         `/api/v1/installationen/${i.installationId}/neustart`,
         {

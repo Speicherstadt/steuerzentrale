@@ -127,14 +127,50 @@ Grund und Hinweis als Satz; die Codes der Zentrale übersetzt die Oberfläche se
 unbekannten zeigt sie mit seinem Namen. Lehnt die Zentrale das Anlegen ab, bleibt der Dialog offen
 und nennt den Fehler, bei `passt_nicht` mit allen Gründen.
 
-Nach dem Anlegen steht die Installation in der Liste mit dem Zustand **wird eingerichtet**. Die
-Liste filtert nach Zustand: eine gescheiterte Einrichtung zählt zu „Rot“, eine laufende zu „Ohne
-Zustand“, eine entfernte steht nicht mehr darin. Die Seite einer Installation zeigt Kunde, Server,
-Linux-Nutzer, Adresse, HTTP-Port, weitere Ports, Optionen, die Werte dieser Installation (ohne
-Geheimnisse) und ihre Aufträge mit Zustand, letztem Schritt und Fehler. Nach einer gescheiterten
-Einrichtung bietet sie **Entfernen …** mit Grund an, eine laufende **Einstellungen ändern**
-([Einstellungen](einstellungen.md)). Health, Backups und Daten zeigen die Seiten bis
-Z-403 und Z-406 nur für Installationen der Demodaten (`bun run dev:demo`).
+Nach dem Anlegen steht die Installation in der Liste mit dem Zustand **wird eingerichtet**.
+
+### Die Seite „Apps“
+
+Eine Tabelle mit jeder App, die nicht entfernt ist: **App** (Symbol und Name), **Kunde**, **Zustand**,
+**Version**, **Letztes Backup** und **Server**. Ein Klick irgendwo in der Zeile öffnet die App.
+
+- **Zustand** in Worten, mit Symbol: „Einrichtung gescheitert“ und „Störung: …“ (rot), „Backup ist
+  … alt“ (der letzte gelungene Lauf älter als 26 h), „Backup gescheitert“, „Prüf-Restore
+  gescheitert“ und eine gelbe Meldung des Agenten (gelb), „Keine Meldung …“ (unbekannt), „wird
+  eingerichtet“ und „wird gerade aktualisiert“, sonst „läuft“.
+- Was jemanden braucht, steht oben: rot, gelb, unbekannt, dann was unterwegs ist (Einrichtung,
+  Update), dann der Rest, jeweils in der Reihenfolge der Zentrale.
+- **Version**: die installierte; „→ 0.12.0“, solange ein Update läuft; die Marke „↑ 0.12.0“, wenn
+  eine neuere Version angeboten ist ([Updates](updates.md)).
+- Hinter dem Kunden „· gekündigt zum …“ nach einer Kündigung, „· eigene“ beim eigenen Kunden.
+- Filter: **Alle**, **Braucht dich** (rot, gelb, unbekannt) und **Update möglich**; **Gruppieren**
+  nicht, nach Kunde oder nach Server (eine graue Zeile je Gruppe); die Suche findet App, Kunde,
+  Adresse und Server.
+- In der Betriebsart „Nur für mich“ fehlen die Spalte „Kunde“ und „nach Kunde“.
+
+Alle Backups auf einen Blick zeigt die Seite **Backups**, erreichbar über „Alle Backups“ im Reiter
+„Backups“ einer App.
+
+### Die Seite einer App
+
+Im Kopf das Symbol, „App · Kunde“, der Zustand in einem Satz („Läuft, alles in Ordnung“ oder die
+Störung) und die Adresse. Daneben **Öffnen** (die Adresse in einem neuen Fenster), **Neustart** und
+**Mehr …** mit Log-Auszug, Backup jetzt, Prüf-Restore jetzt, Einstellungen ändern, Support-Zugang
+starten oder beenden und „nur lesen“: jede Aktion nur, wo das Manifest oder die Backups sie anbieten,
+und mit denselben Rechten wie bisher ([Aktionen](aktionen.md), [Backups](backups.md),
+[Einstellungen](einstellungen.md), [Support-Zugang](support.md)). Nach einer gescheiterten
+Einrichtung steht darunter **Entfernen …** mit Grund.
+
+Die Reiter stehen in der Adresse (`?tab=`):
+
+| Reiter | Inhalt |
+| --- | --- |
+| Überblick | fünf Zeilen: **Erreichbar** (Antwortzeit von außen, Zertifikat), **Version** (ein angebotenes Update mit „Aktualisieren …“, sonst aktuell), **Backup** (letzter Lauf, Größe, jede Nacht, letzter Prüf-Restore; „Backup jetzt“), **Verfügbarkeit** (dieser und der letzte Monat), **Server** (Verbindung, RAM, Platte); daneben der Kunde (Vertrag, Ansprechperson) und die letzten drei Ereignisse und Aufträge mit „Ganzer Verlauf“ |
+| Messwerte | nur Gemessenes: die Verfügbarkeit der letzten 90 Tage als Balken je Tag ([Prüfung von außen](aussen.md)) und die Größe jedes nächtlichen Backups über 24 Stunden, 7 oder 30 Tage, die Skala von 0 bis zu einer runden Zahl; ein Zeitraum ohne Backup ist als solcher beschriftet. Antwortzeit, CPU und Arbeitsspeicher folgen, sobald der Agent sie meldet |
+| Backups | Läufe, Prüf-Restore, Wiederherstellen und was nach einem Vertragsende folgt; „Alle Backups“ |
+| Einstellungen | die Werte dieser Installation (ohne Geheimnisse) |
+| Verlauf | jeder Wechsel des Zustands und die Ereignisse der App |
+| Technik | Units und Health, Linux-Nutzer, Adresse, HTTP-Port, weitere Ports, Optionen, Version und Manifest (mit SHA-256), angelegt; Adresse und Prüfung von außen; die Aufträge der Einrichtung mit Zustand, letztem Schritt und Fehler; der Support-Zugang |
 
 ## API
 

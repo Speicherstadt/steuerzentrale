@@ -14,7 +14,7 @@ import { aufraeumen, oeffne, warten } from "./test-dom.tsx";
 
 // BAULISTE.md Z-704: the installation's page shows where its name points, the Pforte's
 // certificate, what the health path answered from outside, the availability of this month and of
-// every month measured, against the demo source, which answers as the API does
+// every month measured, in the tab Technik, against the demo source, which answers as the API does
 beforeEach(() => {
   setLocale("de", { reload: false });
   const kunden = demoKunden(demo.kunden, () => demo.jetzt);
@@ -44,7 +44,7 @@ const karte = (root: HTMLElement) => {
 
 describe("the check from outside on an installation's page", () => {
   it("shows a red installation's status, its address, certificate and availability", async () => {
-    const { root } = await oeffne("/apps/berger-schreibzeug");
+    const { root } = await oeffne("/apps/berger-schreibzeug?tab=technik");
     await warten();
     const text = karte(root).textContent ?? "";
     expect(text).toContain(
@@ -70,8 +70,9 @@ describe("the check from outside on an installation's page", () => {
     };
     aussenQuelleEinsetzen({
       derInstallation: async () => ({ ok: true, status: 200, daten: leer }),
+      tage: async () => ({ ok: true, status: 200, daten: [] }),
     });
-    const { root } = await oeffne("/apps/berger-schreibzeug");
+    const { root } = await oeffne("/apps/berger-schreibzeug?tab=technik");
     await warten();
     const text = karte(root).textContent ?? "";
     expect(text).toContain("noch nicht von außen geprüft");
@@ -95,8 +96,9 @@ describe("the check from outside on an installation's page", () => {
     };
     aussenQuelleEinsetzen({
       derInstallation: async () => ({ ok: true, status: 200, daten: falsch }),
+      tage: async () => ({ ok: true, status: 200, daten: [] }),
     });
-    const { root } = await oeffne("/apps/berger-schreibzeug");
+    const { root } = await oeffne("/apps/berger-schreibzeug?tab=technik");
     await warten();
     expect(karte(root).textContent).toContain(
       "DNS zeigt auf 198.51.100.7 statt 203.0.113.12, 2001:db8::12",

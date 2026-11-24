@@ -132,7 +132,11 @@ export {
   STUNDE_MS,
   scheibeFortschreiben,
   stundeVon,
+  type Tag,
+  type TagesVerfuegbarkeit,
+  tagesGrenzen,
   verfuegbarkeitImMonat,
+  verfuegbarkeitProTag,
   type Zeitscheibe,
 } from "./verfuegbarkeit.ts";
 export {

@@ -29,8 +29,24 @@ export type BackupZielAenderung = {
 /** A part the manifest backs up, with the container, volume or command it names */
 export type BackupTeil = { art: "pg_dump" | "volume" | "befehl"; name: string };
 
-/** A part of a run: its restic tag and snapshot, or why it failed */
-export type LaufTeil = { tag: string; ok: boolean; snapshot?: string; fehler?: string };
+/**
+ * A part of a run: its restic tag and snapshot, or why it failed; `bytes` what restic read for it,
+ * as an agent since Z-804 reports it (an older one leaves it out)
+ */
+export type LaufTeil = {
+  tag: string;
+  ok: boolean;
+  snapshot?: string;
+  bytes?: number;
+  fehler?: string;
+};
+
+/** The size of a run: the bytes of its parts, or null when a part has none to say */
+export const laufBytes = (lauf: Pick<BackupLauf, "ok" | "teile">): number | null => {
+  if (!lauf.ok || lauf.teile.length === 0) return null;
+  const bytes = lauf.teile.map((t) => t.bytes);
+  return bytes.every((b) => b !== undefined) ? bytes.reduce((s, b) => s + b, 0) : null;
+};
 
 /** One run as the agent reported it, with the id a restore names it by */
 export type BackupLauf = {

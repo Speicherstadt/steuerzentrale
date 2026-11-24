@@ -44,17 +44,21 @@ test.describe("the state of an installation", { tag: "@phone" }, () => {
       await melden(eintrag("rot", "failed", "HTTP 503"));
 
       await page.goto("/apps");
-      const zeile = page.locator("tbody tr", { hasText: i.host });
-      await expect(zeile).toContainText("Rot");
-      await expect(zeile).toContainText("Health: HTTP 503");
+      const zeile = page
+        .locator("tbody tr")
+        .filter({ has: page.locator(`a[href="/apps/${i.installationId}"]`) });
+      await expect(zeile).toContainText("Störung: Health: HTTP 503");
 
       await zeile.getByRole("link").click();
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`${i.kunde.name} · probe`);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`probe · ${i.kunde.name}`);
+      await expect(page.getByText("Störung: Health: HTTP 503")).toBeVisible();
+      await page.getByRole("tab", { name: "Technik" }).click();
       const health = page.getByTestId("health");
       await expect(health).toContainText("Health: HTTP 503 · seit");
       await expect(health).toContainText("Rot");
       await expect(page.getByText(`${i.installationId}-app.service`)).toBeVisible();
       await expect(page.getByText("systemd: failed")).toBeVisible();
+      await page.getByRole("tab", { name: "Verlauf" }).click();
       const verlauf = page.getByTestId("verlauf").getByRole("listitem");
       await expect(verlauf).toHaveCount(2);
       await expect(verlauf.nth(0)).toContainText("Rot");

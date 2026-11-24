@@ -2,6 +2,7 @@
 // add a name here when a screen needs it
 export type { IconNode } from "lucide";
 export {
+  Activity,
   Archive,
   ArchiveRestore,
   ArchiveX,
@@ -31,6 +32,7 @@ export {
   CreditCard,
   Download,
   Ellipsis,
+  ExternalLink,
   Eye,
   EyeOff,
   FileText,

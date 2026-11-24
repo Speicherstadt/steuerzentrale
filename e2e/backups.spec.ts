@@ -85,7 +85,8 @@ test.describe("backups", { tag: "@phone" }, () => {
       await ohneBefund(page);
 
       await page.goto(`/apps/${i.installationId}`);
-      await page.getByRole("button", { name: "Prüf-Restore jetzt" }).click();
+      await page.getByRole("button", { name: "Mehr …" }).click();
+      await page.getByRole("menuitem", { name: "Prüf-Restore jetzt" }).click();
       const pruef = page.getByRole("dialog", { name: "Prüf-Restore jetzt" });
       await pruef.getByLabel("Grund").fill("nach dem Wechsel des S3-Ziels");
       await ohneBefund(page);

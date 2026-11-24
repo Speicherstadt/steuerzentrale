@@ -50,9 +50,14 @@ test.describe("Nur für mich", { tag: "@phone" }, () => {
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
       await dialog.getByRole("button", { name: "Installieren" }).click();
       await expect(dialog).toBeHidden();
-      await expect(page.locator("tbody tr, li", { hasText: host }).first()).toContainText(
-        "wird eingerichtet",
-      );
+      await page.getByRole("searchbox", { name: "Apps suchen" }).fill(host);
+      const zeile = page
+        .locator("main tbody tr")
+        .filter({ has: page.locator("a[href^='/apps/']") });
+      await expect(zeile).toHaveCount(1);
+      await expect(zeile).toContainText("wird eingerichtet");
+      // every app is the operator's own: no column "Kunde"
+      await expect(page.getByRole("columnheader", { name: "Kunde" })).toHaveCount(0);
     } finally {
       agent.trennen();
     }

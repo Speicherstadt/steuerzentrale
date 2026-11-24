@@ -50,11 +50,17 @@ test.describe("installing", { tag: "@phone" }, () => {
       await dialog.getByRole("button", { name: "Installieren" }).click();
       await expect(dialog).toBeHidden();
 
-      const zeile = page.locator("tbody tr", { hasText: host });
+      // the table shows no address, the search finds it
+      await page.getByRole("searchbox", { name: "Apps suchen" }).fill(host);
+      const zeile = page
+        .locator("main tbody tr")
+        .filter({ has: page.locator("a[href^='/apps/']") });
+      await expect(zeile).toHaveCount(1);
       await expect(zeile).toContainText("wird eingerichtet");
       await expect(zeile).toContainText(kunde.name);
       await zeile.getByRole("link").click();
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`${kunde.name} · probe`);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`probe · ${kunde.name}`);
+      await page.getByRole("tab", { name: "Technik" }).click();
       await expect(page.getByText("Einrichten", { exact: true })).toBeVisible();
       await expect(page.getByText(/^vom Agenten bestätigt/)).toBeVisible();
       await ohneBefund(page);
@@ -96,7 +102,7 @@ test.describe("installing", { tag: "@phone" }, () => {
           return ((await a.json()) as { zustand: string }).zustand;
         })
         .toBe("gescheitert");
-      await page.goto(`/apps/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}?tab=technik`);
       await expect(page.getByText("Einrichtung gescheitert").first()).toBeVisible();
       await expect(page.getByText("Fehler: image ziehen: manifest unknown")).toBeVisible();
       await page.getByRole("button", { name: "Entfernen …" }).click();

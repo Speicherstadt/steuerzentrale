@@ -14,8 +14,8 @@ Installation und endet von selbst.
 
 ## Zugang starten
 
-Wer hilft, startet den Zugang selbst: auf der Seite der Installation („Zugang starten“ im Kasten
-„Support-Zugang“) oder auf der Seite **Support-Zugänge** mit Wahl der Installation. Der Dialog fragt
+Wer hilft, startet den Zugang selbst: auf der Seite der App („Zugang starten“ unter „Mehr …“ oder
+im Kasten „Support-Zugang“ im Reiter „Technik“) oder auf der Seite **Support-Zugänge** mit Wahl der Installation. Der Dialog fragt
 
 - die **Dauer**: 1, 2 oder 4 Stunden, Vorgabe 2 Stunden (die API nimmt 15 bis 240 Minuten),
 - den **Grund**, etwa „Anfrage aus dem Portal: Anmeldung langsam“; er steht im Audit-Log und im
@@ -37,8 +37,8 @@ haben.
 Die Zentrale prüft den Zugang bei **jeder Anfrage** mit der Uhr der Anfrage, sobald sie ganz
 angekommen ist: ab der Millisekunde, in der er endet, lehnt sie Log-Auszug, das Lesen seiner Zeilen
 und Neustart mit `403 keine_berechtigung` ab, auch einen Log-Auszug, der während des Zugangs
-angefordert wurde. Die Seite der Installation zeigt Support die Knöpfe nur, solange der eigene
-Zugang läuft.
+angefordert wurde. Die Seite der App zeigt Support „Neustart“ und unter „Mehr …“ den Log-Auszug nur,
+solange der eigene Zugang läuft.
 
 ## Ende
 

@@ -51,7 +51,7 @@ test.describe("the interface", { tag: "@phone" }, () => {
       await expect(eintrag.getByRole("img", { name: "Störung" })).toBeVisible();
       await eintrag.click();
       await expect(page).toHaveURL(`/apps/${i.installationId}`);
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`${i.kunde.name} · probe`);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`probe · ${i.kunde.name}`);
     } finally {
       i.agent.trennen();
     }
@@ -73,9 +73,9 @@ test.describe("at phone width", () => {
   });
 });
 
-// The installations of the Zentrale (Z-402): a failed setup counts as red, one on its way not
+// The apps of the Zentrale (Z-402): a failed setup needs someone, one on its way not
 test.describe("filters", () => {
-  test("narrow the installations to red ones and by search", async ({ page }) => {
+  test("narrow the apps to those that need someone and by search", async ({ page }) => {
     const kaputt = await installationAnlegen(page.request, neuerHost("kaputt"));
     const unterwegs = await installationAnlegen(page.request);
     try {
@@ -86,12 +86,12 @@ test.describe("filters", () => {
         })
         .toBe("gescheitert");
       await page.goto("/apps");
-      await page.getByRole("button", { name: /^Rot/ }).click();
+      await page.getByRole("button", { name: /^Braucht dich/ }).click();
       const tabelle = page.getByRole("region", { name: "Apps" });
-      await expect(tabelle.getByRole("link", { name: new RegExp(kaputt.host) })).toBeVisible();
-      await expect(tabelle.getByRole("link", { name: new RegExp(unterwegs.host) })).toHaveCount(0);
+      const link = (id: string) => tabelle.locator(`a[href="/apps/${id}"]`);
+      await expect(link(kaputt.installationId)).toBeVisible();
+      await expect(link(unterwegs.installationId)).toHaveCount(0);
       await page.getByRole("button", { name: /^Alle/ }).click();
-      await page.getByRole("button", { name: "Liste" }).click();
       await page.getByRole("searchbox", { name: "Apps suchen" }).fill(unterwegs.host);
       await expect(tabelle.locator("tbody tr")).toHaveCount(1);
       await expect(tabelle.locator("tbody tr")).toContainText("wird eingerichtet");

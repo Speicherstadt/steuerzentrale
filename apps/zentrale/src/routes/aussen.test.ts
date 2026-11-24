@@ -103,3 +103,49 @@ describe("GET /api/v1/installationen/:id/aussen", () => {
     expect((await lesen(teufel, "probe-gibt-es-nicht")).status).toBe(404);
   });
 });
+
+type Tag = {
+  jahr: number;
+  monat: number;
+  tag: number;
+  gemessen: number;
+  rot: number;
+  anteil: number | null;
+};
+
+const tageHolen = async (p: Pick<Person, "json">, id: string, abfrage = "") => {
+  const a = await p.json(`/api/v1/installationen/${id}/verfuegbarkeit${abfrage}`);
+  return { status: a.status, daten: a.daten as { tage: Tag[] } };
+};
+
+// The bars of the app's tab "Messwerte": the same hourly counts per day in Berlin
+describe("GET /api/v1/installationen/:id/verfuegbarkeit", () => {
+  it("gives 90 days by default, oldest first, today with the checks of today", async () => {
+    installationEinfuegen(server.schreibDb, teufel.betreiberId, "probe-tage", "s1");
+    const i = installationLesen(server.db, teufel.betreiberId, "probe-tage");
+    if (!i) throw new Error("missing");
+    pruefen(i, gut);
+    pruefen(i, { ...gut, http: { ok: true, status: 503, ms: 9 } });
+    const { status, daten } = await tageHolen(support, "probe-tage");
+    expect(status).toBe(200);
+    expect(daten.tage).toHaveLength(90);
+    expect(daten.tage.at(-1)).toMatchObject({ gemessen: 2, rot: 1, anteil: 0.5 });
+    expect(daten.tage.slice(0, -1).every((t) => t.anteil === null)).toBe(true);
+    expect((await tageHolen(support, "probe-tage", "?tage=7")).daten.tage).toHaveLength(7);
+  });
+
+  it("refuses a number of days that is not 1 to 400", async () => {
+    for (const tage of ["0", "401", "x", "-1", "1.5"])
+      expect((await tageHolen(teufel, "probe-tage", `?tage=${tage}`)).status).toBe(400);
+  });
+
+  it("shows no operator another's days, even of an installation of the same name", async () => {
+    installationEinfuegen(server.schreibDb, partner.betreiberId, "probe-tage", "s1");
+    const fremd = await tageHolen(partner, "probe-tage");
+    expect(fremd.status).toBe(200);
+    expect(fremd.daten.tage.every((t) => t.gemessen === 0)).toBe(true);
+    expect((await tageHolen(teufel, "probe-tage")).daten.tage.at(-1)?.gemessen).toBe(2);
+    installationEinfuegen(server.schreibDb, teufel.betreiberId, "probe-tage-teufel", "s1");
+    expect((await tageHolen(partner, "probe-tage-teufel")).status).toBe(404);
+  });
+});

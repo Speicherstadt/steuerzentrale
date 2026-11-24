@@ -1,5 +1,4 @@
-import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
-import { Settings } from "@steuerzentrale/ui/icons";
+import { Button, Dialog, Input, m } from "@steuerzentrale/ui";
 import { createSignal, Show } from "solid-js";
 import { einstellungenAus } from "../daten/einstellungs-formular.ts";
 import { type InstallationAnsicht, titelVon } from "../daten/installation-ansicht.ts";
@@ -7,7 +6,6 @@ import { type InstallationsFormular, installationenQuelle } from "../daten/insta
 import { Fehler, felder } from "./anmeldung-teile.tsx";
 import { EinstellungsFelder } from "./einstellungs-felder.tsx";
 import { installationsFehler } from "./installieren-texte.ts";
-import { MitInstallationsRecht } from "./recht.tsx";
 
 /*
  * "Einstellungen ändern" of an installation (BAULISTE.md Z-404; mockup, installation "Einstellungen
@@ -15,13 +13,13 @@ import { MitInstallationsRecht } from "./recht.tsx";
  * operator's current values taken along, and a reason; the Zentrale sends the job "neu
  * konfigurieren", and the values apply once the agent reports success. Only for owner and technik
  * (docs/plan.md, "Rollen für Installationen"); the Zentrale refuses it in a freeze window and while
- * a job of the installation is open.
+ * a job of the installation is open. Opened from "Mehr …" of an app's page (app-mehr.tsx).
  */
 
-type Angaben = InstallationAnsicht & { formular: InstallationsFormular };
+export type Konfigurierbar = InstallationAnsicht & { formular: InstallationsFormular };
 
-const KonfigurierenDialog = (props: {
-  a: Angaben;
+export const KonfigurierenDialog = (props: {
+  a: Konfigurierbar;
   open: boolean;
   onClose: () => void;
   konfiguriert: () => void;
@@ -73,27 +71,5 @@ const KonfigurierenDialog = (props: {
         </form>
       </Show>
     </Dialog>
-  );
-};
-
-/** The button "Einstellungen ändern" and its dialog, for a role that may; `konfiguriert` after */
-export const EinstellungenAendern = (props: { a: Angaben; konfiguriert: () => void }) => {
-  const [offen, setOffen] = createSignal(false);
-  return (
-    <MitInstallationsRecht>
-      <Button onClick={() => setOffen(true)}>
-        <Icon icon={Settings} />
-        {m.inst_konfigurieren()}
-      </Button>
-      <KonfigurierenDialog
-        a={props.a}
-        open={offen()}
-        onClose={() => setOffen(false)}
-        konfiguriert={() => {
-          setOffen(false);
-          props.konfiguriert();
-        }}
-      />
-    </MitInstallationsRecht>
   );
 };

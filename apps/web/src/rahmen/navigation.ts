@@ -10,7 +10,7 @@ import {
   Settings,
   Users,
 } from "@steuerzentrale/ui/icons";
-import { suche, titel } from "../daten/ableitungen.ts";
+import { appTitel, suche } from "../daten/ableitungen.ts";
 import type { Bestand } from "../daten/typen.ts";
 
 /**
@@ -104,7 +104,7 @@ const objektName = (b: Bestand, bereich: Pfad, id: string): string | undefined =
   if (bereich === "/katalog") return suche(b.apps, id)?.name ?? id;
   if (bereich === "/apps") {
     const i = suche(b.installationen, id);
-    return i && titel(b, i);
+    return i && appTitel(b, i);
   }
   return undefined;
 };
