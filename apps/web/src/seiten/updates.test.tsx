@@ -30,7 +30,7 @@ afterEach(() => {
 
 const zeile = (root: HTMLElement, id: string) =>
   [...root.querySelectorAll<HTMLElement>("tbody tr")].find((tr) =>
-    tr.querySelector(`a[href$="/installationen/${id}"]`),
+    tr.querySelector(`a[href$="/apps/${id}"]`),
   );
 
 const zeilen = (root: HTMLElement) =>

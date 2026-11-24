@@ -1,14 +1,9 @@
 import { m } from "@steuerzentrale/ui";
 import {
-  Archive,
-  Bell,
   Boxes,
-  ChartNoAxesColumn,
   HardDrive,
   type IconNode,
   LayoutDashboard,
-  LifeBuoy,
-  ListChecks,
   Package,
   RefreshCw,
   ScrollText,
@@ -17,31 +12,28 @@ import {
 } from "@steuerzentrale/ui/icons";
 import { suche, titel } from "../daten/ableitungen.ts";
 import type { Bestand } from "../daten/typen.ts";
-import type { zaehler } from "../daten/zustand.ts";
 
-/** The areas of the sidebar in their groups (DESIGN.md, "Bausteine"; design/mockup/) */
+/**
+ * The areas of the sidebar: eight in two groups, one home per thing (docs/plan.md, "Navigation
+ * (Oberfläche 2026-11)"; DESIGN.md, "Bausteine"). Installations are called Apps, the manifests'
+ * catalog Katalog. Pages without an entry of their own belong to an area: support accesses and
+ * usage to Kunden, the backups to Apps.
+ */
 
 export type Pfad =
   | "/"
-  | "/server"
-  | "/installationen"
-  | "/updates"
-  | "/backups"
-  | "/auftraege"
-  | "/kunden"
-  | "/support"
-  | "/leistungen"
   | "/apps"
-  | "/ereignisse"
-  | "/audit"
+  | "/server"
+  | "/kunden"
+  | "/updates"
+  | "/katalog"
+  | "/protokoll"
   | "/einstellungen";
 
-export type Bereich = {
-  pfad: Pfad;
-  name: () => string;
-  icon: IconNode;
-  zaehler?: keyof ReturnType<typeof zaehler>;
-};
+/** What a counter counts: what needs attention on the overview, the apps with a newer version */
+export type Zaehler = "aufmerksamkeit" | "updates";
+
+export type Bereich = { pfad: Pfad; name: () => string; icon: IconNode; zaehler?: Zaehler };
 
 export type Gruppe = { name: () => string; bereiche: Bereich[] };
 
@@ -49,35 +41,37 @@ export const GRUPPEN: Gruppe[] = [
   {
     name: () => m.nav_gruppe_betrieb(),
     bereiche: [
-      { pfad: "/", name: () => m.nav_uebersicht(), icon: LayoutDashboard },
+      {
+        pfad: "/",
+        name: () => m.nav_uebersicht(),
+        icon: LayoutDashboard,
+        zaehler: "aufmerksamkeit",
+      },
+      { pfad: "/apps", name: () => m.nav_apps(), icon: Boxes },
       { pfad: "/server", name: () => m.nav_server(), icon: HardDrive },
-      { pfad: "/installationen", name: () => m.nav_installationen(), icon: Boxes },
-      { pfad: "/updates", name: () => m.nav_updates(), icon: RefreshCw, zaehler: "updates" },
-      { pfad: "/backups", name: () => m.nav_backups(), icon: Archive },
-      { pfad: "/auftraege", name: () => m.nav_auftraege(), icon: ListChecks, zaehler: "auftraege" },
-    ],
-  },
-  {
-    name: () => m.nav_gruppe_kunden(),
-    bereiche: [
       { pfad: "/kunden", name: () => m.nav_kunden(), icon: Users },
-      { pfad: "/support", name: () => m.nav_support(), icon: LifeBuoy, zaehler: "support" },
-      { pfad: "/leistungen", name: () => m.nav_leistungen(), icon: ChartNoAxesColumn },
+      { pfad: "/updates", name: () => m.nav_updates(), icon: RefreshCw, zaehler: "updates" },
     ],
   },
   {
-    name: () => m.nav_gruppe_system(),
+    name: () => m.nav_gruppe_verwaltung(),
     bereiche: [
-      { pfad: "/apps", name: () => m.nav_apps(), icon: Package },
-      { pfad: "/ereignisse", name: () => m.nav_ereignisse(), icon: Bell, zaehler: "ereignisse" },
-      { pfad: "/audit", name: () => m.nav_audit(), icon: ScrollText },
+      { pfad: "/katalog", name: () => m.nav_katalog(), icon: Package },
+      { pfad: "/protokoll", name: () => m.nav_protokoll(), icon: ScrollText },
       { pfad: "/einstellungen", name: () => m.nav_einstellungen(), icon: Settings },
     ],
   },
 ];
 
-/** What "Nur für mich" hides (Z-805): customers with their contracts, support accesses, services */
-export const NUR_FUER_KUNDEN: readonly Pfad[] = ["/kunden", "/support", "/leistungen"];
+/** Pages reached from an area, not from the menu: their name and the area they belong to */
+const UNTERSEITEN: Record<string, { name: () => string; heimat: Pfad }> = {
+  "/support": { name: () => m.nav_support(), heimat: "/kunden" },
+  "/leistungen": { name: () => m.nav_leistungen(), heimat: "/kunden" },
+  "/backups": { name: () => m.nav_backups(), heimat: "/apps" },
+};
+
+/** What "Nur für mich" hides (Z-805): customers, and with them support accesses and services */
+export const NUR_FUER_KUNDEN: readonly Pfad[] = ["/kunden"];
 
 /** The groups of the sidebar for the Betriebsart; a group left empty goes too */
 export const sichtbareGruppen = (gruppen: Gruppe[], nurFuerMich: boolean): Gruppe[] =>
@@ -92,15 +86,23 @@ export const sichtbareGruppen = (gruppen: Gruppe[], nurFuerMich: boolean): Grupp
 
 const BEREICHE = GRUPPEN.flatMap((g) => g.bereiche);
 
+const bereichVon = (pfad: string): Bereich | undefined => BEREICHE.find((b) => b.pfad === pfad);
+
+/** The area a path belongs to, marked in the sidebar: also on a detail page and a page below it */
+export const heimat = (pathname: string): Pfad => {
+  const erster = `/${pathname.split("/")[1] ?? ""}`;
+  return UNTERSEITEN[erster]?.heimat ?? bereichVon(erster)?.pfad ?? "/";
+};
+
 export type Stufe = { name: string; pfad?: Pfad };
 
 /** The name of a detail page's object, from the data; undefined for an unknown ID */
-const objektName = (b: Bestand, bereich: string, id: string): string | undefined => {
+const objektName = (b: Bestand, bereich: Pfad, id: string): string | undefined => {
   if (bereich === "/server") return suche(b.server, id)?.name;
   if (bereich === "/kunden") return suche(b.kunden, id)?.name;
   // an app only imported has no description: its id names it
-  if (bereich === "/apps") return suche(b.apps, id)?.name ?? id;
-  if (bereich === "/installationen") {
+  if (bereich === "/katalog") return suche(b.apps, id)?.name ?? id;
+  if (bereich === "/apps") {
     const i = suche(b.installationen, id);
     return i && titel(b, i);
   }
@@ -108,14 +110,16 @@ const objektName = (b: Bestand, bereich: string, id: string): string | undefined
 };
 
 /**
- * The path in the header: the area, and on a detail page the object below it ("Server ›
- * Gemeinsamer Server 1"); only the last step is not a link
+ * The path in the header: the area, and on a detail page or a page below the area the object or
+ * page below it ("Server › Gemeinsamer Server 1", "Kunden › Leistungen"); only the last step is
+ * not a link
  */
 export const pfadStufen = (b: Bestand, pathname: string): Stufe[] => {
   const [, erster = "", id] = pathname.split("/");
-  const bereich = BEREICHE.find((x) => x.pfad === `/${erster}`) ?? BEREICHE[0];
+  const bereich = bereichVon(heimat(pathname));
   if (!bereich) return [];
-  const name = id ? objektName(b, bereich.pfad, decodeURIComponent(id)) : undefined;
+  const objekt = id ? objektName(b, bereich.pfad, decodeURIComponent(id)) : undefined;
+  const name = UNTERSEITEN[`/${erster}`]?.name() ?? objekt;
   if (!name) return [{ name: bereich.name() }];
   return [{ name: bereich.name(), pfad: bereich.pfad }, { name }];
 };

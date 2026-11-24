@@ -63,7 +63,7 @@ const absenden = async (grund: string) => {
 
 describe("the actions of an installation", () => {
   it("offers only what the manifest offers", async () => {
-    const { root } = await oeffne(`/installationen/${ohneSperrzeit()}`);
+    const { root } = await oeffne(`/apps/${ohneSperrzeit()}`);
     expect(knopf(root, "Log-Auszug")).toBeDefined();
     expect(knopf(root, "Neustart")).toBeDefined();
     // no demo app has a command for "nur lesen"
@@ -71,7 +71,7 @@ describe("the actions of an installation", () => {
   });
 
   it("restarts with a reason, and the job shows", async () => {
-    const { root } = await oeffne(`/installationen/${ohneSperrzeit()}`);
+    const { root } = await oeffne(`/apps/${ohneSperrzeit()}`);
     knopf(root, "Neustart")?.click();
     await warten();
     expect(dialog().textContent).toContain("nie in einer Sperrzeit");
@@ -82,7 +82,7 @@ describe("the actions of an installation", () => {
   });
 
   it("shows the lines of a log excerpt, the secrets replaced", async () => {
-    const { root } = await oeffne(`/installationen/${ohneSperrzeit()}`);
+    const { root } = await oeffne(`/apps/${ohneSperrzeit()}`);
     knopf(root, "Log-Auszug")?.click();
     await warten();
     await absenden("Anmeldung langsam");
@@ -94,7 +94,7 @@ describe("the actions of an installation", () => {
 
   it("shows support log excerpt and restart only during its own support access (Z-802)", async () => {
     rolle("support");
-    const { root } = await oeffne(`/installationen/${ohneSperrzeit()}`);
+    const { root } = await oeffne(`/apps/${ohneSperrzeit()}`);
     expect(knopf(root, "Log-Auszug")).toBeUndefined();
     expect(knopf(root, "Neustart")).toBeUndefined();
     knopf(root, "Zugang starten")?.click();

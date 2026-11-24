@@ -154,10 +154,12 @@ Datenbank.
   fremder Kunden, `409 betriebsart` an jedem ausgeblendeten Endpunkt, ein anderer Betreiber bleibt
   unberührt.
 - `apps/web/src/seiten/betriebsart.test.tsx` und `apps/web/src/rahmen/navigation.test.ts`: der
-  Reiter je Rolle, das Menü ohne Kunden, Support-Zugänge und Leistungen, der Dialog ohne Kunden.
+  Reiter je Rolle, das Menü ohne Kunden (und damit ohne Support-Zugänge und Leistungen), der
+  Dialog ohne Kunden.
 - `e2e/selbst.setup.ts` und `e2e/betriebsart-selbst.spec.ts` (Desktop und Handy, gegen eine zweite
   Zentrale): die Frage kommt nach dem ersten Inhaber und ohne Antwort wieder; „Nur für mich“ zeigt
-  im Menü keine Kunden, Support-Zugänge und Leistungen und installiert ohne Kundenauswahl.
+  im Menü keine Kunden (und damit keine Support-Zugänge und Leistungen) und installiert ohne
+  Kundenauswahl.
 - `e2e/einstellungen.spec.ts` (Desktop und Handy, axe): Werte des Betreibers im Dialog und neu
   konfigurieren; der Stellvertreter des Agenten meldet den Auftrag als erfolgreich. Den Agenten
   selbst prüft die CI gegen Podman.

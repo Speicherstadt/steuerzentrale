@@ -35,7 +35,7 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
   }) => {
     const app = neueApp();
     const dateien = manifestDateien(eigeneApp(app));
-    await page.goto("/apps");
+    await page.goto("/katalog");
     await page.getByRole("button", { name: "Manifest importieren" }).click();
     const dialog = page.getByRole("dialog", { name: "Manifest importieren" });
     await dialog.getByLabel("Manifest (manifest.yml)").setInputFiles(dateien.manifest);
@@ -47,10 +47,10 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
     await expect(page.getByRole("status")).toHaveText(`${app} 1.0.0 ist importiert.`);
     await expect(kachel(page, app)).toContainText("Version 1.0.0");
     await kachel(page, app).getByRole("link", { name: app, exact: true }).click();
-    await expect(page).toHaveURL(`/apps/${app}`);
+    await expect(page).toHaveURL(`/katalog/${app}`);
     await expect(page.locator("main h1")).toHaveText(app);
     await expect(page.getByTestId("app-version")).toContainText("1.0.0verfügbar");
-    await page.goto("/apps");
+    await page.goto("/katalog");
 
     const anders = manifestDateien(`${eigeneApp(app)}hinweis: anders\n`);
     await page.getByRole("button", { name: "Manifest importieren" }).click();
@@ -64,10 +64,10 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
 
   test("shows a newer version of the registry as manifest missing", async ({ page }) => {
     await manifestImportieren(page.request);
-    await page.goto("/apps");
+    await page.goto("/katalog");
     await page.getByRole("button", { name: "Nach neuen Versionen suchen" }).click();
     await expect(kachel(page, "probe")).toContainText("9.0.0 erschienen – Manifest fehlt noch");
-    await page.goto("/apps/probe");
+    await page.goto("/katalog/probe");
     await expect(
       page.getByTestId("app-version").filter({ hasText: "9.0.0Manifest fehlt" }),
     ).toBeVisible();

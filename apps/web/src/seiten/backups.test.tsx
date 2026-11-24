@@ -84,7 +84,7 @@ describe("the page Backups", () => {
     expect(text).toContain("Prüf-Restore gelungen");
     expect(text).toContain("gescheitert: Health der Kopie blieb rot");
     const zeile = [...root.querySelectorAll("tr")].find((r) =>
-      r.querySelector('a[href="/installationen/atelier-haben"]'),
+      r.querySelector('a[href="/apps/atelier-haben"]'),
     );
     expect(zeile?.textContent).toContain(", gelungen");
   });
@@ -128,7 +128,7 @@ describe("the S3 target", () => {
 
 describe("Backup jetzt", () => {
   it("asks for a reason and makes the job", async () => {
-    const { root } = await oeffne("/installationen/atelier-haben");
+    const { root } = await oeffne("/apps/atelier-haben");
     await warten();
     knopf(root, "Backup jetzt")?.click();
     await warten();
@@ -143,7 +143,7 @@ describe("Backup jetzt", () => {
 
   it("is not offered to support", async () => {
     rolle("support");
-    const { root } = await oeffne("/installationen/atelier-haben");
+    const { root } = await oeffne("/apps/atelier-haben");
     await warten();
     expect(knopf(root, "Backup jetzt")).toBeUndefined();
     expect(knopf(root, "Prüf-Restore jetzt")).toBeUndefined();
@@ -152,7 +152,7 @@ describe("Backup jetzt", () => {
 
 describe("Prüf-Restore jetzt", () => {
   it("asks for a reason and makes the job", async () => {
-    const { root } = await oeffne("/installationen/atelier-haben");
+    const { root } = await oeffne("/apps/atelier-haben");
     await warten();
     knopf(root, "Prüf-Restore jetzt")?.click();
     await warten();
@@ -168,7 +168,7 @@ describe("Prüf-Restore jetzt", () => {
   });
 
   const reiterBackups = async (id: string) => {
-    const { root } = await oeffne(`/installationen/${id}`);
+    const { root } = await oeffne(`/apps/${id}`);
     await warten();
     [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
       .find((t) => t.textContent?.trim() === "Backups")
@@ -191,7 +191,7 @@ describe("Prüf-Restore jetzt", () => {
 
 describe("restoring a run", () => {
   const reiter = async (id: string) => {
-    const { root } = await oeffne(`/installationen/${id}`);
+    const { root } = await oeffne(`/apps/${id}`);
     await warten();
     [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
       .find((t) => t.textContent?.trim() === "Backups")

@@ -1,126 +1,223 @@
-import { Icon, m } from "@steuerzentrale/ui";
+import { Icon, m, type Tab, Tabs } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
-import { createMemo, Loading, Match, Show, Switch } from "solid-js";
-import { neuesteVersion } from "../daten/app-ansicht.ts";
-import { type AppDerZentrale, appsQuelle } from "../daten/apps.ts";
-import { uebersichtLaden } from "../daten/installationen-laden.ts";
+import { createMemo, Loading, Match, refresh, Show, Switch } from "solid-js";
+import type { Antwort } from "../anmeldung/api.ts";
+import { anzeige, linuxNutzerVon, titelVon } from "../daten/installation-ansicht.ts";
+import { type Einzelansicht, einzelansichtLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
-import type { Manifest } from "../daten/typen.ts";
-import { standName } from "../rahmen/texte.ts";
-import { Fehler } from "../seiten/anmeldung-teile.tsx";
-import { AppAktionen, AppEinstellungen, Betrieb, Sperrzeiten } from "../seiten/app-angaben.tsx";
-import { VersionenTeil } from "../seiten/app-versionen.tsx";
-import { InstallationsListe } from "../seiten/installations-liste.tsx";
-import { Installieren } from "../seiten/installieren.tsx";
+import { eigenerZugang, supportQuelle } from "../daten/support.ts";
+import type { Bestand, Installation } from "../daten/typen.ts";
+import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
+import { InstallationAbwicklung } from "../seiten/installation-abwicklung.tsx";
+import { Aktionen } from "../seiten/installation-aktionen.tsx";
+import { VonAussen } from "../seiten/installation-aussen.tsx";
+import {
+  BackupJetzt,
+  InstallationBackups,
+  PruefRestoreJetzt,
+} from "../seiten/installation-backups.tsx";
+import {
+  EinrichtungsAngaben,
+  EinrichtungsAuftraege,
+  Gescheitert,
+  InstallationsWerte,
+} from "../seiten/installation-einrichtung.tsx";
+import { UnitsUndHealth, Verlauf } from "../seiten/installation-health.tsx";
+import { EinstellungenAendern } from "../seiten/installation-konfigurieren.tsx";
+import { InstallationEinstellungen } from "../seiten/installation-reiter.tsx";
+import { InstallationZustand } from "../seiten/installation-zustand.tsx";
+import { FuerKunden, MitInstallationsRecht } from "../seiten/recht.tsx";
+import { ZugangHinweis } from "../seiten/support-zugang.tsx";
+import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { appIcon } from "../teile/app-icon.ts";
-import { Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
+import { Karte, KartenInhalt } from "../teile/karte.tsx";
 import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
-import { Marke } from "../teile/zeichen.tsx";
+import { InstallationsZeichen, Version } from "../teile/zeichen.tsx";
 
 /**
- * One app (BAULISTE.md Z-201, Z-203, Z-501): its versions, what it needs to run, its freeze
- * windows, the actions its manifest offers, its values per level and the operator's installations
- * of it. An app only imported, without a description, shows its versions and installations.
+ * One installation (BAULISTE.md Z-402): from the Zentrale its place, ports, values and setup jobs,
+ * its state with reason and history (Z-403), after a failed setup the way to remove it, and once
+ * it runs "Einstellungen ändern" (Z-404) and the actions its manifest offers (Z-405).
+ * Its events come from the Zentrale (Z-406), its backups with "Backup jetzt" too (Z-601), and once
+ * it runs its check from outside with the availability per month (Z-704). Settings from the
+ * manifest of the demo data show only in `dev:demo`, for an installation the demo knows by id.
+ * A support access starts here too, and while the member's own runs, support sees log excerpt and
+ * restart (Z-802).
  */
 
-const Kopf = (props: { id: string; a: Manifest | undefined; v: AppDerZentrale | undefined }) => (
-  <div class="flex flex-wrap items-start justify-between gap-4">
-    <div class="flex min-w-0 items-start gap-4">
-      <span class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent">
-        <Icon icon={appIcon(props.a?.icon ?? "")} size={28} />
-      </span>
-      <div class="grid min-w-0 gap-1.5">
-        <div class="flex flex-wrap items-center gap-2">
-          <h1 class="text-2xl font-semibold tracking-tight">{props.a?.name ?? props.id}</h1>
-          <Show when={props.a}>{(a) => <Marke>{standName(a().stand)}</Marke>}</Show>
-        </div>
-        <p class="text-base text-muted-foreground">
-          {props.a?.beschreibung ?? m.apps_nur_importiert()}
-        </p>
-        <p class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <Show when={neuesteVersion(props.v)} fallback={m.apps_kein_manifest()}>
-            {(v) => (
-              <span class="font-medium text-foreground tabular-nums">
-                {m.apps_version({ version: v() })}
-              </span>
-            )}
-          </Show>
-          <Show when={props.a?.quelle}>
-            {(q) => (
-              <a href={q()} class="underline underline-offset-4 hover:text-foreground">
-                {m.apps_quelle()}
-              </a>
-            )}
-          </Show>
-        </p>
+const Kopf = (props: { a: Einzelansicht }) => (
+  <div class="flex min-w-0 items-center gap-4">
+    <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent">
+      <Icon icon={appIcon(props.a.appIcon)} size={24} />
+    </span>
+    <div class="grid min-w-0 gap-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="text-2xl font-semibold tracking-tight">{titelVon(props.a)}</h1>
+        <InstallationsZeichen
+          anzeige={anzeige(props.a)}
+          gekuendigt={props.a.vertragsende !== null}
+        />
+        <Version version={props.a.version} />
       </div>
+      <p class="font-mono text-xs break-all text-muted-foreground">
+        {props.a.host} · {linuxNutzerVon(props.a)}@{props.a.serverName}
+      </p>
     </div>
-    <Show when={neuesteVersion(props.v)}>
-      <Installieren app={props.id} onAngelegt={() => undefined} />
-    </Show>
   </div>
 );
 
-const Installationen = (props: { id: string }) => {
-  const antwort = createMemo(() => uebersichtLaden());
-  const installationen = () => {
-    const a = antwort();
-    return a.ok
-      ? a.daten.installationen.filter((i) => i.app === props.id && i.zustand !== "entfernt")
-      : [];
+/** The tabs: the demo's for an installation it knows, else what the Zentrale has */
+const reiter = (b: Bestand, a: Einzelansicht, demo: Installation | undefined): Tab[] => {
+  const einrichtung = () => (
+    <div class="grid gap-4 lg:grid-cols-2">
+      <EinrichtungsAngaben a={a} />
+      <EinrichtungsAuftraege auftraege={a.auftraege} />
+    </div>
+  );
+  const verlauf = () => <Verlauf verlauf={a.verlauf} />;
+  const backups: Tab = {
+    id: "backups",
+    label: m.nav_backups(),
+    content: () => (
+      <div class="grid gap-4">
+        <InstallationBackups a={a} />
+        <InstallationAbwicklung a={a} jetzt={b.jetzt} />
+      </div>
+    ),
+  };
+  const ereignisse: Tab = {
+    id: "ereignisse",
+    label: m.nav_ereignisse(),
+    content: () => (
+      <Karte>
+        <KartenInhalt class="grid gap-4 pt-5">
+          <ZielEreignisse ziele={[`installation:${a.id}`]} />
+        </KartenInhalt>
+      </Karte>
+    ),
+  };
+  if (!demo)
+    return [
+      {
+        id: "zustand",
+        label: m.server_spalte_zustand(),
+        content: () => (
+          <div class="grid gap-4">
+            <div class="grid gap-4 lg:grid-cols-2">
+              <UnitsUndHealth health={a.health} />
+              {verlauf()}
+            </div>
+            <Show when={a.zustand === "laeuft"}>
+              <VonAussen id={a.id} host={a.host} />
+            </Show>
+            {einrichtung()}
+          </div>
+        ),
+      },
+      {
+        id: "einstellungen",
+        label: m.nav_einstellungen(),
+        content: () => <InstallationsWerte a={a} />,
+      },
+      backups,
+      ereignisse,
+    ];
+  return [
+    {
+      id: "zustand",
+      label: m.server_spalte_zustand(),
+      content: () => (
+        <div class="grid gap-4">
+          <InstallationZustand b={b} i={demo} health={a.health} />
+          {verlauf()}
+          {einrichtung()}
+        </div>
+      ),
+    },
+    {
+      id: "einstellungen",
+      label: m.nav_einstellungen(),
+      content: () => <InstallationEinstellungen b={b} i={demo} />,
+    },
+    backups,
+    ereignisse,
+  ];
+};
+
+const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
+  const b = bestand();
+  // the member's own support access to it (Z-802), which opens log excerpt and restart to support
+  const zugaenge = createMemo(() => supportQuelle().liste({ installationId: props.a.id }));
+  const eigener = () => {
+    const z = zugaenge();
+    return z.ok ? eigenerZugang(z.daten, props.a.id) : undefined;
+  };
+  const zugangNeu = () => {
+    refresh(zugaenge);
+    props.neu();
   };
   return (
-    <Karte>
-      <KartenKopf titel={m.apps_installationen_titel()} text={m.apps_installationen_text()} />
-      <KartenInhalt>
-        <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
-          <InstallationsListe installationen={installationen()} zeige="kunde" />
-        </Loading>
-      </KartenInhalt>
-    </Karte>
+    <div class="grid gap-6">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <Kopf a={props.a} />
+        <Show when={props.a.zustand === "laeuft"}>
+          <div class="flex flex-wrap gap-2">
+            <Aktionen a={props.a} mitZugang={eigener() !== undefined} neu={() => props.neu()} />
+            <MitInstallationsRecht>
+              <BackupJetzt a={props.a} neu={() => props.neu()} />
+              <PruefRestoreJetzt a={props.a} neu={() => props.neu()} />
+            </MitInstallationsRecht>
+            <EinstellungenAendern a={props.a} konfiguriert={() => props.neu()} />
+          </div>
+        </Show>
+      </div>
+      <Show when={props.a.zustand === "gescheitert"}>
+        <Gescheitert a={props.a} entfernt={() => props.neu()} />
+      </Show>
+      <Show when={props.a.zustand !== "entfernt"}>
+        <FuerKunden>
+          <ZugangHinweis
+            installationId={props.a.id}
+            eigener={eigener()}
+            jetzt={b.jetzt}
+            neu={zugangNeu}
+          />
+        </FuerKunden>
+      </Show>
+      <Tabs label={m.inst_reiter()} tabs={reiter(b, props.a, props.a.demo)} />
+    </div>
   );
 };
 
-const Detail = (props: { id: string; a: Manifest | undefined; v: AppDerZentrale | undefined }) => (
-  <div class="grid gap-6">
-    <Kopf id={props.id} a={props.a} v={props.v} />
-    <VersionenTeil a={props.v} jetzt={bestand().jetzt} />
-    <Show when={props.a}>
-      {(a) => (
-        <>
-          <Betrieb a={a()} />
-          <Sperrzeiten a={a()} jetzt={bestand().jetzt} />
-          <div class="grid gap-6 lg:grid-cols-2">
-            <AppAktionen a={a()} />
-            <AppEinstellungen a={a()} />
-          </div>
-        </>
-      )}
-    </Show>
-    <Installationen id={props.id} />
-  </div>
-);
-
-const AppSeite = () => {
+const InstallationSeite = () => {
   const params = Route.useParams();
-  const versionen = createMemo(() => appsQuelle().liste());
-  const beschrieben = () => bestand().apps.find((a) => a.id === params().id);
-  const importiert = () => {
-    const v = versionen();
-    return v.ok ? v.daten.find((x) => x.app === params().id) : undefined;
+  const antwort = createMemo(
+    (): Promise<Antwort<Einzelansicht>> => einzelansichtLaden(params().id),
+  );
+  const installation = () => {
+    const a = antwort();
+    return a.ok ? a.daten : undefined;
+  };
+  const fehlt = () => {
+    const a = antwort();
+    return !a.ok && a.status === 404;
+  };
+  const fehler = () => {
+    const a = antwort();
+    return a.ok ? "" : fehlerText(a);
   };
   return (
-    <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
-      <Switch fallback={<NichtGefunden />}>
-        <Match when={beschrieben() || importiert()}>
-          <Show when={!versionen().ok}>
-            <Fehler text={m.apps_versionen_fehler()} />
-          </Show>
-          <Detail id={params().id} a={beschrieben()} v={importiert()} />
+    <Loading fallback={<p class="text-muted-foreground">{m.inst_laden_eine()}</p>}>
+      <Switch fallback={<Fehler text={fehler()} />}>
+        <Match when={installation()}>
+          {(a) => <Detail a={a()} neu={() => refresh(antwort)} />}
+        </Match>
+        <Match when={fehlt()}>
+          <NichtGefunden />
         </Match>
       </Switch>
     </Loading>
   );
 };
 
-export const Route = createFileRoute("/apps/$id")({ component: AppSeite });
+export const Route = createFileRoute("/apps/$id")({ component: InstallationSeite });

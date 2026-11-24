@@ -123,7 +123,7 @@ const id = (e: UebersichtEintrag, art: "installation" | "server" | "auftrag") =>
 const Eintrag = (props: { eintrag: UebersichtEintrag }) => (
   <Switch
     fallback={
-      <Link to="/ereignisse" class={zeileClass}>
+      <Link to="/protokoll" search={{ tab: "ereignisse" }} class={zeileClass}>
         <Inhalt eintrag={props.eintrag} />
       </Link>
     }
@@ -143,7 +143,7 @@ const Eintrag = (props: { eintrag: UebersichtEintrag }) => (
       )}
     </Match>
     <Match when={id(props.eintrag, "auftrag")}>
-      <Link to="/auftraege" class={zeileClass}>
+      <Link to="/protokoll" search={{ tab: "auftraege" }} class={zeileClass}>
         <Inhalt eintrag={props.eintrag} />
       </Link>
     </Match>

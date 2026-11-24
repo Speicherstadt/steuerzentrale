@@ -131,6 +131,10 @@ export type AuftragFilter = {
 export type EreignisFilter = { schwere?: Ereignisschwere[]; art?: string[]; ziel?: string[] };
 export type AuditFilter = { akteur?: string[]; aktion?: string[]; ziel?: string[] };
 
+/** How many entries of the overview need attention: faults and warnings, not the notes */
+export const brauchtAufmerksamkeit = (eintraege: UebersichtEintrag[]): number =>
+  eintraege.filter((e) => e.schwere !== "hinweis").length;
+
 export type BetriebQuelle = {
   uebersicht: () => Promise<Antwort<UebersichtEintrag[]>>;
   auftraege: (

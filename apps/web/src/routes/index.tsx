@@ -1,7 +1,7 @@
 import { buttonClass, m } from "@steuerzentrale/ui";
 import { createFileRoute, Link } from "@tanstack/solid-router";
 import { createMemo, Loading } from "solid-js";
-import { betriebQuelle } from "../daten/betrieb.ts";
+import { betriebQuelle, brauchtAufmerksamkeit } from "../daten/betrieb.ts";
 import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { Hinweisliste } from "../seiten/hinweise.tsx";
@@ -58,9 +58,7 @@ const Aufmerksamkeit = () => {
       <Loading fallback={<KartenInhalt class="pt-5">{laden()}</KartenInhalt>}>
         <KartenKopf
           titel={m.uebersicht_aufmerksamkeit()}
-          text={m.uebersicht_aufmerksamkeit_text({
-            n: eintraege().filter((e) => e.schwere !== "hinweis").length,
-          })}
+          text={m.uebersicht_aufmerksamkeit_text({ n: brauchtAufmerksamkeit(eintraege()) })}
         />
         <KartenInhalt>
           <Fehler text={fehler()} />
@@ -88,7 +86,7 @@ const NeuesteEreignisse = () => {
         titel={m.uebersicht_ereignisse()}
         text={m.uebersicht_ereignisse_text()}
         aktion={
-          <Link to="/ereignisse" class={klein}>
+          <Link to="/protokoll" search={{ tab: "ereignisse" }} class={klein}>
             {m.uebersicht_alle_ereignisse()}
           </Link>
         }
@@ -120,7 +118,7 @@ const OffeneAuftraege = () => {
         titel={m.nav_auftraege()}
         text={m.uebersicht_auftraege_text()}
         aktion={
-          <Link to="/auftraege" class={klein}>
+          <Link to="/protokoll" search={{ tab: "auftraege" }} class={klein}>
             {m.uebersicht_alle_auftraege()}
           </Link>
         }

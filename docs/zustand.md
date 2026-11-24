@@ -158,7 +158,7 @@ wenn der Agent grün meldet; dann endet sie erst, wenn innen und außen wieder g
 Meldung; die Seite einer Installation dazu `verlauf`, die letzten 200 Wechsel, neueste zuerst. Vor der
 ersten Meldung ist der Zustand unbekannt mit dem Grund `noch_keine_meldung`.
 
-Die Liste der Installationen zeigt neben dem Zustand den Grund, wenn er nicht grün ist; die Seite einer
+Die Liste unter „Apps“ zeigt neben dem Zustand den Grund, wenn er nicht grün ist; die Seite einer
 Installation zeigt im Reiter „Zustand“ die Karte „Units und Health“ (Zustand mit Grund und seit,
 zuletzt gemeldet, jede Unit) und den Verlauf. Bis die Installation läuft, steht im Kopf ihr Zustand
 der Einrichtung.

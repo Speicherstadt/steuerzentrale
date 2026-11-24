@@ -44,7 +44,7 @@ const karte = (root: HTMLElement) => {
 
 describe("the check from outside on an installation's page", () => {
   it("shows a red installation's status, its address, certificate and availability", async () => {
-    const { root } = await oeffne("/installationen/berger-schreibzeug");
+    const { root } = await oeffne("/apps/berger-schreibzeug");
     await warten();
     const text = karte(root).textContent ?? "";
     expect(text).toContain(
@@ -71,7 +71,7 @@ describe("the check from outside on an installation's page", () => {
     aussenQuelleEinsetzen({
       derInstallation: async () => ({ ok: true, status: 200, daten: leer }),
     });
-    const { root } = await oeffne("/installationen/berger-schreibzeug");
+    const { root } = await oeffne("/apps/berger-schreibzeug");
     await warten();
     const text = karte(root).textContent ?? "";
     expect(text).toContain("noch nicht von außen geprüft");
@@ -96,7 +96,7 @@ describe("the check from outside on an installation's page", () => {
     aussenQuelleEinsetzen({
       derInstallation: async () => ({ ok: true, status: 200, daten: falsch }),
     });
-    const { root } = await oeffne("/installationen/berger-schreibzeug");
+    const { root } = await oeffne("/apps/berger-schreibzeug");
     await warten();
     expect(karte(root).textContent).toContain(
       "DNS zeigt auf 198.51.100.7 statt 203.0.113.12, 2001:db8::12",

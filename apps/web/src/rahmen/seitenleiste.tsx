@@ -1,19 +1,19 @@
 import { Icon, m } from "@steuerzentrale/ui";
-import { CalendarClock, Radar } from "@steuerzentrale/ui/icons";
-import { Link } from "@tanstack/solid-router";
+import { Radar } from "@steuerzentrale/ui/icons";
+import { Link, useLocation } from "@tanstack/solid-router";
 import { createMemo, For, Loading, Show } from "solid-js";
-import { alleSperrzeiten, sperrzeitAktiv } from "../daten/ableitungen.ts";
+import { betriebQuelle, brauchtAufmerksamkeit } from "../daten/betrieb.ts";
 import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { type Ich, ichLesen } from "../daten/ich.ts";
 import { bestand } from "../daten/quelle.ts";
 import { zaehler } from "../daten/zustand.ts";
-import { GRUPPEN, sichtbareGruppen } from "./navigation.ts";
+import { GRUPPEN, heimat, sichtbareGruppen, type Zaehler } from "./navigation.ts";
 import { rolleName } from "./texte.ts";
 
 /**
- * The sidebar (DESIGN.md, "Bausteine"): the areas in groups Betrieb, Kunden, System, counters only
- * where there is something to do; at the foot the freeze windows and the own account, named by the
- * Zentrale (GET /api/v1/ich, Z-406). Without the operator switch of stage 2 (BAULISTE.md, Z-803).
+ * The sidebar (DESIGN.md, "Bausteine"): eight areas in the groups Betrieb and Verwaltung, a
+ * counter only where there is something to do; at the foot the own account, named by the Zentrale
+ * (GET /api/v1/ich, Z-406). Without the operator switch of stage 2 (BAULISTE.md, Z-803).
  */
 
 const Marke = (props: { ich: Ich | null }) => (
@@ -30,9 +30,29 @@ const Marke = (props: { ich: Ich | null }) => (
   </div>
 );
 
+const Zahl = (props: { n: number }) => (
+  <Show when={props.n}>
+    {(n) => <span class="ml-auto text-xs font-medium tabular-nums">{n()}</span>}
+  </Show>
+);
+
+/**
+ * The counters: what needs attention as the overview counts it (GET /api/v1/uebersicht), and the
+ * apps with a newer version
+ */
+const zahlen = (): ((art: Zaehler) => number) => {
+  const eintraege = createMemo(() => betriebQuelle().uebersicht());
+  return (art) => {
+    if (art === "updates") return zaehler(bestand()).updates;
+    const a = eintraege();
+    return a.ok ? brauchtAufmerksamkeit(a.daten) : 0;
+  };
+};
+
 const Bereiche = () => {
-  const zahlen = zaehler(bestand());
-  // "Nur für mich" hides customers, support accesses and services (Z-805)
+  const zahl = zahlen();
+  const ort = useLocation();
+  // "Nur für mich" hides the customers, with them support accesses and services (Z-805)
   const art = createMemo(() => betriebsartLesen());
   return (
     <nav aria-label={m.nav_bereiche()} class="flex flex-col">
@@ -50,13 +70,17 @@ const Bereiche = () => {
                       <Link
                         to={bereich.pfad}
                         activeOptions={{ exact: bereich.pfad === "/" }}
+                        // a page below an area (Support-Zugänge under Kunden) marks its area too
+                        aria-current={heimat(ort().pathname) === bereich.pfad ? "page" : undefined}
                         class="flex h-8 items-center gap-2 overflow-hidden rounded-md px-2 hover:bg-accent aria-[current=page]:bg-accent aria-[current=page]:font-medium"
                       >
                         <Icon icon={bereich.icon} />
                         <span class="truncate">{bereich.name()}</span>
-                        <Show when={bereich.zaehler && zahlen[bereich.zaehler]}>
-                          {(n) => (
-                            <span class="ml-auto text-xs font-medium tabular-nums">{n()}</span>
+                        <Show when={bereich.zaehler}>
+                          {(z) => (
+                            <Loading fallback={null}>
+                              <Zahl n={zahl(z())} />
+                            </Loading>
                           )}
                         </Show>
                       </Link>
@@ -69,37 +93,6 @@ const Bereiche = () => {
         </For>
       </Loading>
     </nav>
-  );
-};
-
-/** The freeze windows of every app, from the manifests: when no update and no reboot runs */
-const Sperrzeiten = () => {
-  const b = bestand();
-  const alle = alleSperrzeiten(b);
-  const aktiv = alle.filter((z) => sperrzeitAktiv(z, b.jetzt));
-  return (
-    <section class="rounded-xl border bg-background p-4">
-      <h2 class="flex items-center gap-2 font-semibold">
-        <Icon icon={CalendarClock} class={aktiv.length ? "text-warn" : "text-muted-foreground"} />
-        {m.sperrzeiten_titel()}
-      </h2>
-      <p class="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-        {aktiv.length
-          ? m.sperrzeiten_aktiv({ apps: aktiv.map((z) => z.appName).join(", ") })
-          : m.sperrzeiten_keine_aktiv()}
-      </p>
-      <ul class="mt-1 grid gap-0.5 text-xs leading-relaxed text-muted-foreground">
-        <For each={alle}>
-          {(z) => (
-            <li>
-              <span class="font-medium text-foreground">{z.appName}:</span>{" "}
-              {m.sperrzeiten_monatlich({ von: z.von, bis: z.bis })}
-            </li>
-          )}
-        </For>
-      </ul>
-      <p class="mt-1 text-xs text-muted-foreground">{m.sperrzeiten_quelle()}</p>
-    </section>
   );
 };
 
@@ -151,9 +144,6 @@ export const Seitenleiste = () => {
       </div>
       <div class="flex min-h-0 flex-1 flex-col gap-1 overflow-auto">
         <Bereiche />
-        <div class="mt-auto p-2">
-          <Sperrzeiten />
-        </div>
       </div>
       <div class="p-2">
         <Konto ich={ich()} />

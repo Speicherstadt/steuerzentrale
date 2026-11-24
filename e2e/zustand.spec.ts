@@ -43,7 +43,7 @@ test.describe("the state of an installation", { tag: "@phone" }, () => {
       await melden(eintrag("gruen", "active", "HTTP 200"));
       await melden(eintrag("rot", "failed", "HTTP 503"));
 
-      await page.goto("/installationen");
+      await page.goto("/apps");
       const zeile = page.locator("tbody tr", { hasText: i.host });
       await expect(zeile).toContainText("Rot");
       await expect(zeile).toContainText("Health: HTTP 503");

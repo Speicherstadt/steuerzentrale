@@ -52,7 +52,7 @@ test.describe("updates", { tag: "@phone" }, () => {
       await page.goto("/updates");
       const zeile = page
         .getByRole("row")
-        .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) });
+        .filter({ has: page.locator(`a[href="/apps/${i.installationId}"]`) });
       await expect(zeile).toContainText("Update verfügbar");
       await expect(zeile.getByTitle(/noch keins/)).toBeVisible();
       await zeile.getByRole("button", { name: `${i.installationId} aktualisieren` }).click();
@@ -78,7 +78,7 @@ test.describe("updates", { tag: "@phone" }, () => {
           hasText: /weitere Installationen auf 1\.1\.0 · aktuell|aktualisierbar.*alle \d+ aktuell/,
         }),
       ).toHaveCount(1);
-      await expect(page.locator(`a[href="/installationen/${i.installationId}"]`)).toHaveCount(0);
+      await expect(page.locator(`a[href="/apps/${i.installationId}"]`)).toHaveCount(0);
       await expect(
         page.getByRole("button", { name: `${i.installationId} aktualisieren` }),
       ).toHaveCount(0);
@@ -102,7 +102,7 @@ test.describe("updates", { tag: "@phone" }, () => {
       await page.goto("/updates");
       const zeile = page
         .getByRole("row")
-        .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) });
+        .filter({ has: page.locator(`a[href="/apps/${i.installationId}"]`) });
       await expect(zeile).toContainText(
         "1.1.0 zurückgenommen, wieder 1.0.0: Health blieb rot: HTTP 502",
       );

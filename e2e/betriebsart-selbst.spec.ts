@@ -14,7 +14,7 @@ const menue = async (page: Page) => {
     await expect(page.getByRole("dialog", { name: "Navigation" })).toBeVisible();
   }
   const nav = page.getByRole("navigation", { name: "Bereiche" }).filter({ visible: true });
-  await expect(nav.getByRole("link", { name: "Installationen" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Apps", exact: true })).toBeVisible();
   return nav;
 };
 
@@ -35,7 +35,7 @@ test.describe("Nur für mich", { tag: "@phone" }, () => {
     await manifestImportieren(page.request);
     const host = neuerHost("eigen");
     try {
-      await page.goto("/installationen");
+      await page.goto("/apps");
       await page.getByRole("button", { name: "App installieren" }).click();
       const dialog = page.getByRole("dialog", { name: "App installieren" });
       await expect(dialog.getByLabel("Server", { exact: true })).toBeVisible();

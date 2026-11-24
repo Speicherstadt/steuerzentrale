@@ -98,7 +98,7 @@ die Löschung 90 Tage nach dem Vertragsende (`installation_loeschen`, nach einem
 
 ## In der Oberfläche
 
-Den Knopf **App installieren** zeigen die Seite „Installationen“ und die Seite eines Kunden, dessen
+Den Knopf **App installieren** zeigen die Seite „Apps“ und die Seite eines Kunden, dessen
 Vertrag nicht gekündigt ist, nur den Rollen Inhaber und Technik. Der Dialog fragt:
 
 - **Kunde** (von der Kundenseite aus schon gewählt) und **Server**; gesperrte Server und Kunden nach

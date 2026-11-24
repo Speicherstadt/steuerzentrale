@@ -48,7 +48,7 @@ const kachel = (root: HTMLElement, name: string) =>
 
 /** The page Apps once its tiles are there: the demo's installations load on first use */
 const appsSeite = async () => {
-  const offen = await oeffne("/apps");
+  const offen = await oeffne("/katalog");
   await vi.waitFor(() => {
     if (!kachel(offen.root, "Haben")) throw new Error("no tiles yet");
   });
@@ -57,7 +57,7 @@ const appsSeite = async () => {
 
 /** An app's page once its versions are there */
 const appSeite = async (id: string) => {
-  const offen = await oeffne(`/apps/${id}`);
+  const offen = await oeffne(`/katalog/${id}`);
   await vi.waitFor(() => {
     if (!offen.root.querySelector("[data-testid=app-version]")) throw new Error("no versions yet");
   });
@@ -73,7 +73,7 @@ describe("the page Apps", () => {
     const kontext = kachel(root, "Kontext");
     expect(kontext?.textContent).toContain("Version 0.1.37");
     expect(kontext?.textContent).toContain("0.1.40 erschienen – Manifest fehlt noch");
-    expect(kontext?.querySelector("h2 a")?.getAttribute("href")).toBe("/apps/kontext");
+    expect(kontext?.querySelector("h2 a")?.getAttribute("href")).toBe("/katalog/kontext");
     expect(kachel(root, "Belegt")?.textContent).not.toContain("Manifest fehlt");
     // the facts stand on the app's page, not on its tile
     expect(kontext?.textContent).not.toContain("Health");
@@ -104,7 +104,7 @@ describe("the page Apps", () => {
     expect(document.querySelector("dialog[open]")).toBeNull();
     expect(root.querySelector("[role=status]")?.textContent).toBe("probe 1.2.0 ist importiert.");
     expect(kachel(root, "probe")?.textContent).toContain("Version 1.2.0");
-    await router.navigate({ to: "/apps/$id", params: { id: "probe" } });
+    await router.navigate({ to: "/katalog/$app", params: { app: "probe" } });
     await warten();
     expect(versionen(root)[0]).toContain("1.2.0verfügbardringend");
   });
@@ -165,7 +165,7 @@ describe("the page of an app", () => {
       "Sperrzeiten",
       "Aktionen",
       "Einstellungen",
-      "Installationen",
+      "Wo sie läuft",
     ]);
     const betrieb = root.querySelectorAll("main section")[1];
     expect([...(betrieb?.querySelectorAll("dt") ?? [])].map((d) => d.textContent)).toContain(
@@ -173,11 +173,11 @@ describe("the page of an app", () => {
     );
     expect(root.textContent).toContain("Haben#945–#948");
     expect(root.querySelectorAll("[data-testid=app-ebene]")).toHaveLength(3);
-    expect(root.querySelector('main a[href^="/installationen/"]')).not.toBeNull();
+    expect(root.querySelector('main a[href^="/apps/"]')).not.toBeNull();
   });
 
   it("is not found for an app neither described nor imported", async () => {
-    const { root } = await oeffne("/apps/gibt-es-nicht");
+    const { root } = await oeffne("/katalog/gibt-es-nicht");
     await warten();
     expect(root.querySelector("main h1")?.textContent).toBe("Nicht gefunden");
   });
@@ -187,7 +187,7 @@ describe("the page Updates", () => {
   it("lists what each installation is offered", async () => {
     const { root } = await oeffne("/updates");
     const zeile = [...root.querySelectorAll("tbody tr")].find((tr) =>
-      tr.querySelector('a[href$="/installationen/atelier-belegt"]'),
+      tr.querySelector('a[href$="/apps/atelier-belegt"]'),
     );
     expect(zeile?.textContent).toContain("0.0.6");
     expect(zeile?.textContent).toContain("0.0.7");

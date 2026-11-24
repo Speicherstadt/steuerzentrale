@@ -10,6 +10,7 @@ import { gbAusBytes, minuten, prozent } from "../format/zahl.ts";
 import { monatName } from "../format/zeit.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
+import { KundenReiter } from "../teile/reiter-links.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuKunde } from "../teile/verweise.tsx";
 import { AppZeichen, Marke } from "../teile/zeichen.tsx";
@@ -68,7 +69,7 @@ const Tabellenzeilen = (props: { l: Leistungen }) => (
     anzahl={props.l.kunden.length}
     spalten={[
       { name: m.inst_spalte_kunde() },
-      { name: m.nav_installationen() },
+      { name: m.nav_apps() },
       { name: m.inst_verfuegbarkeit(), class: "text-right" },
       { name: m.inst_spalte_daten(), class: "text-right" },
       { name: m.nav_support(), class: "text-right" },
@@ -135,6 +136,7 @@ const LeistungenSeite = () => {
           </>
         }
       />
+      <KundenReiter />
       <Loading fallback={<p class="text-muted-foreground">{m.leist_laden()}</p>}>
         <Show when={gelesen()} fallback={<Fehler text={fehler()} />}>
           {(l) => <Tabellenzeilen l={l()} />}

@@ -60,7 +60,7 @@ export const InstallationenZahl = (props: { installationen: InstallationAnsicht[
   const n = (h: string) => laufend().filter((i) => anzeige(i) === h).length;
   return (
     <Kennzahl
-      name={m.nav_installationen()}
+      name={m.nav_apps()}
       wert={String(da().length)}
       marke={<Marke class="tabular-nums">{m.uebersicht_gruen({ n: n("gruen") })}</Marke>}
       diagramm={

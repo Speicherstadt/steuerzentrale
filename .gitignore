@@ -24,4 +24,5 @@ packages/ui/src/paraglide/
 project.inlang/cache/
 project.inlang/.gitignore
 dist-demo/
+dist-demo-e2e/
 dist-selbst/

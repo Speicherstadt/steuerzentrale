@@ -169,7 +169,7 @@ const ServerListe = () => {
             { name: m.server_spalte_art() },
             { name: m.server_spalte_agent() },
             { name: m.server_spalte_zustand() },
-            { name: m.nav_installationen() },
+            { name: m.nav_apps() },
             { name: m.server_spalte_ram() },
             { name: m.server_spalte_platte() },
             { name: m.server_spalte_system() },

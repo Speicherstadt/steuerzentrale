@@ -14,6 +14,7 @@ import {
 } from "../seiten/backup-teile.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
 import { Kennzahl } from "../teile/listen.tsx";
+import { AppsReiter } from "../teile/reiter-links.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuInstallation, ZuServer } from "../teile/verweise.tsx";
 import { Marke } from "../teile/zeichen.tsx";
@@ -145,6 +146,7 @@ const Backups = () => {
   return (
     <div class="grid gap-4">
       <Seitenkopf titel={m.nav_backups()} text={m.bak_text()} />
+      <AppsReiter />
       <Loading fallback={<p class="text-muted-foreground">{m.bak_laden()}</p>}>
         <Show when={zeilen()} fallback={<Fehler text={fehler()} />}>
           {(z) => (

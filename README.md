@@ -64,6 +64,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
 | Bereich | Was die Steuerzentrale kann |
 |---|---|
 | 🧭 [Übersicht](https://speicherstadt.org/steuerzentrale/uebersicht.html) | Alles, was Aufmerksamkeit braucht, nach Schwere geordnet: Störungen, rote und gelbe Installationen, stille Agenten, Prüfungen, gescheiterte Aufträge; jeder Eintrag führt zu seiner Ursache |
+| 🗂️ [Navigation](https://speicherstadt.org/steuerzentrale/uebersicht.html#navigation) | Acht Einträge in zwei Gruppen: Betrieb (Übersicht, Apps, Server, Kunden, Updates) und Verwaltung (Katalog, Protokoll, Einstellungen); laufende Apps heißen Apps, die Manifeste Katalog, Ereignisse, Aufträge und Änderungen stehen im Protokoll |
 | 🖥️ [Server hinzufügen](https://speicherstadt.org/steuerzentrale/server-hinzufuegen.html) | Ein Befehl mit Einmal-Token; `install.sh` richtet auf Debian 13 oder Ubuntu 24.04 Podman, unattended-upgrades und den signierten Agenten ein; Zertifikat rotiert selbst, sofort sperrbar |
 | 📦 [Apps installieren](https://speicherstadt.org/steuerzentrale/installieren.html) | Dialog mit Kunde, Server und Adresse; Platzierung nach Platz und Art des Servers; Einstellungen als Formular aus dem Manifest, Geheimnisse als Podman-Secrets |
 | 📜 [Manifeste und Versionen](https://speicherstadt.org/steuerzentrale/manifeste.html) | Signierte Manifeste je App und Version, geprüft mit minisign; was ein Manifest nicht nennt, läuft nicht |
@@ -87,7 +88,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
 <table>
   <tr>
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-dunkel.webp"><img src="docs/assets/screenshots/server-hell.webp" alt="Server mit Art, Agent, Zustand, Installationen, RAM und Platte"></picture><br><sub><b>Server</b>: gemeinsam, eigen oder beim Kunden, mit Agent und Zustand</sub></td>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/installation-dunkel.webp"><img src="docs/assets/screenshots/installation-hell.webp" alt="Seite einer Installation mit Aktionen, Units, Health, Backup und Prüfung von außen"></picture><br><sub><b>Installation</b>: Units, Health, Backup und Prüfung von außen</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/app-dunkel.webp"><img src="docs/assets/screenshots/app-hell.webp" alt="Seite einer App mit Aktionen, Units, Health, Backup und Prüfung von außen"></picture><br><sub><b>App</b>: Units, Health, Backup und Prüfung von außen</sub></td>
   </tr>
   <tr>
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/updates-dunkel.webp"><img src="docs/assets/screenshots/updates-hell.webp" alt="Updates in Wellen mit Stand je Installation"></picture><br><sub><b>Updates</b>: in Wellen, mit Backup davor und Rückweg</sub></td>

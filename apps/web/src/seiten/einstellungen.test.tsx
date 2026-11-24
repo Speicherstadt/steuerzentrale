@@ -131,7 +131,7 @@ describe("the DNS settings", () => {
 
 describe("changing an installation's settings", () => {
   it("sends the job to configure it anew with a reason", async () => {
-    const { root } = await oeffne("/installationen/atelier-schreibzeug");
+    const { root } = await oeffne("/apps/atelier-schreibzeug");
     knopf(root, "Einstellungen ändern")?.click();
     await warten();
     expect(feld<HTMLInputElement>("SCHREIBZEUG_OPEN_SIGNUP").value).toBe("false");
@@ -146,7 +146,7 @@ describe("changing an installation's settings", () => {
 
   it("is not offered to support", async () => {
     rolle("support");
-    const { root } = await oeffne("/installationen/atelier-haben");
+    const { root } = await oeffne("/apps/atelier-haben");
     expect(knopf(root, "Einstellungen ändern")).toBeUndefined();
   });
 });

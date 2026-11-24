@@ -41,7 +41,7 @@ test.describe("settings", { tag: "@phone" }, () => {
     const agent = await agentVerbinden(page.request, "Gemeinsamer Server");
     await manifestImportieren(page.request, mitBetreiberwert(app));
     try {
-      await page.goto("/installationen");
+      await page.goto("/apps");
       await page.getByRole("button", { name: "App installieren" }).click();
       const dialog = page.getByRole("dialog", { name: "App installieren" });
       await dialog.getByLabel("Kunde", { exact: true }).selectOption(kunde.id);
@@ -80,7 +80,7 @@ test.describe("settings", { tag: "@phone" }, () => {
           return s.zustand === "laeuft" && s.auftraege.every((a) => a.zustand === "erfolgreich");
         })
         .toBe(true);
-      await page.goto(`/installationen/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}`);
       await page.getByRole("button", { name: "Einstellungen ändern" }).click();
       const dialog = page.getByRole("dialog", { name: /^Einstellungen von .* ändern$/ });
       await expect(dialog.getByLabel("PROBE_KENNWORT")).toHaveValue("");

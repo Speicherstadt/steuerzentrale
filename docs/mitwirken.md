@@ -17,7 +17,8 @@ bun install          # übersetzt auch die Texte aus messages/ (Paraglide)
 bun run check        # typecheck, lint, test, build
 bun run test:agent   # der Agent gegen Podman; ohne Podman übersprungen, mit CI=true ein Fehler
 bun run e2e          # Playwright gegen Zentrale (Port 28300) und Oberfläche (Port 5182); dazu eine
-                     # zweite für „Nur für mich“ (Zentrale 28310, Oberfläche 5183)
+                     # zweite für „Nur für mich“ (Zentrale 28310, Oberfläche 5183) und der Demo-Build
+                     # ohne Zentrale (Port 5184, jede Route einmal, e2e/demo.spec.ts)
 bun run dev:zentrale # Zentrale auf Port 18300 (STEUERZENTRALE_SECRET_KEY setzen; Einrichtungscode im Log)
 bun run dev:web      # Oberfläche auf Port 5181, /api geht an die Zentrale
 bun run dev:demo     # Oberfläche auf Port 5181 mit den Demodaten, ohne Zentrale und ohne Anmeldung
@@ -169,7 +170,7 @@ nächste dort weitermacht.
 | PR-Regeln | Titel, `Signed-off-by` an jedem Commit, Punkt der Bauliste abgehakt; Hinweise bei Code ohne Doku und Fix ohne Test | `pr-regeln.yml` |
 | Unit | Typen, Biome, erlaubte Abhängigkeiten, keine Muster aus Solid 1.x (`scripts/solid-muster.ts`), Dateigröße, Funktionslänge, Zyklen, Texte und Seiten (`checks.json`: jede Route steht in `e2e/accessibility.spec.ts`), Vitest, Build, `bun audit` | `ci.yml` |
 | Agent | der Agent gegen Podman mit systemd (`bun run test:agent`) | `ci.yml` |
-| E2E | Playwright, Desktop und Handy; jede Seite hell und dunkel ohne Befund von axe und ohne seitliches Scrollen | `ci.yml` |
+| E2E | Playwright, Desktop und Handy; jede Seite hell und dunkel ohne Befund von axe und ohne seitliches Scrollen; jede Route im Demo-Build ohne Fehlerseite | `ci.yml` |
 | Doku | `zensical build --strict`, jede Seite mit `description`, Demo unter `/demo/` | `docs.yml` |
 
 Agent, Server und E2E laufen nur, wenn ein Pull Request (oder ein Push auf `main`) ihre Dateien ändert; das entscheidet der Job `changes` in `ci.yml`. Die Tests des Agenten laufen auf vier Runnern nebeneinander. Nicht am Pull Request: der Release-Kandidat in einer Incus-VM (Job `release-kandidat`) läuft nur auf einem Tag nach „Bump version“ oder von Hand (**Actions → CI → Run workflow**).

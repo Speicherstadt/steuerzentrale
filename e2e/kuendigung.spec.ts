@@ -53,7 +53,7 @@ test.describe("contract end", () => {
       })
       .toBe("warten");
 
-    await page.goto(`/installationen/${i.installationId}`);
+    await page.goto(`/apps/${i.installationId}`);
     await page.getByRole("tab", { name: "Backups" }).click();
     await expect(page.getByRole("heading", { name: "Vertragsende" })).toBeVisible();
     await expect(page.getByText("1 Dateien")).toBeVisible();

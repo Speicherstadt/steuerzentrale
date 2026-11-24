@@ -21,12 +21,15 @@ import { Route as EinstellungenRouteImport } from './routes/einstellungen'
 import { Route as EreignisseRouteImport } from './routes/ereignisse'
 import { Route as ErsterInhaberRouteImport } from './routes/erster-inhaber'
 import { Route as LeistungenRouteImport } from './routes/leistungen'
+import { Route as ProtokollRouteImport } from './routes/protokoll'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as UpdatesRouteImport } from './routes/updates'
 import { Route as AppsIndexRouteImport } from './routes/apps.index'
 import { Route as AppsIdRouteImport } from './routes/apps.$id'
 import { Route as InstallationenIndexRouteImport } from './routes/installationen.index'
 import { Route as InstallationenIdRouteImport } from './routes/installationen.$id'
+import { Route as KatalogIndexRouteImport } from './routes/katalog.index'
+import { Route as KatalogAppRouteImport } from './routes/katalog.$app'
 import { Route as KundenIndexRouteImport } from './routes/kunden.index'
 import { Route as KundenIdRouteImport } from './routes/kunden.$id'
 import { Route as ServerIndexRouteImport } from './routes/server.index'
@@ -92,6 +95,11 @@ const LeistungenRoute = LeistungenRouteImport.update({
   path: '/leistungen',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProtokollRoute = ProtokollRouteImport.update({
+  id: '/protokoll',
+  path: '/protokoll',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
@@ -120,6 +128,16 @@ const InstallationenIndexRoute = InstallationenIndexRouteImport.update({
 const InstallationenIdRoute = InstallationenIdRouteImport.update({
   id: '/installationen/$id',
   path: '/installationen/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KatalogIndexRoute = KatalogIndexRouteImport.update({
+  id: '/katalog/',
+  path: '/katalog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KatalogAppRoute = KatalogAppRouteImport.update({
+  id: '/katalog/$app',
+  path: '/katalog/$app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KundenIndexRoute = KundenIndexRouteImport.update({
@@ -156,14 +174,17 @@ export interface FileRoutesByFullPath {
   '/ereignisse': typeof EreignisseRoute
   '/erster-inhaber': typeof ErsterInhaberRoute
   '/leistungen': typeof LeistungenRoute
+  '/protokoll': typeof ProtokollRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
   '/apps/$id': typeof AppsIdRoute
   '/installationen/$id': typeof InstallationenIdRoute
+  '/katalog/$app': typeof KatalogAppRoute
   '/kunden/$id': typeof KundenIdRoute
   '/server/$id': typeof ServerIdRoute
   '/apps/': typeof AppsIndexRoute
   '/installationen/': typeof InstallationenIndexRoute
+  '/katalog/': typeof KatalogIndexRoute
   '/kunden/': typeof KundenIndexRoute
   '/server/': typeof ServerIndexRoute
 }
@@ -180,14 +201,17 @@ export interface FileRoutesByTo {
   '/ereignisse': typeof EreignisseRoute
   '/erster-inhaber': typeof ErsterInhaberRoute
   '/leistungen': typeof LeistungenRoute
+  '/protokoll': typeof ProtokollRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
   '/apps/$id': typeof AppsIdRoute
   '/installationen/$id': typeof InstallationenIdRoute
+  '/katalog/$app': typeof KatalogAppRoute
   '/kunden/$id': typeof KundenIdRoute
   '/server/$id': typeof ServerIdRoute
   '/apps': typeof AppsIndexRoute
   '/installationen': typeof InstallationenIndexRoute
+  '/katalog': typeof KatalogIndexRoute
   '/kunden': typeof KundenIndexRoute
   '/server': typeof ServerIndexRoute
 }
@@ -205,14 +229,17 @@ export interface FileRoutesById {
   '/ereignisse': typeof EreignisseRoute
   '/erster-inhaber': typeof ErsterInhaberRoute
   '/leistungen': typeof LeistungenRoute
+  '/protokoll': typeof ProtokollRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
   '/apps/$id': typeof AppsIdRoute
   '/installationen/$id': typeof InstallationenIdRoute
+  '/katalog/$app': typeof KatalogAppRoute
   '/kunden/$id': typeof KundenIdRoute
   '/server/$id': typeof ServerIdRoute
   '/apps/': typeof AppsIndexRoute
   '/installationen/': typeof InstallationenIndexRoute
+  '/katalog/': typeof KatalogIndexRoute
   '/kunden/': typeof KundenIndexRoute
   '/server/': typeof ServerIndexRoute
 }
@@ -231,14 +258,17 @@ export interface FileRouteTypes {
     | '/ereignisse'
     | '/erster-inhaber'
     | '/leistungen'
+    | '/protokoll'
     | '/support'
     | '/updates'
     | '/apps/$id'
     | '/installationen/$id'
+    | '/katalog/$app'
     | '/kunden/$id'
     | '/server/$id'
     | '/apps/'
     | '/installationen/'
+    | '/katalog/'
     | '/kunden/'
     | '/server/'
   fileRoutesByTo: FileRoutesByTo
@@ -255,14 +285,17 @@ export interface FileRouteTypes {
     | '/ereignisse'
     | '/erster-inhaber'
     | '/leistungen'
+    | '/protokoll'
     | '/support'
     | '/updates'
     | '/apps/$id'
     | '/installationen/$id'
+    | '/katalog/$app'
     | '/kunden/$id'
     | '/server/$id'
     | '/apps'
     | '/installationen'
+    | '/katalog'
     | '/kunden'
     | '/server'
   id:
@@ -279,14 +312,17 @@ export interface FileRouteTypes {
     | '/ereignisse'
     | '/erster-inhaber'
     | '/leistungen'
+    | '/protokoll'
     | '/support'
     | '/updates'
     | '/apps/$id'
     | '/installationen/$id'
+    | '/katalog/$app'
     | '/kunden/$id'
     | '/server/$id'
     | '/apps/'
     | '/installationen/'
+    | '/katalog/'
     | '/kunden/'
     | '/server/'
   fileRoutesById: FileRoutesById
@@ -304,14 +340,17 @@ export interface RootRouteChildren {
   EreignisseRoute: typeof EreignisseRoute
   ErsterInhaberRoute: typeof ErsterInhaberRoute
   LeistungenRoute: typeof LeistungenRoute
+  ProtokollRoute: typeof ProtokollRoute
   SupportRoute: typeof SupportRoute
   UpdatesRoute: typeof UpdatesRoute
   AppsIdRoute: typeof AppsIdRoute
   InstallationenIdRoute: typeof InstallationenIdRoute
+  KatalogAppRoute: typeof KatalogAppRoute
   KundenIdRoute: typeof KundenIdRoute
   ServerIdRoute: typeof ServerIdRoute
   AppsIndexRoute: typeof AppsIndexRoute
   InstallationenIndexRoute: typeof InstallationenIndexRoute
+  KatalogIndexRoute: typeof KatalogIndexRoute
   KundenIndexRoute: typeof KundenIndexRoute
   ServerIndexRoute: typeof ServerIndexRoute
 }
@@ -402,6 +441,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof LeistungenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/protokoll': {
+      id: '/protokoll'
+      path: '/protokoll'
+      fullPath: '/protokoll'
+      preLoaderRoute: typeof ProtokollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/support': {
       id: '/support'
       path: '/support'
@@ -442,6 +488,20 @@ declare module '@tanstack/solid-router' {
       path: '/installationen/$id'
       fullPath: '/installationen/$id'
       preLoaderRoute: typeof InstallationenIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/katalog/': {
+      id: '/katalog/'
+      path: '/katalog'
+      fullPath: '/katalog/'
+      preLoaderRoute: typeof KatalogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/katalog/$app': {
+      id: '/katalog/$app'
+      path: '/katalog/$app'
+      fullPath: '/katalog/$app'
+      preLoaderRoute: typeof KatalogAppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kunden/': {
@@ -488,14 +548,17 @@ const rootRouteChildren: RootRouteChildren = {
   EreignisseRoute: EreignisseRoute,
   ErsterInhaberRoute: ErsterInhaberRoute,
   LeistungenRoute: LeistungenRoute,
+  ProtokollRoute: ProtokollRoute,
   SupportRoute: SupportRoute,
   UpdatesRoute: UpdatesRoute,
   AppsIdRoute: AppsIdRoute,
   InstallationenIdRoute: InstallationenIdRoute,
+  KatalogAppRoute: KatalogAppRoute,
   KundenIdRoute: KundenIdRoute,
   ServerIdRoute: ServerIdRoute,
   AppsIndexRoute: AppsIndexRoute,
   InstallationenIndexRoute: InstallationenIndexRoute,
+  KatalogIndexRoute: KatalogIndexRoute,
   KundenIndexRoute: KundenIndexRoute,
   ServerIndexRoute: ServerIndexRoute,
 }

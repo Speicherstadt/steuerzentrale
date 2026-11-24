@@ -22,7 +22,7 @@ test.describe("installing", { tag: "@phone" }, () => {
     await manifestImportieren(page.request);
     const host = neuerHost();
     try {
-      await page.goto("/installationen");
+      await page.goto("/apps");
       await page.getByRole("button", { name: "App installieren" }).click();
       const dialog = page.getByRole("dialog", { name: "App installieren" });
       await expect(dialog).toBeVisible();
@@ -96,7 +96,7 @@ test.describe("installing", { tag: "@phone" }, () => {
           return ((await a.json()) as { zustand: string }).zustand;
         })
         .toBe("gescheitert");
-      await page.goto(`/installationen/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}`);
       await expect(page.getByText("Einrichtung gescheitert").first()).toBeVisible();
       await expect(page.getByText("Fehler: image ziehen: manifest unknown")).toBeVisible();
       await page.getByRole("button", { name: "Entfernen …" }).click();

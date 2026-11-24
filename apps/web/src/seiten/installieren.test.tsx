@@ -70,7 +70,7 @@ const platzierung = () => dialog().querySelector("[data-testid=platzierung]")?.t
 
 describe("the dialog Installieren", () => {
   it("shows the placement, the manifest's settings and makes an installation", async () => {
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     await auswaehlen(root, "atelier-nord", "shared-1");
     expect(dialog().textContent).not.toContain("Manifest (manifest.yml)");
     expect(dialog().textContent).toContain("Manifest probe 1.0.0");
@@ -93,7 +93,7 @@ describe("the dialog Installieren", () => {
   });
 
   it("asks again when an option changes, with the option's setting", async () => {
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     await auswaehlen(root, "atelier-nord", "shared-1");
     expect(() => feld("PROBE_EXTRA")).toThrow();
     const option = [...dialog().querySelectorAll("label")].find(
@@ -106,7 +106,7 @@ describe("the dialog Installieren", () => {
   });
 
   it("names every reason when the app does not fit, and keeps the dialog open", async () => {
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     await auswaehlen(root, "atelier-nord", "holm");
     expect(platzierung()).toContain("Passt nicht");
     expect(platzierung()).toContain("Der Server gehört einem anderen Kunden.");
@@ -124,7 +124,7 @@ describe("the dialog Installieren", () => {
 
   // Z-501: a pre-release only for an internal customer
   it("offers a pre-release only to an internal customer", async () => {
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     await auswaehlen(root, "atelier-nord", "shared-1");
     expect(versionen()).toEqual(["1.0.0"]);
     await waehlen("Kunde", "intern");
@@ -137,7 +137,7 @@ describe("the dialog Installieren", () => {
   });
 
   it("reads its form from the app's real manifest (manifeste/haben/0.12.0)", async () => {
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     await auswaehlen(root, "atelier-nord", "shared-1");
     await waehlen("App", "haben");
     await waehlen("Version", "0.12.0");
@@ -156,15 +156,15 @@ describe("the dialog Installieren", () => {
 
   it("is not offered to support", async () => {
     rolle("support");
-    const { root } = await oeffne("/installationen");
-    expect(root.querySelector("main h1")?.textContent).toBe("Installationen");
+    const { root } = await oeffne("/apps");
+    expect(root.querySelector("main h1")?.textContent).toBe("Apps");
     expect(knopf(root, "App installieren")).toBeUndefined();
   });
 });
 
 describe("a failed setup", () => {
   it("is removed with a reason, and the removal job shows", async () => {
-    const { root } = await oeffne(`/installationen/${GESCHEITERT}`);
+    const { root } = await oeffne(`/apps/${GESCHEITERT}`);
     expect(root.textContent).toContain("Einrichtung gescheitert");
     expect(root.textContent).toContain("Fehler: image ziehen");
     knopf(root, "Entfernen …")?.click();
@@ -179,7 +179,7 @@ describe("a failed setup", () => {
 
   it("offers no removal to support", async () => {
     rolle("support");
-    const { root } = await oeffne(`/installationen/${GESCHEITERT}`);
+    const { root } = await oeffne(`/apps/${GESCHEITERT}`);
     expect(root.textContent).toContain("Einrichtung gescheitert");
     expect(knopf(root, "Entfernen …")).toBeUndefined();
   });
@@ -264,9 +264,9 @@ describe("with the Zentrale's API", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("lists what the Zentrale answers, without inventing health or backups", async () => {
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     const zeilen = [...root.querySelectorAll("tbody tr")].filter((tr) =>
-      tr.querySelector("a[href^='/installationen/']"),
+      tr.querySelector("a[href^='/apps/']"),
     );
     expect(zeilen).toHaveLength(1);
     expect(zeilen[0]?.textContent).toContain("Atelier Nord");
@@ -275,7 +275,7 @@ describe("with the Zentrale's API", () => {
   });
 
   it("shows an installation with its place, values and jobs", async () => {
-    const { root } = await oeffne("/installationen/probe-abc123");
+    const { root } = await oeffne("/apps/probe-abc123");
     expect(root.querySelector("main h1")?.textContent).toBe("Atelier Nord · probe");
     expect(root.textContent).toContain("sz-probe-abc123");
     expect(root.textContent).toContain("127.0.0.1:20001");
@@ -286,7 +286,7 @@ describe("with the Zentrale's API", () => {
   });
 
   it("shows no state before the agent reported, and no history", async () => {
-    const { root } = await oeffne("/installationen/probe-abc123");
+    const { root } = await oeffne("/apps/probe-abc123");
     expect(root.querySelector("[data-testid=health]")?.textContent).toContain(
       "Noch keine Meldung des Agenten",
     );
@@ -295,9 +295,9 @@ describe("with the Zentrale's API", () => {
 
   it("lists a running installation with its state and reason (Z-403)", async () => {
     antworten(rot);
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     const zeile = [...root.querySelectorAll("tbody tr")].find((tr) =>
-      tr.querySelector("a[href^='/installationen/']"),
+      tr.querySelector("a[href^='/apps/']"),
     );
     expect(zeile?.textContent).toContain("Rot");
     expect(zeile?.textContent).toContain("Health: HTTP 503");
@@ -305,7 +305,7 @@ describe("with the Zentrale's API", () => {
 
   it("shows the state with reason, since, units and the history (Z-403)", async () => {
     antworten(rot);
-    const { root } = await oeffne("/installationen/probe-abc123");
+    const { root } = await oeffne("/apps/probe-abc123");
     const health = root.querySelector("[data-testid=health]")?.textContent ?? "";
     expect(health).toContain("Health: HTTP 503 · seit");
     expect(health).toContain("Rot");
@@ -325,7 +325,7 @@ describe("with the Zentrale's API", () => {
     vi.stubGlobal("fetch", async () =>
       Response.json({ fehler: "keine_berechtigung" }, { status: 403 }),
     );
-    const { root } = await oeffne("/installationen/probe-abc123");
+    const { root } = await oeffne("/apps/probe-abc123");
     expect(root.querySelector("main [role=alert]")?.textContent).toBe(
       "Dafür fehlt Ihrer Rolle das Recht.",
     );
@@ -336,7 +336,7 @@ describe("the suggested address (Z-407)", () => {
   // Z-407: the address `<app>.<kuerzel>.<domain>`, the domain from the DNS settings
   it("suggests the address from app, short name and domain, and keeps what is typed", async () => {
     dnsQuelleEinsetzen(demoDns({ domain: "apps.example.de", zoneId: null, tokenGesetzt: false }));
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     await auswaehlen(root, "atelier-nord", "shared-1");
     expect(feld<HTMLInputElement>("Adresse").value).toBe("probe.atelier-nord.apps.example.de");
     expect(dialog().textContent).toContain("Unter apps.example.de setzt die Zentrale A und AAAA");
@@ -349,7 +349,7 @@ describe("the suggested address (Z-407)", () => {
 
   it("suggests no address while the operator has no domain", async () => {
     dnsQuelleEinsetzen(demoDns({ domain: null, zoneId: null, tokenGesetzt: false }));
-    const { root } = await oeffne("/installationen");
+    const { root } = await oeffne("/apps");
     await auswaehlen(root, "atelier-nord", "shared-1");
     expect(feld<HTMLInputElement>("Adresse").value).toBe("");
     expect(dialog().textContent).toContain("Ohne Domain in den DNS-Einstellungen");

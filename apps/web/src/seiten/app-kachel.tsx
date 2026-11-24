@@ -57,8 +57,8 @@ export const AppKachel = (props: {
         <div class="grid min-w-0 gap-1">
           <h2 class="text-base font-semibold leading-tight">
             <Link
-              to="/apps/$id"
-              params={{ id: props.id }}
+              to="/katalog/$app"
+              params={{ app: props.id }}
               class="rounded-sm after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
             >
               {name()}
