@@ -1,264 +1,253 @@
 <div align="center">
 
-<h1>Steuerzentrale</h1>
+<h1>Deine Apps. Deine Server. Eine Zentrale.</h1>
 
-**Die Apps der Speicherstadt auf eigenen Servern betreiben: installieren, aktualisieren, sichern, überwachen.**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/uebersicht-dunkel.webp">
+  <img src="docs/assets/screenshots/uebersicht-hell.webp" alt="Übersicht der Steuerzentrale: fünf Server, 16 Installationen, eine laufende Update-Welle, Backups und alles, was Aufmerksamkeit braucht, nach Schwere geordnet" width="900">
+</picture>
 
-Eine Zentrale mit Oberfläche, ein Agent auf jedem Server, der sich selbst verbindet und nur ausführt,
-was das signierte Manifest einer App beschreibt. Für Betreiber, die Haben, Belegt, Kontext, Schreibzeug,
-Stellwerk, Fixpunkt, Kennwort und Soll für sich oder ihre Kunden hosten.
+**Open-Source-Betrieb für die Apps der Speicherstadt: installieren, aktualisieren, sichern und überwachen, auf deinen eigenen Servern.**
+
+Für IT-Dienstleister und Hoster, die Haben, Belegt, Kontext, Schreibzeug, Stellwerk, Fixpunkt, Kennwort und Soll für
+sich oder ihre Kunden betreiben: auf gemeinsamen Servern, auf einem Server je Kunde oder beim Kunden im Haus.
 
 ![Status: Release-Kandidat](https://img.shields.io/badge/Status-Release--Kandidat-orange)
 [![CI](https://github.com/Speicherstadt/steuerzentrale/actions/workflows/ci.yml/badge.svg)](https://github.com/Speicherstadt/steuerzentrale/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Speicherstadt/steuerzentrale?logo=github&label=release&include_prereleases)](https://github.com/Speicherstadt/steuerzentrale/releases)
 [![Lizenz: AGPL-3.0](https://img.shields.io/badge/Lizenz-AGPL--3.0-blue)](LICENSE)
-[![Doku](https://img.shields.io/badge/Doku-speicherstadt.github.io-4f46e5)](https://speicherstadt.github.io/steuerzentrale/)
+[![Doku](https://img.shields.io/badge/Doku-online-4f46e5?logo=zensical&logoColor=white)](https://speicherstadt.github.io/steuerzentrale/)
 [![Demo](https://img.shields.io/badge/Demo-im%20Browser-1f6f5c)](https://speicherstadt.github.io/steuerzentrale/demo/)
+[![Podman](https://img.shields.io/badge/Podman-Quadlets%2C%20rootless-892ca0?logo=podman&logoColor=white)](https://speicherstadt.github.io/steuerzentrale/installation.html)
+[![Docker Pulls](https://img.shields.io/docker/pulls/tristanteu/steuerzentrale?logo=docker&logoColor=white)](https://hub.docker.com/r/tristanteu/steuerzentrale)
 
-[Demo](https://speicherstadt.github.io/steuerzentrale/demo/) •
+[Warum?](#warum-die-steuerzentrale) •
 [Funktionen](#funktionen) •
+[Demo](https://speicherstadt.github.io/steuerzentrale/demo/) •
 [Schnellstart](#schnellstart) •
+[FAQ](#faq) •
 [Dokumentation](https://speicherstadt.github.io/steuerzentrale/) •
 [Entwicklung](#entwicklung)
 
-<sub>English: runs the open-source apps of Speicherstadt on your own servers: one control plane with a web UI, one outbound-connecting agent per server that only executes what an app's signed manifest describes. Installs, update waves with rollback, restic backups with test restores, health and external checks. The interface comes in German and English; the documentation is in German.</sub>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/uebersicht-dunkel.webp">
-  <img src="docs/assets/screenshots/uebersicht-hell.webp" alt="Übersicht der Steuerzentrale: Server, Installationen, laufende Update-Welle, Backups und alles, was Aufmerksamkeit braucht, nach Schwere geordnet" width="900">
-</picture>
+<sub>English: self-hosted operations for the open-source apps of Speicherstadt. One control plane with a web UI, one agent per server that connects out by itself and only runs what an app's signed manifest describes: installs, update waves with rollback, restic backups with test restores, health and external checks, customers, contracts and usage reports. The interface comes in German and English; the documentation is in German.</sub>
 
 </div>
 
-## Ausprobieren
+> [!WARNING]
+> **Release-Kandidat:** Stufe 1 (Selbstbetrieb) ist fertig gebaut und läuft in der CI auf echten VMs durch, im
+> Echtbetrieb ist die Steuerzentrale noch neu. Vor jedem Update der Zentrale ein Backup machen
+> ([Zentrale sichern](https://speicherstadt.github.io/steuerzentrale/zentrale-sichern.html)); Apps aktualisiert sie ohnehin nur mit Backup davor.
 
-Die [Demo](https://speicherstadt.github.io/steuerzentrale/demo/) zeigt die Oberfläche mit Beispieldaten im Browser: fünf Server, die acht Apps
-der Speicherstadt bei sechs Kunden, eine laufende Update-Welle, ein gescheitertes Prüf-Restore. Sie
-braucht keine Zentrale und keinen Server; Knöpfe ändern nur die Beispieldaten. Lokal startet sie mit
-`bun run dev:demo`.
+## Warum die Steuerzentrale?
+
+**Wer Apps für andere betreibt, soll nicht jeden Server von Hand pflegen müssen, und auch nicht alles einem fremden Dienst geben.** 🇩🇪 🇪🇺
+
+Die Apps der Speicherstadt laufen auf deinem Server. Sobald es mehr als einer ist, wird das Drumherum zur Arbeit:
+Updates zur richtigen Zeit, Backups, die sich auch zurückspielen lassen, Zertifikate, volle Platten, Kunden mit
+Verträgen. Die Steuerzentrale macht das an einer Stelle, ohne dass ein Server einen Port für sie öffnet.
+
+- **Nur was das Manifest beschreibt:** der Agent führt keine Shell und keinen freien Befehl aus, nur die Aktionen
+  aus dem signierten Manifest einer App; ein Image nur per Digest
+- **Der Agent verbindet sich selbst:** ausgehende WSS-Verbindung mit Client-Zertifikat, kein offener Port am Server,
+  auch beim Kunden hinter dessen Firewall
+- **Updates in Wellen, mit Rückweg:** erst die eigenen Installationen, dann alle; vor jedem Update ein Backup,
+  nie in einer Sperrzeit der App, bei roter Health zurück auf die alte Version
+- **Backups, die geprüft sind:** restic je Installation auf dein S3-Ziel, mit regelmäßigem Prüf-Restore auf einer Kopie
+- **Rootless und getrennt:** jede Installation unter eigenem Linux-Nutzer mit eigenem Netz, Podman Quadlets unter
+  systemd, Caddy als Pforte davor
+- **Nichts ist eingebaut:** die Zentrale kennt keine App, nur Manifeste; eine neue App braucht keinen neuen Code
 
 ## Funktionen
 
-**Oberfläche:** nur für Betreiber (Kunden sehen das Portal). Übersicht mit allem, was Aufmerksamkeit
-braucht, Server, Installationen, Updates in Wellen, Backups, Aufträge, Kunden, Support-Zugänge,
-Leistungen, die Apps mit ihren Manifesten, Ereignisse, Audit-Log und Einstellungen; hell und dunkel, auf
-Deutsch und Englisch, auch auf dem Handy. Kunden mit Ansprechperson und Vertrag (SLA, Vertragsende)
-legt der Betreiber an, ändert und kündigt sie, jedes Mal mit Grund im Audit-Log
-([Kunden und Verträge](https://speicherstadt.github.io/steuerzentrale/kunden.html)); nach dem Vertragsende macht die Zentrale ein letztes Backup
-und ein Archiv, zu dem die Installationsseite 30 Tage lang einen zeitlich begrenzten Link für den
-Kunden erzeugt, und löscht 90 Tage danach Installation, Repository, S3-Zugang und DNS-Einträge mit
-einem Löschprotokoll als Ereignis und Webhook. Angemeldet kommt alles aus der Zentrale: die Übersicht
-ordnet nach Schwere, was Aufmerksamkeit braucht (Störungen, rote, gelbe und unbekannte Installationen,
-getrennte oder stille Agenten, rote und gelbe Prüfungen der Server, gescheiterte Aufträge, Warnungen
-des letzten Tages), und jeder Eintrag
-führt zu seiner Ursache; Aufträge, Ereignisse und Audit-Log (nur Inhaber und Technik) kommen
-seitenweise; Server- und Kundenseite zeigen ihre Installationen und Ereignisse. Wo die Zentrale noch
-keine Daten hat (Benachrichtigungen), sagt die Seite, mit welchem Punkt sie
-kommen ([Übersicht und Betrieb](https://speicherstadt.github.io/steuerzentrale/uebersicht.html)); Demodaten mit den acht Apps der Speicherstadt
-zeigt nur `bun run dev:demo`.
+Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation](https://speicherstadt.github.io/steuerzentrale/).
 
-**Anmeldung:** mit Passkey oder mit Passwort und Authenticator-App (TOTP); ohne zweiten Faktor erreicht
-ein Konto nur dessen Einrichtung. Den ersten Inhaber legt ein Einrichtungscode aus dem Log der Zentrale
-an, weitere Personen kommen per Einladungslink mit den Rollen Inhaber, Technik oder Support
-([Anmeldung](https://speicherstadt.github.io/steuerzentrale/anmeldung.html)).
+| Bereich | Was die Steuerzentrale kann |
+|---|---|
+| 🧭 [Übersicht](https://speicherstadt.github.io/steuerzentrale/uebersicht.html) | Alles, was Aufmerksamkeit braucht, nach Schwere geordnet: Störungen, rote und gelbe Installationen, stille Agenten, Prüfungen, gescheiterte Aufträge; jeder Eintrag führt zu seiner Ursache |
+| 🖥️ [Server hinzufügen](https://speicherstadt.github.io/steuerzentrale/server-hinzufuegen.html) | Ein Befehl mit Einmal-Token; `install.sh` richtet auf Debian 13 oder Ubuntu 24.04 Podman, unattended-upgrades und den signierten Agenten ein; Zertifikat rotiert selbst, sofort sperrbar |
+| 📦 [Apps installieren](https://speicherstadt.github.io/steuerzentrale/installieren.html) | Dialog mit Kunde, Server und Adresse; Platzierung nach Platz und Art des Servers; Einstellungen als Formular aus dem Manifest, Geheimnisse als Podman-Secrets |
+| 📜 [Manifeste und Versionen](https://speicherstadt.github.io/steuerzentrale/manifeste.html) | Signierte Manifeste je App und Version, geprüft mit minisign; was ein Manifest nicht nennt, läuft nicht |
+| 🔄 [Updates](https://speicherstadt.github.io/steuerzentrale/updates.html) | Wellen „intern“ und „alle“, Wartungsfenster je Server, Sperrzeiten je App, Backup davor, Rückkehr bei roter Health; [Agent](https://speicherstadt.github.io/steuerzentrale/agent-updates.html) und [Betriebssystem](https://speicherstadt.github.io/steuerzentrale/betriebssystem.html) mit Neustart im Fenster |
+| 💾 [Backups](https://speicherstadt.github.io/steuerzentrale/backups.html) | restic je Installation auf das S3-Ziel des Betreibers, Prüf-Restore, Wiederherstellen mit Grund; die [Zentrale selbst](https://speicherstadt.github.io/steuerzentrale/zentrale-sichern.html) getrennt von ihrem Schlüssel |
+| 🩺 [Health und Zustand](https://speicherstadt.github.io/steuerzentrale/zustand.html) | Units und Health alle 30 Sekunden, grün, gelb, rot oder unbekannt, immer mit Grund; nie grün ohne frische Meldung |
+| 🌐 [Prüfung von außen](https://speicherstadt.github.io/steuerzentrale/aussen.html) · [DNS](https://speicherstadt.github.io/steuerzentrale/dns.html) | DNS, Zertifikat, Pforte und Health über den öffentlichen Namen, unabhängig vom Agenten; Verfügbarkeit je Monat; DNS-Einträge über die Cloudflare-API |
+| 🔍 [Prüfungen der Server](https://speicherstadt.github.io/steuerzentrale/pruefungen.html) | Platte, Zertifikate, Backup-Alter, offene Ports, die kein Manifest nennt, Uhrzeit; SSH-Anmeldungen als Ereignis |
+| 🔔 [Benachrichtigungen](https://speicherstadt.github.io/steuerzentrale/benachrichtigungen.html) | Mail über dein SMTP und signierte Webhooks, eine Nachricht je Störung und eine zur Behebung, Ruhezeit |
+| ⚙️ [Aktionen](https://speicherstadt.github.io/steuerzentrale/aktionen.html) · [Einstellungen](https://speicherstadt.github.io/steuerzentrale/einstellungen.html) | Neustart, Log-Auszug, nur lesen, Einstellungen ändern, jeweils mit Grund im Audit-Log und nie in einer Sperrzeit |
+| 👥 [Kunden und Verträge](https://speicherstadt.github.io/steuerzentrale/kunden.html) | Ansprechperson, SLA, Vertragsende; nach der Kündigung letztes Backup, Archiv-Link für den Kunden und Löschung mit Protokoll |
+| 🛟 [Support-Zugang](https://speicherstadt.github.io/steuerzentrale/support.html) | Zeitlich begrenzt, mit Grund, für den Kunden sichtbar |
+| 📈 [Leistungen](https://speicherstadt.github.io/steuerzentrale/leistungen.html) | Je Kunde und Monat: Installationen, Speicher, Support-Zeit, Verfügbarkeit; Export als CSV |
+| 🔐 [Anmeldung und Rollen](https://speicherstadt.github.io/steuerzentrale/anmeldung.html) | Passkey oder Passwort mit TOTP, Rollen Inhaber, Technik, Support; Oberfläche nur über WireGuard |
+| 🛡️ [Sicherheit](https://speicherstadt.github.io/steuerzentrale/sicherheit.html) | Bedrohungsmodell mit Test je Bedrohung, Notzugang per SSH, TOMs nach Art. 32 DSGVO |
+| 🧩 [Manifest für App-Entwickler](https://speicherstadt.github.io/steuerzentrale/manifest.html) | Ein Schema für Units, Volumes, Secrets, Health, Backup, Aktionen und Einstellungen einer App |
 
-**Server hinzufügen:** die Oberfläche zeigt einen Befehl mit Einmal-Token (24 Stunden, einmal nutzbar);
-`install.sh` richtet auf Debian 13 oder Ubuntu 24.04 Podman, unattended-upgrades und den signierten Agenten
-als systemd-Dienst ein, und der Agent tauscht das Token gegen sein Client-Zertifikat
-([Server hinzufügen](https://speicherstadt.github.io/steuerzentrale/server-hinzufuegen.html)). Danach hält der Agent eine WSS-Verbindung mit
-Heartbeat alle 30 Sekunden; jeder Server zeigt „verbunden“, „seit x min still“ oder „getrennt“, nach
-3 Minuten Stille entsteht ein Ereignis, und ein Zertifikat rotiert vor Ablauf von selbst und lässt
-sich sofort sperren. Der Agent meldet die Fakten seines Servers (CPU, RAM, Platten, OS, Kernel,
-„Neustart nötig“, ausstehende Updates, Podman, Adressen, PTR, Ports, Port 25, Uhrzeit, Zertifikate
-der Pforte) alle 15 Minuten, die Server-Seiten zeigen sie, und jede SSH-Anmeldung wird ein Ereignis.
-
-**Prüfungen:** jede Minute prüft die Zentrale jeden Server: Platte über 80 % (gelb) oder 90 % (rot),
-ein Zertifikat einer Installation in 14 Tagen (abgelaufen: rot), ein Backup älter als 26 Stunden, ein
-offener Port, den kein Manifest nennt, und die Uhrzeit (ab 500 ms Abweichung oder ohne Zeitabgleich).
-Was nicht frisch gemessen ist, ist unbekannt, nie grün. Rote und gelbe Prüfungen stehen in der
-Übersicht, alle auf der Server-Seite; Beginn, Verschlechterung und Behebung eines Befunds sind je ein
-Ereignis, nicht jeder Lauf ([Prüfungen der Server](https://speicherstadt.github.io/steuerzentrale/pruefungen.html)).
-
-**Benachrichtigungen:** die Ereignisse gehen nach Schwere per Mail (SMTP des Betreibers) und als
-Webhook raus, eine Nachricht je Störung und eine zu ihrer Behebung, nicht je Prüfung. Ein Webhook ist
-mit HMAC-SHA256 signiert, geht nur an öffentliche `https`-Adressen und wird nach einem Fehlschlag
-nach 1, 2, 4 … Minuten wiederholt; in der Ruhezeit gehen nur Störungen raus. SMTP-Passwort,
-Webhook-Adresse und Signierschlüssel liegen verschlüsselt in der Zentrale und erscheinen nie wieder
-([Benachrichtigungen und Webhooks](https://speicherstadt.github.io/steuerzentrale/benachrichtigungen.html)).
-
-**Manifeste und Versionen:** ein signiertes Manifest kommt per Import in die Zentrale, auf der Seite
-„Apps“ (Inhaber und Technik, mit Grund) oder mit `steuerzentrale manifest importieren <pfad>`; die
-Zentrale prüft Signatur, Schema und Regeln, und eine importierte Version ändert sich nie. Alle 6
-Stunden und auf Knopfdruck fragt sie die Registries nach neuen Tags: eine neue Version ohne Manifest
-zeigt die Seite „Apps“ als „neue Version, Manifest fehlt“, eine dringende und eine Vorabversion sind
-markiert, ein Fehler der Registry wird ein Ereignis. Die Seite „Updates“ zeigt je Installation die
-Versionen, die sie bekommen kann; eine Vorabversion nur ein Kunde, den der Inhaber als intern markiert
-hat ([Manifeste und Versionen](https://speicherstadt.github.io/steuerzentrale/manifeste.html)).
-
-**Apps installieren:** im Dialog „App installieren“ (Installationen oder Kundenseite) wählt der
-Betreiber Kunde, Server, App und Version aus den importierten Manifesten, wählt die Optionen,
-füllt die Einstellungen der Installation aus dem Manifest aus und gibt Adresse und Grund an; die
-Platzierung zeigt bei jeder Änderung, ob die App passt, mit jedem Grund. Die Installationen-Seiten
-zeigen die Installationen der Zentrale mit Zustand und Aufträgen; eine gescheiterte Einrichtung lässt
-sich mit Grund entfernen ([Apps installieren](https://speicherstadt.github.io/steuerzentrale/installieren.html)).
-
-**Updates mit Rückkehr:** alle 5 Minuten startet die Zentrale, was in den Wellen „intern“ und „alle“
-fällig ist: im Wartungsfenster des Servers, nie in einer Sperrzeit, ein dringendes sofort, höchstens
-eins je Server, eine App ohne Health nie. Jedes Update sichert zuerst den Ist-Zustand; wird die neue
-Version nicht gesund, nimmt der Agent sie mit diesem Backup zurück, die Wellen der Version halten an
-und ein Ereignis steht da. Inhaber und Technik aktualisieren auf der Seite „Updates“ auch von Hand,
-mit Version und Grund, in einer Sperrzeit nur der Inhaber ([Updates](https://speicherstadt.github.io/steuerzentrale/updates.html)).
-
-**Updates des Agenten:** liegt bei der Zentrale eine neuere Version des Agenten, als ein Server meldet,
-aktualisiert sich sein Agent im Wartungsfenster des Servers, wenn dort kein anderer Auftrag offen ist:
-er lädt das Binary von seiner Zentrale, prüft Signatur und Prüfsumme wie `install.sh` und startet neu;
-meldet sich der neue Agent nicht binnen 5 Minuten bei der Zentrale, kehrt der alte zurück. Eine falsche
-Signatur oder Prüfsumme ändert nichts und wird ein Ereignis; die Zentrale versteht Agenten einer
-Protokollversion zurück ([Updates des Agenten](https://speicherstadt.github.io/steuerzentrale/agent-updates.html)).
-
-**Betriebssystem und Neustarts:** die Seite eines Servers zeigt, ob unattended-upgrades läuft und wann
-zuletzt, wie viele Pakete ausstehen und ob ein Neustart nötig ist. Den Neustart plant die Zentrale im
-Wartungsfenster des Servers, nie in einer Sperrzeit einer App auf ihm, höchstens einen am Tag und nur
-nach einem Backup jeder laufenden Installation; der Agent startet nur aus dem Boot neu, für den der
-Auftrag gilt, und meldet ihn erst mit einer neuen Boot-ID als erledigt. Inhaber und Technik starten
-einen Server auch von Hand mit Grund neu, nie in einer Sperrzeit
-([Betriebssystem und Neustarts](https://speicherstadt.github.io/steuerzentrale/betriebssystem.html)).
-
-**Adressen und DNS:** jeder Kunde hat ein Kürzel, und der Dialog schlägt die Adresse
-`<app>.<kürzel>.<domain>` vor. Unter Einstellungen → DNS setzt der Betreiber Domain, Cloudflare-Zone und
-API-Token; der Token liegt verschlüsselt in der Zentrale, erscheint nur als „gesetzt“ und erreicht nie
-einen Server. Für einen Host unter der Domain setzt die Zentrale A und AAAA und löscht sie mit der
-Installation, nur Einträge mit ihrem eigenen Kommentar; ein Fehler wird wiederholt und als Ereignis
-gemeldet ([Adressen und DNS](https://speicherstadt.github.io/steuerzentrale/dns.html)).
-
-**Backups:** jede Installation, deren Manifest Teile zum Sichern nennt, bekommt ein eigenes
-restic-Repository mit eigenem Passwort auf dem S3-Ziel des Betreibers und einen eigenen S3-Zugang, der
-nur ihr Präfix erreicht. Unter Einstellungen → Backup setzt der Betreiber Endpunkt, Region, Bucket und
-den Zugang des Admins (MinIO); der Zugang liegt verschlüsselt in der Zentrale und erscheint nur als
-„gesetzt“, ein Server bekommt nur Zugang und Passwort seiner eigenen Installationen. Die Seite Backups
-und der Reiter einer Installation zeigen jeden gemeldeten Lauf, ein gescheiterter wird ein Ereignis;
-„Backup jetzt“ startet einen Lauf mit Grund. Einmal je Woche spielt der Prüf-Restore das Backup in eine
-Kopie mit eigenen Ports auf dem Server der Installation zurück, prüft ihre Health und entfernt sie
-wieder; ist dort kein Platz, meldet die Zentrale das, statt einen anderen Server zu nehmen. Den letzten
-Prüf-Restore zeigen die Seite Backups und der Reiter der Installation, einen gescheiterten auch die
-Übersicht; „Prüf-Restore jetzt“ startet einen mit Grund. Im Reiter Backups lässt sich ein gelungener
-Lauf mit Grund wiederherstellen: vorher sichert der Agent den Ist-Zustand, und scheitert das, wird
-nichts zurückgespielt ([Backups](https://speicherstadt.github.io/steuerzentrale/backups.html)).
-
-**Zentrale sichern:** `steuerzentrale sichern <datei>` schreibt die Datenbank der Zentrale im laufenden
-Betrieb als eine konsistente Datei, die restic auf ein S3-Ziel bringt; `STEUERZENTRALE_SECRET_KEY`
-liegt getrennt davon beim Betreiber. `steuerzentrale wiederherstellen <datei>` setzt sie auf einem
-neuen Server in ein leeres Datenverzeichnis, und die Agenten verbinden sich mit ihren Zertifikaten von
-selbst wieder ([Zentrale sichern](https://speicherstadt.github.io/steuerzentrale/zentrale-sichern.html)).
-
-**Installation:** ein Release besteht aus dem Image der Zentrale (amd64 und arm64) mit ihrer
-Quadlet-Unit und den signierten Agent-Dateien. Im Ein-Server-Betrieb laufen Zentrale, Pforte und Agent
-auf einem Server: die Zentrale rootless unter eigenem Nutzer, die Pforte davor mit der Oberfläche nur
-über WireGuard und `agent.<domain>` mit Client-Zertifikaten ([Installation](https://speicherstadt.github.io/steuerzentrale/installation.html)).
-
-**Sicherheit:** das Bedrohungsmodell nennt zu jeder Bedrohung die Maßnahme und ihren Test, dazu den
-Notzugang per SSH und die technischen und organisatorischen Maßnahmen nach Art. 32 DSGVO als Anlage
-zum Auftragsverarbeitungsvertrag ([Sicherheit](https://speicherstadt.github.io/steuerzentrale/sicherheit.html)).
-
-**Einstellungen:** die Einstellungen jeder App entstehen als Formular aus ihrem Manifest. Unter
-Einstellungen → Apps pflegt der Betreiber seine Werte je App; ein Geheimnis erscheint nur als
-„gesetzt“, ein leeres geheimes Feld behält den Wert. Fehlt beim Installieren ein Pflichtwert des
-Betreibers, fragt der Dialog ihn ab. Eine laufende Installation bekommt neue Werte mit
-„Einstellungen ändern“ und Grund: der Agent konfiguriert sie neu, nie in einer Sperrzeit, und die
-Werte gelten erst nach seinem Erfolg ([Einstellungen](https://speicherstadt.github.io/steuerzentrale/einstellungen.html)).
-
-**Neustart, Log-Auszug, nur lesen:** die Seite einer laufenden Installation zeigt die Aktionen, die
-ihr Manifest anbietet, jede mit Grund im Audit-Log. Ein Neustart wartet auf offene Aufträge und läuft
-nie in einer Sperrzeit; ein Log-Auszug zeigt die letzten 500 Zeilen aus journald mit ersetzten
-Werten der Geheimnisse ([Neustart, Log-Auszug, nur lesen](https://speicherstadt.github.io/steuerzentrale/aktionen.html)).
-
-**Support-Zugang:** Support erreicht Log-Auszug und Neustart einer Installation nur mit einem
-Support-Zugang, den die Person selbst startet: 1, 2 (Vorgabe) oder 4 Stunden, mit Grund. Er endet von
-selbst, lässt sich vorher beenden und steht mit Grund im Audit-Log und in den Ereignissen des Kunden;
-die Zentrale prüft ihn bei jeder Anfrage ([Support-Zugang](https://speicherstadt.github.io/steuerzentrale/support.html)).
-
-**Health und Zustand:** der Agent meldet alle 30 Sekunden Units und Health jeder Installation; die
-Zentrale bewertet sie grün, gelb, rot oder unbekannt, immer mit Grund (ohne Meldung seit 90 Sekunden
-unbekannt, nie grün), hält jeden Wechsel im Verlauf und meldet nach 5 Minuten Rot eine Störung. Liste
-und Seite einer Installation zeigen Zustand, Grund und Verlauf ([Health und Zustand](https://speicherstadt.github.io/steuerzentrale/zustand.html)).
-
-**Prüfung von außen und Verfügbarkeit:** die Zentrale prüft jede Minute jede öffentliche Adresse
-selbst, ohne den Agenten: DNS (zeigt der Name dorthin, wo sie ihn gesetzt hat), Zertifikat, Pforte
-und Health über den öffentlichen Host. „Agent grün, außen rot“ wird ein Ereignis, 5 Minuten rot von
-außen eine Störung. Die Seite einer Installation zeigt das Ergebnis und die Verfügbarkeit je Monat
-(Kalendermonat in Berlin, Anteil der grünen Prüfungen); `/health` der Zentrale sagt einem externen
-Prüfdienst, ob sie und ihre Datenbank antworten
-([Prüfung von außen und Verfügbarkeit](https://speicherstadt.github.io/steuerzentrale/aussen.html)).
-
-**Leistungen:** je Kunde und Monat (Kalendermonat in Berlin) die Installationen, die Größe ihrer
-Daten aus dem letzten erfolgreichen Backup, die Support-Zeit aus den Support-Zugängen und die
-Verfügbarkeit der schlechtesten Installation, berechnet aus dem, was geschah; der Monat lässt sich
-als CSV nach RFC 4180 herunterladen ([Leistungen](https://speicherstadt.github.io/steuerzentrale/leistungen.html)).
-
-## Bilder
+## Screenshots
 
 <table>
-<tr>
-<td><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-dunkel.webp">
-  <img src="docs/assets/screenshots/server-hell.webp" alt="Server mit Art, Agent, Zustand, Installationen, RAM und Platte" width="440">
-</picture></td>
-<td><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/installation-dunkel.webp">
-  <img src="docs/assets/screenshots/installation-hell.webp" alt="Seite einer Installation mit Aktionen, Units, Health, Backup und Prüfung von außen" width="440">
-</picture></td>
-</tr>
-<tr>
-<td><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/updates-dunkel.webp">
-  <img src="docs/assets/screenshots/updates-hell.webp" alt="Updates in Wellen mit Stand je Installation" width="440">
-</picture></td>
-<td><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/backups-dunkel.webp">
-  <img src="docs/assets/screenshots/backups-hell.webp" alt="Backups mit letztem Lauf und Prüf-Restore je Installation" width="440">
-</picture></td>
-</tr>
-<tr>
-<td><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/kunden-dunkel.webp">
-  <img src="docs/assets/screenshots/kunden-hell.webp" alt="Kunden mit Vertrag und Installationen" width="440">
-</picture></td>
-<td><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/apps-dunkel.webp">
-  <img src="docs/assets/screenshots/apps-hell.webp" alt="Die Apps mit ihren signierten Manifesten und Versionen" width="440">
-</picture></td>
-</tr>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-dunkel.webp"><img src="docs/assets/screenshots/server-hell.webp" alt="Server mit Art, Agent, Zustand, Installationen, RAM und Platte"></picture><br><sub><b>Server</b>: gemeinsam, eigen oder beim Kunden, mit Agent und Zustand</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/installation-dunkel.webp"><img src="docs/assets/screenshots/installation-hell.webp" alt="Seite einer Installation mit Aktionen, Units, Health, Backup und Prüfung von außen"></picture><br><sub><b>Installation</b>: Units, Health, Backup und Prüfung von außen</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/updates-dunkel.webp"><img src="docs/assets/screenshots/updates-hell.webp" alt="Updates in Wellen mit Stand je Installation"></picture><br><sub><b>Updates</b>: in Wellen, mit Backup davor und Rückweg</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/backups-dunkel.webp"><img src="docs/assets/screenshots/backups-hell.webp" alt="Backups mit letztem Lauf und Prüf-Restore je Installation"></picture><br><sub><b>Backups</b>: restic je Installation, mit Prüf-Restore</sub></td>
+  </tr>
 </table>
 
-Auch auf dem Handy, hell und dunkel. Die Bilder entstehen aus der Demo
-(**Actions → Update screenshots → Run workflow**).
+Alles zum Durchklicken, mit Beispieldaten und ohne Server: die **[Demo](https://speicherstadt.github.io/steuerzentrale/demo/)**.
 
 ## Schnellstart
 
-Ein Release besteht aus dem Image `ghcr.io/speicherstadt/steuerzentrale` (amd64, arm64), der
-Quadlet-Unit mit dessen Digest und den signierten Agent-Dateien. Die Zentrale läuft rootless unter
-Podman auf Debian 13 oder Ubuntu 24.04, die Pforte (Caddy) davor; die Oberfläche ist nur über
-WireGuard erreichbar. Schritt für Schritt: [Installation](https://speicherstadt.github.io/steuerzentrale/installation.html).
+Die Steuerzentrale läuft als ein Container (`tristanteu/steuerzentrale` oder `ghcr.io/speicherstadt/steuerzentrale`,
+amd64 und arm64) rootless unter Podman, mit Caddy als Pforte davor. Du brauchst einen Server mit Debian 13 oder
+Ubuntu 24.04, zwei DNS-Namen (Oberfläche und `agent.`) und WireGuard, denn die Oberfläche antwortet nur im VPN.
 
-Danach in der Oberfläche: ersten Inhaber mit dem Einrichtungscode aus dem Log anlegen, Server
-hinzufügen (ein Befehl mit Einmal-Token), Manifest einer App importieren, App für einen Kunden
-installieren.
+### 1. Von einem Agenten aufsetzen lassen
+
+Gib Claude Code oder einem anderen Coding-Agenten dieses Repository und SSH-Zugang zu deinem Server und sag:
+„Setz die Steuerzentrale auf meinem Server auf, nach der [Installationsanleitung](https://speicherstadt.github.io/steuerzentrale/installation.html).“
+
+### 2. Manuell
+
+Die [Installation](https://speicherstadt.github.io/steuerzentrale/installation.html) geht Schritt für Schritt durch: Release-Dateien laden und gegen die
+Signatur prüfen, die Zentrale als Quadlet unter eigenem Nutzer starten, die Pforte davorsetzen, den ersten Inhaber
+mit dem Einrichtungscode aus dem Log anlegen und den Agenten desselben Servers beitreten lassen. Genau diese
+Schritte geht die CI mit jedem Release-Kandidaten in einer VM durch.
+
+Danach in der Oberfläche: [Server hinzufügen](https://speicherstadt.github.io/steuerzentrale/server-hinzufuegen.html), Manifest einer App importieren,
+[App installieren](https://speicherstadt.github.io/steuerzentrale/installieren.html).
+
+> [!IMPORTANT]
+> Sichere `STEUERZENTRALE_SECRET_KEY` an einem zweiten Ort, getrennt vom Backup der Datenbank. Ohne ihn sind die
+> Geheimnisse aller Installationen nach einer Wiederherstellung nicht mehr lesbar
+> ([Zentrale sichern](https://speicherstadt.github.io/steuerzentrale/zentrale-sichern.html)).
+
+## FAQ
+
+<details>
+<summary><b>Was kostet die Steuerzentrale?</b></summary>
+
+Die Software ist kostenlos (AGPL). Du brauchst einen Server für die Zentrale und die Server für deine Apps; die
+Zentrale kann auch auf einem Server laufen, der selbst Apps betreibt.
+</details>
+
+<details>
+<summary><b>Für wen ist das?</b></summary>
+
+Für alle, die mehr als eine Installation der Speicherstadt-Apps betreuen: IT-Dienstleister und Hoster mit Kunden,
+aber auch eine Firma mit mehreren Standorten. Für eine einzelne App auf einem Server reicht deren eigene Anleitung.
+</details>
+
+<details>
+<summary><b>Läuft auch eine App, die nicht aus der Speicherstadt kommt?</b></summary>
+
+Technisch braucht die Zentrale nur ein Manifest ([Manifest](https://speicherstadt.github.io/steuerzentrale/manifest.html)), keine App ist eingebaut. Ein
+Manifest muss aber mit dem Schlüssel des Betreibers signiert sein, und die Werte darin stammen aus den Quellen der App.
+</details>
+
+<details>
+<summary><b>Muss ich beim Kunden einen Port öffnen?</b></summary>
+
+Nein. Der Agent verbindet sich von sich aus zur Zentrale (`agent.<domain>`, mTLS). Am Server sind nur 80 und 443
+für die Apps selbst offen.
+</details>
+
+<details>
+<summary><b>Was darf die Zentrale auf meinem Server?</b></summary>
+
+Nur die Aktionen, die das signierte Manifest einer App beschreibt, mit festen Argumenten: kein Shell-Befehl, kein
+freies `podman exec`, kein Image ohne Digest. Eine übernommene Zentrale mit einem fremden Manifest bringt keinen Code
+auf einen Server; das prüft ein Test ([Sicherheit](https://speicherstadt.github.io/steuerzentrale/sicherheit.html)).
+</details>
+
+<details>
+<summary><b>Docker oder Podman?</b></summary>
+
+Podman, rootless, mit Quadlets unter systemd. Jede Installation bekommt einen eigenen Linux-Nutzer, ein eigenes Netz
+und eigene Volumes; das Image der Zentrale gibt es trotzdem auch auf Docker Hub.
+</details>
+
+<details>
+<summary><b>Wird die Steuerzentrale mit KI entwickelt?</b></summary>
+
+Ja, mit Coding-Agenten in einem festen Ablauf: ein Punkt der [Bauliste](BAULISTE.md) je Pull Request, Tests zuerst,
+für Sicherheitsrelevantes ein unabhängiges Review, das nur meldet, was ein fehlschlagender Test belegt. Wie das
+abläuft, steht unter [Mitwirken](https://speicherstadt.github.io/steuerzentrale/mitwirken.html).
+</details>
+
+## Dokumentation
+
+Alles im Detail, mit Suche: **https://speicherstadt.github.io/steuerzentrale/**. Jede Funktion oben verlinkt ihre Seite; dazu kommen:
+
+- **Einstieg:** [Installation](https://speicherstadt.github.io/steuerzentrale/installation.html), [Server hinzufügen](https://speicherstadt.github.io/steuerzentrale/server-hinzufuegen.html),
+  [Apps installieren](https://speicherstadt.github.io/steuerzentrale/installieren.html)
+- **Hintergrund:** [Projektplan](https://speicherstadt.github.io/steuerzentrale/plan.html) (Architektur, Entscheidungen, Datenmodell), [Pforte](https://speicherstadt.github.io/steuerzentrale/pforte.html),
+  [Aufträge](https://speicherstadt.github.io/steuerzentrale/auftraege.html), [Release](https://speicherstadt.github.io/steuerzentrale/release.html)
 
 ## Entwicklung
 
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh)
+[![Solid](https://img.shields.io/badge/Solid-2.0-2c4f7c?logo=solid&logoColor=white)](https://www.solidjs.com)
+[![TanStack](https://img.shields.io/badge/TanStack-Router-ff4154?logo=reactquery&logoColor=white)](https://tanstack.com/router)
+[![Hono](https://img.shields.io/badge/Hono-e36002?logo=hono&logoColor=white)](https://hono.dev)
+[![Vite](https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white)](https://vite.dev)
+[![SQLite](https://img.shields.io/badge/SQLite-Drizzle-003b57?logo=sqlite&logoColor=white)](https://orm.drizzle.team)
+
+Voraussetzungen: Bun in der Version aus `packageManager` in `package.json` und Git. Für die Tests des Agenten
+Podman mit systemd; die CI hat beides.
+
 ```sh
 bun install
-bun run dev:demo          # Oberfläche mit Beispieldaten, ohne Zentrale
+bun run dev:demo          # Oberfläche mit Beispieldaten, ohne Zentrale: http://localhost:5181
 bun run dev:zentrale      # Zentrale auf Port 18300
 bun run dev:web           # Oberfläche auf Port 5181
 bun run check             # Typen, Lint, Tests, Build
 bun run e2e               # Playwright gegen Zentrale und Oberfläche
 ```
 
-Wie gebaut wird, steht im [Projektplan](https://speicherstadt.github.io/steuerzentrale/plan.html) und in der [`BAULISTE.md`](BAULISTE.md); wie
-ein Release entsteht, unter [Release](https://speicherstadt.github.io/steuerzentrale/release.html). Mitmachen: [Mitwirken](https://speicherstadt.github.io/steuerzentrale/mitwirken.html).
+Aufbau und Entscheidungen stehen im [Projektplan](https://speicherstadt.github.io/steuerzentrale/plan.html), alles Weitere unter [Mitwirken](https://speicherstadt.github.io/steuerzentrale/mitwirken.html).
 
-## Lizenz
+| Paket | Inhalt |
+|---|---|
+| `apps/zentrale` | Hono-Server: API, Datenbank (SQLite mit Drizzle), Aufträge, Prüfungen, Verbindung zu den Agenten |
+| `apps/web` | Oberfläche (Solid 2, TanStack Router), Demo mit Beispieldaten |
+| `apps/agent` | Agent für jeden Server, mit `bun build --compile` zu einem Binary |
+| `packages/manifest` | Schema der Manifeste, Platzierung, Quadlet-Units, Podman-Secrets und Caddy-Snippets, ohne I/O |
+| `packages/planung` | Update-Wellen, Sperrzeiten, Wartungsfenster, Prüfungen der Server, ohne I/O |
+| `packages/protokoll` | Nachrichten zwischen Zentrale und Agent, versioniert |
+| `packages/ui` | Bausteine der Oberfläche, Texte auf Deutsch und Englisch (Paraglide) |
+| `install/install.sh` | Richtet einen Server ein und lässt den Agenten beitreten |
 
-AGPL-3.0 ([`NOTICE`](NOTICE)). Beiträge mit Developer Certificate of Origin (`git commit -s`), kein CLA.
-Sicherheitslücken bitte privat melden ([`SECURITY.md`](SECURITY.md)).
+## Mehr von uns
+
+Die Apps, die die Steuerzentrale betreibt, und weitere Open-Source-Apps für deinen eigenen Server: **[speicherstadt.org](https://speicherstadt.org)**
+
+## Mitwirken
+
+Fehler und Ideen gern als Issue. Was vor einem Pull Request laufen muss und was er enthält, steht unter
+[Mitwirken](https://speicherstadt.github.io/steuerzentrale/mitwirken.html); Beiträge mit Developer Certificate of Origin (`git commit -s`), kein CLA.
+Sicherheitslücken bitte vertraulich melden, wie in [SECURITY.md](SECURITY.md) beschrieben.
+
+## Sterne im Verlauf
+
+<a href="https://www.star-history.com/#Speicherstadt/steuerzentrale&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Speicherstadt/steuerzentrale&type=Date&theme=dark">
+    <img alt="Verlauf der GitHub-Sterne der Steuerzentrale" src="https://api.star-history.com/svg?repos=Speicherstadt/steuerzentrale&type=Date">
+  </picture>
+</a>
+
+---
+
+<div align="center">
+
+⭐ **Gefällt dir die Steuerzentrale?** Ein [Stern auf GitHub](https://github.com/Speicherstadt/steuerzentrale) hilft anderen, sie zu finden.
+
+[Fehler melden](https://github.com/Speicherstadt/steuerzentrale/issues/new) &nbsp;·&nbsp; [Demo](https://speicherstadt.github.io/steuerzentrale/demo/) &nbsp;·&nbsp; [Dokumentation](https://speicherstadt.github.io/steuerzentrale/)
+
+<sub>Lizenz: <a href="LICENSE">AGPL-3.0</a> · © Tristan Teufel und Mitwirkende<br>
+Wer eine veränderte Fassung der Steuerzentrale für andere übers Netz betreibt, muss ihnen den Quellcode anbieten (§ 13 AGPL).<br>
+Cloudflare, Docker und GitHub sind Marken ihrer Inhaber; die Steuerzentrale steht mit diesen Unternehmen nicht in Verbindung.</sub>
+
+</div>
