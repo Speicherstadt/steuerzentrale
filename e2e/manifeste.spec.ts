@@ -120,7 +120,7 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
       await installieren.getByLabel("Adresse").fill(neuerHost());
       await installieren.getByLabel("Grund").fill("Vorabversion testen");
       await installieren.getByRole("button", { name: "Installieren" }).click();
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`${kunde.name} · ${app}`);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`${app} · ${kunde.name}`);
       await expect(page.getByText("2.0.0-rc.1").first()).toBeVisible();
     } finally {
       agent.trennen();

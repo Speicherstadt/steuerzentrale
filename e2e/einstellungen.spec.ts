@@ -81,7 +81,8 @@ test.describe("settings", { tag: "@phone" }, () => {
         })
         .toBe(true);
       await page.goto(`/apps/${i.installationId}`);
-      await page.getByRole("button", { name: "Einstellungen ändern" }).click();
+      await page.getByRole("button", { name: "Mehr …" }).click();
+      await page.getByRole("menuitem", { name: "Einstellungen ändern" }).click();
       const dialog = page.getByRole("dialog", { name: /^Einstellungen von .* ändern$/ });
       await expect(dialog.getByLabel("PROBE_KENNWORT")).toHaveValue("");
       await dialog.getByLabel("PROBE_TITEL").fill("Kanzlei Ost");

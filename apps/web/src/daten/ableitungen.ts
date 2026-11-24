@@ -54,6 +54,10 @@ export const linuxNutzer = (i: Installation) => `sz-${i.id}`;
 export const titel = (b: Bestand, i: Installation) =>
   `${kundeVon(b, i.kunde).name} · ${appVon(b, i.app).name}`;
 
+/** "App · Customer", the heading of an app's page and its place in the path */
+export const appTitel = (b: Bestand, i: Installation) =>
+  `${appVon(b, i.app).name} · ${kundeVon(b, i.kunde).name}`;
+
 export type SperrzeitEinerApp = Sperrzeit & { app: string; appName: string };
 
 /** The freeze windows of every app, from the manifests */

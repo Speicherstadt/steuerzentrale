@@ -1,7 +1,10 @@
 import {
   letzteMonate,
   type MonatsVerfuegbarkeit,
+  type TagesVerfuegbarkeit,
+  tagesGrenzen,
   verfuegbarkeitImMonat,
+  verfuegbarkeitProTag,
 } from "@steuerzentrale/planung";
 import type { AussenDerInstallation, AussenDerZentrale, AussenQuelle } from "../daten/aussen.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
@@ -12,7 +15,9 @@ import { demo } from "./index.ts";
  * routes/aussen.ts): a red installation answers 503 since 10:31 (design/mockup/, "Health 503 seit
  * 10:31"), every other one 200 in 48 ms, also one whose agent is silent; the names point to the
  * server's addresses, the certificate ends as the server's facts say. The availability of a month
- * is the demo's percentage of the minutes up to its "now", every minute measured.
+ * is the demo's percentage of the minutes up to its "now", every minute measured; per day, every
+ * minute of a month with a percentage is measured, and the red minutes of a month below 100 % all
+ * fall on its 23rd (or its last day so far), as one outage would.
  */
 
 const TAG = 86_400_000;
@@ -57,6 +62,34 @@ const monatVon = (
   };
 };
 
+/** The day of a month its outage falls on */
+const AUSFALL_TAG = 23;
+
+const MONAT = (t: { jahr: number; monat: number }) =>
+  `${t.jahr}-${String(t.monat).padStart(2, "0")}`;
+
+const tagVon = (i: Installation, t: TagesVerfuegbarkeit, jetzt: number): TagesVerfuegbarkeit => {
+  const prozent = i.verfuegbarkeit[MONAT(t)];
+  if (prozent === undefined) return t;
+  const g = tagesGrenzen(t);
+  const gemessen = Math.max(0, Math.round((Math.min(g.bis, jetzt) - g.von) / MIN));
+  const monat = monatVon(i, t, jetzt);
+  const heute = verfuegbarkeitProTag([], 1, jetzt)[0];
+  const letzter = heute && MONAT(heute) === MONAT(t) ? heute.tag : 31;
+  const rot = t.tag === Math.min(AUSFALL_TAG, letzter) ? Math.min(gemessen, monat.rot) : 0;
+  return { ...t, gemessen, rot, anteil: gemessen === 0 ? null : (gemessen - rot) / gemessen };
+};
+
+export const tageDerInstallation = (
+  b: Bestand,
+  id: string,
+  anzahl: number,
+): TagesVerfuegbarkeit[] | undefined => {
+  const i = b.installationen.find((x) => x.id === id);
+  if (!i) return undefined;
+  return verfuegbarkeitProTag([], anzahl, b.jetzt).map((t) => tagVon(i, t, b.jetzt));
+};
+
 export const aussenDerInstallation = (
   b: Bestand,
   id: string,
@@ -74,6 +107,12 @@ export const demoAussen = (b: Bestand = demo): AussenQuelle => ({
     const a = aussenDerInstallation(b, id);
     return a
       ? { ok: true, status: 200, daten: a }
+      : { ok: false, status: 404, fehler: "keine_installation" };
+  },
+  tage: async (id, anzahl) => {
+    const t = tageDerInstallation(b, id, anzahl);
+    return t
+      ? { ok: true, status: 200, daten: t }
       : { ok: false, status: 404, fehler: "keine_installation" };
   },
 });

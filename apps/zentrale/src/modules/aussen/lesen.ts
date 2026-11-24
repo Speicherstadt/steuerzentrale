@@ -5,7 +5,9 @@ import {
   letzteMonate,
   type MonatsVerfuegbarkeit,
   monatsGrenzen,
+  type TagesVerfuegbarkeit,
   verfuegbarkeitImMonat,
+  verfuegbarkeitProTag,
 } from "@steuerzentrale/planung";
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import type { Db } from "../../db/oeffnen.ts";
@@ -27,6 +29,24 @@ const grundLesen = (text: string): AussenGrund => {
   const g = JSON.parse(text) as Partial<AussenGrund>;
   return { code: g.code ?? "keine_pruefung", werte: g.werte ?? {} };
 };
+
+/** The hourly counts of an installation from `von` on, within its operator */
+const scheibenLesen = (db: Db, betreiberId: string, installationId: string, von: number) =>
+  db
+    .select({
+      stunde: verfuegbarkeit.stunde,
+      gemessen: verfuegbarkeit.gemessen,
+      rot: verfuegbarkeit.rot,
+    })
+    .from(verfuegbarkeit)
+    .where(
+      and(
+        eq(verfuegbarkeit.betreiberId, betreiberId),
+        eq(verfuegbarkeit.installationId, installationId),
+        gte(verfuegbarkeit.stunde, von),
+      ),
+    )
+    .all();
 
 const zeileLesen = (db: Db, betreiberId: string, installationId: string) =>
   db
@@ -91,21 +111,7 @@ export const aussenLesen = (
   const monate = letzteMonate(jetzt, MONATE);
   const aeltester = monate.at(-1);
   const von = aeltester ? monatsGrenzen(aeltester).von : jetzt;
-  const scheiben = db
-    .select({
-      stunde: verfuegbarkeit.stunde,
-      gemessen: verfuegbarkeit.gemessen,
-      rot: verfuegbarkeit.rot,
-    })
-    .from(verfuegbarkeit)
-    .where(
-      and(
-        eq(verfuegbarkeit.betreiberId, betreiberId),
-        eq(verfuegbarkeit.installationId, installationId),
-        gte(verfuegbarkeit.stunde, von),
-      ),
-    )
-    .all();
+  const scheiben = scheibenLesen(db, betreiberId, installationId, von);
   const stand = z && {
     zustand: z.zustand,
     grund: grundLesen(z.grund),
@@ -116,4 +122,20 @@ export const aussenLesen = (
     aussen: stand && z ? { ...aussenJetzt(stand, jetzt), ergebnis: JSON.parse(z.ergebnis) } : null,
     verfuegbarkeit: monate.map((m) => verfuegbarkeitImMonat(scheiben, m, jetzt)),
   };
+};
+
+/** At most as many days as the hourly counts are kept: 13 months (src/modules/aufbewahrung) */
+export const TAGE_MAX = 400;
+
+/** The availability of each of the last `tage` days in Berlin, today included, oldest first */
+export const tageLesen = (
+  db: Db,
+  betreiberId: string,
+  installationId: string,
+  tage: number,
+  jetzt: number,
+): TagesVerfuegbarkeit[] => {
+  const leer = verfuegbarkeitProTag([], tage, jetzt);
+  const von = leer[0]?.von ?? jetzt;
+  return verfuegbarkeitProTag(scheibenLesen(db, betreiberId, installationId, von), tage, jetzt);
 };

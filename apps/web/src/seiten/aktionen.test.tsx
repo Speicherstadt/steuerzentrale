@@ -94,7 +94,8 @@ describe("the actions of an installation", () => {
 
   it("shows support log excerpt and restart only during its own support access (Z-802)", async () => {
     rolle("support");
-    const { root } = await oeffne(`/apps/${ohneSperrzeit()}`);
+    // the access with its reason and time left stands in the tab Technik
+    const { root } = await oeffne(`/apps/${ohneSperrzeit()}?tab=technik`);
     expect(knopf(root, "Log-Auszug")).toBeUndefined();
     expect(knopf(root, "Neustart")).toBeUndefined();
     knopf(root, "Zugang starten")?.click();

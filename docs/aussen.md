@@ -98,9 +98,32 @@ liefert:
 `aussen` ist `null` vor der ersten Prüfung, `verfuegbarkeit` hat 13 Monate, den laufenden zuerst;
 `anteil` ist `null` ohne Prüfung im Monat.
 
-Die Seite einer Installation zeigt im Reiter „Zustand“, sobald sie läuft, die Karte „Adresse und
-Prüfung von außen“: wohin der Name zeigt, das Zertifikat, was die Prüfung von außen ergab und die
-Verfügbarkeit des Monats, darunter jeden gemessenen Monat der letzten 13.
+`GET /api/v1/installationen/{id}/verfuegbarkeit?tage=90` (alle Rollen, nur Installationen des
+eigenen Betreibers) liefert die Verfügbarkeit je Tag aus denselben Stunden, den ältesten Tag zuerst
+und heute zuletzt. Ein Tag ist ein Kalendertag in `Europe/Berlin` (am Tag der Zeitumstellung 23 oder
+25 Stunden); `tage` ist 1 bis 400, ohne Angabe 90; ein anderer Wert ergibt `400 ungueltig`.
+
+```json
+{
+  "tage": [
+    { "jahr": 2026, "monat": 11, "tag": 24, "von": 1795474800000, "gemessen": 1215, "rot": 0, "anteil": 1 }
+  ]
+}
+```
+
+`anteil` ist `null` an einem Tag ohne Prüfung.
+
+Die Seite einer App zeigt, sobald sie läuft:
+
+- im Reiter „Überblick“ in der Zeile „Erreichbar“ die Antwortzeit von außen und wie lange das
+  Zertifikat gilt, in der Zeile „Verfügbarkeit“ diesen und den letzten Monat;
+- im Reiter „Messwerte“ die letzten 90 Tage als Balken, einen je Tag: grün bei 100 %, gelb unter
+  100 %, rot unter 99 %, grau ohne Messung; darüber den Anteil über die 90 Tage und wie viele Tage
+  einen Ausfall hatten, mit den Minuten zusammen (die Stunden zählen rote Prüfungen, nicht wann ein
+  Ausfall anfing und aufhörte: einzelne Ausfälle lassen sich daraus nicht zählen);
+- im Reiter „Technik“ die Karte „Adresse und Prüfung von außen“: wohin der Name zeigt, das
+  Zertifikat, was die Prüfung von außen ergab und die Verfügbarkeit des Monats, darunter jeden
+  gemessenen Monat der letzten 13.
 
 ## `/health` der Zentrale
 
@@ -125,5 +148,7 @@ erfunden sind (die E2E-Tests). Ohne die Variable (oder mit `an`) läuft sie.
   5 Minuten eine Störung, die erst grün außen behebt; die Zählung je Stunde; die Schritte gegen eine
   Pforte mit Test-Zertifikat auf `127.0.0.1` (gültig, fremde Zertifizierungsstelle, abgelaufen,
   falscher Name, kein Port) und einen gefälschten Resolver: kein Test fragt einen echten Nameserver.
-- Vitest der Route: jeder Betreiber sieht nur seine Installationen.
-- Playwright: die Karte auf der Seite einer laufenden Installation.
+- Vitest in `packages/planung`: die Verfügbarkeit je Tag über das Monatsende und die Tage der
+  Zeitumstellung.
+- Vitest der Routen: jeder Betreiber sieht nur seine Installationen, auch die Tage.
+- Playwright: die Karte auf der Seite einer laufenden App, die Balken im Reiter „Messwerte“.

@@ -53,6 +53,12 @@ export const EinrichtungsAngaben = (props: { a: InstallationAnsicht }) => (
           },
           { name: m.inst_optionen(), wert: props.a.optionen.join(", ") || m.server_keine() },
           { name: m.server_version(), wert: props.a.version },
+          {
+            name: m.inst_manifest(),
+            wert: mono(
+              `${props.a.app} ${props.a.version} · sha256 ${props.a.manifestHash.slice(0, 12)}`,
+            ),
+          },
           { name: m.inst_angelegt(), wert: zeitpunkt(props.a.angelegtAm, Date.now()) },
         ]}
       />

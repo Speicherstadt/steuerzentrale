@@ -211,12 +211,16 @@ schreibt das Ereignis `backup_gescheitert` (Schwere `fehler`) mit seinem Grund, 
 Die Seite **Backups** zeigt jede Installation mit ihren Teilen, dem letzten Lauf (gescheitert mit
 Grund und dem letzten Erfolg), den Snapshots des letzten Laufs und dem Stand: Zugang wird angelegt,
 wird auf dem Server eingerichtet, eingerichtet. Die Übersicht zählt, bei wie vielen Installationen der
-letzte Lauf gelang. Der Reiter **Backups** einer Installation zeigt die letzten 100 Läufe mit jedem
-Snapshot.
+letzte Lauf gelang; sie ist über „Alle Backups“ im Reiter **Backups** einer App erreichbar. Der Reiter
+**Backups** einer App zeigt die letzten 100 Läufe mit jedem Snapshot. Der Reiter **Überblick** nennt
+den letzten Lauf mit Größe und den letzten Prüf-Restore, der Reiter **Messwerte** die Größe jedes
+nächtlichen Backups über 24 Stunden, 7 oder 30 Tage: die Summe der Bytes, die restic je Teil las
+(`bytes` jedes Teils, seit Z-804); ein Lauf ohne diese Angabe fehlt dort.
 
 ### Backup jetzt
 
-Auf der Seite einer laufenden Installation, deren Backups eingerichtet sind, startet **Backup jetzt**
+Auf der Seite einer laufenden App, deren Backups eingerichtet sind, startet **Backup jetzt** (in der
+Zeile „Backup“ des Überblicks und unter „Mehr …“)
 mit Grund einen Lauf sofort (Auftrag `installation_backup`, Inhaber und Technik). Nicht, solange ein
 Backup-Auftrag der Installation offen ist (`409 backup_laeuft`), solange sie wiederhergestellt wird
 (`409 auftrag_offen`, siehe unten) oder bevor die Backups eingerichtet sind (`409 nicht_eingerichtet`). Ein Backup startet die App nicht neu und läuft darum auch in einer
@@ -268,7 +272,7 @@ Prüf-Restore gescheitert ist (Warnung) oder die seit über 8 Tagen keinen hatte
 Prüf-Restore gezählt ab ihrem ersten gelungenen Backup). Der gescheiterte Auftrag selbst steht dort
 nicht noch einmal.
 
-**Prüf-Restore jetzt** startet auf der Seite der Installation einen Prüf-Restore mit Grund (Inhaber und
+**Prüf-Restore jetzt** (unter „Mehr …“) startet auf der Seite der App einen Prüf-Restore mit Grund (Inhaber und
 Technik), unabhängig vom Wochenrhythmus. Dieselben Bedingungen gelten: `409 nicht_eingerichtet`,
 `409 kein_backup` (noch kein gelungener Lauf), `409 auftrag_offen`, `409 server_belegt` (ein anderer
 Prüf-Restore auf dem Server), `409 kein_platz` (mit den Gründen der Platzierung in `gruende`),

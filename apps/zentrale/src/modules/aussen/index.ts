@@ -8,6 +8,8 @@ export {
   aussenStandLesen,
   letzteAussenMeldung,
   MONATE,
+  TAGE_MAX,
+  tageLesen,
 } from "./lesen.ts";
 export {
   AUSSEN_PRUEFUNG_MS,

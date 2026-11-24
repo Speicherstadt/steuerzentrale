@@ -1,5 +1,5 @@
 import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
-import { FileText, LoaderCircle, Lock, RotateCw } from "@steuerzentrale/ui/icons";
+import { LoaderCircle, Lock, RotateCw } from "@steuerzentrale/ui/icons";
 import { createSignal, onSettled, Show } from "solid-js";
 import type { Fehlschlag } from "../anmeldung/api.ts";
 import {
@@ -14,7 +14,6 @@ import {
 } from "../daten/installationen.ts";
 import { Fehler, felder } from "./anmeldung-teile.tsx";
 import { installationsFehler } from "./installieren-texte.ts";
-import { MitInstallationsRecht, MitRechtOderZugang } from "./recht.tsx";
 
 /*
  * The actions of an installation (BAULISTE.md Z-405; mockup, installation page and "Log-Auszug";
@@ -22,10 +21,11 @@ import { MitInstallationsRecht, MitRechtOderZugang } from "./recht.tsx";
  * reason for the audit log. Owner and technik see every action; support sees log excerpt and
  * restart while its own support access to the installation runs (Z-802), never "nur lesen". A log
  * excerpt is a job: the dialog asks the Zentrale every second for its lines until
- * the agent sent them, and shows them.
+ * the agent sent them, and shows them. The head of an app's page offers them (app-kopf.tsx,
+ * app-mehr.tsx), which decides who sees which.
  */
 
-type Angaben = InstallationAnsicht & { aktionen: Record<InstallationsAktion, boolean> };
+export type Angaben = InstallationAnsicht & { aktionen: Record<InstallationsAktion, boolean> };
 
 /** How often and how far apart the dialog asks for the lines before it gives up waiting */
 const VERSUCHE = 120;
@@ -56,9 +56,9 @@ const GrundFeld = (props: { platzhalter: string }) => (
   />
 );
 
-type Schreibend = Exclude<InstallationsAktion, "log_auszug">;
+export type Schreibend = Exclude<InstallationsAktion, "log_auszug">;
 
-const TITEL: Record<Schreibend, () => string> = {
+export const TITEL: Record<Schreibend, () => string> = {
   neustart: m.aktion_neustart,
   nur_lesen: m.aktion_nur_lesen,
 };
@@ -69,7 +69,7 @@ const TEXT: Record<Schreibend, (w: { name: string }) => string> = {
 };
 
 /** Restart or "nur lesen": a reason, then the job; `ausgefuehrt` once the Zentrale made it */
-const GrundDialog = (props: {
+export const GrundDialog = (props: {
   a: Angaben;
   aktion: Schreibend;
   open: boolean;
@@ -223,7 +223,7 @@ const LogInhalt = (props: { a: Angaben; onClose: () => void; angefordert: () => 
   );
 };
 
-const LogDialog = (props: {
+export const LogDialog = (props: {
   a: Angaben;
   open: boolean;
   onClose: () => void;
@@ -248,7 +248,7 @@ const LogDialog = (props: {
 const ICON = { neustart: RotateCw, nur_lesen: Lock } as const;
 
 /** A button for restart or "nur lesen" with its dialog */
-const SchreibendeAktion = (props: { a: Angaben; aktion: Schreibend; neu: () => void }) => {
+export const SchreibendeAktion = (props: { a: Angaben; aktion: Schreibend; neu: () => void }) => {
   const [offen, setOffen] = createSignal(false);
   return (
     <Show when={props.a.aktionen[props.aktion]}>
@@ -267,40 +267,5 @@ const SchreibendeAktion = (props: { a: Angaben; aktion: Schreibend; neu: () => v
         }}
       />
     </Show>
-  );
-};
-
-/**
- * The buttons of the actions the manifest offers, for a running installation; `neu` after a job
- * was made, so the page shows it; `mitZugang` while the member's own support access runs
- */
-export const Aktionen = (props: { a: Angaben; mitZugang: boolean; neu: () => void }) => {
-  const [logOffen, setLogOffen] = createSignal(false);
-  let angefordert = false;
-  return (
-    <MitRechtOderZugang zugang={props.mitZugang}>
-      <Show when={props.a.aktionen.log_auszug}>
-        <Button onClick={() => setLogOffen(true)}>
-          <Icon icon={FileText} />
-          {m.aktion_log_auszug()}
-        </Button>
-        <LogDialog
-          a={props.a}
-          open={logOffen()}
-          angefordert={() => {
-            angefordert = true;
-          }}
-          onClose={() => {
-            setLogOffen(false);
-            if (angefordert) props.neu();
-            angefordert = false;
-          }}
-        />
-      </Show>
-      <SchreibendeAktion a={props.a} aktion="neustart" neu={() => props.neu()} />
-      <MitInstallationsRecht>
-        <SchreibendeAktion a={props.a} aktion="nur_lesen" neu={() => props.neu()} />
-      </MitInstallationsRecht>
-    </MitRechtOderZugang>
   );
 };

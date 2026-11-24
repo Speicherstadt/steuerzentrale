@@ -22,7 +22,7 @@ const FEHLER: Record<string, () => string> = {
   netz: m.fehler_netz,
 };
 
-const fehlerText = (fehler: string) => (FEHLER[fehler] ?? m.fehler_unbekannt)();
+export const zugangFehlerText = (fehler: string) => (FEHLER[fehler] ?? m.fehler_unbekannt)();
 
 const DAUER_TEXT: Record<(typeof DAUERN)[number], () => string> = {
   60: m.sup_dauer_1h,
@@ -63,7 +63,7 @@ export type Wahl = { id: string; titel: string };
 
 const Formular = (props: {
   installationen: Wahl[];
-  installationId?: string;
+  installationId?: string | undefined;
   onClose: () => void;
   gestartet: (z: Zugang) => void;
 }) => {
@@ -78,7 +78,7 @@ const Formular = (props: {
       werte.grund ?? "",
     );
     setLaeuft(false);
-    if (!antwort.ok) return setFehler(fehlerText(antwort.fehler));
+    if (!antwort.ok) return setFehler(zugangFehlerText(antwort.fehler));
     setFehler("");
     props.gestartet(antwort.daten);
   };
@@ -118,9 +118,34 @@ const Formular = (props: {
 };
 
 /**
- * The button "Zugang starten" with its dialog: for the one installation named, else with a choice
- * among `installationen`; `gestartet` once the Zentrale started it
+ * The dialog "Zugang starten": for the one installation named, else with a choice among
+ * `installationen`; `gestartet` once the Zentrale started it
  */
+export const ZugangDialog = (props: {
+  open: boolean;
+  onClose: () => void;
+  installationen?: Wahl[] | undefined;
+  installationId?: string | undefined;
+  gestartet: (z: Zugang) => void;
+}) => (
+  <Dialog
+    open={props.open}
+    onClose={() => props.onClose()}
+    title={m.sup_starten_titel()}
+    description={m.sup_starten_text()}
+  >
+    <Show when={props.open}>
+      <Formular
+        installationen={props.installationen ?? []}
+        installationId={props.installationId}
+        onClose={() => props.onClose()}
+        gestartet={(z) => props.gestartet(z)}
+      />
+    </Show>
+  </Dialog>
+);
+
+/** The button "Zugang starten" with its dialog */
 export const ZugangStarten = (props: {
   installationen?: Wahl[];
   installationId?: string;
@@ -134,26 +159,16 @@ export const ZugangStarten = (props: {
         <Icon icon={LifeBuoy} />
         {m.sup_starten()}
       </Button>
-      <Dialog
+      <ZugangDialog
         open={offen()}
         onClose={() => setOffen(false)}
-        title={m.sup_starten_titel()}
-        description={m.sup_starten_text()}
-      >
-        <Show when={offen()}>
-          <Formular
-            installationen={props.installationen ?? []}
-            {...(props.installationId === undefined
-              ? {}
-              : { installationId: props.installationId })}
-            onClose={() => setOffen(false)}
-            gestartet={(z) => {
-              setOffen(false);
-              props.gestartet(z);
-            }}
-          />
-        </Show>
-      </Dialog>
+        installationen={props.installationen}
+        installationId={props.installationId}
+        gestartet={(z) => {
+          setOffen(false);
+          props.gestartet(z);
+        }}
+      />
     </>
   );
 };
@@ -163,7 +178,7 @@ export const ZugangBeenden = (props: { zugang: Zugang; beendet: () => void }) =>
   const [fehler, setFehler] = createSignal("");
   const beenden = async () => {
     const antwort = await supportQuelle().beenden(props.zugang.zugangId);
-    if (!antwort.ok) return setFehler(fehlerText(antwort.fehler));
+    if (!antwort.ok) return setFehler(zugangFehlerText(antwort.fehler));
     setFehler("");
     props.beendet();
   };

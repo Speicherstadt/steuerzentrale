@@ -98,3 +98,55 @@ export const verfuegbarkeitImMonat = (
     anteil: gemessen === 0 ? null : (gemessen - rot) / gemessen,
   };
 };
+
+/** A day in Berlin, its date as written in the calendar */
+export type Tag = { jahr: number; monat: number; tag: number };
+
+export type TagesVerfuegbarkeit = Tag & {
+  /** Local midnight that begins the day, an instant */
+  von: number;
+  /** Minutes with a check */
+  gemessen: number;
+  /** Minutes with a red check */
+  rot: number;
+  /** Green of measured, 0 to 1; null without any check */
+  anteil: number | null;
+};
+
+/** From local midnight to the next: 23 hours on the day the clocks spring forward, 25 in autumn */
+export const tagesGrenzen = (t: Tag): { von: number; bis: number } => ({
+  von: instantVon(t.jahr, t.monat, t.tag, 0, 0),
+  bis: instantVon(t.jahr, t.monat, t.tag + 1, 0, 0),
+});
+
+/** The day in Berlin `n` calendar days before the one `instant` falls in */
+const tagVor = (instant: number, n: number): Tag => {
+  const o = ortszeit(instant);
+  const d = new Date(Date.UTC(o.jahr, o.monat - 1, o.tag - n));
+  return { jahr: d.getUTCFullYear(), monat: d.getUTCMonth() + 1, tag: d.getUTCDate() };
+};
+
+/**
+ * The availability per day of the `anzahl` days up to and including today in Berlin, oldest first,
+ * for the bars of the page "Messwerte" (docs/plan.md, "Verfügbarkeit"): like a month, the share of
+ * the minutes measured; as Berlin is a whole number of hours from UTC, every hourly slice lies
+ * within one day
+ */
+export const verfuegbarkeitProTag = (
+  scheiben: readonly Zeitscheibe[],
+  anzahl: number,
+  jetzt: number,
+): TagesVerfuegbarkeit[] =>
+  Array.from({ length: anzahl }, (_, n) => tagVor(jetzt, anzahl - 1 - n)).map((t) => {
+    const g = tagesGrenzen(t);
+    const drin = scheiben.filter((s) => imMonat(s.stunde, g));
+    const gemessen = drin.reduce((summe, s) => summe + s.gemessen, 0) * PRUEF_MINUTEN;
+    const rot = drin.reduce((summe, s) => summe + s.rot, 0) * PRUEF_MINUTEN;
+    return {
+      ...t,
+      von: g.von,
+      gemessen,
+      rot,
+      anteil: gemessen === 0 ? null : (gemessen - rot) / gemessen,
+    };
+  });

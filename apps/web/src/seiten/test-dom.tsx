@@ -8,6 +8,14 @@ import { routeTree } from "../routeTree.gen.ts";
  * its async data settled, and the controls of an open dialog found by their visible label.
  */
 
+// happy-dom has no Popover API, which the menu "Mehr …" opens and closes with
+HTMLElement.prototype.showPopover ??= function (this: HTMLElement) {
+  this.dataset.open = "";
+};
+HTMLElement.prototype.hidePopover ??= function (this: HTMLElement) {
+  delete this.dataset.open;
+};
+
 let dispose = () => {};
 
 /** Takes the rendered app away; for afterEach */
@@ -38,6 +46,20 @@ export const oeffne = async (pfad: string) => {
 
 export const knopf = (root: ParentNode, text: string) =>
   [...root.querySelectorAll("button")].find((b) => b.textContent?.trim() === text);
+
+/** An entry of the menu "Mehr …" of an app's page, by its text */
+export const menuePunkt = (root: ParentNode, text: string) =>
+  [...root.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(
+    (b) => b.textContent?.trim() === text,
+  );
+
+/** The tab of a page by its name, clicked, the page settled after */
+export const reiterWaehlen = async (root: ParentNode, name: string) => {
+  [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+    .find((t) => t.textContent?.trim() === name)
+    ?.click();
+  await warten();
+};
 
 export const dialog = () => {
   const d = document.querySelector<HTMLDialogElement>("dialog[open]");

@@ -3,6 +3,7 @@ import type {
   AussenStand,
   MonatsVerfuegbarkeit,
   Probe,
+  TagesVerfuegbarkeit,
 } from "@steuerzentrale/planung";
 import { m } from "@steuerzentrale/ui";
 import { type Antwort, api } from "../anmeldung/api.ts";
@@ -12,7 +13,9 @@ import { demoAussen } from "../demo/aussen.ts";
  * The check from outside and the availability of an installation (BAULISTE.md Z-704; docs/plan.md,
  * "Prüfung von außen", "Verfügbarkeit"), as the Zentrale's API answers (apps/zentrale,
  * routes/aussen.ts): the newest check with what each step answered, and the availability of the
- * current month and the twelve before, newest first. Signed in the API, else the demo in memory.
+ * current month and the twelve before, newest first; and the availability of each of its last days
+ * in Berlin, oldest first (routes/aussen.ts, `/verfuegbarkeit`), for the bars of the tab
+ * "Messwerte". Signed in the API, else the demo in memory.
  */
 
 export type AussenDerZentrale = AussenStand & { ergebnis: Probe };
@@ -24,11 +27,19 @@ export type AussenDerInstallation = {
 
 export type AussenQuelle = {
   derInstallation: (id: string) => Promise<Antwort<AussenDerInstallation>>;
+  /** The availability of each of the last `anzahl` days, today included, oldest first */
+  tage: (id: string, anzahl: number) => Promise<Antwort<TagesVerfuegbarkeit[]>>;
 };
 
 export const apiAussen: AussenQuelle = {
   derInstallation: (id) =>
     api<AussenDerInstallation>(`/api/v1/installationen/${encodeURIComponent(id)}/aussen`),
+  tage: async (id, anzahl) => {
+    const a = await api<{ tage: TagesVerfuegbarkeit[] }>(
+      `/api/v1/installationen/${encodeURIComponent(id)}/verfuegbarkeit?tage=${anzahl}`,
+    );
+    return a.ok ? { ...a, daten: a.daten.tage } : a;
+  },
 };
 
 let quelle: AussenQuelle = demoAussen();

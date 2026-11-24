@@ -31,10 +31,14 @@ export type InstallationAnsicht = {
   kundeName: string;
   /** The day the customer's contract ends, once it gave notice */
   vertragsende: number | null;
+  /** Our own customer (Z-501) */
+  kundeIntern: boolean;
   serverId: string;
   serverName: string;
   serverArt: Art | null;
   version: string;
+  /** The SHA-256 of the signed manifest it was set up with */
+  manifestHash: string;
   host: string;
   httpPort: number | null;
   ports: Record<string, number>;
@@ -62,10 +66,12 @@ export const installationAnsicht = (i: InstallationDerZentrale, n: Namen): Insta
     kundeId: i.kundeId,
     kundeName: kunde?.name ?? i.kundeId,
     vertragsende: kunde?.vertrag.ende ?? null,
+    kundeIntern: kunde?.intern ?? false,
     serverId: i.serverId,
     serverName: server?.name ?? i.serverId,
     serverArt: server ? ARTEN[server.art] : null,
     version: i.version,
+    manifestHash: i.manifestHash,
     host: i.host,
     httpPort: i.httpPort,
     ports: i.ports,
@@ -87,6 +93,10 @@ export const anzeige = (a: Pick<InstallationAnsicht, "zustand" | "health">): Anz
 
 export const titelVon = (a: Pick<InstallationAnsicht, "kundeName" | "appName">) =>
   `${a.kundeName} · ${a.appName}`;
+
+/** "App · Customer", the heading of an app's page and its place in the path */
+export const appTitelVon = (a: Pick<InstallationAnsicht, "kundeName" | "appName">) =>
+  `${a.appName} · ${a.kundeName}`;
 
 export const linuxNutzerVon = (a: Pick<InstallationAnsicht, "id">) => `sz-${a.id}`;
 

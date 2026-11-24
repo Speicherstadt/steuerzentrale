@@ -7,7 +7,9 @@ import {
   monatVon,
   type Pruefergebnis,
   scheibeFortschreiben,
+  tagesGrenzen,
   verfuegbarkeitImMonat,
+  verfuegbarkeitProTag,
 } from "./verfuegbarkeit.ts";
 import { instantVon } from "./zeit.ts";
 
@@ -196,5 +198,44 @@ describe("verfuegbarkeitImMonat", () => {
       rot: 0,
       anteil: null,
     });
+  });
+});
+
+describe("the availability per day (the bars of the page Messwerte)", () => {
+  it("lists the days up to today in Berlin, oldest first, across the end of a month", () => {
+    // 1 December 2026, 00:30 in Berlin, is still 30 November in UTC
+    const jetzt = instantVon(2026, 12, 1, 0, 30);
+    const tage = verfuegbarkeitProTag([], 3, jetzt);
+    expect(tage.map((t) => [t.jahr, t.monat, t.tag])).toEqual([
+      [2026, 11, 29],
+      [2026, 11, 30],
+      [2026, 12, 1],
+    ]);
+    expect(tage.every((t) => t.anteil === null && t.gemessen === 0)).toBe(true);
+    expect(tage[2]?.von).toBe(Date.UTC(2026, 10, 30, 23));
+  });
+
+  it("has 23 hours on the day the clocks go forward and 25 on the day they go back", () => {
+    const laenge = (tag: number, monat: number) => {
+      const g = tagesGrenzen({ jahr: 2026, monat, tag });
+      return (g.bis - g.von) / (60 * MIN);
+    };
+    expect(laenge(29, 3)).toBe(23);
+    expect(laenge(25, 10)).toBe(25);
+    expect(laenge(24, 11)).toBe(24);
+  });
+
+  it("counts each day's checks into its own day, the red ones apart", () => {
+    // the whole of 25 October (25 hours) checked, an outage of 38 minutes at 10:00 local time
+    const g = tagesGrenzen({ jahr: 2026, monat: 10, tag: 25 });
+    const ausfall: [number, number] = [
+      instantVon(2026, 10, 25, 10, 0),
+      instantVon(2026, 10, 25, 10, 38),
+    ];
+    const scheiben = inScheiben(reihe(g.von, g.bis + 60 * MIN, [ausfall]));
+    const [tag, folgetag] = verfuegbarkeitProTag(scheiben, 2, instantVon(2026, 10, 26, 12, 0));
+    expect(tag).toMatchObject({ tag: 25, gemessen: 1500, rot: 38 });
+    expect(tag?.anteil).toBe((1500 - 38) / 1500);
+    expect(folgetag).toMatchObject({ tag: 26, gemessen: 60, rot: 0, anteil: 1 });
   });
 });

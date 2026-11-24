@@ -20,7 +20,7 @@ test.describe("a support access", { tag: "@phone" }, () => {
     const grund = `Anfrage aus dem Portal (${info.project.name}): Anmeldung langsam`;
     const i = await installationAnlegen(page.request, neuerHost("support"));
     try {
-      await page.goto(`/apps/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}?tab=technik`);
       await expect(page.getByText("Support erreicht Log-Auszug und Neustart nur")).toBeVisible();
       await page.getByRole("button", { name: "Zugang starten" }).click();
       const starten = page.getByRole("dialog", { name: "Support-Zugang starten" });
@@ -38,14 +38,14 @@ test.describe("a support access", { tag: "@phone" }, () => {
       expect(zugaenge).toEqual([expect.objectContaining({ grund, aktiv: true })]);
       expect((zugaenge[0]?.ende ?? 0) - (zugaenge[0]?.beginn ?? 0)).toBe(2 * 3_600_000);
 
-      await page.getByRole("tab", { name: "Ereignisse" }).click();
+      await page.getByRole("tab", { name: "Verlauf" }).click();
       await expect(page.getByText(`„${grund}“`).first()).toBeVisible();
 
       await page.goto("/support");
       await expect(page.getByText(grund)).toBeVisible();
       await ohneBefund(page);
 
-      await page.goto(`/apps/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}?tab=technik`);
       await page.getByRole("button", { name: "Zugang beenden" }).click();
       await expect(page.getByRole("button", { name: "Zugang starten" })).toBeVisible();
       const danach = (await (

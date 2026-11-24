@@ -9,7 +9,7 @@ import { For } from "solid-js";
  */
 
 export type ReiterLink = {
-  pfad: "/apps" | "/backups" | "/kunden" | "/support" | "/leistungen";
+  pfad: "/kunden" | "/support" | "/leistungen";
   name: string;
 };
 
@@ -40,17 +40,6 @@ export const KundenReiter = () => (
       { pfad: "/kunden", name: m.nav_kunden() },
       { pfad: "/support", name: m.nav_support() },
       { pfad: "/leistungen", name: m.nav_leistungen() },
-    ]}
-  />
-);
-
-/** Apps with the backups, until stage 2 moves the backups into the app's page */
-export const AppsReiter = () => (
-  <ReiterLinks
-    label={m.apps_reiter()}
-    links={[
-      { pfad: "/apps", name: m.nav_apps() },
-      { pfad: "/backups", name: m.nav_backups() },
     ]}
   />
 );

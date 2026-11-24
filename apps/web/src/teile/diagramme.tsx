@@ -46,6 +46,92 @@ export const Anteile = (props: { teile: { name: string; anzahl: number; ton: Ton
   );
 };
 
+const BALKEN: Record<Ton, string> = {
+  ok: "bg-ok",
+  warn: "bg-warn",
+  danger: "bg-danger",
+  leer: "bg-border",
+};
+
+/** One bar per day, coloured by its tone; `name` names the day and its value in a tooltip */
+export const Tagesbalken = (props: { tage: { name: string; ton: Ton }[] }) => (
+  <div aria-hidden="true" class="flex h-9 w-full items-stretch gap-[2px]" data-testid="tagesbalken">
+    <For each={props.tage}>
+      {(t) => (
+        <span
+          title={t.name}
+          data-ton={t.ton}
+          class={["min-w-[2px] flex-1 rounded-[2px]", BALKEN[t.ton]]}
+        />
+      )}
+    </For>
+  </div>
+);
+
+const B = 520;
+const H = 110;
+
+/**
+ * A line over time from `von` to `bis` (the mockup's charts): `punkte` at their instant, the scale
+ * from 0 (the bottom line) to `max` (the top line), three lines between; each point also as a dot,
+ * drawn outside the stretched SVG so it stays round
+ */
+export const Linie = (props: {
+  punkte: { zeitpunkt: number; wert: number }[];
+  von: number;
+  bis: number;
+  max: number;
+}) => {
+  const xy = () =>
+    props.punkte.map((p) => ({
+      x: ((p.zeitpunkt - props.von) / Math.max(1, props.bis - props.von)) * B,
+      y: H - (p.wert / Math.max(1, props.max)) * H,
+    }));
+  return (
+    <div class="relative">
+      <svg
+        aria-hidden="true"
+        viewBox={`0 0 ${B} ${H}`}
+        preserveAspectRatio="none"
+        class="block h-[110px] w-full text-foreground"
+        data-testid="linie"
+      >
+        <For each={[0, 0.25, 0.5, 0.75, 1]}>
+          {(f) => (
+            <line
+              x1="0"
+              x2={B}
+              y1={Math.min(H - 0.5, Math.max(0.5, H * f))}
+              y2={Math.min(H - 0.5, Math.max(0.5, H * f))}
+              stroke="var(--border)"
+              stroke-width="1"
+              vector-effect="non-scaling-stroke"
+            />
+          )}
+        </For>
+        <polyline
+          points={xy()
+            .map((p) => `${p.x},${p.y}`)
+            .join(" ")}
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          vector-effect="non-scaling-stroke"
+        />
+      </svg>
+      <For each={xy()}>
+        {(p) => (
+          <span
+            aria-hidden="true"
+            class="absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground"
+            style={{ left: `${(p.x / B) * 100}%`, top: `${(p.y / H) * 100}%` }}
+          />
+        )}
+      </For>
+    </div>
+  );
+};
+
 const R = 13;
 const UMFANG = 2 * Math.PI * R;
 

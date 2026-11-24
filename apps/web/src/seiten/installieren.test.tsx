@@ -86,8 +86,9 @@ describe("the dialog Installieren", () => {
     dialog().querySelector("form")?.requestSubmit();
     await warten();
     expect(document.querySelector("dialog[open]")).toBeNull();
-    const zeile = [...root.querySelectorAll("tbody tr")].find((tr) =>
-      tr.textContent?.includes("probe.atelier-nord.example"),
+    // the new app stands with its customer, on its way, among those not needing anyone
+    const zeile = [...root.querySelectorAll("tbody tr")].find(
+      (tr) => tr.textContent?.includes("probe") && tr.textContent?.includes("Atelier Nord"),
     );
     expect(zeile?.textContent).toContain("wird eingerichtet");
   });
@@ -164,7 +165,7 @@ describe("the dialog Installieren", () => {
 
 describe("a failed setup", () => {
   it("is removed with a reason, and the removal job shows", async () => {
-    const { root } = await oeffne(`/apps/${GESCHEITERT}`);
+    const { root } = await oeffne(`/apps/${GESCHEITERT}?tab=technik`);
     expect(root.textContent).toContain("Einrichtung gescheitert");
     expect(root.textContent).toContain("Fehler: image ziehen");
     knopf(root, "Entfernen …")?.click();
@@ -274,9 +275,9 @@ describe("with the Zentrale's API", () => {
     expect(zeilen[0]?.textContent).toContain("–");
   });
 
-  it("shows an installation with its place, values and jobs", async () => {
-    const { root } = await oeffne("/apps/probe-abc123");
-    expect(root.querySelector("main h1")?.textContent).toBe("Atelier Nord · probe");
+  it("shows an installation with its place, values and jobs (tab Technik)", async () => {
+    const { root } = await oeffne("/apps/probe-abc123?tab=technik");
+    expect(root.querySelector("main h1")?.textContent).toBe("probe · Atelier Nord");
     expect(root.textContent).toContain("sz-probe-abc123");
     expect(root.textContent).toContain("127.0.0.1:20001");
     expect(root.textContent).toContain("app:9000 → 20002");
@@ -286,11 +287,13 @@ describe("with the Zentrale's API", () => {
   });
 
   it("shows no state before the agent reported, and no history", async () => {
-    const { root } = await oeffne("/apps/probe-abc123");
+    const { root } = await oeffne("/apps/probe-abc123?tab=technik");
     expect(root.querySelector("[data-testid=health]")?.textContent).toContain(
       "Noch keine Meldung des Agenten",
     );
-    expect(root.textContent).toContain("Noch kein Wechsel.");
+    aufraeumen();
+    const verlauf = await oeffne("/apps/probe-abc123?tab=verlauf");
+    expect(verlauf.root.textContent).toContain("Noch kein Wechsel.");
   });
 
   it("lists a running installation with its state and reason (Z-403)", async () => {
@@ -299,20 +302,21 @@ describe("with the Zentrale's API", () => {
     const zeile = [...root.querySelectorAll("tbody tr")].find((tr) =>
       tr.querySelector("a[href^='/apps/']"),
     );
-    expect(zeile?.textContent).toContain("Rot");
-    expect(zeile?.textContent).toContain("Health: HTTP 503");
+    expect(zeile?.textContent).toContain("Störung: Health: HTTP 503");
   });
 
   it("shows the state with reason, since, units and the history (Z-403)", async () => {
     antworten(rot);
-    const { root } = await oeffne("/apps/probe-abc123");
+    const { root } = await oeffne("/apps/probe-abc123?tab=technik");
     const health = root.querySelector("[data-testid=health]")?.textContent ?? "";
     expect(health).toContain("Health: HTTP 503 · seit");
     expect(health).toContain("Rot");
     expect(root.textContent).toMatch(/zuletzt gemeldet vor \d+ s/);
     expect(root.textContent).toContain("probe-app.service");
     expect(root.textContent).toContain("systemd: failed");
-    const eintraege = [...root.querySelectorAll("[data-testid=verlauf] li")].map(
+    aufraeumen();
+    const verlauf = (await oeffne("/apps/probe-abc123?tab=verlauf")).root;
+    const eintraege = [...verlauf.querySelectorAll("[data-testid=verlauf] li")].map(
       (li) => li.textContent,
     );
     expect(eintraege).toHaveLength(2);

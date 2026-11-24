@@ -49,7 +49,7 @@ const ALLE = [
   ["/server", "Server"],
   ["/server/holm", "Schreinerei Holm"],
   ["/apps", "Apps"],
-  ["/apps/kraft-stellwerk", "Ingenieurbüro Kraft · Stellwerk"],
+  ["/apps/kraft-stellwerk", "Stellwerk · Ingenieurbüro Kraft"],
   ["/updates", "Updates"],
   ["/backups", "Backups"],
   ["/kunden", "Kunden"],
@@ -141,7 +141,7 @@ describe("pages", () => {
     const root = await oeffne("/apps/lind-haben");
     const aktiv = root.querySelector('nav[aria-label="Bereiche"] a[aria-current="page"]');
     expect(aktiv?.textContent).toContain("Apps");
-    expect(ueberschrift(root)).toBe("Studio Lind · Haben");
+    expect(ueberschrift(root)).toBe("Haben · Studio Lind");
   });
 
   it("claim no check as OK on a server whose agent is silent", async () => {

@@ -64,9 +64,15 @@ const laeufeVon = (i: Installation): BackupLauf[] =>
       zeitpunkt: s.zeitpunkt,
       ok,
       grund: ok ? null : (i.grund ?? "restic exit 1"),
-      teile: (BACKUP_TEILE[i.app] ?? []).map((t) =>
+      teile: (BACKUP_TEILE[i.app] ?? []).map((t, _, alle) =>
         ok
-          ? { tag: tagVon(i.app, t), ok, snapshot: snapshot(`${i.id}:${t.name}:${s.zeitpunkt}`) }
+          ? {
+              tag: tagVon(i.app, t),
+              ok,
+              snapshot: snapshot(`${i.id}:${t.name}:${s.zeitpunkt}`),
+              // the snapshot's size shared by its parts, as restic's total_bytes_processed
+              bytes: Math.round(((s.gb ?? 0) * 1024 ** 3) / alle.length),
+            }
           : { tag: tagVon(i.app, t), ok, fehler: i.grund ?? "restic exit 1" },
       ),
     };

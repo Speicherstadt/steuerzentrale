@@ -26,7 +26,7 @@ test.describe("the check from outside", { tag: "@phone" }, () => {
       expect(daten.aussen).toBeNull();
       expect(daten.verfuegbarkeit).toHaveLength(13);
 
-      await page.goto(`/apps/${i.installationId}`);
+      await page.goto(`/apps/${i.installationId}?tab=technik`);
       // the innermost section with the card's heading: the card itself
       const karte = page
         .locator("section", {
@@ -36,6 +36,20 @@ test.describe("the check from outside", { tag: "@phone" }, () => {
       await expect(karte).toContainText("noch nicht von außen geprüft");
       await expect(karte).toContainText(i.host);
       await expect(karte).toContainText("Noch keine Prüfung von außen.");
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+      // the bars of the tab Messwerte: 90 days, none measured yet, so every one grey
+      const tage = await page.request.get(
+        `/api/v1/installationen/${i.installationId}/verfuegbarkeit`,
+      );
+      expect(((await tage.json()) as { tage: unknown[] }).tage).toHaveLength(90);
+      await page.getByRole("tab", { name: "Messwerte" }).click();
+      const balken = page.getByTestId("tagesbalken").locator("span");
+      await expect(balken).toHaveCount(90);
+      await expect(page.getByTestId("tagesbalken").locator('span[data-ton="leer"]')).toHaveCount(
+        90,
+      );
+      await expect(page.getByTestId("mess-hinweis")).toBeVisible();
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     } finally {
       i.agent.trennen();

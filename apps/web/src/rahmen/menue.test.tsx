@@ -92,11 +92,11 @@ describe("pages without an entry", () => {
     expect(ueberschrift(root)).toBe("Support-Zugänge");
   });
 
-  it("are a tab of Apps: the backups", async () => {
-    const { root } = await oeffne("/apps");
-    const nav = root.querySelector('main nav[aria-label="Apps und Backups"]');
-    expect(nav?.querySelector('a[href="/backups"]')?.textContent).toBe("Backups");
-    expect(nav?.querySelector('[aria-current="page"]')?.textContent).toBe("Apps");
+  it("reach the backups of every app from an app's tab Backups", async () => {
+    const { root } = await oeffne("/apps/lind-haben?tab=backups");
+    await warten();
+    expect(root.querySelector('main a[href="/backups"]')?.textContent).toBe("Alle Backups");
+    expect(root.querySelector('main nav[aria-label="Apps und Backups"]')).toBeNull();
   });
 });
 
