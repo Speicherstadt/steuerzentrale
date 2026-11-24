@@ -54,7 +54,7 @@ describe("the operator's values per app", () => {
   it("are a form from the schema, a secret only as set, saved with a reason", async () => {
     const { root } = await oeffne("/einstellungen");
     const haben = karte(root, "Haben");
-    expect(feld<HTMLInputElement>("ELSTER_HERSTELLER_ID", haben).value).toBe("12345");
+    expect(feld<HTMLInputElement>("ELSTER_HERSTELLER_ID", haben).value).toBe("74931");
     const schluessel = feld<HTMLInputElement>("ANTHROPIC_API_KEY", haben);
     expect(schluessel.type).toBe("password");
     expect(schluessel.value).toBe("");
@@ -87,7 +87,7 @@ describe("the operator's values per app", () => {
     const { root } = await oeffne("/einstellungen");
     const haben = karte(root, "Haben");
     expect(haben.querySelector("form")).toBeNull();
-    expect(haben.textContent).toContain("12345");
+    expect(haben.textContent).toContain("74931");
   });
 });
 
@@ -131,11 +131,11 @@ describe("the DNS settings", () => {
 
 describe("changing an installation's settings", () => {
   it("sends the job to configure it anew with a reason", async () => {
-    const { root } = await oeffne("/installationen/atelier-haben");
+    const { root } = await oeffne("/installationen/atelier-schreibzeug");
     knopf(root, "Einstellungen ändern")?.click();
     await warten();
-    expect(feld<HTMLInputElement>("LAYOUTS_MAX_COUNT").value).toBe("20");
-    eintragen("LAYOUTS_MAX_COUNT", "30");
+    expect(feld<HTMLInputElement>("SCHREIBZEUG_OPEN_SIGNUP").value).toBe("false");
+    eintragen("SCHREIBZEUG_OPEN_SIGNUP", "true");
     eintragen("Grund", "Wunsch des Kunden");
     flush();
     dialog().querySelector("form")?.requestSubmit();

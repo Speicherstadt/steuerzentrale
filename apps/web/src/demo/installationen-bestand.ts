@@ -95,7 +95,7 @@ const gescheitert = (jetzt: number): Eintrag => {
       kundeId: "aust",
       serverId: "shared-2",
       app: "belegt",
-      version: "0.10.0",
+      version: "0.0.7",
       manifestHash: "0".repeat(64),
       host: "belegt.aust.beispiel-hosting.de",
       httpPort: PORT + installationen.length,

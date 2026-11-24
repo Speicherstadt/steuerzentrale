@@ -20,7 +20,7 @@ describe("installation filters", () => {
   it("filter by state, cancelled installations apart, a failed setup as red", () => {
     expect(ids("rot")).toEqual(["berger-schreibzeug", GESCHEITERT]);
     expect(ids("gelb")).toEqual(["lind-haben"]);
-    expect(ids("unbekannt")).toEqual(["kraft-fixpunkt"]);
+    expect(ids("unbekannt")).toEqual(["kraft-stellwerk"]);
     expect(ids("gekuendigt")).toEqual(["sonne-haben"]);
     expect(ids("alle")).toHaveLength(demo.installationen.length + 1);
   });

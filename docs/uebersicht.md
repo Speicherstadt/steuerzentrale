@@ -106,7 +106,8 @@ mit welchem Punkt sie kommen:
 | Einstellungen → DNS | Z-407 |
 | Auslastung eines Servers (CPU, RAM), Pakete mit Namen; das Betriebssystem steht seit Z-701 in der Karte „Wartung“ | noch ohne Punkt |
 
-Die Beschreibungen der acht Apps (Seite „Apps“, Sperrzeiten in der Seitenleiste) stammen aus
-`manifeste/`, bis die Zentrale Manifeste importiert (Z-501). Unter Einstellungen → Konten stehen die
+Name, Symbol und Kurztext der Apps (Seite „Apps“) stehen in `apps/web/src/demo/apps.ts`; alles
+Technische (Version, Container, Ports, Health, Backup, Sperrzeiten, Einstellungen) liest die Demo aus
+den echten Manifesten in `manifeste/`. Die Demo zeigt nur Apps mit einem veröffentlichten Release. Unter Einstellungen → Konten stehen die
 Mitglieder des Betreibers mit Rolle, die Seitenleiste nennt Betreiber und eigenes Konto aus
 `GET /api/v1/ich`.

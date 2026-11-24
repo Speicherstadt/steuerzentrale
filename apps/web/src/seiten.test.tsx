@@ -49,7 +49,7 @@ const ALLE = [
   ["/server", "Server"],
   ["/server/holm", "Schreinerei Holm"],
   ["/installationen", "Installationen"],
-  ["/installationen/kraft-fixpunkt", "Ingenieurbüro Kraft · Fixpunkt"],
+  ["/installationen/kraft-stellwerk", "Ingenieurbüro Kraft · Stellwerk"],
   ["/updates", "Updates"],
   ["/backups", "Backups"],
   ["/auftraege", "Aufträge"],
@@ -113,7 +113,7 @@ describe("pages", () => {
     expect(eintrag?.getAttribute("href")).toBe("/server/lind");
   });
 
-  it("show all eight apps on the apps page, and an app only imported (Z-501)", async () => {
+  it("show the apps with a released manifest on the apps page, and an app only imported (Z-501)", async () => {
     const root = await oeffne("/apps");
     const namen = [...root.querySelectorAll("main section h2")].map((h) => h.textContent);
     expect(namen).toEqual([
@@ -122,12 +122,10 @@ describe("pages", () => {
       "Kontext",
       "Schreibzeug",
       "Stellwerk",
-      "Fixpunkt",
       "Kennwort",
-      "Soll",
       "probe",
     ]);
-    expect(root.textContent).toContain("Haben#947");
+    expect(root.textContent).toContain("Haben#945–#948");
   });
 
   it("name the object of a detail page in the path", async () => {

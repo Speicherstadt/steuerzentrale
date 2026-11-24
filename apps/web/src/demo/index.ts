@@ -7,7 +7,7 @@ import { audit, auftraege, ereignisse, konten, zugaenge } from "./vorgaenge.ts";
 import { berlin, JETZT } from "./zeit.ts";
 
 /**
- * The demo operator "Beispiel-Hosting" with the eight apps of the Speicherstadt. `bun run dev:demo`,
+ * The demo operator "Beispiel-Hosting" with the apps of the Speicherstadt that have a released manifest in manifeste/. `bun run dev:demo`,
  * the e2e tests and the screenshots show these fixtures; one operator, as in stage 1.
  */
 export const demo: Bestand = {
@@ -15,7 +15,7 @@ export const demo: Bestand = {
   betreiber: {
     name: "Beispiel-Hosting",
     domain: "beispiel-hosting.de",
-    werte: { ELSTER_HERSTELLER_ID: "12345", BELEGT_TRUSTED_PROXIES: "127.0.0.1" },
+    werte: { ELSTER_HERSTELLER_ID: "74931" },
     geheimGesetzt: ["ANTHROPIC_API_KEY"],
     s3: "s3.example.net/sz-beispiel-hosting",
   },
@@ -30,7 +30,7 @@ export const demo: Bestand = {
   audit,
   konten,
   plaene: [
-    { app: "belegt", version: "0.10.0", vorher: "0.9.0", seit: berlin("2026-11-18", "08:00") },
+    { app: "belegt", version: "0.0.7", vorher: "0.0.6", seit: berlin("2026-11-18", "08:00") },
   ],
   agentVersion: "0.5.0",
 };

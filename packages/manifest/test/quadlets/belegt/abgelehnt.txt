@@ -1,2 +1,0 @@
-container.0.image: app has no published image (Kein Release: weder ghcr.io/speicherstadt/belegt noch docker.io/tristanteu/belegt ist abrufbar (scripts/digest.ts, 2026-11-20)); an app without an image cannot be installed
-container.1.image: worker has no published image (Kein Release: weder ghcr.io/speicherstadt/belegt noch docker.io/tristanteu/belegt ist abrufbar (scripts/digest.ts, 2026-11-20)); an app without an image cannot be installed

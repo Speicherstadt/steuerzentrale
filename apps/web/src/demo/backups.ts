@@ -11,6 +11,7 @@ import type {
 } from "../daten/backups.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { demo } from "./index.ts";
+import { MANIFESTE } from "./manifeste.ts";
 
 /*
  * The backups of the demo operator in memory, answering as the Zentrale's API does
@@ -24,27 +25,18 @@ import { demo } from "./index.ts";
  */
 
 /** What each app's manifest backs up (manifeste/<app>/<version>/manifest.yml, `backup`) */
-export const BACKUP_TEILE: Readonly<Record<string, BackupTeil[]>> = {
-  haben: [
-    { art: "pg_dump", name: "db" },
-    { art: "volume", name: "belege" },
-  ],
-  belegt: [
-    { art: "pg_dump", name: "db" },
-    { art: "volume", name: "daten" },
-  ],
-  kontext: [
-    { art: "volume", name: "stalwart-data" },
-    { art: "volume", name: "stalwart-config" },
-    { art: "volume", name: "kontext-data" },
-    { art: "volume", name: "schreibzeug-data" },
-  ],
-  schreibzeug: [{ art: "volume", name: "daten" }],
-  stellwerk: [{ art: "volume", name: "daten" }],
-  fixpunkt: [{ art: "volume", name: "daten" }],
-  kennwort: [{ art: "volume", name: "daten" }],
-  soll: [{ art: "volume", name: "daten" }],
-};
+export const BACKUP_TEILE: Readonly<Record<string, BackupTeil[]>> = Object.fromEntries(
+  [...MANIFESTE].map(([app, liste]) => [
+    app,
+    (liste[0]?.manifest.backup ?? []).flatMap((t): BackupTeil[] =>
+      t.art === "pg_dump"
+        ? [{ art: "pg_dump", name: t.container }]
+        : t.art === "volume"
+          ? [{ art: "volume", name: t.volume }]
+          : [],
+    ),
+  ]),
+);
 
 /** Eight hex digits of FNV-1a, the same for the same text */
 const fnv = (text: string): string => {

@@ -42,7 +42,7 @@ describe("an update by hand", () => {
     expect(dialog().querySelector("[role=note]")?.textContent).toContain(
       "Vorher wird der Ist-Zustand gesichert",
     );
-    expect(feld<HTMLSelectElement>("Version").value).toBe("0.10.0");
+    expect(feld<HTMLSelectElement>("Version").value).toBe("0.0.7");
     eintragen("Grund", "Fehlerbehebung laut Hersteller");
     flush();
     dialog().querySelector("form")?.requestSubmit();
@@ -50,7 +50,7 @@ describe("an update by hand", () => {
     expect(document.querySelector("dialog[open]")).toBeNull();
     expect(root.querySelector("[role=status]")?.textContent).toContain("Update angefordert");
     const danach = zeile(root, "atelier-belegt");
-    expect(danach?.textContent).toContain("läuft: Backup vor 0.10.0");
+    expect(danach?.textContent).toContain("läuft: Backup vor 0.0.7");
     expect(knopf(danach as HTMLElement, "Update")).toBeUndefined();
   });
 

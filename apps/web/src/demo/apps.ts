@@ -1,325 +1,147 @@
-import type { Manifest, Variable } from "../daten/typen.ts";
+import type { Manifest as Echt } from "@steuerzentrale/manifest";
+import type { Manifest, OptionaleAktion, Variable } from "../daten/typen.ts";
+import { neuestes } from "./manifeste.ts";
 
 /*
- * The eight apps of the Speicherstadt as their manifests describe them: values from the table "Die Apps
- * der Speicherstadt" in docs/plan.md and from design/mockup/. Demo data, not the manifests of Z-203.
+ * The apps of the demo: everything technical comes from the newest released manifest in
+ * manifeste/ (src/demo/manifeste.ts), so the demo shows each app as a Zentrale with these manifests
+ * would. Only what a manifest does not say stands here: name, icon, a short description, and what
+ * runs at the customer. An app without a released manifest (Soll, Fixpunkt) is not in the demo.
  */
 
-const issue = (nr: number) => ({
-  name: `Haben#${nr}`,
-  url: `https://github.com/Speicherstadt/haben/issues/${nr}`,
+type Darstellung = Pick<Manifest, "name" | "icon" | "beschreibung" | "stand" | "beimKunden"> & {
+  /** A newer tag the registry has, without an imported manifest (Z-501), as on 2026-11-24 */
+  ohneManifest?: string;
+};
+
+const DARSTELLUNG: Record<string, Darstellung> = {
+  haben: {
+    name: "Haben",
+    icon: "book-open-check",
+    beschreibung: "Buchhaltung für Selbständige",
+    stand: "stabil",
+    beimKunden: "",
+    ohneManifest: "0.13.0",
+  },
+  belegt: {
+    name: "Belegt",
+    icon: "archive",
+    beschreibung: "Belege, GoBD-Archiv",
+    stand: "stabil",
+    beimKunden: "",
+  },
+  kontext: {
+    name: "Kontext",
+    icon: "messages-square",
+    beschreibung: "Mail, Kalender, Kontakte, Anrufe",
+    stand: "stabil",
+    beimKunden: "Kontext-Box (Telefon)",
+    ohneManifest: "0.1.40",
+  },
+  schreibzeug: {
+    name: "Schreibzeug",
+    icon: "pen-line",
+    beschreibung: "Dokumente, gemeinsam schreiben",
+    stand: "stabil",
+    beimKunden: "Desktop-App",
+  },
+  stellwerk: {
+    name: "Stellwerk",
+    icon: "folder-sync",
+    beschreibung: "Dateien synchronisieren",
+    stand: "stabil",
+    beimKunden: "Agenten auf Rechnern",
+  },
+  kennwort: {
+    name: "Kennwort",
+    icon: "key-round",
+    beschreibung: "Passwörter im Team",
+    stand: "stabil",
+    beimKunden: "Browser-Erweiterung, Desktop-App",
+  },
+};
+
+const port = (p: Echt["netz"]["ports"][number]) =>
+  `${p.port}${p.bis ? `-${p.bis}` : ""}${p.proto === "udp" ? "/udp" : ""}`;
+
+const health = (h: Echt["health"]): Manifest["health"] => {
+  if (h.art === "http") return { pfad: h.pfad };
+  if (h.art === "keine") return { keine: h.hinweis };
+  return { keine: h.art === "tcp" ? `TCP-Port ${h.port}` : `Befehl ${h.befehl}` };
+};
+
+const backup = (teile: Echt["backup"]): string =>
+  teile
+    .map((t) =>
+      t.art === "pg_dump" ? "pg_dump" : t.art === "volume" ? "Volume" : `Befehl (${t.befehl})`,
+    )
+    .filter((x, n, alle) => alle.indexOf(x) === n)
+    .join(" + ") || "keins";
+
+/** "07-12" → days 7 to 12 of every month */
+const sperrzeit = (s: Echt["sperrzeiten"][number]) => {
+  const [von, bis] = s.monatlich.split("-").map(Number);
+  return { von: von ?? 1, bis: bis ?? 1, grund: s.grund };
+};
+
+const nichtUnterstuetzt = (m: Echt): Manifest["nichtUnterstuetzt"] =>
+  (["nur_lesen", "export"] as const satisfies OptionaleAktion[]).flatMap((aktion) => {
+    const a = m.aktionen[aktion];
+    if (typeof a === "object" && "befehl" in a) return [];
+    if (typeof a === "object")
+      return [{ aktion, issue: { name: a.nicht_unterstuetzt, url: `${m.quelle}/issues` } }];
+    return [{ aktion }];
+  });
+
+/** How the Zentrale fills a value it sets itself, in a few words */
+const woher = (e: Echt["env"][number]): string => {
+  if (e.aus === "adresse") return "aus der Adresse";
+  if (e.aus === "oidc-anbieter") return "vom Anmeldedienst des Kunden";
+  if (e.erzeugen) return "zufällig";
+  if (e.vorlage) return "aus anderen Werten";
+  return "";
+};
+
+const variable = (e: Echt["env"][number]): Variable => ({
+  name: e.name,
+  ebene: e.ebene,
+  hinweis: e.beschreibung ?? woher(e),
+  ...(e.pflicht ? { pflicht: true } : {}),
+  ...(e.typ === "geheim" ? { geheim: true } : {}),
+  ...(e.vorgabe === undefined ? {} : { vorgabe: String(e.vorgabe) }),
 });
 
-const auto = (name: string, hinweis: string): Variable => ({ name, ebene: "auto", hinweis });
-const oidcSecret = auto("OIDC_CLIENT_SECRET", "vom Anmeldedienst des Kunden");
-const beides = ["amd64", "arm64"];
-const ohneAktionen = [{ aktion: "nur_lesen" as const }, { aktion: "export" as const }];
-
-const haben: Manifest = {
-  id: "haben",
-  name: "Haben",
-  icon: "book-open-check",
-  beschreibung: "Buchhaltung für Selbständige",
-  stand: "stabil",
-  version: "1.9.0",
-  container: ["app", "db"],
-  architektur: beides,
-  ramMb: 2048,
-  platteGb: 10,
-  ports: [],
-  ipv4: false,
-  serverFuerSich: false,
-  anmeldung: "oidc",
-  braucht: [],
-  optionen: [],
-  health: { keine: "Haben#946" },
-  backup: "pg_dump + Volume",
-  sperrzeiten: [{ von: 7, bis: 12, grund: "Umsatzsteuer-Voranmeldung, § 108 Abs. 3 AO" }],
-  beimKunden: "",
-  quelle: "deploy/quadlet/ in Speicherstadt/haben",
-  nichtUnterstuetzt: [
-    { aktion: "nur_lesen", issue: issue(947) },
-    { aktion: "export", issue: issue(948) },
-  ],
-  variablen: [
-    {
-      name: "ELSTER_HERSTELLER_ID",
-      ebene: "betreiber",
-      hinweis: "Fünf Ziffern; ohne sie nur Testübermittlung",
-      pflicht: true,
-    },
-    {
-      name: "ANTHROPIC_API_KEY",
-      ebene: "betreiber",
-      hinweis: "Optional: KI-Auslesung von Belegen",
-      geheim: true,
-    },
-    {
-      name: "LAYOUTS_MAX_COUNT",
-      ebene: "installation",
-      hinweis: "Höchstzahl eigener Belegvorlagen",
-      vorgabe: "20",
-    },
-    auto("BETTER_AUTH_URL", "aus der Adresse"),
-    auto("BETTER_AUTH_SECRET", "zufällig, 32 Byte"),
-    auto("HABEN_ENCRYPTION_KEY", "zufällig, 32 Byte"),
-    oidcSecret,
-  ],
-};
-
-const belegt: Manifest = {
-  id: "belegt",
-  name: "Belegt",
-  icon: "archive",
-  beschreibung: "Belege, GoBD-Archiv",
-  stand: "stabil",
-  version: "0.10.0",
-  container: ["app", "worker", "db"],
-  architektur: beides,
-  ramMb: 2048,
-  platteGb: 20,
-  ports: [],
-  ipv4: false,
-  serverFuerSich: false,
-  anmeldung: "oidc",
-  braucht: [],
-  optionen: [
-    { id: "journal", name: "Journal" },
-    { id: "ftp", name: "FTP-Eingang" },
-    { id: "ki", name: "KI-Auslesung" },
-    { id: "vorschau", name: "Vorschaubilder" },
-  ],
-  health: { pfad: "/healthz" },
-  backup: "restic",
-  sperrzeiten: [],
-  beimKunden: "",
-  quelle: "deploy/compose.yml in Speicherstadt/belegt",
-  nichtUnterstuetzt: ohneAktionen,
-  variablen: [
-    { name: "BELEGT_TRUSTED_PROXIES", ebene: "betreiber", hinweis: "Adresse der Pforte" },
-    {
-      name: "BELEGT_EMBED_ORIGIN",
-      ebene: "installation",
-      hinweis: "Optional: Seite, die Belegt einbetten darf",
-    },
-    auto("BELEGT_URL", "aus der Adresse"),
-    auto("BELEGT_SCHLUESSEL", "zufällig, 32 Byte"),
-    oidcSecret,
-  ],
-};
-
-const kontext: Manifest = {
-  id: "kontext",
-  name: "Kontext",
-  icon: "messages-square",
-  beschreibung: "Mail, Kalender, Kontakte, Anrufe",
-  stand: "stabil",
-  version: "1.0.0",
-  ohneManifest: "1.0.1",
-  container: ["kontext", "stalwart", "redis", "livekit", "caddy"],
-  architektur: beides,
-  ramMb: 4096,
-  platteGb: 40,
-  ports: ["25", "465", "587", "993", "7881", "7882/udp", "5060", "20000-20100/udp"],
-  ipv4: true,
-  serverFuerSich: true,
-  anmeldung: "anbieter",
-  braucht: [],
-  optionen: [
-    { id: "calls", name: "Anrufe (LiveKit, SIP)" },
-    { id: "documents", name: "Dokumente (Schreibzeug)" },
-  ],
-  health: { pfad: "/healthz" },
-  backup: "Befehl (backup.sh)",
-  sperrzeiten: [],
-  beimKunden: "Kontext-Box (Telefon)",
-  quelle: "deploy/quadlet/ in Speicherstadt/kontext",
-  nichtUnterstuetzt: ohneAktionen,
-  variablen: [
-    {
-      name: "KONTEXT_DOMAIN",
-      ebene: "installation",
-      hinweis: "Mail-Domain des Kunden",
-      pflicht: true,
-    },
-    auto("STALWART_ADMIN_KEY", "zufällig"),
-    auto("STALWART_BLOB_KEY", "zufällig; nie ändern"),
-    auto("LIVEKIT_API_SECRET", "zufällig, nur mit Anrufen"),
-  ],
-};
-
-const schreibzeug: Manifest = {
-  id: "schreibzeug",
-  name: "Schreibzeug",
-  icon: "pen-line",
-  beschreibung: "Dokumente, gemeinsam schreiben",
-  stand: "stabil",
-  version: "0.6.0",
-  container: ["app"],
-  architektur: ["amd64"],
-  ramMb: 1024,
-  platteGb: 5,
-  ports: [],
-  ipv4: false,
-  serverFuerSich: false,
-  anmeldung: "oidc",
-  braucht: [],
-  optionen: [],
-  health: { pfad: "/api/health" },
-  backup: "Volume",
-  sperrzeiten: [],
-  beimKunden: "Desktop-App",
-  quelle: "deploy/compose.yaml in Speicherstadt/schreibzeug",
-  nichtUnterstuetzt: ohneAktionen,
-  variablen: [
-    {
-      name: "SCHREIBZEUG_OPEN_SIGNUP",
-      ebene: "installation",
-      hinweis: "Selbst registrieren erlauben",
-      vorgabe: "false",
-    },
-    auto("SCHREIBZEUG_URL", "aus der Adresse"),
-    oidcSecret,
-  ],
-};
-
-const stellwerk: Manifest = {
-  id: "stellwerk",
-  name: "Stellwerk",
-  icon: "folder-sync",
-  beschreibung: "Dateien synchronisieren",
-  stand: "vorschau",
-  version: "0.4.0",
-  container: ["zentrale"],
-  architektur: beides,
-  ramMb: 1024,
-  platteGb: 200,
-  ports: ["22001/tcp"],
-  ipv4: true,
-  serverFuerSich: false,
-  anmeldung: "eigen",
-  braucht: [],
-  optionen: [],
-  health: { keine: "Health nur mit Anmeldung" },
-  backup: "Volume",
-  sperrzeiten: [],
-  beimKunden: "Agenten auf Rechnern",
-  quelle: "docs/ in Speicherstadt/stellwerk",
-  nichtUnterstuetzt: ohneAktionen,
-  variablen: [
-    {
-      name: "STELLWERK_LAN_PAIRING",
-      ebene: "installation",
-      hinweis: "Kopplung im lokalen Netz",
-      vorgabe: "false",
-    },
-    auto("STELLWERK_PUBLIC_URL", "aus der Adresse"),
-    auto("STELLWERK_HUB_ADDRESS", "aus IPv4 und Port 22001"),
-  ],
-};
-
-const fixpunkt: Manifest = {
-  id: "fixpunkt",
-  name: "Fixpunkt",
-  icon: "ruler",
-  beschreibung: "Aufmaß aus Drohnenbildern",
-  stand: "vorschau",
-  version: "0.3.0",
-  container: ["app"],
-  architektur: beides,
-  ramMb: 8192,
-  platteGb: 100,
-  ports: [],
-  ipv4: false,
-  serverFuerSich: false,
-  anmeldung: "eigen",
-  braucht: [],
-  optionen: [{ id: "nodeodm", name: "NodeODM (rechnet Bilder, ~16 GB RAM)" }],
-  health: { pfad: "/api/health" },
-  backup: "Volume",
-  sperrzeiten: [],
-  beimKunden: "",
-  quelle: "docker/Dockerfile in Speicherstadt/fixpunkt",
-  nichtUnterstuetzt: ohneAktionen,
-  variablen: [
-    {
-      name: "FIXPUNKT_MAX_UPLOAD_GB",
-      ebene: "installation",
-      hinweis: "Größter Upload",
-      vorgabe: "20",
-    },
-    {
-      name: "FIXPUNKT_MAX_JOBS",
-      ebene: "installation",
-      hinweis: "Gleichzeitige Rechnungen",
-      vorgabe: "1",
-    },
-    auto("FIXPUNKT_PUBLIC_URL", "aus der Adresse"),
-    auto("FIXPUNKT_PASSWORD", "zufällig, erstes Konto"),
-  ],
-};
-
-/** Kennwort and Soll have no image yet (docs/plan.md): shown, not installable */
-const ohneImage = (
-  id: string,
-  name: string,
-  icon: string,
-  beschreibung: string,
-  beimKunden: string,
-  braucht: string[],
-  variablen: Variable[],
-): Manifest => ({
-  id,
-  name,
-  icon,
-  beschreibung,
-  stand: "entwicklung",
-  version: null,
-  container: ["app"],
-  architektur: beides,
-  ramMb: 512,
-  platteGb: 2,
-  ports: [],
-  ipv4: false,
-  serverFuerSich: false,
-  anmeldung: "oidc",
-  braucht,
-  optionen: [],
-  health: { pfad: "/health" },
-  backup: "Volume",
-  sperrzeiten: [],
-  beimKunden,
-  quelle: `apps/server in Speicherstadt/${id}`,
-  nichtUnterstuetzt: ohneAktionen,
-  variablen,
+/** An app of the demo from its manifest and how it is shown */
+export const ausManifest = (m: Echt, d: Darstellung): Manifest => ({
+  id: m.id,
+  ...d,
+  version: m.version,
+  container: m.container.map((c) => c.name),
+  architektur: m.architektur,
+  ramMb: m.ressourcen.ram_mb,
+  platteGb: m.ressourcen.platte_gb,
+  ports: m.netz.ports.map(port),
+  ipv4: m.netz.oeffentliche_ipv4,
+  serverFuerSich: m.netz.server_fuer_sich,
+  anmeldung: m.anmeldung,
+  braucht: m.braucht,
+  optionen: m.optionen.map((o) => ({ id: o.id, name: o.name })),
+  health: health(m.health),
+  backup: backup(m.backup),
+  sperrzeiten: m.sperrzeiten.map(sperrzeit),
+  quelle: m.quelle,
+  nichtUnterstuetzt: nichtUnterstuetzt(m),
+  variablen: m.env.map(variable),
 });
 
-export const apps: Manifest[] = [
-  haben,
-  belegt,
-  kontext,
-  schreibzeug,
-  stellwerk,
-  fixpunkt,
-  ohneImage(
-    "kennwort",
-    "Kennwort",
-    "key-round",
-    "Passwörter im Team",
-    "Browser-Erweiterung, Desktop-App",
-    ["oidc-anbieter"],
-    [
-      auto("KENNWORT_PUBLIC_URL", "aus der Adresse"),
-      auto("KENNWORT_AUTH_SECRET", "zufällig, 32 Byte"),
-    ],
-  ),
-  ohneImage(
-    "soll",
-    "Soll",
-    "timer",
-    "Zeiterfassung, Dienstplan",
-    "Tablet-Terminal",
-    [],
-    [auto("SOLL_URL", "aus der Adresse"), auto("SOLL_SECRET_KEY", "zufällig, 32 Byte")],
-  ),
-];
+export const apps: Manifest[] = Object.entries(DARSTELLUNG).flatMap(([id, d]) => {
+  const e = neuestes(id);
+  return e ? [ausManifest(e.manifest, d)] : [];
+});
+
+/** The version an app's newest released manifest names, for the fixtures */
+export const versionVon = (app: string): string => {
+  const v = apps.find((a) => a.id === app)?.version;
+  if (!v) throw new Error(`no released manifest for ${app} in manifeste/`);
+  return v;
+};

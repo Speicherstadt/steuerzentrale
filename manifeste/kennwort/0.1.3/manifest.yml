@@ -1,21 +1,22 @@
-# Kennwort 0.0.0 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
+# Kennwort 0.1.3 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
 schema: 1
 id: kennwort
-version: 0.0.0
+version: 0.1.3
 lizenz: AGPL-3.0-only
 quelle: https://github.com/Speicherstadt/kennwort
 container:
   - name: app
-    image:
-      noch_nicht_veroeffentlicht: >-
-        Kennwort hat noch kein Image (Bauliste von Kennwort, K-703 offen); auf GHCR gibt es keines
-        (scripts/digest.ts, 2026-11-20)
+    image: ghcr.io/speicherstadt/kennwort@sha256:9d5856324b99e172908e393fba1bf5a978ba86649d9b788b15b4647d2dd4e3cc
     volumes:
-      - { name: daten, pfad: /daten }
-    env: [KENNWORT_PUBLIC_URL, KENNWORT_AUTH_SECRET, KENNWORT_SETUP_CODE]
+      - { name: daten, pfad: /data }
+    env:
+      - KENNWORT_PUBLIC_URL
+      - KENNWORT_AUTH_SECRET
+      - KENNWORT_SETUP_CODE
+      - KENNWORT_OIDC_ISSUER
+      - KENNWORT_OIDC_CLIENT_ID
+      - KENNWORT_OIDC_CLIENT_SECRET
     feste_env:
-      KENNWORT_PORT: "8100"
-      KENNWORT_DATABASE: /daten/kennwort.db
       KENNWORT_BEHIND_PROXY: "true"
 architektur: [amd64, arm64]
 ressourcen: { ram_mb: 512, platte_gb: 1 }
@@ -30,7 +31,7 @@ rootful: false
 optionen: []
 braucht: []
 bietet: []
-anmeldung: eigen
+anmeldung: oidc
 health: { art: http, dienst: app, pfad: /health }
 befehle: {}
 schritte: { einrichten: [], nach_update: [] }
@@ -49,4 +50,7 @@ env:
     typ: geheim
     pflicht: true
     beschreibung: Code, mit dem der erste Inhaber die Firma anlegt (mindestens 16 Zeichen)
+  - { name: KENNWORT_OIDC_ISSUER, ebene: auto, aus: oidc-anbieter }
+  - { name: KENNWORT_OIDC_CLIENT_ID, ebene: auto, aus: oidc-anbieter }
+  - { name: KENNWORT_OIDC_CLIENT_SECRET, ebene: auto, typ: geheim, aus: oidc-anbieter }
 hinweis: Kennwort ist Open Source (AGPL), https://github.com/Speicherstadt/kennwort

@@ -83,7 +83,8 @@ vorbei.
 
 Die Oberfläche liest ihre Daten über `apps/web/src/daten/` (Typen, `quelle.ts` und reine Ableitungen
 wie Prüfungen, Wellen und „Braucht Aufmerksamkeit“). Bis die Zentrale ihre API hat, liefert `quelle.ts`
-die Demodaten aus `apps/web/src/demo/`: ein Betreiber mit den acht Apps der Speicherstadt, Servern,
+die Demodaten aus `apps/web/src/demo/`: ein Betreiber mit den Apps der Speicherstadt, die ein
+veröffentlichtes Release haben (gelesen aus den echten Manifesten in `manifeste/`), Servern,
 Installationen, Kunden, Ereignissen und Aufträgen. Dieselben Daten zeigen `bun run dev:demo`, die
 E2E-Tests und die Screenshots; mit der API (Z-406) bleiben sie für den Modus `demo` von Vite erhalten.
 Namen und Freitexte in den Demodaten sind Daten, keine Texte der Oberfläche; deshalb nimmt `checks.json`
@@ -103,7 +104,7 @@ den Ordner von der Prüfung `i18n` aus. Seiten sind dateibasierte Routen von Tan
 | `apps/agent` | der Agent auf jedem verwalteten Server |
 | `apps/web` | die Oberfläche (Solid 2, Vite, TanStack Router) mit Demodaten |
 | `manifeste/beispiel` | Beispiel-App für die Tests: Dienst, Containerfile, Manifest-Vorlage |
-| `manifeste/<app>/<version>` | Manifeste der acht Apps mit `QUELLEN.md` und Signatur des Test-Schlüssels |
+| `manifeste/<app>/<version>` | Manifeste der Apps mit `QUELLEN.md` und Signatur des Test-Schlüssels |
 
 Die Beispiel-App (`manifeste/beispiel/`) ist ein kleiner HTTP-Dienst mit SQLite-Volume, Health,
 einer Option, einem Befehl nach dem Update, einem vergebenen Port und einem Backup aus zwei Teilen.

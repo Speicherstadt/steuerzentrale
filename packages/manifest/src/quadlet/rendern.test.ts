@@ -211,7 +211,7 @@ describe("containers", () => {
 });
 
 describe("apps without an image", () => {
-  it.each(["belegt", "fixpunkt", "kennwort", "soll"])("%s is refused with the reason", (app) => {
+  it.each(["fixpunkt", "soll"])("%s is refused with the reason", (app) => {
     const r = gruende(testAnfrage(appManifest(app), []));
     expect(r).toContainEqual(
       expect.stringMatching(/^container\.0\.image: app has no published image \(.+\)/),

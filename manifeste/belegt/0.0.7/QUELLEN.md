@@ -1,8 +1,8 @@
 # Quellen: Belegt
 
 Manifest: `manifest.yml` daneben. Alle Dateien unten stammen aus
-[Speicherstadt/belegt](https://github.com/Speicherstadt/belegt), Commit
-`f8711498113fe5a3dcecf9db9bde303eee204ee6`, sofern nichts anderes dasteht. Belegt hat keine
+[Speicherstadt/belegt](https://github.com/Speicherstadt/belegt), Tag `v0.0.7`, Commit
+`11232b958e7a95a959c287e1dc667e3561862b2c`, sofern nichts anderes dasteht. Belegt hat keine
 Quadlets; die Container folgen `deploy/compose.yml`. Es entfallen: `caddy` (Profil `https`, die Pforte
 ersetzt ihn), `backup` und `restore` (die Steuerzentrale sichert selbst mit restic, docs/plan.md,
 „Backups“), `smtp` (Profil `journal`), `validator`, `gotenberg` und `ollama` (Profile, nicht in
@@ -12,14 +12,15 @@ docs/plan.md).
 
 | Container | Image (Tag) | Digest | Quelle des Digests | Plattformen |
 | --- | --- | --- | --- | --- |
-| `app`, `worker` | `ghcr.io/speicherstadt/belegt:0.0.0` | **fehlt**: noch nicht veröffentlicht | `scripts/digest.ts` am 2026-11-20: ghcr.io antwortet `token: HTTP 403` (kein öffentliches Paket), docker.io `tristanteu/belegt` antwortet `HTTP 401` (kein Repository) | – |
-| `ftp` (Option) | `ghcr.io/speicherstadt/belegt-ftp:0.0.0` | **fehlt**: noch nicht veröffentlicht | wie oben (`ghcr-image: speicherstadt/belegt-ftp` in `.github/workflows/release.yml`) | – |
-| `db` | `docker.io/library/postgres:18` | `docker.io/library/postgres@sha256:eb63372c1e05c755f55fa30cbd07aecc443676fc6c0fa90b9002d01537841e1a` | Registry docker.io, Tag 18, abgefragt am 2026-11-20 (`scripts/digest.ts`) | linux/amd64, linux/arm64 (und weitere) |
+| `app`, `worker` | `ghcr.io/speicherstadt/belegt:0.0.7` | `ghcr.io/speicherstadt/belegt@sha256:0aa5bcf46b6551ab9e0a6918f8e41868bc0e7074aa73c6e897a91e9a4d13603c` | Registry ghcr.io, Tag 0.0.7, abgefragt am 2026-11-24 (`scripts/digest.ts`) | linux/amd64, linux/arm64 |
+| `ftp` (Option) | `ghcr.io/speicherstadt/belegt-ftp:0.0.7` | `ghcr.io/speicherstadt/belegt-ftp@sha256:b2ee95435fd144bb028a4d8e09363e7c52183cd5cde320770cee60c497a66d01` | Registry ghcr.io, Tag 0.0.7, abgefragt am 2026-11-24 (`scripts/digest.ts`) | linux/amd64, linux/arm64 |
+| `db` | `docker.io/library/postgres:18` | `docker.io/library/postgres@sha256:c699303802144847d238196173655dbbecf7a96aeca1565f2b02eb671a1f0b6b` | Registry docker.io, Tag 18, abgefragt am 2026-11-24 (`scripts/digest.ts`) | linux/amd64, linux/arm64 (und weitere) |
 
-GHCR: `.github/workflows/release.yml` pusht mit `ghcr: true` nach `ghcr.io/<owner>/<repo>`
-(firsttris/workflows, `docker-release.yml`); ein Release gab es noch nicht (`package.json`: 0.0.0).
-Bis dahin ist Belegt nicht installierbar (docs/plan.md, „Apps ohne Betreiber-Vertrag“). Postgres
-kommt laut `deploy/compose.yml` von Docker Hub.
+`deploy/compose.yml` nennt `docker.io/tristanteu/belegt` und `docker.io/tristanteu/belegt-ftp`;
+`.github/workflows/release.yml` pusht dieselben Images mit `ghcr: true` auch nach
+`ghcr.io/speicherstadt/belegt` und (`ghcr-image`) `ghcr.io/speicherstadt/belegt-ftp`. Der Worker
+nutzt das Image des Servers (`deploy/compose.yml`). Postgres kommt laut `deploy/compose.yml` von
+Docker Hub.
 
 ## Angaben
 
@@ -27,7 +28,7 @@ kommt laut `deploy/compose.yml` von Docker Hub.
 | --- | --- | --- |
 | `schema` | 1 | Schema der Steuerzentrale (`docs/manifest.md`) |
 | `id` | belegt | `package.json` (`name`) |
-| `version` | 0.0.0 | `package.json` (`version`) |
+| `version` | 0.0.7 | `package.json` (`version`) |
 | `lizenz` | AGPL-3.0-only | `package.json` (`license`), `LICENSE` |
 | `quelle` | https://github.com/Speicherstadt/belegt | Repository |
 | `container` | `app`, `worker`, `db` | `deploy/compose.yml` (`server`, `worker`, `postgres`); Namen wie in docs/plan.md |
@@ -73,3 +74,15 @@ kommt laut `deploy/compose.yml` von Docker Hub.
 Nicht im Manifest: die getrennte Rolle `belegt_app` (`APP_DB_PASSWORD`, `MIGRATION_DATABASE_URL`;
 ohne sie läuft Belegt als Eigentümer, `deploy/compose.yml`), Microsoft, Google, S3, TSA, KI,
 Vorschau, Validator und Mail aus `server/env.ts`.
+
+## Offen
+
+- Nicht im Manifest: `BELEGT_TRUSTED_PROXIES` (`server/env.ts`: „Proxys, deren X-Forwarded-For gilt …;
+  ohne sie zählt nur die Verbindung“; `deploy/compose.yml` setzt die feste Adresse seines Caddy). Die
+  Adresse, unter der die Pforte im Container ankommt, ist noch nicht festgelegt; wie bei
+  `SCHREIBZEUG_TRUSTED_PROXIES` (`manifeste/schreibzeug/0.1.26/QUELLEN.md`) sieht Belegt bis dahin die
+  Adresse der Weiterleitung statt der des Nutzers.
+- Option `ftp`: Port 21 ist fest (`deploy/compose.yml`). Rootless veröffentlicht ihn erst mit
+  `net.ipv4.ip_unprivileged_port_start` ≤ 21 (heute 80, docs/plan.md, „Pforte“); bis dahin startet
+  der Container `ftp` nicht. Wie Port 25 bei Kontext (`manifeste/kontext/0.1.37/QUELLEN.md`) offen für
+  Stufe 2.

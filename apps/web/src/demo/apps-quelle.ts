@@ -13,13 +13,14 @@ import type { Manifest } from "../daten/typen.ts";
 import { apps } from "./apps.ts";
 import { installationen } from "./installationen.ts";
 import { kunden } from "./kunden.ts";
+import { MANIFESTE } from "./manifeste.ts";
 import { PROBE_MANIFEST, PROBE_VORAB } from "./probe-manifest.ts";
 import { JETZT } from "./zeit.ts";
 
 /*
  * The imported manifests and the registries' versions of the demo in memory, answering as the
- * Zentrale's API would (apps/zentrale, routes/manifeste.ts): the eight apps with the version their
- * manifest in manifeste/ names and, for Kontext, a newer one only the registry has; the probe app of
+ * Zentrale's API would (apps/zentrale, routes/manifeste.ts): the apps with the real texts of their
+ * manifests in manifeste/ (src/demo/manifeste.ts) and the newer tags only the registry has; the probe app of
  * the dialog's tests with its text, also as a pre-release. The demo has no public key: an import
  * needs only some signature and a manifest that reads. An update by hand (Z-503) stays at its
  * backup: the demo has no agent. A change lasts until the page reloads.
@@ -41,15 +42,10 @@ const ausText = (text: string): Eintrag => {
   return { app: g.manifest.id, version: g.manifest.version, text, dringend: g.manifest.dringend };
 };
 
-/** The apps' manifests of the demo: no text, the dialog cannot read their form */
-const ausBeschreibung = (a: Manifest): Eintrag[] =>
-  a.version ? [{ app: a.id, version: a.version, text: null, dringend: false }] : [];
+/** The real manifests of the demo's apps, each with its text, which the dialog reads its form from */
+const echte = (a: Manifest): Eintrag[] => (MANIFESTE.get(a.id) ?? []).map((e) => ausText(e.text));
 
-const START: Eintrag[] = [
-  ...apps.flatMap(ausBeschreibung),
-  ausText(PROBE_MANIFEST),
-  ausText(PROBE_VORAB),
-];
+const START: Eintrag[] = [...apps.flatMap(echte), ausText(PROBE_MANIFEST), ausText(PROBE_VORAB)];
 
 /** What the registries listed at the demo's morning: the newer tag of an app without manifest */
 const registry = (a: Manifest) => ({
