@@ -35,7 +35,7 @@ const FILTERNAMEN: Record<Filter, () => string> = {
 
 const Apps = () => {
   const [filter, setFilter] = createSignal<Filter>("alle");
-  const [gruppe, setGruppe] = createSignal<Gruppierung>("nicht");
+  const [gruppe, setGruppe] = createSignal<Gruppierung>("none");
   const [frage, setFrage] = createSignal("");
   const antwort = createMemo(() => appsListeLaden());
   const art = createMemo(() => betriebsartLesen());
@@ -47,7 +47,7 @@ const Apps = () => {
   const treffer = createMemo(() => gefiltert(zeilen(), filter(), frage()));
   const gruppen = () => {
     const g = gruppe();
-    return g === "nicht" ? null : gruppiert(treffer(), g);
+    return g === "none" ? null : gruppiert(treffer(), g);
   };
   const fehler = () => {
     const a = antwort();
@@ -81,7 +81,7 @@ const Apps = () => {
               aktuell={gruppe()}
               onWahl={setGruppe}
               wahl={[
-                { wert: "nicht" as const, name: m.apps_gruppe_nicht() },
+                { wert: "none" as const, name: m.apps_gruppe_nicht() },
                 ...(nurFuerMich(art())
                   ? []
                   : [{ wert: "kunde" as const, name: m.apps_gruppe_kunde() }]),

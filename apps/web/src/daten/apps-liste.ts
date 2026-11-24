@@ -156,7 +156,7 @@ export const gefunden = (z: AppZeile, frage: string): boolean => {
 export const gefiltert = (zeilen: AppZeile[], filter: Filter, frage: string): AppZeile[] =>
   zeilen.filter((z) => passt(z, filter) && gefunden(z, frage));
 
-export type Gruppierung = "nicht" | "kunde" | "server";
+export type Gruppierung = "none" | "kunde" | "server";
 
 export type Gruppe = { art: "kunde" | "server"; id: string; name: string; zeilen: AppZeile[] };
 
@@ -164,7 +164,7 @@ export type Gruppe = { art: "kunde" | "server"; id: string; name: string; zeilen
  * The rows under their customer or server, each group where its first row stands, so the group
  * with the most pressing app comes first
  */
-export const gruppiert = (zeilen: AppZeile[], nach: Exclude<Gruppierung, "nicht">): Gruppe[] => {
+export const gruppiert = (zeilen: AppZeile[], nach: Exclude<Gruppierung, "none">): Gruppe[] => {
   const schluessel = (z: AppZeile) =>
     nach === "kunde"
       ? { id: z.a.kundeId, name: z.a.kundeName }
