@@ -23,14 +23,7 @@ test.describe("the interface", { tag: "@phone" }, () => {
     const apps = page.locator("main section h2");
     await expect
       .poll(async () => (await apps.allTextContents()).slice(0, 6))
-      .toEqual([
-        "Haben",
-        "Belegt",
-        "Kontext",
-        "Schreibzeug",
-        "Stellwerk",
-        "Kennwort",
-      ]);
+      .toEqual(["Haben", "Belegt", "Kontext", "Schreibzeug", "Stellwerk", "Kennwort"]);
   });
 
   test("switches between light and dark and keeps the choice", async ({ page }) => {
