@@ -12,7 +12,7 @@ import {
   vertragsendeSetzen,
 } from "../modules/kunden/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
-import type { Anfrage, Registrar } from "./zugang.ts";
+import { type Anfrage, nurFuerKunden, type Registrar } from "./zugang.ts";
 
 /*
  * Customers and their contracts (BAULISTE.md Z-801): every role reads, owner and technik write
@@ -89,6 +89,8 @@ export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
   route("POST /api/v1/kunden", async (c) => {
     const angaben = await eingabe(c, anlegenSchema);
     if (!angaben) return ungueltig(c);
+    const gesperrt = nurFuerKunden(deps.db, c);
+    if (gesperrt) return gesperrt;
     const { grund: begruendung, ...daten } = angaben;
     return antwort(c, kundeAnlegen(deps.db, deps.schreibDb, kontext(c, begruendung), daten), 201);
   });
@@ -96,6 +98,8 @@ export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
   route("PUT /api/v1/kunden/:kundeId", async (c) => {
     const angaben = await eingabe(c, aendernSchema);
     if (!angaben) return ungueltig(c);
+    const gesperrt = nurFuerKunden(deps.db, c);
+    if (gesperrt) return gesperrt;
     const { grund: begruendung, ...daten } = angaben;
     return antwort(
       c,
@@ -106,6 +110,8 @@ export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
   route("PUT /api/v1/kunden/:kundeId/kuendigung", async (c) => {
     const angaben = await eingabe(c, kuendigenSchema);
     if (!angaben) return ungueltig(c);
+    const gesperrt = nurFuerKunden(deps.db, c);
+    if (gesperrt) return gesperrt;
     const k = kontext(c, angaben.grund);
     const r = vertragsendeSetzen(deps.db, deps.schreibDb, k, kundeId(c), angaben.ende);
     deps.abwicklungAnstossen?.();
@@ -116,6 +122,8 @@ export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
   route("PUT /api/v1/kunden/:kundeId/intern", async (c) => {
     const angaben = await eingabe(c, internSchema);
     if (!angaben) return ungueltig(c);
+    const gesperrt = nurFuerKunden(deps.db, c);
+    if (gesperrt) return gesperrt;
     const k = kontext(c, angaben.grund);
     return antwort(c, internSetzen(deps.db, deps.schreibDb, k, kundeId(c), angaben.intern));
   });
@@ -123,6 +131,8 @@ export const kundenRouten = (route: Registrar, deps: RoutenDeps): void => {
   route("DELETE /api/v1/kunden/:kundeId/kuendigung", async (c) => {
     const angaben = await eingabe(c, grundSchema);
     if (!angaben) return ungueltig(c);
+    const gesperrt = nurFuerKunden(deps.db, c);
+    if (gesperrt) return gesperrt;
     const k = kontext(c, angaben.grund);
     const r = vertragsendeSetzen(deps.db, deps.schreibDb, k, kundeId(c), null);
     deps.abwicklungAnstossen?.();

@@ -1,4 +1,4 @@
-import type { Handler, Hono, MiddlewareHandler } from "hono";
+import type { Context, Handler, Hono, MiddlewareHandler } from "hono";
 import type { Auth } from "../auth/auth.ts";
 import { darf, type Recht, ROLLEN, type Rolle } from "../auth/rollen.ts";
 import type { Db } from "../db/oeffnen.ts";
@@ -286,6 +286,14 @@ export const wache =
     c.set("rolle", mitglied.rolle);
     return next();
   };
+
+/**
+ * Z-805: the check of a "fuerKunden" route once more after it read its body, right before its
+ * synchronous write: the guard above runs before that await, and a switch to "selbst" could land
+ * in between (betriebsart-wettlauf-kunden.test.ts)
+ */
+export const nurFuerKunden = (db: Db, c: Context<Anfrage>): Response | undefined =>
+  nurFuerMich(db, c.get("betreiberId")) ? c.json({ fehler: "betriebsart" }, 409) : undefined;
 
 export type Registrar = (name: RoutenName, handler: Handler<Anfrage>) => void;
 
