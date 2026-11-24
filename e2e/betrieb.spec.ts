@@ -69,6 +69,28 @@ test.describe("real data", { tag: "@phone" }, () => {
     }
   });
 
+  // the approved mockup "Protokoll": the filters by severity right under the tabs, the events in
+  // one card; nothing wider than the screen, also on a phone
+  test("shows the Protokoll as tabs, filters and one list of events", async ({ page }) => {
+    await page.goto("/protokoll");
+    const teile = page.getByRole("tablist", { name: "Teile des Protokolls" });
+    await expect(teile.getByRole("tab", { name: "Ereignisse" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    const filter = page.getByRole("tablist", { name: "Nach Schwere" });
+    await expect(filter.getByRole("tab")).toHaveText(["Alle", "Störungen", "Warnungen"]);
+    await expect(page.locator("main section").first()).toBeVisible();
+    const breit = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(breit).toBe(false);
+    await ohneBefund(page);
+    await teile.getByRole("tab", { name: "Aufträge" }).click();
+    await expect(page).toHaveURL(/\/protokoll\?tab=auftraege$/);
+    await ohneBefund(page);
+  });
+
   test("names in the audit log who made an installation, page by page", async ({ page }) => {
     const i = await installationAnlegen(page.request);
     i.agent.trennen();

@@ -3,7 +3,7 @@
  * Home and End move and show the tab's panel.
  */
 import type { JSX } from "@solidjs/web";
-import { createMemo, createSignal, createUniqueId, For } from "solid-js";
+import { createMemo, createSignal, createUniqueId, For, Show } from "solid-js";
 import { ariaBoolean } from "../lib/aria.ts";
 import { cn } from "../lib/cn.ts";
 import { nextIndex } from "../lib/keys.ts";
@@ -14,6 +14,8 @@ export type TabsProps = {
   tabs: Tab[];
   initial?: string;
   onChange?: (id: string) => void;
+  /** Beside the tab list, about the tab shown (e.g. what its panel applies to) */
+  aside?: (id: string) => JSX.Element;
 };
 
 export const Tabs = (props: TabsProps) => {
@@ -39,34 +41,39 @@ export const Tabs = (props: TabsProps) => {
   };
   return (
     <div class="grid gap-3">
-      <div
-        role="tablist"
-        aria-label={props.label}
-        class="inline-flex w-fit max-w-full gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] rounded-lg border border-border bg-muted p-1"
-      >
-        <For each={props.tabs}>
-          {(tab, index) => (
-            <button
-              ref={(el) => {
-                buttons.set(tab.id, el);
-              }}
-              type="button"
-              role="tab"
-              id={`${base}-${tab.id}-tab`}
-              aria-selected={ariaBoolean(current() === tab.id)}
-              aria-controls={`${base}-${tab.id}-panel`}
-              tabindex={current() === tab.id ? 0 : -1}
-              class={cn(
-                "rounded-md px-3 py-1 text-[13px] font-medium",
-                current() === tab.id ? "bg-accent text-foreground" : "text-muted-foreground",
-              )}
-              onClick={() => choose(index())}
-              onKeyDown={(event) => onKeyDown(event, index())}
-            >
-              {tab.label}
-            </button>
-          )}
-        </For>
+      <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+        <div
+          role="tablist"
+          aria-label={props.label}
+          class="inline-flex w-fit max-w-full min-w-0 gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] rounded-lg border border-border bg-muted p-1"
+        >
+          <For each={props.tabs}>
+            {(tab, index) => (
+              <button
+                ref={(el) => {
+                  buttons.set(tab.id, el);
+                }}
+                type="button"
+                role="tab"
+                id={`${base}-${tab.id}-tab`}
+                aria-selected={ariaBoolean(current() === tab.id)}
+                aria-controls={`${base}-${tab.id}-panel`}
+                tabindex={current() === tab.id ? 0 : -1}
+                class={cn(
+                  "rounded-md px-3 py-1 text-[13px] font-medium",
+                  current() === tab.id ? "bg-accent text-foreground" : "text-muted-foreground",
+                )}
+                onClick={() => choose(index())}
+                onKeyDown={(event) => onKeyDown(event, index())}
+              >
+                {tab.label}
+              </button>
+            )}
+          </For>
+        </div>
+        <Show when={props.aside}>
+          {(aside) => <div class="min-w-0 text-muted-foreground">{aside()(current())}</div>}
+        </Show>
       </div>
       <For each={props.tabs}>
         {(tab) => (

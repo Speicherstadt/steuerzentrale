@@ -58,12 +58,9 @@ const Eintraege = (props: { eintraege: AuditEintragDerZentrale[] }) => (
 
 /** The tab "Änderungen" of the Protokoll (routes/protokoll.tsx); the page shows it only to owner and technik */
 export const Aenderungen = () => (
-  <div class="grid gap-4">
-    <p class="max-w-3xl text-sm text-muted-foreground">{m.audit_text()}</p>
-    <Seitenweise
-      laden={(weiter) => betriebQuelle().audit({}, weiter)}
-      ladenText={m.audit_laden()}
-      zeigen={(eintraege) => <Eintraege eintraege={eintraege()} />}
-    />
-  </div>
+  <Seitenweise
+    laden={(weiter) => betriebQuelle().audit({}, weiter)}
+    ladenText={m.audit_laden()}
+    zeigen={(eintraege) => <Eintraege eintraege={eintraege()} />}
+  />
 );

@@ -35,6 +35,25 @@ const neueApp = () => `lizenz-${Array.from({ length: 6 }, () => ZEICHEN[randomIn
 // the stand-in agent (e2e/hilfen/agent.ts) reports the job done, and the values apply. The agent's
 // own side runs in CI against Podman (apps/agent).
 test.describe("settings", { tag: "@phone" }, () => {
+  // the approved mockup "Einstellungen": the sections in a list, the one chosen in the URL
+  test("go from section to section, the chosen one in the URL and marked", async ({ page }) => {
+    await page.goto("/einstellungen");
+    const abschnitte = page.getByRole("navigation", { name: "Abschnitte der Einstellungen" });
+    await expect(abschnitte.getByRole("link")).toHaveCount(8);
+    await expect(abschnitte.locator('[aria-current="page"]')).toContainText("Werte für Apps");
+    await expect(page.getByRole("heading", { level: 2, name: "Werte für Apps" })).toBeVisible();
+    await ohneBefund(page);
+    await abschnitte.getByRole("link", { name: /Adressen und DNS/ }).click();
+    await expect(page).toHaveURL(/\/einstellungen\?tab=dns$/);
+    await expect(abschnitte.locator('[aria-current="page"]')).toContainText("Adressen und DNS");
+    await expect(page.getByRole("heading", { level: 2, name: "DNS", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Werte für Apps" })).toHaveCount(0);
+    await ohneBefund(page);
+    await page.goto("/einstellungen?tab=betriebsart");
+    await expect(abschnitte.locator('[aria-current="page"]')).toContainText("Betriebsart");
+    await expect(page.getByRole("radio", { name: /Für Kunden/ })).toBeChecked();
+  });
+
   test("asks for the operator's missing value in the dialog and keeps it", async ({ page }) => {
     const app = neueApp();
     const kunde = await kundeAnlegen(page.request, "Kanzlei West");
@@ -61,9 +80,16 @@ test.describe("settings", { tag: "@phone" }, () => {
       const antwort = await page.request.get(`/api/v1/apps/${app}/einstellungen`);
       expect(await antwort.json()).toMatchObject({ gesetzt: ["PROBE_LIZENZ"], werte: {} });
       await page.goto("/einstellungen");
-      const karte = page.locator("section", { has: page.getByRole("heading", { name: app }) });
+      const karte = page.locator("section", {
+        has: page.getByRole("heading", { name: "Werte für Apps" }),
+      });
+      // other runs add their own apps to the shared database: choose this one
+      await karte.getByRole("tab", { name: app, exact: true }).click();
+      // set and never shown: "gesetzt" with "Ändern", which opens an empty field
+      await expect(karte.getByText("gesetzt", { exact: true })).toBeVisible();
+      await karte.getByRole("button", { name: "Ändern" }).click();
       await expect(karte.getByLabel("PROBE_LIZENZ")).toHaveValue("");
-      await expect(karte.getByText(/gesetzt; leer lassen behält den Wert/)).toBeVisible();
+      await expect(karte.getByText(/leer lassen behält den bisherigen/)).toBeVisible();
       await expect(page.getByText("lizenz-aus-dem-dialog")).toHaveCount(0);
       await ohneBefund(page);
     } finally {

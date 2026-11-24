@@ -50,44 +50,108 @@ const karte = (root: HTMLElement, titel: string) => {
   return k;
 };
 
+// The section "Werte für Apps" (the approved mockup "Einstellungen"): one card, an app at a time,
+// each value under its title in words with the setting's name beside it
+const WERTE = "Werte für Apps";
+const ELSTER = "Hersteller-ID für ELSTER";
+const SCHLUESSEL = "Schlüssel für die KI-Auslesung";
+
 describe("the operator's values per app", () => {
   it("are a form from the schema, a secret only as set, saved with a reason", async () => {
     const { root } = await oeffne("/einstellungen");
-    const haben = karte(root, "Haben");
-    expect(feld<HTMLInputElement>("ELSTER_HERSTELLER_ID", haben).value).toBe("74931");
-    const schluessel = feld<HTMLInputElement>("ANTHROPIC_API_KEY", haben);
+    const werte = karte(root, WERTE);
+    expect(werte.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Haben");
+    expect(werte.textContent).toContain("Gilt für alle 9 Installationen von Haben");
+    expect(werte.textContent).toContain("2 von 4 Werten gesetzt");
+    expect(feld<HTMLInputElement>(ELSTER, werte).value).toBe("74931");
+    expect(werte.textContent).toContain("ELSTER_HERSTELLER_ID");
+    expect(werte.textContent).toContain("Pflicht");
+    // a secret that is set: "gesetzt" and "Ändern", no field until then, and never its value
+    expect(() => feld(SCHLUESSEL, werte)).toThrow();
+    knopf(werte, "Ändern")?.click();
+    await warten();
+    const schluessel = feld<HTMLInputElement>(SCHLUESSEL, werte);
     expect(schluessel.type).toBe("password");
     expect(schluessel.value).toBe("");
-    expect(haben.textContent).toContain("gesetzt; leer lassen behält den Wert");
-    eintragen("ELSTER_HERSTELLER_ID", "54321", haben);
-    eintragen("Grund", "neue Hersteller-ID", haben);
+    expect(werte.textContent).toContain("leer lassen behält den bisherigen");
+    eintragen(ELSTER, "54321", werte);
+    eintragen("Grund", "neue Hersteller-ID", werte);
     flush();
-    haben.querySelector("form")?.requestSubmit();
+    werte.querySelector("form")?.requestSubmit();
     await warten();
     expect(root.textContent).toContain("Werte für Haben gespeichert.");
-    expect(feld<HTMLInputElement>("ELSTER_HERSTELLER_ID", karte(root, "Haben")).value).toBe(
-      "54321",
-    );
+    expect(feld<HTMLInputElement>(ELSTER, karte(root, WERTE)).value).toBe("54321");
   });
 
   it("are refused without a required value, naming it", async () => {
     const { root } = await oeffne("/einstellungen");
-    const haben = karte(root, "Haben");
-    feld<HTMLInputElement>("ELSTER_HERSTELLER_ID", haben).required = false;
-    eintragen("ELSTER_HERSTELLER_ID", "", haben);
-    eintragen("Grund", "weg damit", haben);
+    const werte = karte(root, WERTE);
+    feld<HTMLInputElement>(ELSTER, werte).required = false;
+    eintragen(ELSTER, "", werte);
+    eintragen("Grund", "weg damit", werte);
     flush();
-    haben.querySelector("form")?.requestSubmit();
+    werte.querySelector("form")?.requestSubmit();
     await warten();
-    expect(haben.querySelector("[role=alert]")?.textContent).toContain("ELSTER_HERSTELLER_ID");
+    expect(werte.querySelector("form [role=alert]")?.textContent).toContain("ELSTER_HERSTELLER_ID");
   });
 
   it("are only read by support", async () => {
     rolle("support");
     const { root } = await oeffne("/einstellungen");
-    const haben = karte(root, "Haben");
-    expect(haben.querySelector("form")).toBeNull();
-    expect(haben.textContent).toContain("74931");
+    const werte = karte(root, WERTE);
+    expect(werte.querySelector("form")).toBeNull();
+    expect(werte.textContent).toContain(ELSTER);
+    expect(werte.textContent).toContain("74931");
+  });
+});
+
+// The sections in a list on the left, the chosen one in the URL and marked as the current page
+describe("the sections of the settings", () => {
+  const abschnitte = (root: HTMLElement) =>
+    root.querySelector('nav[aria-label="Abschnitte der Einstellungen"]');
+
+  it("list every section with a line on it, and open the one the URL names", async () => {
+    const { root } = await oeffne("/einstellungen?tab=dns");
+    const nav = abschnitte(root);
+    expect(
+      [...(nav?.querySelectorAll("a") ?? [])].map((a) => a.querySelector("span")?.textContent),
+    ).toEqual([
+      "Betriebsart",
+      "Werte für Apps",
+      "Backup-Ziel",
+      "Adressen und DNS",
+      "Benachrichtigungen",
+      "Konten",
+      "Steuerzentrale",
+      "Darstellung",
+    ]);
+    expect(nav?.textContent).toContain("Domain und Cloudflare");
+    expect(nav?.querySelector('[aria-current="page"]')?.textContent).toContain("Adressen und DNS");
+    expect(karte(root, "DNS")).toBeDefined();
+  });
+
+  it('mark "Werte für Apps" also when the URL names it', async () => {
+    const { root } = await oeffne("/einstellungen?tab=werte");
+    expect(abschnitte(root)?.querySelector('[aria-current="page"]')?.textContent).toContain(
+      "Werte für Apps",
+    );
+  });
+
+  it("go to another section through its link, with the section in the URL", async () => {
+    const { root, router } = await oeffne("/einstellungen");
+    expect(abschnitte(root)?.querySelector('[aria-current="page"]')?.textContent).toContain(
+      "Werte für Apps",
+    );
+    const backup = [...(abschnitte(root)?.querySelectorAll("a") ?? [])].find((a) =>
+      a.textContent?.includes("Backup-Ziel"),
+    );
+    backup?.click();
+    await warten();
+    expect(router.state.location.search).toEqual({ tab: "backup" });
+    const markiert = abschnitte(root)?.querySelectorAll('[aria-current="page"]') ?? [];
+    expect([...markiert].map((a) => a.querySelector("span")?.textContent)).toEqual(["Backup-Ziel"]);
+    expect(karte(root, "Backup")).toBeDefined();
+    expect(() => karte(root, WERTE)).toThrow();
   });
 });
 

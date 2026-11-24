@@ -14,7 +14,7 @@ Schema. Es gibt drei Ebenen:
 
 | Ebene | Wer setzt den Wert | Wo |
 | --- | --- | --- |
-| `betreiber` | der Betreiber, einmal je App; gilt für jede Installation dieser App | Einstellungen, Bereich „Apps“, und im Dialog „App installieren“, wenn ein Pflichtwert fehlt |
+| `betreiber` | der Betreiber, einmal je App; gilt für jede Installation dieser App | Einstellungen, Abschnitt „Werte für Apps“, und im Dialog „App installieren“, wenn ein Pflichtwert fehlt |
 | `installation` | der Betreiber je Installation | Dialog „App installieren“ und „Einstellungen ändern“ auf der Seite der Installation |
 | `auto` | die Zentrale (Zufallswerte, Adresse, Vorlagen) | nirgends; erzeugte Werte zeigt sie nie |
 
@@ -53,9 +53,13 @@ Installation, gleich in welchem Zustand. Ohne Installation gibt es kein Formular
 Ein Wert eines Namens, den das neueste Manifest nicht mehr kennt, bleibt stehen: eine ältere
 Installation kann ihn noch brauchen.
 
-In der Oberfläche zeigt **Einstellungen → Apps** je App mit Werten des Betreibers ein Formular mit
-den aktuellen Werten; ein Geheimnis erscheint nur als „gesetzt“ oder „nicht gesetzt“. Inhaber und
-Technik speichern mit Grund, Support sieht die Werte nur. Ein geänderter Wert kommt **nicht von
+In der Oberfläche zeigt **Einstellungen → Werte für Apps** die Apps mit Werten des Betreibers zum
+Umschalten, daneben, für wie viele Installationen die Werte gelten und wie viele gesetzt sind
+(„Gilt für alle 9 Installationen von Haben · 3 von 4 Werten gesetzt“). Jeder Wert steht unter seinem
+Titel in Worten (`titel` aus dem Manifest, sonst der Name), mit „Pflicht“, dem Namen klein daneben
+und der Beschreibung darunter. Ein Geheimnis erscheint nur als „gesetzt“ mit „Ändern“, das ein leeres
+Feld öffnet (leer behält den Wert), oder als leeres Feld, solange es nicht gesetzt ist. Inhaber und
+Technik speichern alle Werte einer App mit einem Grund, Support sieht die Werte nur. Ein geänderter Wert kommt **nicht von
 selbst** an laufende Installationen: jede hält fest, womit sie eingerichtet wurde, und bekommt neue
 Werte des Betreibers erst mit „Einstellungen ändern“.
 
@@ -101,9 +105,16 @@ gestartet“, abgebrochen) lässt die alten Werte gültig. In beiden Fällen wir
 damit kein Geheimnis eines erledigten Auftrags liegen bleibt. Was der Agent dabei auf dem Server
 tut, steht im Projektplan unter „Neu konfigurieren“.
 
+## Die Seite „Einstellungen“
+
+Links stehen die Abschnitte, je mit einer Zeile, was darin steht: Betriebsart, Werte für Apps,
+Backup-Ziel, Adressen und DNS, Benachrichtigungen, Konten, Steuerzentrale und Darstellung. Der
+gewählte Abschnitt steht in der Adresse (`/einstellungen?tab=betriebsart|backup|dns|melden|konten|zentrale|darstellung`),
+ohne Angabe „Werte für Apps“; auf dem Handy sind die Abschnitte eine Zeile zum Wischen.
+
 ## Betriebsart
 
-Der Reiter **Betriebsart** zeigt, ob die Zentrale „Nur für mich“ oder „Für Kunden“ arbeitet (die
+Der Abschnitt **Betriebsart** zeigt, ob die Zentrale „Nur für mich“ oder „Für Kunden“ arbeitet (die
 Frage nach dem ersten Inhaber, siehe [Anmeldung](anmeldung.md#nur-fur-mich-oder-fur-kunden)). Nur
 der Inhaber ändert sie, mit Grund; der Wechsel steht mit dem Grund im Audit-Log. Technik und Support
 sehen sie nur.
