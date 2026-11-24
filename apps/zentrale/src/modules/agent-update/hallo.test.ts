@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { AGENT_UPDATE_AKTION } from "@steuerzentrale/manifest";
-import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
+import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { ereignisse } from "../../db/schema.ts";
 import { serverHinzufuegen } from "../../testhilfen/agent.ts";
@@ -12,6 +12,9 @@ import { serverZumFingerabdruck } from "../server/index.ts";
 import { sitzung } from "../verbindung/sitzung.ts";
 import type { Sockel } from "../verbindung/verbindungen.ts";
 import { AGENT_ARTEN } from "./ende.ts";
+
+/** A version newer than this build's, whatever package.json says */
+const NEUER = "99.0.1";
 
 /*
  * BAULISTE.md Z-504: whether an update of the agent holds shows its next `hallo`. A newer version
@@ -80,7 +83,7 @@ const aufgebaut = async () => {
     );
     if (!r.ok) throw new Error(r.grund);
     const { auftragId } = r.auftrag;
-    const ergebnis = { ok: true as const, daten: { version, vorher: "0.0.0" } };
+    const ergebnis = { ok: true as const, daten: { version, vorher: VERSION } };
     for (const n of [
       { typ: "bestaetigt" as const, protokoll: PROTOKOLL_VERSION, auftragId },
       { typ: "ergebnis" as const, protokoll: PROTOKOLL_VERSION, auftragId, zeit: jetzt, ergebnis },
@@ -94,31 +97,31 @@ const aufgebaut = async () => {
 describe("the agent's version at hallo", () => {
   it("writes an event when it rises and when it falls back, none when it stays", async () => {
     const { server, melden, arten } = await aufgebaut();
-    expect(await melden("0.0.0")).toEqual([
+    expect(await melden(VERSION)).toEqual([
       expect.objectContaining({ typ: "willkommen", protokoll: PROTOKOLL_VERSION }),
     ]);
     expect(arten()).toEqual([]);
     server.stelleUhr(server.jetzt() + 1000);
-    await melden("0.0.1");
+    await melden(NEUER);
     server.stelleUhr(server.jetzt() + 1000);
-    await melden("0.0.1");
+    await melden(NEUER);
     server.stelleUhr(server.jetzt() + 1000);
-    await melden("0.0.0");
+    await melden(VERSION);
     expect(arten()).toEqual([
-      [AGENT_ARTEN.aktualisiert, "info", "Agent von 0.0.0 auf 0.0.1"],
-      [AGENT_ARTEN.zurueckgekehrt, "fehler", "Agent zurück von 0.0.1 auf 0.0.0"],
+      [AGENT_ARTEN.aktualisiert, "info", `Agent von ${VERSION} auf ${NEUER}`],
+      [AGENT_ARTEN.zurueckgekehrt, "fehler", `Agent zurück von ${NEUER} auf ${VERSION}`],
     ]);
   });
 
   it("writes an event when the old agent comes back after an update its new one never reported", async () => {
     const { server, melden, arten, aktualisiert } = await aufgebaut();
-    await melden("0.0.0");
-    aktualisiert("0.0.1");
+    await melden(VERSION);
+    aktualisiert(NEUER);
     // the new agent never reached its Zentrale; after its check the old one says hallo again
     server.stelleUhr(server.jetzt() + 6 * 60_000);
-    await melden("0.0.0");
+    await melden(VERSION);
     server.stelleUhr(server.jetzt() + 1000);
-    await melden("0.0.0");
+    await melden(VERSION);
     expect(arten().map(([art, schwere]) => [art, schwere])).toEqual([
       [AGENT_ARTEN.zurueckgekehrt, "fehler"],
     ]);
@@ -126,14 +129,14 @@ describe("the agent's version at hallo", () => {
 
   it("writes no second event when the new agent reported and the old one came back later", async () => {
     const { server, melden, arten, aktualisiert } = await aufgebaut();
-    await melden("0.0.0");
-    aktualisiert("0.0.1");
+    await melden(VERSION);
+    aktualisiert(NEUER);
     server.stelleUhr(server.jetzt() + 1000);
-    await melden("0.0.1");
+    await melden(NEUER);
     server.stelleUhr(server.jetzt() + 1000);
-    await melden("0.0.0");
+    await melden(VERSION);
     server.stelleUhr(server.jetzt() + 1000);
-    await melden("0.0.0");
+    await melden(VERSION);
     expect(arten().map(([art]) => art)).toEqual([
       AGENT_ARTEN.aktualisiert,
       AGENT_ARTEN.zurueckgekehrt,
