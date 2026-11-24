@@ -1,6 +1,8 @@
 // Messages between the Zentrale and the agent, shared by both so they cannot drift apart
 // (docs/plan.md, "Technologie").
 
+import rootPaket from "../../../package.json" with { type: "json" };
+
 export {
   AUFTRAG_ZUSTAENDE,
   type AuftragEreignis,
@@ -56,6 +58,10 @@ export { FAKTEN_MS, HEARTBEAT_MS, ROTIEREN_VOR_MS, VERBINDUNG_PFAD } from "./ver
  */
 declare const STEUERZENTRALE_BAU_VERSION: string | undefined;
 
-/** The version of the Steuerzentrale, the same for Zentrale and agent; kept equal to package.json (test) */
+/**
+ * The version of the Steuerzentrale, the same for Zentrale and agent: read from the root
+ * package.json, the one place "Bump version" raises and release.yml checks against the tag (as
+ * Speicherstadt/kennwort, apps/server/src/version.ts)
+ */
 export const VERSION: string =
-  typeof STEUERZENTRALE_BAU_VERSION === "string" ? STEUERZENTRALE_BAU_VERSION : "0.0.0";
+  typeof STEUERZENTRALE_BAU_VERSION === "string" ? STEUERZENTRALE_BAU_VERSION : rootPaket.version;

@@ -264,8 +264,8 @@ jobs:
         run: |
           bun run --cwd apps/agent build
           # a link the update of the agent (Z-504) turns to a newer release in one step (rename)
-          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-0.0.0"
-          ln -s "$RUNNER_TEMP/agent-0.0.0" "$RUNNER_TEMP/agent-dateien"
+          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-erst"
+          ln -s "$RUNNER_TEMP/agent-erst" "$RUNNER_TEMP/agent-dateien"
           host="$(sudo incus network get incusbr0 ipv4.address | cut -d/ -f1)"
           {
             echo "STEUERZENTRALE_PORT=28300"
@@ -316,8 +316,9 @@ jobs:
           test -n "$vm" && test "$vm" = "$zentrale"
           # the agent is connected: the Zentrale saw its hallo through the Pforte
           agent() { bun apps/zentrale/src/testhilfen/testserver.ts agent "$SERVER_ID"; }
-          for i in $(seq 1 30); do test "$(agent | jq -r .version)" = 0.0.0 && break; sleep 2; done
-          test "$(agent | jq -r .version)" = 0.0.0
+          # the version of this build, as package.json names it (packages/protokoll, VERSION)
+          for i in $(seq 1 30); do test "$(agent | jq -r .version)" = "$(jq -r .version package.json)" && break; sleep 2; done
+          test "$(agent | jq -r .version)" = "$(jq -r .version package.json)"
       # Z-701: the VM needs a reboot (/run is a tmpfs, so the mark is gone after it, as after a real
       # kernel update); the agent, restarted, sends fresh facts; in the window opened for the whole
       # day the planning (every minute) reboots the server, which has no installation to back up.
@@ -355,26 +356,26 @@ jobs:
           jq . "$stand"
           verbunden
           test "$(jq -r .fakten.neustartNoetig "$stand")" = false
-      # Z-504: a newer agent (0.0.1, the same code with another version, scripts/compile.ts) in the
+      # Z-504: a newer agent (99.0.1, newer than any release; the same code with another version, scripts/compile.ts) in the
       # agent files; the maintenance window is the whole day, the planning runs every minute
       - name: The agent updates itself
         run: |
-          STEUERZENTRALE_BAU_VERSION=0.0.1 bun run --cwd apps/agent build
-          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-0.0.1"
-          ln -sfn "$RUNNER_TEMP/agent-0.0.1" "$RUNNER_TEMP/agent-dateien.neu"
+          STEUERZENTRALE_BAU_VERSION=99.0.1 bun run --cwd apps/agent build
+          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-99.0.1"
+          ln -sfn "$RUNNER_TEMP/agent-99.0.1" "$RUNNER_TEMP/agent-dateien.neu"
           mv -T "$RUNNER_TEMP/agent-dateien.neu" "$RUNNER_TEMP/agent-dateien"
           bun apps/zentrale/src/testhilfen/testserver.ts wartungsfenster "$SERVER_ID"
           agent() { bun apps/zentrale/src/testhilfen/testserver.ts agent "$SERVER_ID"; }
-          for i in $(seq 1 60); do test "$(agent | jq -r .version)" = 0.0.1 && break; sleep 5; done
+          for i in $(seq 1 60); do test "$(agent | jq -r .version)" = 99.0.1 && break; sleep 5; done
           agent | tee "$RUNNER_TEMP/agent.json"
           # the Zentrale saw the new agent's hallo, the job succeeded, the event says so
-          test "$(jq -r .version "$RUNNER_TEMP/agent.json")" = 0.0.1
+          test "$(jq -r .version "$RUNNER_TEMP/agent.json")" = 99.0.1
           test "$(jq -r .update.zustand "$RUNNER_TEMP/agent.json")" = erfolgreich
           jq -e '.ereignisse | any(.art == "agent_aktualisiert")' "$RUNNER_TEMP/agent.json"
           # the new binary runs as the service, the old one is kept beside it
           sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
-          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 0.0.1 (protokoll 1)"
-          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent.alt --version)" = "steuerzentrale-agent 0.0.0 (protokoll 1)"
+          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 99.0.1 (protokoll 1)"
+          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent.alt --version)" = "steuerzentrale-agent $(jq -r .version package.json) (protokoll 1)"
           # the new agent confirmed itself at willkommen; the check from the old binary is planned
           bestaetigt() { sudo incus exec "$VM" -- grep -q '"bestaetigt":true' /var/lib/steuerzentrale/agent-update.json; }
           for i in $(seq 1 10); do bestaetigt && break; sleep 1; done
@@ -383,27 +384,27 @@ jobs:
           # the check, run now as its timer would: a confirmed update stays
           sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent.alt agent-update-pruefen
           sudo incus exec "$VM" -- test ! -e /var/lib/steuerzentrale/agent-update.json
-          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 0.0.1 (protokoll 1)"
+          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 99.0.1 (protokoll 1)"
           sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
-      # Z-504: 0.0.2 with SHA256SUMS signed by a key the server does not trust: refused, nothing replaced
+      # Z-504: 99.0.2 with SHA256SUMS signed by a key the server does not trust: refused, nothing replaced
       - name: A wrong signature is refused
         run: |
-          STEUERZENTRALE_BAU_VERSION=0.0.2 bun run --cwd apps/agent build
-          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-0.0.2"
+          STEUERZENTRALE_BAU_VERSION=99.0.2 bun run --cwd apps/agent build
+          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-99.0.2"
           minisign -G -W -p "$RUNNER_TEMP/fremd.pub" -s "$RUNNER_TEMP/fremd.key"
-          minisign -S -s "$RUNNER_TEMP/fremd.key" -m "$RUNNER_TEMP/agent-0.0.2/SHA256SUMS" < /dev/null
-          ln -sfn "$RUNNER_TEMP/agent-0.0.2" "$RUNNER_TEMP/agent-dateien.neu"
+          minisign -S -s "$RUNNER_TEMP/fremd.key" -m "$RUNNER_TEMP/agent-99.0.2/SHA256SUMS" < /dev/null
+          ln -sfn "$RUNNER_TEMP/agent-99.0.2" "$RUNNER_TEMP/agent-dateien.neu"
           mv -T "$RUNNER_TEMP/agent-dateien.neu" "$RUNNER_TEMP/agent-dateien"
           agent() { bun apps/zentrale/src/testhilfen/testserver.ts agent "$SERVER_ID"; }
-          for i in $(seq 1 60); do test "$(agent | jq -r '.update | "\(.version) \(.zustand)"')" = "0.0.2 gescheitert" && break; sleep 5; done
+          for i in $(seq 1 60); do test "$(agent | jq -r '.update | "\(.version) \(.zustand)"')" = "99.0.2 gescheitert" && break; sleep 5; done
           agent | tee "$RUNNER_TEMP/agent.json"
           test "$(jq -r .update.zustand "$RUNNER_TEMP/agent.json")" = gescheitert
           jq -r .update.ergebnis "$RUNNER_TEMP/agent.json" | grep -q "the signature of SHA256SUMS does not hold"
           jq -e '.ereignisse | any(.art == "agent_update_gescheitert")' "$RUNNER_TEMP/agent.json"
-          # the agent still runs 0.0.1 and wrote nothing of 0.0.2
-          test "$(jq -r .version "$RUNNER_TEMP/agent.json")" = 0.0.1
+          # the agent still runs 99.0.1 and wrote nothing of 99.0.2
+          test "$(jq -r .version "$RUNNER_TEMP/agent.json")" = 99.0.1
           sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
-          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 0.0.1 (protokoll 1)"
+          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 99.0.1 (protokoll 1)"
           sudo incus exec "$VM" -- test ! -e /usr/local/bin/steuerzentrale-agent.neu
           sudo incus exec "$VM" -- test ! -e /var/lib/steuerzentrale/agent-update.json
       # Z-1002 (docs/zentrale-sichern.md): the Zentrale backs up its database while it runs, restic
@@ -417,16 +418,16 @@ jobs:
           minio="$(bun --print 'require("./apps/agent/test/backup-hilfen.ts").MINIO_IMAGE')"
           restic_image="$(bun --print 'require("./packages/manifest/src/system.ts").RESTIC_IMAGE.image')"
           s3_geheim="sz-test-$(head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9')"
-          podman run -d --rm --name sz-test-zentrale-s3 -p 127.0.0.1:29402:9000 \
+          podman run -d --rm --name sz-test-zentrale-s3 -p 127.99.0.1:29402:9000 \
             -e MINIO_ROOT_USER=sztest -e MINIO_ROOT_PASSWORD="$s3_geheim" -e MINIO_DEFAULT_BUCKETS=zentrale "$minio"
-          for i in $(seq 1 120); do curl -fsS http://127.0.0.1:29402/minio/health/ready && break; sleep 1; done
+          for i in $(seq 1 120); do curl -fsS http://127.99.0.1:29402/minio/health/ready && break; sleep 1; done
           head -c 32 /dev/urandom | base64 > "$RUNNER_TEMP/restic-passwort"
           export AWS_ACCESS_KEY_ID=sztest AWS_SECRET_ACCESS_KEY="$s3_geheim"
           restic() {
             podman run --rm --network host -v "$RUNNER_TEMP/restic-passwort:/passwort:ro" \
               -v "$RUNNER_TEMP/sicherung:/sicherung" -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY \
               -e RESTIC_PASSWORD_FILE=/passwort "$restic_image" --no-cache \
-              --repo s3:http://127.0.0.1:29402/zentrale/steuerzentrale "$@"
+              --repo s3:http://127.99.0.1:29402/zentrale/steuerzentrale "$@"
           }
           mkdir -p "$RUNNER_TEMP/sicherung"
           # the Zentrale runs on while it backs up

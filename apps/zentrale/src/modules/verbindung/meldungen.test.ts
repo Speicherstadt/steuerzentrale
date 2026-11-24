@@ -1,4 +1,4 @@
-import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
+import { PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { VOM_AGENTEN_V1 } from "../../../../../packages/protokoll/src/beispiele-v1.ts";
 import {
@@ -34,7 +34,7 @@ const verbunden = async () => {
   const geschlossen: number[] = [];
   const s = sitzung(zentrale.deps, gefunden);
   s.offen({ senden: () => {}, schliessen: (code) => geschlossen.push(code) });
-  const hallo = { typ: "hallo", protokoll: PROTOKOLL_VERSION, agentVersion: "0.0.0", zeit: 1 };
+  const hallo = { typ: "hallo", protokoll: PROTOKOLL_VERSION, agentVersion: VERSION, zeit: 1 };
   await s.nachricht(JSON.stringify({ ...hallo, architektur: "amd64" }));
   return { zentrale, s, geschlossen, server: gefunden.server };
 };
