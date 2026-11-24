@@ -31,7 +31,7 @@ Zustandsfarben: `--ok` (grün), `--warn` (orange), `--destructive` (rot), `--inf
 | Baustein | Wofür |
 | --- | --- |
 | Seitenleiste | Gruppen Betrieb, Kunden, System; Zähler nur, wenn es etwas zu tun gibt; unten Sperrzeiten und das eigene Konto |
-| Kennzahl | vier oben in der Übersicht, mit Badge und zwei Zeilen Erklärung |
+| Kennzahl | vier oben in der Übersicht, mit Badge, kleinem Diagramm (`teile/diagramme.tsx`: ein Segment je Server oder Backup, Anteile der Zustände als Balken, Fortschritt als Ring mit Prozent) und zwei Zeilen Erklärung; Farbe nur mit Bedeutung (ok, warn, danger), das Diagramm wiederholt nur, was als Text dasteht, wie in Belegt |
 | Tabelle | Kopf in `muted`, Zeile hover; Server-Gruppierung als graue Zwischenzeile; auf dem Handy seitlich scrollbar in ihrem Rahmen, die Seite nie |
 | Zustands-Badge | umrandet, Symbol in Zustandsfarbe, Text grau |
 | Dialog | Titel, ein Satz, was passiert; Felder; Grund; Abbrechen und Hauptaktion |
