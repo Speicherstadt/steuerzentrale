@@ -264,8 +264,8 @@ jobs:
         run: |
           bun run --cwd apps/agent build
           # a link the update of the agent (Z-504) turns to a newer release in one step (rename)
-          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-0.0.0"
-          ln -s "$RUNNER_TEMP/agent-0.0.0" "$RUNNER_TEMP/agent-dateien"
+          bun scripts/agent-dateien.ts "$RUNNER_TEMP/agent-erst"
+          ln -s "$RUNNER_TEMP/agent-erst" "$RUNNER_TEMP/agent-dateien"
           host="$(sudo incus network get incusbr0 ipv4.address | cut -d/ -f1)"
           {
             echo "STEUERZENTRALE_PORT=28300"
@@ -316,8 +316,9 @@ jobs:
           test -n "$vm" && test "$vm" = "$zentrale"
           # the agent is connected: the Zentrale saw its hallo through the Pforte
           agent() { bun apps/zentrale/src/testhilfen/testserver.ts agent "$SERVER_ID"; }
-          for i in $(seq 1 30); do test "$(agent | jq -r .version)" = 0.0.0 && break; sleep 2; done
-          test "$(agent | jq -r .version)" = 0.0.0
+          # the version of this build, as package.json names it (packages/protokoll, VERSION)
+          for i in $(seq 1 30); do test "$(agent | jq -r .version)" = "$(jq -r .version package.json)" && break; sleep 2; done
+          test "$(agent | jq -r .version)" = "$(jq -r .version package.json)"
       # Z-701: the VM needs a reboot (/run is a tmpfs, so the mark is gone after it, as after a real
       # kernel update); the agent, restarted, sends fresh facts; in the window opened for the whole
       # day the planning (every minute) reboots the server, which has no installation to back up.
@@ -374,7 +375,7 @@ jobs:
           # the new binary runs as the service, the old one is kept beside it
           sudo incus exec "$VM" -- systemctl is-active steuerzentrale-agent
           test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent --version)" = "steuerzentrale-agent 99.0.1 (protokoll 1)"
-          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent.alt --version)" = "steuerzentrale-agent 0.0.0 (protokoll 1)"
+          test "$(sudo incus exec "$VM" -- /usr/local/bin/steuerzentrale-agent.alt --version)" = "steuerzentrale-agent $(jq -r .version package.json) (protokoll 1)"
           # the new agent confirmed itself at willkommen; the check from the old binary is planned
           bestaetigt() { sudo incus exec "$VM" -- grep -q '"bestaetigt":true' /var/lib/steuerzentrale/agent-update.json; }
           for i in $(seq 1 10); do bestaetigt && break; sleep 1; done

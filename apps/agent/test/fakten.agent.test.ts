@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { isIPv4, isIPv6 } from "node:net";
 import { release, tmpdir } from "node:os";
 import { join } from "node:path";
-import { Fakten, PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
+import { Fakten, PROTOKOLL_VERSION, VERSION } from "@steuerzentrale/protokoll";
 import { afterAll, describe, expect, it } from "vitest";
 import { ereignisse } from "../../zentrale/src/db/schema.ts";
 import { serverZumFingerabdruck } from "../../zentrale/src/modules/server/index.ts";
@@ -211,7 +211,7 @@ describe.skipIf(podman === null)("an SSH login in a container (Z-304)", () => {
     if (!gefunden) throw new Error("server not found");
     const s = sitzung(zentrale.deps, gefunden);
     s.offen({ senden: () => {}, schliessen: () => {} });
-    const kopf = { protokoll: PROTOKOLL_VERSION, agentVersion: "0.0.0", zeit: 1 };
+    const kopf = { protokoll: PROTOKOLL_VERSION, agentVersion: VERSION, zeit: 1 };
     await s.nachricht(JSON.stringify({ typ: "hallo", architektur: ARCHITEKTUR, ...kopf }));
     await s.nachricht(
       JSON.stringify({ typ: "ssh_anmeldung", protokoll: PROTOKOLL_VERSION, ...anmeldung }),
