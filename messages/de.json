@@ -523,6 +523,7 @@
   "nav_auftraege": "Aufträge",
   "nav_backups": "Backups",
   "nav_bereiche": "Bereiche",
+  "nav_version": "Version {version}",
   "nav_betreiber": "Betreiber: {name}",
   "nav_einstellungen": "Einstellungen",
   "nav_ereignisse": "Ereignisse",

@@ -1,5 +1,6 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import paket from "../../../../package.json" with { type: "json" };
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
 import type { Rolle } from "../daten/typen.ts";
 import { brauchtAufmerksamkeit } from "../daten/zu-tun.ts";
@@ -63,6 +64,11 @@ describe("the sidebar", () => {
     expect(root.textContent).toContain(`${n} Dinge brauchen dich`);
     expect(zahlVon(root, "Updates")).toBe("3");
     expect(zahlVon(root, "Apps")).toBeUndefined();
+  });
+
+  it("names the version of this build at its foot", async () => {
+    const { root } = await oeffne("/");
+    expect(root.textContent).toContain(`Version ${paket.version}`);
   });
 
   it.each([
