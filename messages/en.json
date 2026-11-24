@@ -523,6 +523,7 @@
   "nav_auftraege": "Jobs",
   "nav_backups": "Backups",
   "nav_bereiche": "Areas",
+  "nav_version": "Version {version}",
   "nav_betreiber": "Operator: {name}",
   "nav_einstellungen": "Settings",
   "nav_ereignisse": "Events",

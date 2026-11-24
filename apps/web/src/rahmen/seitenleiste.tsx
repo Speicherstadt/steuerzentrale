@@ -10,11 +10,12 @@ import { brauchtAufmerksamkeit } from "../daten/zu-tun.ts";
 import { zaehler } from "../daten/zustand.ts";
 import { GRUPPEN, heimat, sichtbareGruppen, type Zaehler } from "./navigation.ts";
 import { rolleName } from "./texte.ts";
+import { VERSION } from "./version.ts";
 
 /**
  * The sidebar (DESIGN.md, "Bausteine"): eight areas in the groups Betrieb and Verwaltung, a
  * counter only where there is something to do; at the foot the own account, named by the Zentrale
- * (GET /api/v1/ich, Z-406). Without the operator switch of stage 2 (BAULISTE.md, Z-803).
+ * (GET /api/v1/ich, Z-406), and the version of this build. Without the operator switch of stage 2 (BAULISTE.md, Z-803).
  */
 
 const Marke = (props: { ich: Ich | null }) => (
@@ -148,6 +149,9 @@ export const Seitenleiste = () => {
       </div>
       <div class="p-2">
         <Konto ich={ich()} />
+        <p class="px-2 pt-1 text-xs text-muted-foreground tabular-nums">
+          {m.nav_version({ version: VERSION })}
+        </p>
       </div>
     </div>
   );
