@@ -1,101 +1,195 @@
 import { Button, Icon, m } from "@steuerzentrale/ui";
-import { CircleCheck, TriangleAlert } from "@steuerzentrale/ui/icons";
+import { ArrowRight, ChevronRight, CircleCheck, TriangleAlert } from "@steuerzentrale/ui/icons";
 import { createMemo, createSignal, For, Loading, Match, refresh, Show, Switch } from "solid-js";
+import { suche } from "../daten/ableitungen.ts";
 import { type Angebot, appsQuelle, type InstallationsAngebot } from "../daten/apps.ts";
 import { bestand } from "../daten/quelle.ts";
+import { type AppGruppe, aufDemNeuesten, nachApp } from "../daten/update-gruppen.ts";
 import { planText, updateMisslungen, updateText } from "../daten/update-texte.ts";
-import { welleName } from "../rahmen/texte.ts";
 import { Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
-import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuInstallation } from "../teile/verweise.tsx";
-import { Marke, Zustand } from "../teile/zeichen.tsx";
+import { Marke } from "../teile/zeichen.tsx";
 import { Fehler } from "./anmeldung-teile.tsx";
 import { installationsRecht } from "./recht.tsx";
 import { UpdateDialog } from "./update-dialog.tsx";
 
 /*
- * The page "Updates" from the Zentrale (BAULISTE.md Z-501, Z-503): which imported versions each
- * installation is offered (a pre-release only to an internal customer), where the plan stands for
- * it, its last update with how it ended, an update by hand for owner and technik
- * (update-dialog.tsx), and what is new in the registries without a manifest.
+ * The page "Updates" from the Zentrale (BAULISTE.md Z-501, Z-503): the installations offered a
+ * newer version, grouped by app (a pre-release only to an internal customer), each with where the
+ * plan stands for it, its last update with how it ended and an update by hand for owner and technik
+ * (update-dialog.tsx); the current ones folded away below; and what is new in the registries
+ * without a manifest.
  */
 
 const AngebotsMarke = (props: { v: Angebot }) => (
-  <Marke class="font-mono font-normal">
+  <span
+    class={[
+      "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-sm font-medium whitespace-nowrap",
+      props.v.vorabversion ? "border-warn/60 bg-warn/10" : "border-foreground/25",
+    ]}
+  >
     {props.v.version}
     <Show when={props.v.dringend}>
       <Icon icon={TriangleAlert} size={12} class="text-destructive" label={m.version_dringend()} />
     </Show>
     <Show when={props.v.vorabversion}>
-      <span class="font-sans text-muted-foreground">{m.version_vorab()}</span>
+      <span class="font-sans text-xs font-semibold text-warn">{m.version_vorab()}</span>
     </Show>
-  </Marke>
+  </span>
 );
 
 const text = (i: InstallationsAngebot) => updateText(i.update, bestand().jetzt);
 
-/** The last update: a good one as a sign, one rolled back or failed in the warning's colour */
-const UpdateZustand = (props: { i: InstallationsAngebot }) => (
-  <Switch fallback={<span>{text(props.i)}</span>}>
-    <Match when={props.i.update.letzter?.phase === "aktualisiert"}>
-      <Zustand icon={CircleCheck} farbe="text-ok" text={text(props.i)} />
-    </Match>
-    <Match when={updateMisslungen(props.i.update)}>
-      <span class="font-medium text-warn">{text(props.i)}</span>
-    </Match>
-  </Switch>
+/** The last update: a good one with a sign, one rolled back or failed in the warning's colour */
+const LetztesUpdate = (props: { i: InstallationsAngebot }) => (
+  <p class="text-sm text-muted-foreground">
+    <Switch fallback={m.upd_zeile_zuletzt({ text: text(props.i) })}>
+      <Match when={props.i.update.letzter?.phase === "aktualisiert"}>
+        <span class="inline-flex items-center gap-1">
+          <Icon icon={CircleCheck} size={14} class="text-ok" />
+          {m.upd_zeile_zuletzt({ text: text(props.i) })}
+        </span>
+      </Match>
+      <Match when={updateMisslungen(props.i.update)}>
+        <span class="inline-flex items-start gap-1 font-medium text-warn">
+          <Icon icon={TriangleAlert} size={14} class="mt-0.5 shrink-0" />
+          {m.upd_zeile_zuletzt({ text: text(props.i) })}
+        </span>
+      </Match>
+    </Switch>
+  </p>
 );
 
 /** Whether an update by hand can be asked for now: a newer version, none under way */
 const aktualisierbar = (i: InstallationsAngebot) => i.angeboten.length > 0 && !i.update.laeuft;
 
-const Zeile = (props: {
+/** The customer's name where the operator's customers are known, and the installation's ID */
+const Name = (props: { i: InstallationsAngebot }) => (
+  <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+    <Show when={suche(bestand().kunden, props.i.kundeId)}>
+      {(k) => <span class="font-semibold">{k().name}</span>}
+    </Show>
+    <ZuInstallation
+      id={props.i.installationId}
+      class={
+        suche(bestand().kunden, props.i.kundeId)
+          ? "font-mono text-xs text-muted-foreground"
+          : "font-mono font-medium"
+      }
+    >
+      {props.i.installationId}
+    </ZuInstallation>
+    <Show when={props.i.intern}>
+      <Marke class="text-muted-foreground">{m.upd_kunde_intern()}</Marke>
+    </Show>
+  </div>
+);
+
+const Kandidat = (props: {
   i: InstallationsAngebot;
   darf: boolean;
   waehlen: (i: InstallationsAngebot) => void;
 }) => (
-  <Reihe>
-    <td>
-      <ZuInstallation id={props.i.installationId} class="font-mono text-xs">
-        {props.i.installationId}
-      </ZuInstallation>
-    </td>
-    <td>{props.i.app}</td>
-    <td class="font-mono text-xs">{props.i.version}</td>
-    <td>{welleName(props.i.intern ? "intern" : "alle")}</td>
-    <td>
-      <Show
-        when={props.i.angeboten.length > 0}
-        fallback={<Zustand icon={CircleCheck} farbe="text-ok" text={m.upd_aktuell()} />}
-      >
-        <div class="flex flex-wrap gap-1">
-          <For each={props.i.angeboten}>{(v) => <AngebotsMarke v={v} />}</For>
-        </div>
+  <li
+    data-installation={props.i.installationId}
+    class="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+  >
+    <div class="grid min-w-0 gap-1.5">
+      <Name i={props.i} />
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="font-mono text-sm text-muted-foreground">{props.i.version}</span>
+        <Icon icon={ArrowRight} size={14} class="text-muted-foreground" />
+        <For each={props.i.angeboten}>{(v) => <AngebotsMarke v={v} />}</For>
+      </div>
+      <Show when={props.i.plan}>
+        <p class="text-sm text-muted-foreground">
+          {m.upd_zeile_plan({ text: planText(props.i.plan, bestand().jetzt) })}
+        </p>
       </Show>
-    </td>
-    <td class="text-xs">{planText(props.i.plan, bestand().jetzt)}</td>
-    <td class="text-xs">
-      <UpdateZustand i={props.i} />
-    </td>
-    <Show when={props.darf}>
-      <td class="text-right">
-        <Show when={aktualisierbar(props.i)}>
-          <Button
-            size="sm"
-            aria-label={m.upd_knopf_installation({ name: props.i.installationId })}
-            onClick={() => props.waehlen(props.i)}
-          >
-            {m.upd_knopf()}
-          </Button>
-        </Show>
-      </td>
+      <LetztesUpdate i={props.i} />
+    </div>
+    <Show when={props.darf && aktualisierbar(props.i)}>
+      <Button
+        class="self-start sm:self-center"
+        aria-label={m.upd_knopf_installation({ name: props.i.installationId })}
+        onClick={() => props.waehlen(props.i)}
+      >
+        {m.upd_knopf()}
+      </Button>
     </Show>
-  </Reihe>
+  </li>
+);
+
+const appName = (app: string) => suche(bestand().apps, app)?.name ?? app;
+
+const Gruppe = (props: {
+  g: AppGruppe;
+  darf: boolean;
+  waehlen: (i: InstallationsAngebot) => void;
+}) => (
+  <section class="grid gap-2" aria-label={`${appName(props.g.app)} ${props.g.neueste}`}>
+    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h3 class="text-lg font-semibold">
+        {appName(props.g.app)} <span class="font-mono">{props.g.neueste}</span>
+      </h3>
+      <span class="text-muted-foreground">
+        {props.g.installationen.length === 1
+          ? m.upd_gruppe_eine()
+          : m.upd_gruppe_mehrere({ n: props.g.installationen.length })}
+      </span>
+    </div>
+    <ul class="divide-y rounded-lg border">
+      <For each={props.g.installationen}>
+        {(i) => <Kandidat i={i} darf={props.darf} waehlen={props.waehlen} />}
+      </For>
+    </ul>
+  </section>
+);
+
+/** The current installations, folded away: they need nothing */
+const AufDemNeuesten = (props: { liste: InstallationsAngebot[] }) => (
+  <Karte>
+    <details class="group">
+      <summary class="flex cursor-pointer list-none items-center gap-2 p-5 font-semibold [&::-webkit-details-marker]:hidden">
+        <Icon
+          icon={ChevronRight}
+          size={16}
+          class="text-muted-foreground transition-transform group-open:rotate-90"
+        />
+        <h2>{m.upd_neuester_titel({ n: props.liste.length })}</h2>
+      </summary>
+      <KartenInhalt>
+        <ul class="divide-y rounded-lg border">
+          <For
+            each={props.liste}
+            fallback={<li class="px-4 py-3 text-muted-foreground">{m.upd_neuester_keine()}</li>}
+          >
+            {(i) => (
+              <li
+                data-installation={i.installationId}
+                class="grid gap-1.5 px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4"
+              >
+                <div class="grid min-w-0 gap-1">
+                  <Name i={i} />
+                  <LetztesUpdate i={i} />
+                </div>
+                <span class="flex shrink-0 items-center gap-1.5 text-sm">
+                  <span class="text-muted-foreground">{appName(i.app)}</span>
+                  <span class="font-mono">{i.version}</span>
+                  <Icon icon={CircleCheck} size={14} class="text-ok" label={m.upd_aktuell()} />
+                </span>
+              </li>
+            )}
+          </For>
+        </ul>
+      </KartenInhalt>
+    </details>
+  </Karte>
 );
 
 /**
- * The versions each installation is offered, where the plan stands for it and its last update,
- * with an update by hand for owner and technik; read anew once an update is asked for
+ * "Updates verfügbar" by app with an update by hand for owner and technik, and the current ones
+ * folded away; read anew once an update is asked for
  */
 export const Angebote = () => {
   const antwort = createMemo(() => appsQuelle().angebote());
@@ -106,49 +200,47 @@ export const Angebote = () => {
     const a = antwort();
     return a.ok ? a.daten : [];
   };
+  const gruppen = () => nachApp(liste());
   return (
-    <Karte>
-      <KartenKopf titel={m.upd_angebote()} text={m.upd_angebote_text()} />
-      <KartenInhalt>
-        <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
+    <Loading fallback={<p class="text-muted-foreground">{m.inst_laden()}</p>}>
+      <Karte>
+        <KartenKopf titel={m.upd_verfuegbar_titel()} text={m.upd_verfuegbar_text()} />
+        <KartenInhalt class="grid gap-6">
           <Show when={!antwort().ok}>
             <Fehler text={m.apps_versionen_fehler()} />
           </Show>
-          <Tabelle
-            name={m.upd_angebote()}
-            spalten={[
-              { name: m.nav_installationen() },
-              { name: m.upd_spalte_app() },
-              { name: m.upd_spalte_installiert() },
-              { name: m.inst_welle() },
-              { name: m.upd_spalte_angeboten() },
-              { name: m.upd_spalte_plan() },
-              { name: m.upd_spalte_update() },
-              ...(darf() ? [{ name: m.upd_spalte_aktion() }] : []),
-            ]}
-            minBreite={980}
-            leer={m.upd_keine_installationen()}
-            anzahl={liste().length}
-          >
-            <For each={liste()}>
-              {(i) => <Zeile i={i} darf={darf()} waehlen={(x) => setGewaehlt(x)} />}
-            </For>
-          </Tabelle>
-          <p role="status" class={["mt-3 text-xs text-muted-foreground", { hidden: !hinweis() }]}>
+          <Switch>
+            <Match when={antwort().ok && liste().length === 0}>
+              <p class="text-muted-foreground">{m.upd_keine_installationen()}</p>
+            </Match>
+            <Match when={antwort().ok && gruppen().length === 0}>
+              <p class="flex items-center gap-2 text-muted-foreground">
+                <Icon icon={CircleCheck} size={16} class="text-ok" />
+                {m.upd_verfuegbar_keine()}
+              </p>
+            </Match>
+          </Switch>
+          <For each={gruppen()}>
+            {(g) => <Gruppe g={g} darf={darf()} waehlen={(x) => setGewaehlt(x)} />}
+          </For>
+          <p role="status" class={["text-sm text-muted-foreground", { hidden: !hinweis() }]}>
             {hinweis()}
           </p>
-          <UpdateDialog
-            i={gewaehlt()}
-            onClose={() => setGewaehlt(undefined)}
-            angefordert={() => {
-              setGewaehlt(undefined);
-              setHinweis(m.upd_angefordert());
-              refresh(antwort);
-            }}
-          />
-        </Loading>
-      </KartenInhalt>
-    </Karte>
+        </KartenInhalt>
+      </Karte>
+      <Show when={liste().length > 0}>
+        <AufDemNeuesten liste={aufDemNeuesten(liste())} />
+      </Show>
+      <UpdateDialog
+        i={gewaehlt()}
+        onClose={() => setGewaehlt(undefined)}
+        angefordert={() => {
+          setGewaehlt(undefined);
+          setHinweis(m.upd_angefordert());
+          refresh(antwort);
+        }}
+      />
+    </Loading>
   );
 };
 
@@ -194,7 +286,7 @@ export const NeuInRegistry = () => {
 
 /** Signed in: the offers with plan and last update, and the registries' news */
 export const UpdatesDerZentrale = () => (
-  <div class="grid gap-4">
+  <div class="grid gap-6">
     <Angebote />
     <NeuInRegistry />
   </div>

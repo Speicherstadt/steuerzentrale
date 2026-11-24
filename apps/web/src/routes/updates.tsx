@@ -1,107 +1,24 @@
 import { Icon, m } from "@steuerzentrale/ui";
-import {
-  CalendarClock,
-  Check,
-  CircleArrowUp,
-  CircleCheck,
-  Clock,
-  type IconNode,
-  LoaderCircle,
-  Minus,
-} from "@steuerzentrale/ui/icons";
+import { CalendarClock, ChevronRight, CircleArrowUp } from "@steuerzentrale/ui/icons";
 import { createFileRoute } from "@tanstack/solid-router";
 import { For, Show } from "solid-js";
-import { alleSperrzeiten, appVon, kundeVon, sperrzeitAktiv } from "../daten/ableitungen.ts";
+import { alleSperrzeiten, sperrzeitAktiv } from "../daten/ableitungen.ts";
 import { bestand, mitDemo } from "../daten/quelle.ts";
-import type { Bestand, Updateplan } from "../daten/typen.ts";
-import { nurVonHand, type WellenStand, type WellenZustand, wellen } from "../daten/wellen.ts";
-import { datum } from "../format/zeit.ts";
-import { welleName } from "../rahmen/texte.ts";
+import type { Bestand } from "../daten/typen.ts";
+import { sperrzeitBald } from "../daten/update-gruppen.ts";
+import { nurVonHand } from "../daten/wellen.ts";
 import { Angebote, NeuInRegistry, UpdatesDerZentrale } from "../seiten/update-angebote.tsx";
-import { Balken } from "../teile/balken.tsx";
+import { LaeuftGerade } from "../seiten/update-laeuft.tsx";
 import { Hinweisbox, Karte, KartenInhalt, KartenKopf, Seitenkopf } from "../teile/karte.tsx";
-import { ZuInstallation, ZuServer } from "../teile/verweise.tsx";
-import { AppZeichen, Zustand } from "../teile/zeichen.tsx";
+import { ZuServer } from "../teile/verweise.tsx";
+import { AppZeichen } from "../teile/zeichen.tsx";
 
 /**
- * New versions in waves (BAULISTE.md, Z-501 to Z-504): stage 1 has "intern" and "alle". The
- * versions each installation is offered and the registries' news come from the Zentrale (Z-501);
- * waves and running updates are the demo's until Z-503
+ * New versions in waves (BAULISTE.md, Z-501 to Z-504; docs/updates.md), top to bottom: freeze
+ * windows that matter this week, what runs now, what can update by app, what is current (folded),
+ * and how an update runs (folded). The offers and the registries' news come from the Zentrale
+ * (Z-501); waves and running updates are the demo's until Z-503
  */
-
-const WELLENZUSTAND: Record<WellenZustand, { icon: IconNode; farbe: string; text: () => string }> =
-  {
-    fertig: { icon: CircleCheck, farbe: "text-ok", text: () => m.welle_fertig() },
-    laeuft: { icon: LoaderCircle, farbe: "text-info", text: () => m.auftrag_laeuft() },
-    wartet: { icon: Clock, farbe: "text-muted-foreground", text: () => m.auftrag_wartet() },
-    leer: { icon: Minus, farbe: "text-muted-foreground", text: () => m.welle_leer() },
-  };
-
-const WELLENTEXT = { intern: () => m.welle_intern_text(), alle: () => m.welle_alle_text() };
-
-const WelleZeile = (props: { b: Bestand; plan: Updateplan; w: WellenStand }) => (
-  <div class="grid gap-2">
-    <div class="flex items-center justify-between gap-3">
-      <div class="min-w-0">
-        <span class="font-medium">{welleName(props.w.welle)}</span>
-        <span class="text-muted-foreground"> · {WELLENTEXT[props.w.welle]()}</span>
-      </div>
-      <Zustand
-        icon={WELLENZUSTAND[props.w.zustand].icon}
-        farbe={WELLENZUSTAND[props.w.zustand].farbe}
-        text={WELLENZUSTAND[props.w.zustand].text()}
-      />
-    </div>
-    <Show when={props.w.installationen.length > 0}>
-      <Balken
-        name={m.upd_welle_fortschritt({ welle: welleName(props.w.welle) })}
-        wert={Math.round((props.w.fertig / props.w.installationen.length) * 100)}
-      />
-    </Show>
-    <ul class="flex flex-wrap gap-1.5">
-      <For each={props.w.installationen}>
-        {(i) => (
-          <li>
-            <ZuInstallation
-              id={i.id}
-              class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs hover:bg-muted"
-            >
-              <Icon
-                icon={
-                  i.version === props.plan.version ? Check : i.updateLaeuft ? LoaderCircle : Clock
-                }
-                size={12}
-                label={
-                  i.version === props.plan.version
-                    ? m.welle_fertig()
-                    : i.updateLaeuft
-                      ? m.auftrag_laeuft()
-                      : m.auftrag_wartet()
-                }
-              />
-              {kundeVon(props.b, i.kunde).name}
-            </ZuInstallation>
-          </li>
-        )}
-      </For>
-    </ul>
-  </div>
-);
-
-const Plan = (props: { b: Bestand; plan: Updateplan }) => (
-  <Karte class="lg:col-span-2">
-    <KartenKopf
-      titel={`${appVon(props.b, props.plan.app).name} ${props.plan.version}`}
-      text={m.upd_plan_text({ seit: datum(props.plan.seit), vorher: props.plan.vorher })}
-    />
-    <KartenInhalt class="grid gap-5">
-      <For each={wellen(props.b, props.plan)}>
-        {(w) => <WelleZeile b={props.b} plan={props.plan} w={w} />}
-      </For>
-      <p class="text-xs text-muted-foreground">{m.upd_regel()}</p>
-    </KartenInhalt>
-  </Karte>
-);
 
 const SCHRITTE = [
   () => m.upd_schritt_backup(),
@@ -111,25 +28,73 @@ const SCHRITTE = [
   () => m.upd_schritt_zurueck(),
 ];
 
+/** How an update runs, folded away at the foot of the page */
 const Ablauf = () => (
   <Karte>
-    <KartenKopf titel={m.upd_ablauf()} text={m.upd_ablauf_text()} />
-    <KartenInhalt>
-      <ol class="grid gap-4">
-        <For each={SCHRITTE}>
-          {(schritt, n) => (
-            <li class="flex items-start gap-3">
-              <span class="flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-medium tabular-nums">
-                {n() + 1}
-              </span>
-              <span class="pt-0.5">{schritt()}</span>
-            </li>
-          )}
-        </For>
-      </ol>
-    </KartenInhalt>
+    <details class="group">
+      <summary class="flex cursor-pointer list-none items-center gap-2 p-5 font-semibold [&::-webkit-details-marker]:hidden">
+        <Icon
+          icon={ChevronRight}
+          size={16}
+          class="text-muted-foreground transition-transform group-open:rotate-90"
+        />
+        <h2>{m.upd_ablauf()}</h2>
+      </summary>
+      <KartenInhalt class="grid gap-4">
+        <p class="text-muted-foreground">{m.upd_ablauf_text()}</p>
+        <ol class="grid gap-4">
+          <For each={SCHRITTE}>
+            {(schritt, n) => (
+              <li class="flex items-start gap-3">
+                <span class="flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium tabular-nums">
+                  {n() + 1}
+                </span>
+                <span class="pt-0.5 leading-relaxed">{schritt()}</span>
+              </li>
+            )}
+          </For>
+        </ol>
+      </KartenInhalt>
+    </details>
   </Karte>
 );
+
+/**
+ * Freeze windows: a box only when one holds today or begins within 7 days, else one quiet line;
+ * either way it says that no update starts in one
+ */
+const Sperrzeiten = (props: { b: Bestand }) => {
+  const bald = () => alleSperrzeiten(props.b).filter((z) => sperrzeitBald(z, props.b.jetzt));
+  const aktiv = () => bald().some((z) => sperrzeitAktiv(z, props.b.jetzt));
+  return (
+    <Show
+      when={bald().length > 0}
+      fallback={
+        <p class="flex items-center gap-2 text-muted-foreground">
+          <Icon icon={CalendarClock} size={16} />
+          {m.upd_sperrzeit_ruhig()}
+        </p>
+      }
+    >
+      <Hinweisbox
+        icon={<Icon icon={CalendarClock} />}
+        titel={m.upd_sperrzeiten()}
+        ton={aktiv() ? "warn" : "neutral"}
+      >
+        <ul class="grid gap-1">
+          <For each={bald()}>
+            {(z) => (
+              <li>{m.upd_sperrzeit({ app: z.appName, von: z.von, bis: z.bis, grund: z.grund })}</li>
+            )}
+          </For>
+        </ul>
+        <p class="mt-1">
+          {aktiv() ? m.upd_sperrzeit_aktiv() : m.upd_sperrzeit_bald()} {m.upd_sperrzeit_regel()}
+        </p>
+      </Hinweisbox>
+    </Show>
+  );
+};
 
 const VonHand = (props: { b: Bestand }) => (
   <Karte>
@@ -195,32 +160,18 @@ const Agent = (props: { b: Bestand }) => {
 
 const UpdatesDemo = () => {
   const b = bestand();
-  const sperren = alleSperrzeiten(b);
   return (
-    <div class="grid gap-4">
+    <div class="grid gap-6">
       <Seitenkopf titel={m.nav_updates()} text={m.upd_text()} />
-      <Hinweisbox icon={<Icon icon={CalendarClock} />} titel={m.upd_sperrzeiten()}>
-        {sperren
-          .map((z) => m.upd_sperrzeit({ app: z.appName, von: z.von, bis: z.bis, grund: z.grund }))
-          .join("; ")}{" "}
-        {sperren.some((z) => sperrzeitAktiv(z, b.jetzt))
-          ? m.upd_sperrzeit_aktiv()
-          : m.upd_sperrzeit_keine()}
-      </Hinweisbox>
-      <For each={b.plaene}>
-        {(plan) => (
-          <div class="grid gap-4 lg:grid-cols-3">
-            <Plan b={b} plan={plan} />
-            <Ablauf />
-          </div>
-        )}
-      </For>
+      <Sperrzeiten b={b} />
+      <LaeuftGerade b={b} />
       <Angebote />
       <div class="grid gap-4 lg:grid-cols-3">
         <VonHand b={b} />
         <NeuInRegistry />
         <Agent b={b} />
       </div>
+      <Ablauf />
     </div>
   );
 };
@@ -233,9 +184,10 @@ const Updates = () => (
   <Show
     when={mitDemo()}
     fallback={
-      <div class="grid gap-4">
+      <div class="grid gap-6">
         <Seitenkopf titel={m.nav_updates()} text={m.upd_text()} />
         <UpdatesDerZentrale />
+        <Ablauf />
       </div>
     }
   >

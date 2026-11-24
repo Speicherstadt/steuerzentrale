@@ -6,6 +6,7 @@ export {
   ArchiveRestore,
   ArchiveX,
   ArrowLeft,
+  ArrowRight,
   Bell,
   BookOpenCheck,
   Box,

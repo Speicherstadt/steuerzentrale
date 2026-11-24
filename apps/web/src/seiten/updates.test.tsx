@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 const zeile = (root: HTMLElement, id: string) =>
-  [...root.querySelectorAll<HTMLElement>("tbody tr")].find((tr) => tr.textContent?.startsWith(id));
+  root.querySelector<HTMLElement>(`li[data-installation="${id}"]`) ?? undefined;
 
 describe("an update by hand", () => {
   it("asks for version and reason, backs up first, and shows it under way", async () => {
@@ -75,6 +75,49 @@ describe("an update by hand", () => {
         body: { version: "1.3.0", grund: "Wunsch des Kunden" },
       },
     ]);
+  });
+});
+
+describe("the page at first glance", () => {
+  it("says in one sentence how far the running wave got, with the steps in plain words", async () => {
+    const { root } = await oeffne("/updates");
+    expect(root.textContent).toContain(
+      "Belegt 0.0.7 wird verteilt – 1 von 3 Installationen aktualisiert",
+    );
+    expect(root.textContent).toContain("1/3");
+    expect(root.querySelector("[role=progressbar]")?.getAttribute("aria-valuenow")).toBe("33");
+    const schritte = [...root.querySelectorAll("ol > li h3")].map((h) => h.textContent);
+    expect(schritte).toEqual(["Eigene Installationen (intern)", "Alle anderen"]);
+    expect(root.textContent).toContain("Startet 24 h nach Schritt 1, wenn nichts schiefging");
+    expect(root.textContent).toContain("Seit 18.11.2026 · vorher 0.0.6");
+  });
+
+  it("groups what can update by app, one entry per installation", async () => {
+    const { root } = await oeffne("/updates");
+    const gruppe = root.querySelector<HTMLElement>("section[aria-label='Belegt 0.0.7']");
+    expect(gruppe?.querySelector("h3")?.textContent).toBe("Belegt 0.0.7");
+    expect(gruppe?.textContent).toContain("2 Installationen können aktualisieren");
+    const ids = [...(gruppe?.querySelectorAll("li[data-installation]") ?? [])].map((li) =>
+      li.getAttribute("data-installation"),
+    );
+    expect(ids).toEqual(["atelier-belegt", "holm-belegt"]);
+    expect(zeile(root, "atelier-belegt")?.textContent).toContain("Atelier Nord");
+  });
+
+  it("folds the current installations away, their number in the heading", async () => {
+    const { root } = await oeffne("/updates");
+    const aktuell = [...root.querySelectorAll("details")].find((d) =>
+      d.querySelector("summary")?.textContent?.startsWith("Auf dem neuesten Stand"),
+    );
+    expect(aktuell?.open).toBe(false);
+    const n = aktuell?.querySelectorAll("li[data-installation]").length ?? 0;
+    expect(n).toBeGreaterThan(0);
+    expect(aktuell?.querySelector("summary")?.textContent).toBe(`Auf dem neuesten Stand (${n})`);
+    expect(aktuell?.querySelector("li[data-installation='intern-belegt']")).not.toBeNull();
+    const ablauf = [...root.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "So läuft ein Update",
+    );
+    expect(ablauf?.open).toBe(false);
   });
 });
 

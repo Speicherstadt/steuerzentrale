@@ -12,9 +12,22 @@ Funktion (`packages/planung`) aus den Installationen, dem Update, dem Stand der 
 Zeitpunkt; alle Zeiten gelten in `Europe/Berlin`.
 
 Welche Versionen es gibt, sagen die importierten Manifeste und die Registries ([Manifeste und
-Versionen](manifeste.md)). Die Seite **Updates** zeigt je Installation die Versionen, die sie
-bekommen kann (eine Vorabversion nur eine Installation eines internen Kunden), wo der Plan für sie
-steht (Welle und nächster Termin oder warum sie wartet) und ihr letztes Update mit seinem Ausgang.
+Versionen](manifeste.md)). Die Seite **Updates** zeigt von oben nach unten:
+
+- **Sperrzeiten**: ein Hinweis nur, wenn heute eine gilt oder in den nächsten 7 Tagen eine beginnt,
+  sonst eine kurze Zeile; in einer Sperrzeit beginnt nie ein Update.
+- **Läuft gerade**: welche Version gerade verteilt wird, in einem Satz mit „x von y Installationen
+  aktualisiert“, und die beiden Wellen als nummerierte Schritte („Eigene Installationen (intern)“,
+  „Alle anderen“) mit ihren Installationen und deren Stand (fertig, läuft, wartet); sonst „Gerade
+  läuft kein Update.“
+- **Updates verfügbar**, je App: die Installationen, denen eine neuere Version angeboten wird (eine
+  Vorabversion nur einer Installation eines internen Kunden, deutlich markiert), mit installierter
+  und angebotener Version, wo der Plan für sie steht (Welle und nächster Termin oder warum sie
+  wartet), ihrem letzten Update mit seinem Ausgang (z. B. zurückgenommen mit Grund) und **Update**.
+- **Auf dem neuesten Stand**: eingeklappt, die Zahl im Titel, darin die übrigen Installationen mit
+  ihrem letzten Update.
+- **So läuft ein Update**: eingeklappt, die Schritte des Agenten in Worten.
+
 Alle 5 Minuten startet die Zentrale, was nach dem Plan fällig ist; auf jedem Server läuft höchstens
 ein Update zugleich, das [Update des Agenten](agent-updates.md) und ein
 [Neustart des Servers](betriebssystem.md) mitgezählt. Geplant wird jede

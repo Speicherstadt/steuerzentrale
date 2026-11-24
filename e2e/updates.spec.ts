@@ -17,6 +17,9 @@ const ohneBefund = async (page: Page) => {
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 };
 
+/** An installation's entry on the page, under its app or among the current ones */
+const eintrag = (page: Page, id: string) => page.locator(`li[data-installation="${id}"]`);
+
 type Zeile = {
   installationId: string;
   version: string;
@@ -50,9 +53,8 @@ test.describe("updates", { tag: "@phone" }, () => {
     const i = await bereit(page.request, neuerHost("laeuft"));
     try {
       await page.goto("/updates");
-      const zeile = page
-        .getByRole("row")
-        .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) });
+      const zeile = eintrag(page, i.installationId);
+      await expect(zeile.locator(`a[href="/installationen/${i.installationId}"]`)).toBeVisible();
       await expect(zeile).toContainText("noch keins");
       await zeile.getByRole("button", { name: `Update für ${i.installationId}` }).click();
       const dialog = page.getByRole("dialog", { name: "Installation aktualisieren?" });
@@ -71,9 +73,11 @@ test.describe("updates", { tag: "@phone" }, () => {
       expect((await backups(page.request, i.installationId)).laeufe).toHaveLength(1);
 
       await page.reload();
-      const neu = page
-        .getByRole("row")
-        .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) });
+      // now current: folded away under "Auf dem neuesten Stand"
+      const aktuell = page.locator("details").filter({ hasText: "Auf dem neuesten Stand" });
+      await aktuell.locator("summary").click();
+      const neu = aktuell.locator(`li[data-installation="${i.installationId}"]`);
+      await expect(neu).toBeVisible();
       await expect(neu).toContainText("auf 1.1.0 aktualisiert");
       await expect(neu.getByRole("button", { name: /^Update für / })).toHaveCount(0);
       await ohneBefund(page);
@@ -94,9 +98,8 @@ test.describe("updates", { tag: "@phone" }, () => {
         .toBe("zurueckgenommen");
       expect((await zeileVon(page.request, i.installationId))?.version).toBe("1.0.0");
       await page.goto("/updates");
-      const zeile = page
-        .getByRole("row")
-        .filter({ has: page.locator(`a[href="/installationen/${i.installationId}"]`) });
+      const zeile = eintrag(page, i.installationId);
+      await expect(zeile.locator(`a[href="/installationen/${i.installationId}"]`)).toBeVisible();
       await expect(zeile).toContainText(
         "1.1.0 zurückgenommen, wieder 1.0.0: Health blieb rot: HTTP 502",
       );
