@@ -467,6 +467,21 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   Z-1004.
   Fertig, wenn: ein Release-Kandidat in der CI entsteht und sich nach der Doku in einer Incus-VM
   installieren lässt.
+- [ ] **Z-805 Betriebsart: nur für mich oder für Kunden** – nach dem ersten Inhaber fragt die
+  Zentrale einmal: „Nur für mich“ (eigene Apps auf eigenen Servern) oder „Für Kunden“ (Hosting für
+  andere). Inhaber kann es unter Einstellungen mit Grund ändern. „Nur für mich“ blendet Kunden,
+  Verträge, Kündigung, Support-Zugänge und Leistungen in Menü, Übersicht und Dialogen aus; „App
+  installieren“ fragt keinen Kunden, alle Installationen gehören einem festen internen Kunden des
+  Betreibers (`kunden.intern`), also eine einzige Welle. Datenmodell und API bleiben gleich, nur die
+  Oberfläche und die Zentrale (die ausgeblendeten Endpunkte antworten `409 betriebsart`) richten
+  sich danach. Partner (Z-803) bleiben außen vor.
+  nach: Z-1004
+  Fertig, wenn: die Frage nach dem ersten Inhaber kommt und ohne Antwort wiederkommt (Playwright);
+  „Nur für mich“ zeigt im Menü weder Kunden noch Support-Zugänge noch Leistungen und installiert eine
+  App ohne Kundenauswahl (Playwright, Desktop und `@phone`); der Wechsel zu „Für Kunden“ und zurück
+  verliert keine Installation und steht mit Grund im Audit-Log (Test); nur Inhaber darf wechseln
+  (Test je Rolle); ein Betreiber mit Installationen fremder Kunden kann nicht auf „Nur für mich“
+  wechseln (`409`, Test); die Demo zeigt beide Arten (Umschalter in den Einstellungen).
 
 # Stufe 2 – wachsen
 

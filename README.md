@@ -34,7 +34,7 @@ sich oder ihre Kunden betreiben: auf gemeinsamen Servern, auf einem Server je Ku
 </div>
 
 > [!WARNING]
-> **Release-Kandidat:** Stufe 1 (Selbstbetrieb) ist fertig gebaut und läuft in der CI auf echten VMs durch, im
+> **Release-Kandidat:** Stufe 1 (eigener Betrieb) ist bis auf die Betriebsart „Nur für mich“ (Z-805) fertig gebaut und läuft in der CI auf echten VMs durch, im
 > Echtbetrieb ist die Steuerzentrale noch neu. Vor jedem Update der Zentrale ein Backup machen
 > ([Zentrale sichern](https://speicherstadt.org/steuerzentrale/zentrale-sichern.html)); Apps aktualisiert sie ohnehin nur mit Backup davor.
 
