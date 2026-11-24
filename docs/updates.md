@@ -12,9 +12,17 @@ Funktion (`packages/planung`) aus den Installationen, dem Update, dem Stand der 
 Zeitpunkt; alle Zeiten gelten in `Europe/Berlin`.
 
 Welche Versionen es gibt, sagen die importierten Manifeste und die Registries ([Manifeste und
-Versionen](manifeste.md)). Die Seite **Updates** zeigt je Installation die Versionen, die sie
-bekommen kann (eine Vorabversion nur eine Installation eines internen Kunden), wo der Plan für sie
-steht (Welle und nächster Termin oder warum sie wartet) und ihr letztes Update mit seinem Ausgang.
+Versionen](manifeste.md)). Die Seite **Updates** ist eine Tabelle je App: eine Kopfzeile mit der
+neuesten Version und dem Stand der App (Welle läuft, wie viele aktualisieren können, nur von Hand
+ohne Health), darunter jede Installation, die eine Welle gerade aktualisiert (fertig, wird
+aktualisiert, wartet auf das Wartungsfenster) oder eine neuere Version bekommen kann (eine
+Vorabversion nur eine Installation eines internen Kunden), mit **Aktualisieren…**. Eine
+Installation in einer laufenden Welle hat keinen eigenen Knopf. Ein zurückgenommenes oder
+gescheitertes letztes Update steht mit seinem Grund im Stand. Die aktuellen Installationen einer App
+zählt eine Zeile zusammen, Apps, deren Installationen alle aktuell sind, eine letzte Zeile. Ein
+neuer Tag in der Registry ohne signiertes Manifest steht als Hinweis in der Gruppe seiner App, mit
+**Manifest importieren**. Unter der Tabelle stehen die Sperrzeiten, die Schritte eines Updates und
+wie viele Server den aktuellen Agenten haben.
 Alle 5 Minuten startet die Zentrale, was nach dem Plan fällig ist; auf jedem Server läuft höchstens
 ein Update zugleich, das [Update des Agenten](agent-updates.md) und ein
 [Neustart des Servers](betriebssystem.md) mitgezählt. Geplant wird jede
@@ -67,7 +75,7 @@ HTTP-Dienst, richtet die Zentrale nach dem Update die Backups bzw. die Route der
 
 ## Update von Hand
 
-Inhaber und Technik aktualisieren eine Installation auf der Seite **Updates** mit **Update**: Version
+Inhaber und Technik aktualisieren eine Installation auf der Seite **Updates** mit **Aktualisieren…**: Version
 wählen (die neueste steht oben) und einen Grund angeben, der im Audit-Log steht. So auch Apps ohne
 Health, die keine Welle aktualisiert. In einer Sperrzeit der App darf nur der Inhaber; das Update
 gilt dann als Freigabe und die Zentrale vermerkt es. Über die API: `POST

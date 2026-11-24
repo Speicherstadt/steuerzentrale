@@ -29,35 +29,45 @@ afterEach(() => {
 });
 
 const zeile = (root: HTMLElement, id: string) =>
-  [...root.querySelectorAll<HTMLElement>("tbody tr")].find((tr) => tr.textContent?.startsWith(id));
+  [...root.querySelectorAll<HTMLElement>("tbody tr")].find((tr) =>
+    tr.querySelector(`a[href$="/installationen/${id}"]`),
+  );
+
+const zeilen = (root: HTMLElement) =>
+  [...root.querySelectorAll<HTMLElement>("tbody tr")].map((tr) =>
+    [...tr.querySelectorAll("td")].map((td) => td.textContent?.trim() ?? ""),
+  );
 
 describe("an update by hand", () => {
   it("asks for version and reason, backs up first, and shows it under way", async () => {
     const { root } = await oeffne("/updates");
-    const vorher = zeile(root, "atelier-belegt");
-    expect(vorher?.textContent).toContain("noch keins");
-    knopf(vorher as HTMLElement, "Update")?.click();
+    const vorher = zeile(root, "roth-haben");
+    expect(vorher?.textContent).toContain("Update verfügbar");
+    expect(vorher?.querySelector("[title]")?.getAttribute("title")).toContain("noch keins");
+    knopf(vorher as HTMLElement, "Aktualisieren…")?.click();
     await warten();
     expect(dialog().textContent).toContain("Installation aktualisieren?");
     expect(dialog().querySelector("[role=note]")?.textContent).toContain(
       "Vorher wird der Ist-Zustand gesichert",
     );
-    expect(feld<HTMLSelectElement>("Version").value).toBe("0.0.7");
+    expect(feld<HTMLSelectElement>("Version").value).toBe("0.12.0");
     eintragen("Grund", "Fehlerbehebung laut Hersteller");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();
     expect(document.querySelector("dialog[open]")).toBeNull();
     expect(root.querySelector("[role=status]")?.textContent).toContain("Update angefordert");
-    const danach = zeile(root, "atelier-belegt");
-    expect(danach?.textContent).toContain("läuft: Backup vor 0.0.7");
-    expect(knopf(danach as HTMLElement, "Update")).toBeUndefined();
+    const danach = zeile(root, "roth-haben");
+    expect(danach?.textContent).toContain("läuft: Backup vor 0.12.0");
+    expect(knopf(danach as HTMLElement, "Aktualisieren…")).toBeUndefined();
   });
 
   it("is not offered to support", async () => {
     rolle("support");
     const { root } = await oeffne("/updates");
-    expect(knopf(zeile(root, "atelier-belegt") as HTMLElement, "Update")).toBeUndefined();
+    expect(zeile(root, "roth-haben")?.textContent).toContain("Update verfügbar");
+    expect(knopf(zeile(root, "roth-haben") as HTMLElement, "Aktualisieren…")).toBeUndefined();
+    expect(knopf(root, "Manifest importieren")).toBeUndefined();
   });
 
   it("sends version and reason to the Zentrale", async () => {
@@ -75,6 +85,66 @@ describe("an update by hand", () => {
         body: { version: "1.3.0", grund: "Wunsch des Kunden" },
       },
     ]);
+  });
+});
+
+describe("the table per app", () => {
+  it("has one head row per app and the steps of the running wave", async () => {
+    const { root } = await oeffne("/updates");
+    expect([...root.querySelectorAll("thead th")].map((th) => th.textContent)).toEqual([
+      "App · Installation",
+      "Installiert",
+      "Neue Version",
+      "Stand",
+      "Aktion",
+    ]);
+    const z = zeilen(root);
+    expect(z[0]).toEqual(["Belegt", "", "0.0.7", "Welle läuft · 1 von 3 fertig", ""]);
+    expect(zeile(root, "intern-belegt")?.textContent).toContain("fertig · Schritt 1 eigene");
+    expect(zeile(root, "atelier-belegt")?.textContent).toContain("wird aktualisiert · Schritt 2");
+    expect(zeile(root, "holm-belegt")?.textContent).toContain("wartet · Schritt 2, heute 22:00");
+    expect(z.map((r) => r[0])).toContain("Haben");
+    expect(z.find((r) => r[0] === "Haben")?.[3]).toBe("3 von 9 können aktualisieren");
+    expect(z.find((r) => r[0] === "Stellwerk")?.[3]).toBe("nur von Hand · ohne Health");
+    expect(root.textContent).toContain("6 weitere Installationen auf 0.12.0 · aktuell");
+  });
+
+  it("offers no update by hand to an installation a wave is updating", async () => {
+    const { root } = await oeffne("/updates");
+    for (const id of ["intern-belegt", "atelier-belegt", "holm-belegt"])
+      expect(zeile(root, id)?.querySelector("button")).toBeNull();
+    expect(knopf(zeile(root, "kraft-stellwerk") as HTMLElement, "Aktualisieren…")).toBeDefined();
+  });
+
+  it("puts the apps where all is current into one last row", async () => {
+    const { root } = await oeffne("/updates");
+    expect(zeilen(root).at(-1)).toEqual(["Schreibzeug · Kennwort", "", "", "alle 3 aktuell", ""]);
+  });
+
+  it("names a registry tag without manifest and offers its import", async () => {
+    rolle("inhaber");
+    const { root } = await oeffne("/updates");
+    const hinweis = [...root.querySelectorAll<HTMLElement>("tbody tr")].find((tr) =>
+      tr.textContent?.includes("Haben 0.13.0 ist in der Registry erschienen"),
+    );
+    expect(hinweis?.textContent).toContain("das signierte Manifest fehlt noch.");
+    knopf(hinweis as HTMLElement, "Manifest importieren")?.click();
+    await warten();
+    expect(dialog().textContent).toContain("Manifest importieren");
+  });
+
+  it("shows the freeze windows and how an update runs", async () => {
+    const { root } = await oeffne("/updates");
+    expect(root.textContent).toContain(
+      "Sperrzeiten: Haben 7. bis 12. jedes Monats (heute keine aktiv).",
+    );
+    const link = knopf(root, "So läuft ein Update");
+    expect(link?.getAttribute("aria-expanded")).toBe("false");
+    link?.click();
+    flush();
+    expect(link?.getAttribute("aria-expanded")).toBe("true");
+    expect(root.querySelectorAll("#update-ablauf li")).toHaveLength(5);
+    expect(root.textContent).toMatch(/Agent: Version 0\.5\.0 auf \d+ von \d+ Servern aktuell/);
   });
 });
 

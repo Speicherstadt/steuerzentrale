@@ -187,11 +187,11 @@ describe("the page Updates", () => {
   it("lists what each installation is offered", async () => {
     const { root } = await oeffne("/updates");
     const zeile = [...root.querySelectorAll("tbody tr")].find((tr) =>
-      tr.textContent?.startsWith("atelier-belegt"),
+      tr.querySelector('a[href$="/installationen/atelier-belegt"]'),
     );
     expect(zeile?.textContent).toContain("0.0.6");
     expect(zeile?.textContent).toContain("0.0.7");
-    expect(root.textContent).toContain("Neu in der Registry");
+    expect(root.textContent).toContain("Haben 0.13.0 ist in der Registry erschienen");
   });
 });
 

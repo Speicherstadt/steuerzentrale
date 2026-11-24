@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { demo } from "../demo/index.ts";
 import type { Updateplan } from "./typen.ts";
-import { nurVonHand, planStand, wellen } from "./wellen.ts";
+import { planStand, wellen } from "./wellen.ts";
 
 const belegt: Updateplan = { app: "belegt", version: "0.0.7", vorher: "0.0.6", seit: 0 };
 
@@ -26,11 +26,5 @@ describe("update waves", () => {
   it("is empty for an app without installations", () => {
     const soll: Updateplan = { app: "kontext", version: "0.1.37", vorher: "", seit: 0 };
     expect(wellen(demo, soll).map((w) => w.zustand)).toEqual(["leer", "leer"]);
-  });
-
-  it("leave apps without health to a person (docs/plan.md)", () => {
-    const vonHand = nurVonHand(demo);
-    expect(vonHand.map((x) => x.app.id)).toEqual(["stellwerk"]);
-    expect(vonHand[0]?.zurueck.map((i) => i.id)).toEqual(["kraft-stellwerk"]);
   });
 });
