@@ -1,6 +1,7 @@
 import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
 import { Plus } from "@steuerzentrale/ui/icons";
-import { createSignal, For, Loading, Show } from "solid-js";
+import { createMemo, createSignal, For, Loading, Show } from "solid-js";
+import { betriebsartLesen, eigenerKunde, nurFuerMich } from "../daten/betriebsart.ts";
 import { eingetragen, einstellungenAus } from "../daten/einstellungs-formular.ts";
 import { type InstallationDerZentrale, installationenQuelle } from "../daten/installationen.ts";
 import { Fehler, felder } from "./anmeldung-teile.tsx";
@@ -106,6 +107,8 @@ const AdressFeld = (props: { a: Auswahl }) => {
 const Formular = (props: {
   kundeId: string | undefined;
   app: string | undefined;
+  /** "Nur für mich" (Z-805): the internal customer is set, the dialog asks for none */
+  ohneKunde: boolean;
   onAngelegt: (i: InstallationDerZentrale) => void;
   onAbbruch: () => void;
 }) => {
@@ -136,7 +139,7 @@ const Formular = (props: {
   };
   return (
     <form class="grid gap-4" onSubmit={senden}>
-      <ZielWahl a={a} />
+      <ZielWahl a={a} ohneKunde={props.ohneKunde} />
       <AppWahl a={a} />
       <ManifestTeil a={a} />
       <Loading fallback={<p class="text-xs text-muted-foreground">{m.installieren_laden()}</p>}>
@@ -174,6 +177,7 @@ export const Installieren = (props: {
   onAngelegt: (i: InstallationDerZentrale) => void;
 }) => {
   const [offen, setOffen] = createSignal(false);
+  const art = createMemo(() => betriebsartLesen());
   return (
     <MitInstallationsRecht>
       <Button
@@ -191,15 +195,18 @@ export const Installieren = (props: {
         description={m.installieren_text()}
       >
         <Show when={offen()}>
-          <Formular
-            kundeId={props.kundeId}
-            app={props.app}
-            onAbbruch={() => setOffen(false)}
-            onAngelegt={(i) => {
-              setOffen(false);
-              props.onAngelegt(i);
-            }}
-          />
+          <Loading fallback={<p class="text-xs text-muted-foreground">{m.installieren_laden()}</p>}>
+            <Formular
+              kundeId={eigenerKunde(art()) ?? props.kundeId}
+              app={props.app}
+              ohneKunde={nurFuerMich(art())}
+              onAbbruch={() => setOffen(false)}
+              onAngelegt={(i) => {
+                setOffen(false);
+                props.onAngelegt(i);
+              }}
+            />
+          </Loading>
         </Show>
       </Dialog>
     </MitInstallationsRecht>

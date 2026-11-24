@@ -26,7 +26,7 @@ import { UnitsUndHealth, Verlauf } from "../seiten/installation-health.tsx";
 import { EinstellungenAendern } from "../seiten/installation-konfigurieren.tsx";
 import { InstallationEinstellungen } from "../seiten/installation-reiter.tsx";
 import { InstallationZustand } from "../seiten/installation-zustand.tsx";
-import { MitInstallationsRecht } from "../seiten/recht.tsx";
+import { FuerKunden, MitInstallationsRecht } from "../seiten/recht.tsx";
 import { ZugangHinweis } from "../seiten/support-zugang.tsx";
 import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { appIcon } from "../teile/app-icon.ts";
@@ -175,12 +175,14 @@ const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
         <Gescheitert a={props.a} entfernt={() => props.neu()} />
       </Show>
       <Show when={props.a.zustand !== "entfernt"}>
-        <ZugangHinweis
-          installationId={props.a.id}
-          eigener={eigener()}
-          jetzt={b.jetzt}
-          neu={zugangNeu}
-        />
+        <FuerKunden>
+          <ZugangHinweis
+            installationId={props.a.id}
+            eigener={eigener()}
+            jetzt={b.jetzt}
+            neu={zugangNeu}
+          />
+        </FuerKunden>
       </Show>
       <Tabs label={m.inst_reiter()} tabs={reiter(b, props.a, props.a.demo)} />
     </div>

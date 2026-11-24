@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { user } from "../db/auth-schema.ts";
 import { faktorenVon, zweiterFaktorVorhanden } from "../modules/anmeldung/faktoren.ts";
+import { betriebsartLesen } from "../modules/betriebsart/index.ts";
 import { betreiberLesen } from "../modules/mitglieder/index.ts";
 import type { RoutenDeps } from "./deps.ts";
 import type { Registrar } from "./zugang.ts";
@@ -30,7 +31,12 @@ export const kontoRouten = (route: Registrar, deps: RoutenDeps): void => {
       email: konto?.email ?? "",
       rolle: c.get("rolle"),
       faktor: faktoren.passkeys > 0 ? "passkey" : "totp",
-      betreiber: { betreiberId: c.get("betreiberId"), name: betreiber?.name ?? "" },
+      // Z-805: the interface hides customers in `selbst` and asks while it is null
+      betreiber: {
+        betreiberId: c.get("betreiberId"),
+        name: betreiber?.name ?? "",
+        ...betriebsartLesen(deps.db, c.get("betreiberId")),
+      },
     });
   });
 };

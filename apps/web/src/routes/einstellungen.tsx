@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/solid-router";
 import { bestand } from "../daten/quelle.ts";
 import { AppWerte } from "../seiten/einstellungen-apps.tsx";
 import { BackupZielReiter } from "../seiten/einstellungen-backup.tsx";
+import { BetriebsartReiter } from "../seiten/einstellungen-betriebsart.tsx";
 import { Dns } from "../seiten/einstellungen-dns.tsx";
 import { Benachrichtigungen } from "../seiten/einstellungen-melden.tsx";
 import { Darstellung, Konten, Zentrale } from "../seiten/einstellungen-teile.tsx";
@@ -13,7 +14,16 @@ import { Seitenkopf } from "../teile/karte.tsx";
  * DNS (Z-407), notifications (Z-703), accounts, the Zentrale, the look
  */
 
-const REITER = ["werte", "backup", "dns", "melden", "konten", "zentrale", "darstellung"] as const;
+const REITER = [
+  "werte",
+  "backup",
+  "dns",
+  "melden",
+  "konten",
+  "zentrale",
+  "darstellung",
+  "betriebsart",
+] as const;
 type Reiter = (typeof REITER)[number];
 
 const Einstellungen = () => {
@@ -41,6 +51,7 @@ const Einstellungen = () => {
           { id: "konten", label: m.einst_konten(), content: () => <Konten /> },
           { id: "zentrale", label: m.app_name(), content: () => <Zentrale b={b} /> },
           { id: "darstellung", label: m.einst_darstellung(), content: () => <Darstellung /> },
+          { id: "betriebsart", label: m.betriebsart_titel(), content: () => <BetriebsartReiter /> },
         ]}
       />
     </div>

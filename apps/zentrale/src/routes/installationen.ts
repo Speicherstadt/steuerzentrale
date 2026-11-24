@@ -3,6 +3,7 @@ import { HOST, type OeffentlicherSchluessel } from "@steuerzentrale/manifest";
 import { bewertungJetzt } from "@steuerzentrale/planung";
 import type { Context } from "hono";
 import { z } from "zod";
+import { betriebsartLesen } from "../modules/betriebsart/index.ts";
 import { standVon, verlaufLesen } from "../modules/bewertung/index.ts";
 import {
   angeboteneAktionen,
@@ -193,6 +194,10 @@ export const installationenRouten = (route: Registrar, deps: RoutenDeps): void =
   route("POST /api/v1/installationen", async (c) => {
     const angaben = await eingabe(c, anlegenSchema);
     if (!angaben) return ungueltig(c);
+    // Z-805: "Nur für mich" installs only for the operator's fixed internal customer
+    const art = betriebsartLesen(deps.db, c.get("betreiberId"));
+    if (art.betriebsart === "selbst" && angaben.kundeId !== art.eigenerKundeId)
+      return c.json({ fehler: "betriebsart" }, 409);
     const key = await schluessel();
     if (!key) return fehler(c, { grund: "kein_schluessel" });
     const { grund: begruendung, ...neu } = angaben;

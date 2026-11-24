@@ -91,5 +91,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0022_abwicklung",
     "sql": "CREATE TABLE `abwicklungen` (\n\t`betreiber_id` text NOT NULL,\n\t`installation_id` text NOT NULL,\n\t`kunde_id` text NOT NULL,\n\t`vertragsende` integer NOT NULL,\n\t`schritt` text NOT NULL,\n\t`archiv_auftrag_id` text,\n\t`archiv` text,\n\t`loesch_auftrag_id` text,\n\t`versuche` integer DEFAULT 0 NOT NULL,\n\t`naechster_versuch` integer,\n\t`protokoll` text NOT NULL,\n\t`angelegt_am` integer NOT NULL,\n\t`geaendert_am` integer NOT NULL,\n\t`link_bis` integer,\n\t`geloescht_am` integer,\n\tPRIMARY KEY(`betreiber_id`, `installation_id`),\n\tFOREIGN KEY (`betreiber_id`,`installation_id`) REFERENCES `installationen`(`betreiber_id`,`installation_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `abwicklungen_kunde` ON `abwicklungen` (`betreiber_id`,`kunde_id`);"
+  },
+  {
+    "tag": "0023_betriebsart",
+    "sql": "ALTER TABLE `betreiber` ADD `betriebsart` text;--> statement-breakpoint\nALTER TABLE `betreiber` ADD `eigener_kunde_id` text;--> statement-breakpoint\nUPDATE `betreiber` SET `betriebsart` = 'kunden';"
   }
 ];

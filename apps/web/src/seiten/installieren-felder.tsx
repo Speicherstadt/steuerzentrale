@@ -69,16 +69,19 @@ const serverWahl = (s: Antwort<ServerDerZentrale[]>): Wahl[] =>
         .map((x) => ({ wert: x.serverId, text: `${x.name} · ${ART[ARTEN[x.art]].text()}` }))
     : [];
 
-export const ZielWahl = (props: { a: Auswahl }) => (
+/** Customer and server; in "Nur für mich" (Z-805) only the server, the customer is the internal one */
+export const ZielWahl = (props: { a: Auswahl; ohneKunde?: boolean }) => (
   <Loading fallback={<p class="text-xs text-muted-foreground">{m.installieren_laden()}</p>}>
-    <Liste
-      id="installieren-kunde"
-      label={m.installieren_kunde()}
-      leer={m.installieren_kunde_waehlen()}
-      wahl={kundenWahl(props.a.kunden(), Date.now())}
-      aktuell={props.a.kundeId()}
-      onWahl={props.a.setKundeId}
-    />
+    <Show when={!props.ohneKunde}>
+      <Liste
+        id="installieren-kunde"
+        label={m.installieren_kunde()}
+        leer={m.installieren_kunde_waehlen()}
+        wahl={kundenWahl(props.a.kunden(), Date.now())}
+        aktuell={props.a.kundeId()}
+        onWahl={props.a.setKundeId}
+      />
+    </Show>
     <Liste
       id="installieren-server"
       label={m.installieren_server()}

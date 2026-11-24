@@ -40,7 +40,11 @@ setup("the first owner sets up the Zentrale with the code from the log", async (
   await page.getByRole("button", { name: "Code bestätigen" }).click();
   await expect(page.getByRole("status")).toHaveText("Der zweite Faktor ist eingerichtet.");
 
+  // Z-805: the question "Nur für mich" or "Für Kunden" comes before the shell; this Zentrale hosts
+  // for customers, as every other spec expects (the other answer: e2e/selbst.setup.ts)
   await page.getByRole("link", { name: "Zur Übersicht" }).click();
+  await expect(page).toHaveURL("/betriebsart");
+  await page.getByRole("button", { name: /^Für Kunden/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Übersicht" })).toBeVisible();
   await page.context().storageState({ path: sitzungsDatei() });
   writeFileSync(zugangsDatei(), JSON.stringify({ geheimnis }));

@@ -3,6 +3,7 @@ import type { Auth } from "../auth/auth.ts";
 import { darf, type Recht, ROLLEN, type Rolle } from "../auth/rollen.ts";
 import type { Db } from "../db/oeffnen.ts";
 import { faktorenVon, zweiterFaktorVorhanden } from "../modules/anmeldung/faktoren.ts";
+import { nurFuerMich } from "../modules/betriebsart/index.ts";
 import { type Mitglied, mitgliedschaftenVon, mitgliedVon } from "../modules/mitglieder/index.ts";
 import { serverZumFingerabdruck } from "../modules/server/index.ts";
 import { aktiverZugang } from "../modules/support/index.ts";
@@ -30,7 +31,7 @@ export type Zugang =
   | { art: "agent" }
   | { art: "einrichtung" }
   | { art: "better-auth" }
-  | { art: "recht"; recht: Recht; supportZugang?: true };
+  | { art: "recht"; recht: Recht; supportZugang?: true; nurKunden?: true };
 
 const oeffentlich = { art: "oeffentlich" } as const;
 const einrichtung = { art: "einrichtung" } as const;
@@ -39,6 +40,8 @@ const agent = { art: "agent" } as const;
 const recht = (name: Recht) => ({ art: "recht", recht: name }) as const;
 /** A right that a running support access to the route's installation stands in for (Z-802) */
 const mitZugang = (name: Recht) => ({ art: "recht", recht: name, supportZugang: true }) as const;
+/** A route for customers only: in the Betriebsart `selbst` it answers `409 betriebsart` (Z-805) */
+const fuerKunden = (name: Recht) => ({ art: "recht", recht: name, nurKunden: true }) as const;
 
 /**
  * Every route of the Zentrale with who may reach it (BAULISTE.md Z-104). A route is registered only
@@ -55,6 +58,8 @@ export const ROUTEN = {
   "POST /api/v1/einladung/annehmen": oeffentlich,
   "GET /api/v1/einrichtung": einrichtung,
   "GET /api/v1/ich": recht("betreiber:lesen"),
+  // Z-805: "Nur für mich" or "Für Kunden", answered once after the first owner; only the owner
+  "PUT /api/v1/betriebsart": recht("betreiber:betriebsart"),
   "GET /api/v1/mitglieder": recht("mitglieder:lesen"),
   "PATCH /api/v1/mitglieder/:nutzerId": recht("mitglieder:rolle"),
   "DELETE /api/v1/mitglieder/:nutzerId": recht("mitglieder:entfernen"),
@@ -63,12 +68,12 @@ export const ROUTEN = {
   "DELETE /api/v1/einladungen/:einladungId": recht("mitglieder:einladen"),
   "GET /api/v1/kunden": recht("kunden:lesen"),
   "GET /api/v1/kunden/:kundeId": recht("kunden:lesen"),
-  "POST /api/v1/kunden": recht("kunden:schreiben"),
-  "PUT /api/v1/kunden/:kundeId": recht("kunden:schreiben"),
-  "PUT /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
-  "DELETE /api/v1/kunden/:kundeId/kuendigung": recht("kunden:schreiben"),
+  "POST /api/v1/kunden": fuerKunden("kunden:schreiben"),
+  "PUT /api/v1/kunden/:kundeId": fuerKunden("kunden:schreiben"),
+  "PUT /api/v1/kunden/:kundeId/kuendigung": fuerKunden("kunden:schreiben"),
+  "DELETE /api/v1/kunden/:kundeId/kuendigung": fuerKunden("kunden:schreiben"),
   // Z-501: our own customers, offered pre-releases; only the owner marks one
-  "PUT /api/v1/kunden/:kundeId/intern": recht("kunden:intern"),
+  "PUT /api/v1/kunden/:kundeId/intern": fuerKunden("kunden:intern"),
   "GET /api/v1/server": recht("server:lesen"),
   "GET /api/v1/server/:serverId": recht("server:lesen"),
   "POST /api/v1/server": recht("server:anlegen"),
@@ -98,10 +103,10 @@ export const ROUTEN = {
   // support accesses (Z-802): every role sees them and starts one for itself; its holder ends it,
   // owner and technik also another's (checked in the route)
   "GET /api/v1/support-zugaenge": recht("support:lesen"),
-  "POST /api/v1/support-zugaenge": recht("support:starten"),
+  "POST /api/v1/support-zugaenge": fuerKunden("support:starten"),
   "POST /api/v1/support-zugaenge/:zugangId/beenden": recht("support:starten"),
   // the services of each customer in a month (Z-804): read like the customers, by every role
-  "GET /api/v1/leistungen": recht("kunden:lesen"),
+  "GET /api/v1/leistungen": fuerKunden("kunden:lesen"),
   // the operator's values of an app (Z-404): rights as for installations, which they serve
   "GET /api/v1/apps/:app/einstellungen": recht("installationen:lesen"),
   "PUT /api/v1/apps/:app/einstellungen": recht("installationen:schreiben"),
@@ -275,6 +280,8 @@ export const wache =
       if (!perSupportZugang(db, zugang, mitglied, installationId, now()))
         return c.json({ fehler: "keine_berechtigung" }, 403);
     }
+    if (zugang.nurKunden === true && nurFuerMich(db, mitglied.betreiberId))
+      return c.json({ fehler: "betriebsart" }, 409);
     c.set("betreiberId", mitglied.betreiberId);
     c.set("rolle", mitglied.rolle);
     return next();

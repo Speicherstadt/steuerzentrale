@@ -1,7 +1,7 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { beforeEach, describe, expect, it } from "vitest";
 import { demo } from "../demo/index.ts";
-import { GRUPPEN, pfadStufen } from "./navigation.ts";
+import { GRUPPEN, pfadStufen, sichtbareGruppen } from "./navigation.ts";
 
 describe("navigation", () => {
   beforeEach(() => setLocale("de", { reload: false }));
@@ -9,6 +9,15 @@ describe("navigation", () => {
   it("has the groups Betrieb, Kunden and System (DESIGN.md)", () => {
     expect(GRUPPEN.map((g) => g.name())).toEqual(["Betrieb", "Kunden", "System"]);
     expect(GRUPPEN.flatMap((g) => g.bereiche).map((b) => b.pfad)).toHaveLength(13);
+  });
+
+  it('hides customers, support accesses and services in "Nur für mich" (Z-805)', () => {
+    const pfade = (nurFuerMich: boolean) =>
+      sichtbareGruppen(GRUPPEN, nurFuerMich).flatMap((g) => g.bereiche.map((b) => b.pfad));
+    expect(pfade(false)).toHaveLength(13);
+    for (const pfad of ["/kunden", "/support", "/leistungen"])
+      expect(pfade(true)).not.toContain(pfad);
+    expect(sichtbareGruppen(GRUPPEN, true).map((g) => g.name())).toEqual(["Betrieb", "System"]);
   });
 
   it("shows the area alone on a list page", () => {

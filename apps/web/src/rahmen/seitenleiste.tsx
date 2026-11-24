@@ -3,10 +3,11 @@ import { CalendarClock, Radar } from "@steuerzentrale/ui/icons";
 import { Link } from "@tanstack/solid-router";
 import { createMemo, For, Loading, Show } from "solid-js";
 import { alleSperrzeiten, sperrzeitAktiv } from "../daten/ableitungen.ts";
+import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { type Ich, ichLesen } from "../daten/ich.ts";
 import { bestand } from "../daten/quelle.ts";
 import { zaehler } from "../daten/zustand.ts";
-import { GRUPPEN } from "./navigation.ts";
+import { GRUPPEN, sichtbareGruppen } from "./navigation.ts";
 import { rolleName } from "./texte.ts";
 
 /**
@@ -31,36 +32,42 @@ const Marke = (props: { ich: Ich | null }) => (
 
 const Bereiche = () => {
   const zahlen = zaehler(bestand());
+  // "Nur für mich" hides customers, support accesses and services (Z-805)
+  const art = createMemo(() => betriebsartLesen());
   return (
     <nav aria-label={m.nav_bereiche()} class="flex flex-col">
-      <For each={GRUPPEN}>
-        {(gruppe) => (
-          <div class="flex flex-col p-2 pt-1">
-            <h2 class="flex h-7 items-center px-2 text-xs font-medium text-muted-foreground">
-              {gruppe.name()}
-            </h2>
-            <ul class="flex flex-col gap-0.5">
-              <For each={gruppe.bereiche}>
-                {(bereich) => (
-                  <li>
-                    <Link
-                      to={bereich.pfad}
-                      activeOptions={{ exact: bereich.pfad === "/" }}
-                      class="flex h-8 items-center gap-2 overflow-hidden rounded-md px-2 hover:bg-accent aria-[current=page]:bg-accent aria-[current=page]:font-medium"
-                    >
-                      <Icon icon={bereich.icon} />
-                      <span class="truncate">{bereich.name()}</span>
-                      <Show when={bereich.zaehler && zahlen[bereich.zaehler]}>
-                        {(n) => <span class="ml-auto text-xs font-medium tabular-nums">{n()}</span>}
-                      </Show>
-                    </Link>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </div>
-        )}
-      </For>
+      <Loading fallback="">
+        <For each={sichtbareGruppen(GRUPPEN, nurFuerMich(art()))}>
+          {(gruppe) => (
+            <div class="flex flex-col p-2 pt-1">
+              <h2 class="flex h-7 items-center px-2 text-xs font-medium text-muted-foreground">
+                {gruppe.name()}
+              </h2>
+              <ul class="flex flex-col gap-0.5">
+                <For each={gruppe.bereiche}>
+                  {(bereich) => (
+                    <li>
+                      <Link
+                        to={bereich.pfad}
+                        activeOptions={{ exact: bereich.pfad === "/" }}
+                        class="flex h-8 items-center gap-2 overflow-hidden rounded-md px-2 hover:bg-accent aria-[current=page]:bg-accent aria-[current=page]:font-medium"
+                      >
+                        <Icon icon={bereich.icon} />
+                        <span class="truncate">{bereich.name()}</span>
+                        <Show when={bereich.zaehler && zahlen[bereich.zaehler]}>
+                          {(n) => (
+                            <span class="ml-auto text-xs font-medium tabular-nums">{n()}</span>
+                          )}
+                        </Show>
+                      </Link>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </div>
+          )}
+        </For>
+      </Loading>
     </nav>
   );
 };
