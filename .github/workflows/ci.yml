@@ -458,9 +458,12 @@ jobs:
   # signed with the test key (install.sh --testmodus), certificates from Caddy's local CA instead of
   # ACME (`--intern`), the interface reached from the runner instead of over WireGuard. No tag, no
   # real key, no push anywhere else: that is a person's (BAULISTE.md, "Schritte für Menschen")
+  #
+  # Only for a release (release.yml calls this file on a tag vX.Y.Z, after "Bump version") or by hand
+  # (Actions → CI → Run workflow): it takes 20 minutes and builds nothing a pull request needs
   release-kandidat:
     needs: changes
-    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    if: ${{ !cancelled() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -646,8 +649,14 @@ jobs:
       # part must have run and passed
       - env:
           CODE: ${{ needs.changes.outputs.code }}
+          RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' }}
         run: |
-          for result in "${{ needs.unit.result }}" "${{ needs.agent.result }}" "${{ needs.e2e.result }}" "${{ needs.server.result }}" "${{ needs.release-kandidat.result }}"; do
+          # the release candidate runs only on a tag or by hand; there it must pass
+          if [ "$RELEASE" = true ] && [ "${{ needs.release-kandidat.result }}" != success ]; then
+            echo "The release candidate ended with: ${{ needs.release-kandidat.result }}"
+            exit 1
+          fi
+          for result in "${{ needs.unit.result }}" "${{ needs.agent.result }}" "${{ needs.e2e.result }}" "${{ needs.server.result }}"; do
             if [ "$result" = success ]; then continue; fi
             if [ "$result" = skipped ] && [ "$CODE" = false ]; then continue; fi
             echo "A part ended with: $result"

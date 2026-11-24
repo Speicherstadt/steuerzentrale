@@ -168,7 +168,9 @@ nächste dort weitermacht.
 | Unit | Typen, Biome, erlaubte Abhängigkeiten, keine Muster aus Solid 1.x (`scripts/solid-muster.ts`), Dateigröße, Funktionslänge, Zyklen, Texte und Seiten (`checks.json`: jede Route steht in `e2e/accessibility.spec.ts`), Vitest, Build, `bun audit` | `ci.yml` |
 | Agent | der Agent gegen Podman mit systemd (`bun run test:agent`) | `ci.yml` |
 | E2E | Playwright, Desktop und Handy; jede Seite hell und dunkel ohne Befund von axe und ohne seitliches Scrollen | `ci.yml` |
-| Doku | `zensical build --strict`, jede Seite mit `description` | `docs.yml` |
+| Doku | `zensical build --strict`, jede Seite mit `description`, Demo unter `/demo/` | `docs.yml` |
+
+Nicht am Pull Request: der Release-Kandidat in einer Incus-VM (Job `release-kandidat`) läuft nur auf einem Tag nach „Bump version“ oder von Hand (**Actions → CI → Run workflow**).
 
 ## Sicherheitslücken
 

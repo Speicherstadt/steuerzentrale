@@ -53,8 +53,8 @@ gh release upload vX.Y.Z SHA256SUMS.minisig minisign.pub --repo Speicherstadt/st
 Dann im Entwurf die Schlüssel-ID in die Notiz schreiben und veröffentlichen. Ein Kandidat bleibt
 als Vorabversion markiert.
 
-Wer einen Release testen will, bevor der Release-Schlüssel da ist, nimmt das Artefakt
-`release-kandidat` eines CI-Laufs: Es ist mit dem öffentlichen Test-Schlüssel signiert und lässt
+Wer einen Release testen will, bevor der Release-Schlüssel da ist, startet **Actions → CI → Run workflow**
+und nimmt das Artefakt `release-kandidat` dieses Laufs: Es ist mit dem öffentlichen Test-Schlüssel signiert und lässt
 sich nur mit `install.sh --testmodus` einrichten, wie in [Installation](installation.md) am Ende
 beschrieben.
 
