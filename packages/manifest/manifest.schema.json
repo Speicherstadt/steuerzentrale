@@ -921,6 +921,11 @@
           "vorgabe": {
             "type": ["string", "number", "boolean"]
           },
+          "titel": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[^\\p{Cc}\\p{Cf}\\p{Zl}\\p{Zp}\\s](?:[^\\p{Cc}\\p{Cf}\\p{Zl}\\p{Zp}]*[^\\p{Cc}\\p{Cf}\\p{Zl}\\p{Zp}\\s])?$"
+          },
           "beschreibung": {
             "type": "string"
           },

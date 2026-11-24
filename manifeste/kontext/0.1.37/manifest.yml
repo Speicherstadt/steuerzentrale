@@ -285,7 +285,7 @@ env:
       symmetric_rtp: true, hide_inbound_port: true, logging: {level: warn}}
   - { name: KONTEXT_DOMAIN, ebene: auto, vorlage: "${host}" }
   - { name: MAIL_DOMAIN, ebene: installation, pflicht: true, beschreibung: "Mail-Domain des Kunden, z. B. firma.de" }
-  - { name: ACME_EMAIL, ebene: betreiber, pflicht: true, beschreibung: Adresse für Let's Encrypt }
+  - { name: ACME_EMAIL, ebene: betreiber, pflicht: true, titel: Adresse für Let's Encrypt, beschreibung: Adresse für Let's Encrypt }
   - name: SCHREIBZEUG_URL
     ebene: installation
     pflicht: true

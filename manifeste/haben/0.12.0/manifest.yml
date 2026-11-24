@@ -70,16 +70,20 @@ env:
   - { name: HABEN_ENCRYPTION_KEY, ebene: auto, typ: geheim, erzeugen: zufall_32 }
   - name: ELSTER_HERSTELLER_ID
     ebene: betreiber
+    titel: Hersteller-ID für ELSTER
     pflicht: true
     beschreibung: Hersteller-ID für ELSTER (fünf Ziffern); ohne sie geht nur die Testübermittlung
   - name: ERIC_AUTO_INSTALL
     ebene: betreiber
+    titel: ERiC beim Start laden
     beschreibung: "ja: ERiC beim Start von download.elster.de laden (Zustimmung zu den Nutzungsbedingungen von ERiC)"
   - name: FINTS_PRODUKT_ID
     ebene: betreiber
+    titel: Registrierungsnummer für FinTS
     beschreibung: Registrierungsnummer der Deutschen Kreditwirtschaft für FinTS; ohne sie bleibt FinTS aus
   - name: ANTHROPIC_API_KEY
     ebene: betreiber
+    titel: Schlüssel für die KI-Auslesung
     typ: geheim
     beschreibung: Schlüssel für die KI-Auslesung von Belegen; ohne ihn keine KI-Auslesung
   - name: OIDC_ONLY

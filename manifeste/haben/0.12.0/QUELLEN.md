@@ -72,5 +72,18 @@ denselben Tags wie auf Docker Hub. Die Quadlets nennen `docker.io/tristanteu/hab
 | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | auto, vom OIDC-Anbieter | `deploy/haben.env.example`, `env.ts`; docs/plan.md, „Single Sign-on“ |
 | `OIDC_GROUP_INHABER`, `OIDC_GROUP_STEUERBERATUNG` | installation | `deploy/haben.env.example`, `env.ts` (Pflicht mit `OIDC_ONLY` = true) |
 
+### Titel (`titel`)
+
+Der Titel, den die Einstellungen der Steuerzentrale statt des Namens zeigen, steht nur, wo Haben den
+Wert selbst in Worten nennt (gleicher Commit wie oben; Commit `ec88e6d42ee39d122273926f3859002baff564dd` sagt in diesen Dateien
+dasselbe):
+
+| Name | Titel | Quelle |
+| --- | --- | --- |
+| `ELSTER_HERSTELLER_ID` | Hersteller-ID für ELSTER | `apps/web/src/server/env.ts` („Hersteller-ID für den Echtbetrieb“), `docs/installation-konfiguration.md` („Eigene Hersteller-ID“) |
+| `ERIC_AUTO_INSTALL` | ERiC beim Start laden | `deploy/haben.env.example` („ERiC beim Start von download.elster.de laden“) |
+| `FINTS_PRODUKT_ID` | Registrierungsnummer für FinTS | `docs/installation-konfiguration.md` („Eigene Registrierungsnummer der Deutschen Kreditwirtschaft für den Kontoabruf über FinTS“) |
+| `ANTHROPIC_API_KEY` | Schlüssel für die KI-Auslesung | `apps/web/src/server/env.ts` („Ohne Schlüssel keine KI-Auslesung von Belegen“) |
+
 Nicht im Manifest: `HABEN_SETUP_CODE` (ohne ihn schreibt Haben einen Code ins Log, `env.ts`), die
 optionalen Werte für ERiC von Hand, Enable Banking, KI-Dienste und die Test-Adressen aus `env.ts`.

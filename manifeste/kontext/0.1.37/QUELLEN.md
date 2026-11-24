@@ -99,6 +99,15 @@ Beide nennen die anderen Container beim Namen (`kontext:3000`, `stalwart:8080`, 
 | `OIDC_ISSUER` | auto, Vorlage, Option `documents` | `deploy/compose.yaml` (`https://${KONTEXT_DOMAIN}/api/auth`) |
 | `OIDC_CLIENT_SECRET` | auto, Vorlage, Option `documents` | `deploy/compose.yaml` (`${SCHREIBZEUG_CLIENT_SECRET}`) |
 
+### Titel (`titel`)
+
+Der Titel, den die Einstellungen der Steuerzentrale statt des Namens zeigen, steht nur, wo Kontext
+den Wert selbst in Worten nennt (gleicher Commit wie oben):
+
+| Name | Titel | Quelle |
+| --- | --- | --- |
+| `ACME_EMAIL` | Adresse für Let's Encrypt | `docs/installation.md`, Tabelle der Variablen („Adresse für Let's Encrypt“) |
+
 Nicht im Manifest: `SCHREIBZEUG_TRUSTED_PROXIES` (das feste Netz `10.89.250.0/24` der Quadlets gibt es
 unter der Steuerzentrale nicht; ohne den Wert zählen Anmeldungen bei Schreibzeug je Proxy statt je
 Client), `PLACES_URL` (Vorgabe der App), die Sicherung des Repos (`deploy/backup.sh`, die

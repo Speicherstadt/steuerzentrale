@@ -15,6 +15,8 @@ export type Ebene = "betreiber" | "installation" | "auto";
 export type Variable = {
   name: string;
   ebene: Ebene;
+  /** What a person reads in place of the name, from the manifest (`titel`) */
+  titel?: string;
   hinweis: string;
   pflicht?: boolean;
   geheim?: boolean;

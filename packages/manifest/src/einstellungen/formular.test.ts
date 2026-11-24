@@ -46,7 +46,7 @@ anmeldung: eigen
 health: { art: http, dienst: app, pfad: /health }
 aktionen: { nur_lesen: nicht_unterstuetzt, export: nicht_unterstuetzt }
 env:
-  - { name: P_LIZENZ, ebene: betreiber, typ: geheim, pflicht: true, beschreibung: Lizenz }
+  - { name: P_LIZENZ, ebene: betreiber, typ: geheim, pflicht: true, titel: Lizenzschlüssel, beschreibung: Lizenz }
   - { name: P_SCHALTER, ebene: betreiber, typ: ja_nein, option: extra }
   - { name: P_TITEL, ebene: installation, pflicht: true, vorgabe: Probe }
   - { name: P_KENNWORT, ebene: installation, typ: geheim, pflicht: true }
@@ -65,6 +65,8 @@ describe("the form of the settings", () => {
         const erwartet = m.env.filter((e) => e.ebene === ebene && e.vorlage === undefined);
         expect(felder.map((f) => f.name)).toEqual(erwartet.map((e) => e.name));
         for (const f of felder) expect(f.geheim).toBe(f.typ === "geheim");
+        // the title a person reads; without one in the manifest, the setting's name
+        expect(felder.map((f) => f.titel)).toEqual(erwartet.map((e) => e.titel ?? e.name));
       }
   });
 
@@ -80,6 +82,7 @@ describe("the form of the settings", () => {
         typ: "text",
         pflicht: true,
         vorgabe: "Probe",
+        titel: "P_TITEL",
         beschreibung: undefined,
         geheim: false,
         option: undefined,
@@ -91,7 +94,12 @@ describe("the form of the settings", () => {
       "P_EXTRA",
     );
     expect(einstellungsFormular(probe, "betreiber", alleOptionen(probe))).toEqual([
-      expect.objectContaining({ name: "P_LIZENZ", geheim: true, beschreibung: "Lizenz" }),
+      expect.objectContaining({
+        name: "P_LIZENZ",
+        geheim: true,
+        titel: "Lizenzschlüssel",
+        beschreibung: "Lizenz",
+      }),
       expect.objectContaining({ name: "P_SCHALTER", typ: "ja_nein", option: "extra" }),
     ]);
   });

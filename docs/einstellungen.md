@@ -21,8 +21,8 @@ Schema. Es gibt drei Ebenen:
 ## Das Formular
 
 Eine reine Funktion in `packages/manifest`, `einstellungsFormular(manifest, ebene, optionen)`, liefert
-die Felder einer Ebene: Name, Typ (`text`, `zahl`, `ja_nein`, `geheim`), Pflicht, Vorgabe,
-Beschreibung, ob der Wert geheim ist, und die Option, zu der er gehört. Eine Einstellung einer
+die Felder einer Ebene: Name, Titel (`titel` aus dem Manifest, sonst der Name), Typ (`text`,
+`zahl`, `ja_nein`, `geheim`), Pflicht, Vorgabe, Beschreibung, ob der Wert geheim ist, und die Option, zu der er gehört. Eine Einstellung einer
 Option gilt nur, solange die Option an ist; das Formular der Ebene `betreiber` zeigt die
 Einstellungen aller Optionen, weil die Werte des Betreibers jeder Installation dienen. Oberfläche und
 Zentrale nutzen dieselbe Funktion, und die Zentrale prüft jeden geschriebenen Wert mit

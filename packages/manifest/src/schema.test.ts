@@ -428,3 +428,36 @@ describe("templates naming a setting of an option (review of Z-203)", () => {
     ).toContain("env.5.vorlage: KI_HOST is set only with the option ki");
   });
 });
+
+describe("the title of a setting (Einstellungen, Werte für Apps)", () => {
+  const mitTitel = (titel: unknown) =>
+    mit((m) => {
+      m.env[0].titel = titel;
+    });
+
+  it("is optional plain text a person reads in place of the name", () => {
+    expect(fehler(mitTitel("Hersteller-ID für ELSTER"))).toEqual([]);
+    const mitT = manifestPruefen(mitTitel("Hersteller-ID für ELSTER"));
+    expect(mitT.ok && mitT.manifest.env[0]?.titel).toBe("Hersteller-ID für ELSTER");
+    const ohne = manifestPruefen(planBeispiel());
+    expect(ohne.ok && ohne.manifest.env[0]?.titel).toBeUndefined();
+  });
+
+  it("is at most 80 characters long", () => {
+    expect(fehler(mitTitel("x".repeat(80)))).toEqual([]);
+    expect(fehler(mitTitel("x".repeat(81)))).toEqual([
+      "env.0.titel: Too big: expected string to have <=80 characters",
+    ]);
+  });
+
+  it("is one line: not empty, no control or invisible format character, no space at its edges", () => {
+    const grund =
+      "env.0.titel: one line of plain text, no control character, no space at the edges";
+    const falsch = ["", " ", "Hersteller\nID", "Tab\there", "ELSTER‮", "​ID", " ID", "ID "];
+    for (const titel of falsch)
+      expect(fehler(mitTitel(titel)), JSON.stringify(titel)).toEqual([grund]);
+    expect(fehler(mitTitel(42))).toEqual([
+      "env.0.titel: Invalid input: expected string, received number",
+    ]);
+  });
+});

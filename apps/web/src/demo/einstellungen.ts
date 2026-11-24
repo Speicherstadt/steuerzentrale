@@ -19,6 +19,7 @@ export const demoFelder = (app: Manifest | undefined, ebene: Ebene): Einstellung
       typ: v.geheim ? "geheim" : "text",
       pflicht: v.pflicht ?? false,
       vorgabe: v.vorgabe,
+      titel: v.titel ?? v.name,
       beschreibung: v.hinweis,
       geheim: v.geheim ?? false,
       option: undefined,

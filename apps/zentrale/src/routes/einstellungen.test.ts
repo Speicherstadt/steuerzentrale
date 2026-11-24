@@ -128,7 +128,16 @@ describe("the operator's values of an app", () => {
       daten: {
         app: "probe",
         version: "1.0.0",
-        felder: [{ name: "PROBE_LIZENZ", typ: "geheim", pflicht: true, geheim: true }],
+        felder: [
+          // without a title in the manifest, its name (docs/manifest.md, "Titel einer Einstellung")
+          {
+            name: "PROBE_LIZENZ",
+            titel: "PROBE_LIZENZ",
+            typ: "geheim",
+            pflicht: true,
+            geheim: true,
+          },
+        ],
         werte: {},
         gesetzt: ["PROBE_LIZENZ"],
       },

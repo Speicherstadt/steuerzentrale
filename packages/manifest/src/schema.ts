@@ -172,12 +172,27 @@ const dnsEintrag = z.strictObject({
   prioritaet: z.number().int().nonnegative().optional(),
 });
 
+/**
+ * The title of a setting a person reads in the settings instead of its name, e.g. "Hersteller-ID
+ * für ELSTER": one line, no control or invisible format character (no line break, no bidi
+ * override that turns the text around), no space at its edges. Only shown; nothing is rendered
+ * from it.
+ */
+const titel = z
+  .string()
+  .max(80)
+  .regex(
+    /^[^\p{Cc}\p{Cf}\p{Zl}\p{Zp}\s](?:[^\p{Cc}\p{Cf}\p{Zl}\p{Zp}]*[^\p{Cc}\p{Cf}\p{Zl}\p{Zp}\s])?$/u,
+    "one line of plain text, no control character, no space at the edges",
+  );
+
 const env = z.strictObject({
   name: envName,
   ebene: z.enum(["betreiber", "installation", "auto"]),
   typ: z.enum(["text", "zahl", "ja_nein", "geheim"]).default("text"),
   pflicht: z.boolean().default(false),
   vorgabe: z.union([z.string(), z.number(), z.boolean()]).optional(),
+  titel: titel.optional(),
   beschreibung: z.string().optional(),
   // zufall_32/_64: random bytes in standard base64; zufall_hex_32: 32 random bytes as 64 hex digits,
   // for values that end up inside a URL such as a database password in DATABASE_URL
