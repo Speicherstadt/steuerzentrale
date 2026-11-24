@@ -132,9 +132,9 @@ jobs:
           notes="$RUNNER_TEMP/notes.md"
           cat > "$notes" <<NOTES
           Image: \`$IMAGE:$VERSION\` (amd64, arm64), Digest \`$DIGEST\`.
-          Einrichten nach https://speicherstadt.github.io/steuerzentrale/installation.html mit der Unit \`steuerzentrale.container\` aus diesem Release.
+          Einrichten nach https://speicherstadt.org/steuerzentrale/installation.html mit der Unit \`steuerzentrale.container\` aus diesem Release.
 
-          **Entwurf:** \`SHA256SUMS\` ist noch nicht signiert. Vor dem Veröffentlichen signiert ein Mensch es mit dem Release-Schlüssel und lädt \`SHA256SUMS.minisig\` und \`minisign.pub\` hoch (https://speicherstadt.github.io/steuerzentrale/release.html).
+          **Entwurf:** \`SHA256SUMS\` ist noch nicht signiert. Vor dem Veröffentlichen signiert ein Mensch es mit dem Release-Schlüssel und lädt \`SHA256SUMS.minisig\` und \`minisign.pub\` hoch (https://speicherstadt.org/steuerzentrale/release.html).
           NOTES
           flags=(--draft --verify-tag --title "Steuerzentrale $VERSION" --notes-file "$notes" --generate-notes)
           if [[ "$PRERELEASE" == true ]]; then flags+=(--prerelease); fi

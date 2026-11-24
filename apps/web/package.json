@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite --port 5181 --strictPort",
     "build": "vite build",
-    "build:demo": "VITE_OHNE_ANMELDUNG=1 VITE_DEMO_SEITE=1 STEUERZENTRALE_WEB_BASE=/demo/ vite build --mode demo --outDir dist-demo",
+    "build:demo": "VITE_OHNE_ANMELDUNG=1 VITE_DEMO_SEITE=1 STEUERZENTRALE_WEB_BASE=/steuerzentrale/demo/ vite build --mode demo --outDir dist-demo",
     "preview": "vite preview --port 5182 --strictPort"
   },
   "dependencies": {

@@ -62,7 +62,8 @@ beschrieben.
 
 Die [Demo](demo/index.html) ist die Oberfläche mit Beispieldaten (`apps/web/src/demo/`), ohne
 Zentrale. Der Workflow `Docs` baut sie mit `bun run --cwd apps/web build:demo` bei jeder Änderung an
-Oberfläche oder Texten neu und legt sie unter `/demo/` neben die Doku.
+Oberfläche oder Texten neu und legt sie unter
+`/steuerzentrale/demo/` neben die Doku.
 
 Die Bilder in README und Doku (`docs/assets/screenshots/`) entstehen aus derselben Demo:
 **Actions → Update screenshots → Run workflow**, lokal `bun run screenshots`.

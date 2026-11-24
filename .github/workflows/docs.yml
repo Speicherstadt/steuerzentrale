@@ -64,7 +64,8 @@ jobs:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
       - run: bun run --cwd apps/web build:demo && cp -r apps/web/dist-demo site/demo
-      - run: grep -q '/demo/assets/' site/demo/index.html
+      # GitHub Pages serves the site under /steuerzentrale/, so the demo's files are at /steuerzentrale/demo/
+      - run: grep -q '"/steuerzentrale/demo/assets/' site/demo/index.html
       # Every page has its own description for search engines
       - run: test -z "$(grep -L '^description:' docs/*.md)"
       - uses: actions/upload-pages-artifact@v5
