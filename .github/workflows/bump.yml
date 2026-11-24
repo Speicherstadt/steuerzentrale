@@ -1,0 +1,30 @@
+name: Bump version
+
+# Raises the version in the root package.json, tags vX.Y.Z and so starts release.yml, without a
+# checkout; the same scheme as Haben and Kennwort (firsttris/workflows, bump-version.yml).
+# Release candidates: preminor (or prepatch, premajor) tags vX.Y.Z-rc.1, prerelease the next one,
+# patch afterwards the version itself. Zentrale and agent read their version from the root
+# package.json (packages/protokoll, VERSION), so nothing else needs raising.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        type: choice
+        options: [patch, minor, major, preminor, prepatch, premajor, prerelease]
+        default: preminor
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    uses: firsttris/workflows/.github/workflows/bump-version.yml@b66b54d43031638de35c4eb115a7fda258b3f58f # main
+    with:
+      bump: ${{ inputs.bump }}
+    # The ruleset on main refuses pushes with GITHUB_TOKEN; the deploy key is on its bypass list,
+    # and the tag it pushes starts release.yml by itself.
+    secrets:
+      deploy-key: ${{ secrets.BUMP_DEPLOY_KEY }}
+    permissions:
+      contents: write
+      actions: write

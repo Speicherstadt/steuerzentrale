@@ -19,6 +19,7 @@
     "test:agent": "bun --bun vitest run --config vitest.agent.config.ts",
     "build": "bun scripts/build-all.ts",
     "e2e": "playwright test --trace off",
+    "screenshots": "playwright test -c playwright.screenshots.config.ts",
     "check": "bun run typecheck && bun run lint && bun run test && bun run build",
     "dev:zentrale": "STEUERZENTRALE_PORT=18300 STEUERZENTRALE_DATA=data/dev STEUERZENTRALE_URL=http://localhost:5181 STEUERZENTRALE_AGENT_URL=http://localhost:18300 bun run --cwd apps/zentrale dev",
     "dev:web": "bun run --cwd apps/web dev",

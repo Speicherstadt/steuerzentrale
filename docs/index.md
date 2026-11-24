@@ -12,7 +12,14 @@ in Wellen ein, sichert sie und prüft sie von innen und außen. Eine Zentrale mi
 Agenten auf jedem Server; der Agent verbindet sich von sich aus und führt nur aus, was das signierte
 Manifest einer App beschreibt.
 
-**Stand:** in Planung. Was gebaut wird und warum, steht im [Projektplan](plan.md); die Reihenfolge in der
-[Bauliste](https://github.com/Speicherstadt/steuerzentrale/blob/main/BAULISTE.md).
+![Übersicht der Steuerzentrale](assets/screenshots/uebersicht-hell.webp#only-light)
+![Übersicht der Steuerzentrale](assets/screenshots/uebersicht-dunkel.webp#only-dark)
+
+**Ausprobieren:** die [Demo](demo/index.html) zeigt die Oberfläche mit Beispieldaten im Browser, ohne
+Server. **Einrichten:** [Installation](installation.md).
+
+**Stand:** Stufe 1 (Selbstbetrieb) ist gebaut, ein Release-Kandidat entsteht in der CI
+([Release](release.md)). Was gebaut wird und warum, steht im [Projektplan](plan.md); die Reihenfolge
+in der [Bauliste](https://github.com/Speicherstadt/steuerzentrale/blob/main/BAULISTE.md).
 
 Die Steuerzentrale ist Open Source unter der AGPL. Beiträge sind willkommen, siehe [Mitwirken](mitwirken.md).

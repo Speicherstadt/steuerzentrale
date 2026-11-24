@@ -1,5 +1,6 @@
 # Builds docs/ with Zensical and publishes it on GitHub Pages (Speicherstadt/steuerzentrale).
-# A custom domain comes later (docs/CNAME), once the name is settled (docs/plan.md, Offene Fragen).
+# The demo (the interface with its fixtures, no Zentrale) is built into the site under /demo/, as in
+# Kennwort. A custom domain comes later (docs/CNAME), once the name is settled (docs/plan.md, Offene Fragen).
 # On a pull request it only builds (--strict), so broken links show up before the merge.
 # One-time prerequisite: Settings → Pages → Source "GitHub Actions"
 # (configure-pages with enablement switches it on by itself on the first run).
@@ -14,6 +15,10 @@ on:
       - "overrides/**"
       - "requirements-docs.txt"
       - ".github/workflows/docs.yml"
+      # The demo under /demo/ is the web app's own build
+      - "apps/web/**"
+      - "packages/**"
+      - "messages/**"
   pull_request:
     paths:
       - "docs/**"
@@ -21,6 +26,10 @@ on:
       - "overrides/**"
       - "requirements-docs.txt"
       - ".github/workflows/docs.yml"
+      # The demo under /demo/ is the web app's own build
+      - "apps/web/**"
+      - "packages/**"
+      - "messages/**"
   workflow_dispatch:
 
 permissions:
@@ -49,6 +58,13 @@ jobs:
         with:
           enablement: true
       - run: zensical build --strict
+      # The demo without a server: the web app over its fixtures (apps/web/src/demo), at /demo/
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run --cwd apps/web build:demo && cp -r apps/web/dist-demo site/demo
+      - run: grep -q '/demo/assets/' site/demo/index.html
       # Every page has its own description for search engines
       - run: test -z "$(grep -L '^description:' docs/*.md)"
       - uses: actions/upload-pages-artifact@v5

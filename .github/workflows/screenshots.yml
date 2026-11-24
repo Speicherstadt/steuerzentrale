@@ -1,0 +1,60 @@
+# The pictures of README.md and docs/ (docs/assets/screenshots/): the demo build with its fixtures
+# (e2e/screenshots/screenshots.shot.ts, playwright.screenshots.config.ts), German, light and dark,
+# desktop and phone, at deviceScaleFactor 2, turned into WebP. Only by hand
+# (Actions → Update screenshots → Run workflow), never in CI.
+#
+# As in Kennwort: the workflow commits changed pictures straight to main as "Screenshots erneuert".
+# The ruleset on main refuses pushes with GITHUB_TOKEN; the deploy key BUMP_DEPLOY_KEY is on its
+# bypass list. The pictures are also uploaded as an artifact.
+name: Update screenshots
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: false
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ssh-key: ${{ secrets.BUMP_DEPLOY_KEY }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - run: sudo apt-get install -y --no-install-recommends webp
+      - run: bun run screenshots
+        env:
+          SCREENSHOT_DIR: ${{ runner.temp }}/screenshots
+      - name: Convert to WebP
+        run: |
+          mkdir -p docs/assets/screenshots
+          for png in "$RUNNER_TEMP"/screenshots/*.png; do
+            name="$(basename "$png" .png)"
+            cwebp -quiet -q 82 -m 6 "$png" -o "docs/assets/screenshots/$name.webp"
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: docs/assets/screenshots/
+      - name: Commit to main
+        run: |
+          if git diff --quiet -- docs/assets/screenshots && \
+             test -z "$(git ls-files --others --exclude-standard docs/assets/screenshots)"; then
+            echo "The screenshots are unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git add docs/assets/screenshots
+          git commit -m "Screenshots erneuert" -m "Taken by the workflow Update screenshots from ${GITHUB_SHA}."
+          git push origin "HEAD:${{ github.event.repository.default_branch }}"

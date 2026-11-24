@@ -1,0 +1,119 @@
+name: Release
+
+# On a tag vX.Y.Z (Actions → Bump version): the full CI once more, then the Zentrale's image for amd64
+# and arm64 on ghcr.io/speicherstadt/steuerzentrale and a DRAFT GitHub release with the agent
+# binaries, install.sh, the Quadlet unit with the image's digest and SHA256SUMS. A pre-release
+# vX.Y.Z-rc.N tags the image x.y.z-rc.N and next, a release x.y.z, x.y and latest.
+#
+# The image is built as in ci.yml (job release-kandidat, scripts/release-kandidat.ts): only COPY on
+# distroless, so `podman build --platform` needs no emulation.
+#
+# Not signed here: the real minisign key stays offline (CLAUDE.md, "Never"; docs/plan.md, "Release").
+# SHA256SUMS is published unsigned in a draft; a person downloads it, checks it, signs it
+# (`minisign -Sm SHA256SUMS`), uploads SHA256SUMS.minisig and minisign.pub and publishes the release
+# (docs/release.md). Agents and install.sh refuse files without a valid signature, so a draft
+# never reaches a server.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: ci
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+    env:
+      IMAGE: ghcr.io/speicherstadt/steuerzentrale
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      # As firsttris/workflows docker-release.yml: the tag names the version of package.json
+      - name: Version
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          declared="$(jq -r .version package.json)"
+          if [[ "$declared" != "$version" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $declared in package.json"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          if [[ "$version" == *-* ]]; then echo "PRERELEASE=true"; else echo "PRERELEASE=false"; fi >> "$GITHUB_ENV"
+      - run: bun run build
+      - name: Image for amd64 and arm64 on ghcr.io
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          kontext="$RUNNER_TEMP/kontext"
+          bun scripts/release-kandidat.ts kontext "$kontext"
+          podman build --platform linux/amd64,linux/arm64 --manifest "localhost/steuerzentrale:$VERSION" \
+            --label "org.opencontainers.image.version=$VERSION" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            -f "$kontext/Containerfile" "$kontext"
+          echo "$GHCR_TOKEN" | podman login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          podman manifest push --all --digestfile "$RUNNER_TEMP/digest" \
+            "localhost/steuerzentrale:$VERSION" "docker://$IMAGE:$VERSION"
+          digest="$(cat "$RUNNER_TEMP/digest")"
+          echo "DIGEST=$digest" >> "$GITHUB_ENV"
+          if [[ "$PRERELEASE" == true ]]; then
+            tags=(next)
+          else
+            tags=("$(cut -d. -f1,2 <<< "$VERSION")" latest)
+          fi
+          for tag in "${tags[@]}"; do
+            skopeo copy --all "docker://$IMAGE@$digest" "docker://$IMAGE:$tag"
+          done
+          skopeo inspect --raw "docker://$IMAGE@$digest" |
+            jq -e '[.manifests[].platform.architecture] | sort == ["amd64", "arm64"]'
+      - name: Release files
+        run: |
+          set -euo pipefail
+          a="$RUNNER_TEMP/agent"
+          bun scripts/agent-dateien.ts "$a"
+          test "$(cat "$a/VERSION")" = "$VERSION"
+          r="$RUNNER_TEMP/release"
+          mkdir -p "$r"
+          # the agent files without the test key's signature: the person signs (docs/release.md)
+          cp "$a"/steuerzentrale-agent-linux-* "$a/install.sh" "$a/VERSION" "$r/"
+          bun scripts/release-kandidat.ts unit "$IMAGE@$DIGEST" "$r"
+          echo "$DIGEST" > "$r/DIGEST"
+          (cd "$r" && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
+          echo "RELEASE_DIR=$r" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: steuerzentrale-${{ env.VERSION }}
+          path: ${{ env.RELEASE_DIR }}
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          notes="$RUNNER_TEMP/notes.md"
+          cat > "$notes" <<NOTES
+          Image: \`$IMAGE:$VERSION\` (amd64, arm64), Digest \`$DIGEST\`.
+          Einrichten nach https://speicherstadt.github.io/steuerzentrale/installation.html mit der Unit \`steuerzentrale.container\` aus diesem Release.
+
+          **Entwurf:** \`SHA256SUMS\` ist noch nicht signiert. Vor dem Veröffentlichen signiert ein Mensch es mit dem Release-Schlüssel und lädt \`SHA256SUMS.minisig\` und \`minisign.pub\` hoch (https://speicherstadt.github.io/steuerzentrale/release.html).
+          NOTES
+          flags=(--draft --verify-tag --title "Steuerzentrale $VERSION" --notes-file "$notes" --generate-notes)
+          if [[ "$PRERELEASE" == true ]]; then flags+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" "${flags[@]}" --repo "$GITHUB_REPOSITORY" "$RELEASE_DIR"/*

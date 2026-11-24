@@ -1,7 +1,7 @@
 import "@steuerzentrale/ui/styles.css";
 import { render } from "@solidjs/web";
 import { getLocale } from "@steuerzentrale/ui";
-import { createRouter, RouterProvider } from "@tanstack/solid-router";
+import { createHashHistory, createRouter, RouterProvider } from "@tanstack/solid-router";
 import { sitzungsZustand, waechterEinsetzen } from "./anmeldung/sitzung.ts";
 import { abwicklungQuelleEinsetzen, apiAbwicklung } from "./daten/abwicklung.ts";
 import { apiApps, appsQuelleEinsetzen } from "./daten/apps.ts";
@@ -51,7 +51,13 @@ if (import.meta.env.VITE_OHNE_ANMELDUNG !== "1") {
   bestandEinsetzen(ohneDemo);
 }
 
-const router = createRouter({ routeTree, scrollRestoration: true });
+// The demo on the docs site (`bun run build:demo`) is static files under /demo/ on GitHub Pages, which
+// has no fallback to index.html for /demo/server/…: there the routes live in the hash
+const router = createRouter({
+  routeTree,
+  scrollRestoration: true,
+  ...(import.meta.env.VITE_DEMO_SEITE === "1" ? { history: createHashHistory() } : {}),
+});
 
 declare module "@tanstack/solid-router" {
   interface Register {

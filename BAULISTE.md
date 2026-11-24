@@ -565,12 +565,11 @@ Nicht auf dem Weg des Loops.
   für `Signed-off-by` (plan.md, „DCO“).
 - Signierschlüssel (minisign) erzeugen, offline aufbewahren; Manifeste der Apps (Z-203) und jedes
   Release signieren.
-- Release (nach Z-1004): Ziel-Registry und Image-Name bestätigen (plan.md), Secret für den Push, Tag
-  setzen, Image (amd64, arm64) nach `ghcr.io/speicherstadt/steuerzentrale` pushen, die Quadlet-Unit
-  mit dessen Digest erzeugen (`bun scripts/release-kandidat.ts unit …`), `SHA256SUMS` der
-  Agent-Dateien und des Releases mit dem echten Schlüssel signieren (`minisign -Sm SHA256SUMS`, vorher
-  `bun scripts/release-schluessel.ts minisign.pub`), Schlüssel-ID in die Release-Notiz, GitHub-Release
-  veröffentlichen.
+- Release (nach Z-1004): einmalig das Secret `BUMP_DEPLOY_KEY` (Deploy Key mit Schreibrecht, auf der
+  Bypass-Liste des Rulesets) und Pages für die Demo; dann „Bump version“ starten, den Entwurf, den
+  `release.yml` anlegt, nach `docs/release.md` mit dem echten Schlüssel signieren (`minisign -Sm
+  SHA256SUMS`, vorher `bun scripts/release-schluessel.ts minisign.pub`), Schlüssel-ID in die
+  Release-Notiz, veröffentlichen.
 - Erste eigene Zentrale nach `docs/installation.md` (Server, DNS für Oberfläche und `agent.`,
   WireGuard).
 - Je App eine eigene interne Installation für die Welle „intern“.

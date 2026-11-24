@@ -8,9 +8,14 @@ import { defineConfig } from "vite";
 const api = `http://127.0.0.1:${process.env.STEUERZENTRALE_API_PORT ?? "18300"}`;
 const proxy = { "/api": api, "/health": api };
 
+// The demo on the docs site (`bun run build:demo`, .github/workflows/docs.yml) lives under /demo/;
+// the Zentrale serves the interface at the root
+const base = process.env.STEUERZENTRALE_WEB_BASE ?? "/";
+
 // File-based routes in src/routes, the tree in src/routeTree.gen.ts (as in Speicherstadt/soll)
 export default defineConfig({
   plugins: [tanstackRouter({ target: "solid", autoCodeSplitting: true }), solid(), tailwindcss()],
+  base,
   server: { proxy },
   preview: { proxy },
   build: { target: "es2024" },
