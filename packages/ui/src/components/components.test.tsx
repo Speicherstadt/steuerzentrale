@@ -225,6 +225,23 @@ describe("Tabs", () => {
     expect(all(root, '[role="tab"]')[1]?.textContent).toBe("Verlauf (2)");
     expect(visible()).toEqual(["Verlauf"]);
   });
+  it("shows beside the tab list what belongs to the tab shown", () => {
+    const root = mount(() => (
+      <Tabs
+        label="Eintrag"
+        aside={(id) => <span data-aside>{`zu ${id}`}</span>}
+        tabs={[
+          { id: "fields", label: "Felder", content: () => <p>Felder</p> },
+          { id: "history", label: "Verlauf", content: () => <p>Verlauf</p> },
+        ]}
+      />
+    ));
+    const aside = () => root.querySelector("[data-aside]")?.textContent;
+    expect(aside()).toBe("zu fields");
+    key(all(root, '[role="tab"]')[0] as Element, "End");
+    flush();
+    expect(aside()).toBe("zu history");
+  });
 });
 
 describe("Combobox", () => {

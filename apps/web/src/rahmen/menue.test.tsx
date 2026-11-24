@@ -127,7 +127,8 @@ describe("the Protokoll", () => {
   it("opens the tab the URL names", async () => {
     const { root } = await oeffne("/protokoll?tab=aenderungen");
     expect(reiter(root)[2]).toEqual(["Änderungen", "true"]);
-    expect(root.textContent).toContain("Jede schreibende Aktion");
+    // the audit log's entries, not the events of the first tab
+    expect(root.querySelector('[aria-label="Einträge des Audit-Logs"]')).not.toBeNull();
   });
 
   it("shows Änderungen only to the roles that read the audit log", async () => {

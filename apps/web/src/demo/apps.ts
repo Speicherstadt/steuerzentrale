@@ -105,6 +105,7 @@ const woher = (e: Echt["env"][number]): string => {
 const variable = (e: Echt["env"][number]): Variable => ({
   name: e.name,
   ebene: e.ebene,
+  ...(e.titel === undefined ? {} : { titel: e.titel }),
   hinweis: e.beschreibung ?? woher(e),
   ...(e.pflicht ? { pflicht: true } : {}),
   ...(e.typ === "geheim" ? { geheim: true } : {}),

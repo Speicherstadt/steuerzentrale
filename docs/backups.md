@@ -121,7 +121,7 @@ Wird eine Installation entfernt, gehen Timer, Service und beide Dateien mit ihre
 
 ### S3-Ziel
 
-Unter **Einstellungen → Backup** setzen Inhaber und Technik mit Grund:
+Unter **Einstellungen → Backup-Ziel** setzen Inhaber und Technik mit Grund:
 
 | Angabe | Bedeutung |
 | --- | --- |

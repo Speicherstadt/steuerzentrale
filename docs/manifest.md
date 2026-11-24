@@ -41,11 +41,30 @@ Jede Meldung nennt das Feld und den Grund, z. B.
 | `aktionen` | `nur_lesen`, `export`: `nicht_unterstuetzt`, `{ nicht_unterstuetzt: <Issue> }` oder `{ befehl: <Name> }`; `neustart`, `log_auszug`: `angeboten` (Vorgabe) oder nicht unterstützt; was nicht angeboten ist, gibt es weder in der Oberfläche noch auf dem Server ([Aktionen](aktionen.md)); im Log-Auszug ersetzt der Agent die Werte aller Einstellungen vom Typ `geheim` und der Ebene `auto` |
 | `sperrzeiten` | `{ monatlich: "07-12", grund: … }`: keine Updates und Neustarts an diesen Tagen jedes Monats (Berliner Kalendertage); `28-03` reicht über den Monatswechsel |
 | `dns` | Einträge der App (`typ`, `name`, `wert`, `prioritaet`), z. B. MX und SPF für Mail; `name` und `wert` mit Platzhaltern wie eine `vorlage` |
-| `env` | Einstellungen: `name`, `ebene` (`betreiber`, `installation`, `auto`), `typ` (`text`, `zahl`, `ja_nein`, `geheim`), `pflicht`, `vorgabe`, `beschreibung`; ein `auto`-Wert hat genau eines von `erzeugen` (`zufall_32`, `zufall_64`: Zufallsbytes in Base64; `zufall_hex_32`: 32 Zufallsbytes als Hex, für Werte in einer URL), `aus` (`oidc-anbieter`, `adresse`) oder `vorlage` (unten); `option`: der Wert gilt nur, solange diese Option an ist |
+| `env` | Einstellungen: `name`, `ebene` (`betreiber`, `installation`, `auto`), `typ` (`text`, `zahl`, `ja_nein`, `geheim`), `pflicht`, `vorgabe`, `titel` (unten), `beschreibung`; ein `auto`-Wert hat genau eines von `erzeugen` (`zufall_32`, `zufall_64`: Zufallsbytes in Base64; `zufall_hex_32`: 32 Zufallsbytes als Hex, für Werte in einer URL), `aus` (`oidc-anbieter`, `adresse`) oder `vorlage` (unten); `option`: der Wert gilt nur, solange diese Option an ist |
 | `dringend` | `true`: das Update läuft sofort durch alle Wellen |
 | `hinweis` | ein Satz für die Installation, z. B. Lizenz und Website |
 
 Unbekannte Felder sind ein Fehler, damit ein Tippfehler nicht still übergangen wird.
+
+### Titel einer Einstellung
+
+`titel` ist freiwillig: der Name, den eine Person in den Einstellungen statt `ELSTER_HERSTELLER_ID`
+liest, z. B. „Hersteller-ID für ELSTER“. Eine Zeile Text, höchstens 80 Zeichen, ohne Steuerzeichen
+und unsichtbare Formatzeichen (Zeilenumbruch, Tabulator, Richtungswechsel) und ohne Leerzeichen am
+Anfang oder Ende. Ohne `titel` zeigt die Oberfläche den Namen. Der Titel wird nur gezeigt: Units,
+Podman-Secrets, Route der Pforte und Befehle sind mit und ohne ihn gleich. Ein Manifest der
+Speicherstadt trägt einen Titel nur, wo die App den Wert selbst in Worten nennt (Quelle in
+`QUELLEN.md`).
+
+```yaml
+env:
+  - name: ELSTER_HERSTELLER_ID
+    ebene: betreiber
+    titel: Hersteller-ID für ELSTER
+    pflicht: true
+    beschreibung: Hersteller-ID für ELSTER (fünf Ziffern); ohne sie geht nur die Testübermittlung
+```
 
 ## Regeln über mehrere Felder
 

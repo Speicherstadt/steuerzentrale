@@ -78,6 +78,18 @@ test.describe("Nur für mich", { tag: "@phone" }, () => {
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   });
 
+  // the settings in sections, as for customers: the mode of operation says "Nur für mich"
+  test("shows the settings in sections, the mode of operation as Nur für mich", async ({
+    page,
+  }) => {
+    await page.goto("/einstellungen?tab=betriebsart");
+    const abschnitte = page.getByRole("navigation", { name: "Abschnitte der Einstellungen" });
+    await expect(abschnitte.locator('[aria-current="page"]')).toContainText("Betriebsart");
+    await expect(page.getByRole("radio", { name: /Nur für mich/ })).toBeChecked();
+    await expect(abschnitte.getByRole("link")).toHaveCount(8);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  });
+
   test("answers 409 betriebsart where customers are made", async ({ page }) => {
     const antwort = await page.request.post("/api/v1/kunden", {
       data: {

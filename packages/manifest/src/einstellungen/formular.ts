@@ -21,6 +21,8 @@ export type Feld = {
   /** Required by the manifest; a default counts as a value */
   pflicht: boolean;
   vorgabe: Wert | undefined;
+  /** What a person reads: the manifest's `titel`, else the setting's name */
+  titel: string;
   beschreibung: string | undefined;
   /** Stored encrypted and never shown again: an empty field keeps the value */
   geheim: boolean;
@@ -36,6 +38,7 @@ const alsFeld = (e: Einstellung): Feld => ({
   typ: e.typ,
   pflicht: e.pflicht,
   vorgabe: e.vorgabe,
+  titel: e.titel ?? e.name,
   beschreibung: e.beschreibung,
   geheim: e.typ === "geheim",
   option: e.option,

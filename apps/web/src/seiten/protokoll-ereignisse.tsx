@@ -25,15 +25,12 @@ const Liste = (props: { schwere?: Ereignisschwere }) => (
 
 /** The tab "Ereignisse" of the Protokoll (routes/protokoll.tsx) */
 export const Ereignisse = () => (
-  <div class="grid gap-4">
-    <p class="max-w-3xl text-sm text-muted-foreground">{m.ereig_text()}</p>
-    <Tabs
-      label={m.ereig_filter()}
-      tabs={[
-        { id: "alle", label: m.filter_alle(), content: () => <Liste /> },
-        { id: "krit", label: m.ereig_stoerungen(), content: () => <Liste schwere="fehler" /> },
-        { id: "warn", label: m.ereig_warnungen(), content: () => <Liste schwere="warn" /> },
-      ]}
-    />
-  </div>
+  <Tabs
+    label={m.ereig_filter()}
+    tabs={[
+      { id: "alle", label: m.filter_alle(), content: () => <Liste /> },
+      { id: "krit", label: m.ereig_stoerungen(), content: () => <Liste schwere="fehler" /> },
+      { id: "warn", label: m.ereig_warnungen(), content: () => <Liste schwere="warn" /> },
+    ]}
+  />
 );

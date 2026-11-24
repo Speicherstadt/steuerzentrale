@@ -22,23 +22,20 @@ const Liste = (props: { filter: AuftragFilter }) => (
 
 /** The tab "Aufträge" of the Protokoll (routes/protokoll.tsx) */
 export const Auftraege = () => (
-  <div class="grid gap-4">
-    <p class="max-w-3xl text-sm text-muted-foreground">{m.auftraege_text()}</p>
-    <Tabs
-      label={m.auftraege_filter()}
-      tabs={[
-        { id: "alle", label: m.filter_alle(), content: () => <Liste filter={{}} /> },
-        {
-          id: "offen",
-          label: m.auftraege_offen(),
-          content: () => <Liste filter={{ zustand: OFFEN }} />,
-        },
-        {
-          id: "gescheitert",
-          label: m.auftraege_gescheitert(),
-          content: () => <Liste filter={{ zustand: ["gescheitert"] }} />,
-        },
-      ]}
-    />
-  </div>
+  <Tabs
+    label={m.auftraege_filter()}
+    tabs={[
+      { id: "alle", label: m.filter_alle(), content: () => <Liste filter={{}} /> },
+      {
+        id: "offen",
+        label: m.auftraege_offen(),
+        content: () => <Liste filter={{ zustand: OFFEN }} />,
+      },
+      {
+        id: "gescheitert",
+        label: m.auftraege_gescheitert(),
+        content: () => <Liste filter={{ zustand: ["gescheitert"] }} />,
+      },
+    ]}
+  />
 );

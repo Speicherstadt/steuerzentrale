@@ -1,66 +1,42 @@
-import { m, Tabs } from "@steuerzentrale/ui";
-import { createFileRoute } from "@tanstack/solid-router";
-import { bestand } from "../daten/quelle.ts";
-import { AppWerte } from "../seiten/einstellungen-apps.tsx";
-import { BackupZielReiter } from "../seiten/einstellungen-backup.tsx";
-import { BetriebsartReiter } from "../seiten/einstellungen-betriebsart.tsx";
-import { Dns } from "../seiten/einstellungen-dns.tsx";
-import { Benachrichtigungen } from "../seiten/einstellungen-melden.tsx";
-import { Darstellung, Konten, Zentrale } from "../seiten/einstellungen-teile.tsx";
+import { m } from "@steuerzentrale/ui";
+import { createFileRoute, redirect } from "@tanstack/solid-router";
+import {
+  ABSCHNITTE,
+  type Abschnitt,
+  AbschnittInhalt,
+  AbschnittListe,
+} from "../seiten/einstellungen-abschnitte.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
 
 /**
- * The operator's values per app (Z-404: a form from each app's manifest), backup target (Z-601),
- * DNS (Z-407), notifications (Z-703), accounts, the Zentrale, the look
+ * How the Zentrale is set up, one section at a time (seiten/einstellungen-abschnitte.tsx): the mode
+ * of operation (Z-805), the operator's values per app (Z-404: a form from each app's manifest),
+ * backup target (Z-601), DNS (Z-407), notifications (Z-703), accounts, the Zentrale, the look. The
+ * section is in the URL (?tab=), "Werte für Apps" without one.
  */
 
-const REITER = [
-  "werte",
-  "backup",
-  "dns",
-  "melden",
-  "konten",
-  "zentrale",
-  "darstellung",
-  "betriebsart",
-] as const;
-type Reiter = (typeof REITER)[number];
-
 const Einstellungen = () => {
-  const b = bestand();
   const suche = Route.useSearch();
+  const gewaehlt = (): Abschnitt => suche().tab ?? "werte";
   return (
     <div class="grid gap-6">
       <Seitenkopf titel={m.nav_einstellungen()} text={m.einst_text()} />
-      <Tabs
-        label={m.einst_reiter()}
-        initial={suche().tab ?? "werte"}
-        tabs={[
-          {
-            id: "werte",
-            label: m.einst_werte(),
-            content: () => (
-              <div class="grid gap-4">
-                <AppWerte />
-              </div>
-            ),
-          },
-          { id: "backup", label: m.einst_backup(), content: () => <BackupZielReiter /> },
-          { id: "dns", label: m.einst_dns(), content: () => <Dns /> },
-          { id: "melden", label: m.einst_melden(), content: () => <Benachrichtigungen /> },
-          { id: "konten", label: m.einst_konten(), content: () => <Konten /> },
-          { id: "zentrale", label: m.app_name(), content: () => <Zentrale b={b} /> },
-          { id: "darstellung", label: m.einst_darstellung(), content: () => <Darstellung /> },
-          { id: "betriebsart", label: m.betriebsart_titel(), content: () => <BetriebsartReiter /> },
-        ]}
-      />
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] lg:items-start lg:gap-8">
+        <AbschnittListe />
+        <AbschnittInhalt gewaehlt={gewaehlt()} />
+      </div>
     </div>
   );
 };
 
 export const Route = createFileRoute("/einstellungen")({
-  validateSearch: (suche: Record<string, unknown>): { tab?: Reiter } => {
-    const tab = REITER.find((r) => r === suche.tab);
+  // one address per section, so the list marks it: "Werte für Apps" is the page without one
+  beforeLoad: ({ location }) => {
+    if ((location.search as { tab?: unknown }).tab === "werte")
+      throw redirect({ to: "/einstellungen", search: {}, replace: true });
+  },
+  validateSearch: (suche: Record<string, unknown>): { tab?: Abschnitt } => {
+    const tab = ABSCHNITTE.find((r) => r === suche.tab);
     return tab ? { tab } : {};
   },
   component: Einstellungen,

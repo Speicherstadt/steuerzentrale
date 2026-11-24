@@ -23,7 +23,7 @@ der Betreiber selbst. Eigene Domains der Kunden mit Prüfung kommen mit Z-409.
 
 ## DNS-Einstellungen
 
-Unter **Einstellungen → DNS** setzen Inhaber und Technik mit Grund:
+Unter **Einstellungen → Adressen und DNS** setzen Inhaber und Technik mit Grund:
 
 | Angabe | Bedeutung |
 | --- | --- |
