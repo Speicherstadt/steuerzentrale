@@ -65,7 +65,8 @@ describe("webhookSenden", () => {
   });
 
   it("goes to the checked address with the host as Host header and TLS name", async () => {
-    const tls = await pforteTls(T);
+    // the handshake checks the certificate against the real clock, not against T
+    const tls = await pforteTls();
     const e = empfaenger({ tls: { cert: tls.zertifikat, key: tls.schluessel } });
     const aufgeloest: string[] = [];
     const deps = {

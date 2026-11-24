@@ -1,7 +1,8 @@
 name: CI
 
 # Text only (Markdown, docs/, the license) changes no code: on main paths-ignore filters it, docs.yml checks docs/.
-# A pull request always runs, so a required check never stays "Pending"; there the job changes skips the checks.
+# A pull request always runs, so a required check never stays "Pending". On a pull request and on main the job
+# changes decides which parts run: agent, server and e2e only when their files changed (see its patterns).
 # The layout follows Speicherstadt/kennwort (.github/workflows/ci.yml): a changes job, parts side by side, one result.
 on:
   push:
@@ -21,29 +22,58 @@ permissions:
   contents: read
 
 jobs:
-  # What a pull request touches. A job skipped by its `if` counts as passed for the rules on main, so every job
-  # has !cancelled() and compares with 'false': when changes does not run (push, release, manual) or fails, its
+  # What a pull request or a push to main touches, so each part runs only when its files changed. A job
+  # skipped by its `if` counts as passed for the rules on main, so every job has !cancelled() and
+  # compares with 'false': when changes does not run (a tag through release.yml, by hand) or fails, its
   # outputs are empty and everything runs
   changes:
-    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
+    if: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      agent: ${{ steps.filter.outputs.agent }}
+      server: ${{ steps.filter.outputs.server }}
+      e2e: ${{ steps.filter.outputs.e2e }}
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
       - id: filter
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
-          changed="$(git -c core.quotePath=false diff --no-renames --name-only HEAD^1 HEAD)"
+          # a pull request: its merge commit against the base; a push: everything since the last push
+          base=HEAD^1
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then base="$BEFORE"; else base=""; fi
+          fi
+          if [ -z "$base" ]; then
+            # no known base (a new branch, a force push): everything runs
+            for part in code agent server e2e; do echo "$part=true" >> "$GITHUB_OUTPUT"; done
+            exit 0
+          fi
+          changed="$(git -c core.quotePath=false diff --no-renames --name-only "$base" HEAD)"
           printf '%s\n' "$changed"
+          # true when a changed file matches the pattern
+          touches() { if grep -qE "$1" <<< "$changed"; then echo true; else echo false; fi; }
+          # what every part depends on: the lockfile, the root package.json, this workflow
+          common='^(package\.json|bun\.lock|tsconfig[^/]*\.json|\.github/workflows/ci\.yml)$'
           # docs/plan.md is read by tests (Z-203 checks the app table against the manifests): it counts as code
-          tested='^docs/plan\.md$'
-          other="$(grep -Ev '\.md$|^docs/|^LICENSE$' <<< "$changed" || true)$(grep -E "$tested" <<< "$changed" || true)"
+          other="$(grep -Ev '\.md$|^docs/|^LICENSE$|^design/' <<< "$changed" || true)$(grep -E '^docs/plan\.md$' <<< "$changed" || true)"
           if [ -n "$changed" ] && [ -z "$other" ]; then code=false; else code=true; fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = false ]; then
+            for part in agent server e2e; do echo "$part=false" >> "$GITHUB_OUTPUT"; done
+            exit 0
+          fi
+          # the agent against Podman: the agent, what it shares with the Zentrale, the manifests, the test fixtures
+          echo "agent=$(touches "$common|^apps/agent/|^packages/(manifest|protokoll|planung)/|^manifeste/|^install/|^scripts/|^test/|^vitest\.agent\.config\.ts$")" >> "$GITHUB_OUTPUT"
+          # install.sh, the agent and the Zentrale in a VM
+          echo "server=$(touches "$common|^apps/(agent|zentrale)/|^packages/(manifest|protokoll|planung)/|^install/|^scripts/|^test/")" >> "$GITHUB_OUTPUT"
+          # the interface against the Zentrale
+          echo "e2e=$(touches "$common|^apps/(web|zentrale)/|^packages/|^messages/|^project\.inlang/|^manifeste/|^e2e/|^test/|^playwright\.config\.ts$")" >> "$GITHUB_OUTPUT"
 
   unit:
     needs: changes
@@ -96,8 +126,14 @@ jobs:
   # "Podman"). With CI=true a missing Podman or a run without a test fails (vitest.agent.config.ts)
   agent:
     needs: changes
-    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.agent != 'false' }}
     runs-on: ubuntu-24.04
+    # The agent's tests take about 10 minutes in one run: four runners take a quarter of the files each
+    # (vitest --shard), each with its own Podman, users and test registry
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
@@ -153,7 +189,7 @@ jobs:
       # BAULISTE.md Z-601: apps/agent/test/backup.agent.test.ts starts MinIO by digest in a container
       # of the runner (port 29401) and installs the agent's binary as /usr/local/bin/sz-test-agent-*,
       # which the installation's backup service runs as its user; both go again after the test
-      - run: podman --version && bun run test:agent
+      - run: podman --version && bun run test:agent --shard=${{ matrix.shard }}/4
       - name: What the Pforte's user manager saw
         if: failure()
         run: |
@@ -173,7 +209,7 @@ jobs:
   # What a user does, desktop and @phone, with axe; Playwright fails when no test ran
   e2e:
     needs: changes
-    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.e2e != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -192,7 +228,7 @@ jobs:
   # the Zentrale serves and refuses one signed with another key (BAULISTE.md Z-504)
   server:
     needs: changes
-    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.code != 'false' }}
+    if: ${{ !cancelled() && !github.event.pull_request.draft && needs.changes.outputs.server != 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
@@ -645,10 +681,9 @@ jobs:
     needs: [changes, unit, agent, e2e, server, release-kandidat]
     runs-on: ubuntu-latest
     steps:
-      # A part may be skipped only when the pull request changes no code (job changes); otherwise every
-      # part must have run and passed
+      # A part may be skipped only when the job changes says its files did not change; otherwise it must
+      # have run and passed (an empty output, when changes did not run, means: it had to run)
       - env:
-          CODE: ${{ needs.changes.outputs.code }}
           RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' }}
         run: |
           # the release candidate runs only on a tag or by hand; there it must pass
@@ -656,9 +691,13 @@ jobs:
             echo "The release candidate ended with: ${{ needs.release-kandidat.result }}"
             exit 1
           fi
-          for result in "${{ needs.unit.result }}" "${{ needs.agent.result }}" "${{ needs.e2e.result }}" "${{ needs.server.result }}"; do
-            if [ "$result" = success ]; then continue; fi
-            if [ "$result" = skipped ] && [ "$CODE" = false ]; then continue; fi
-            echo "A part ended with: $result"
+          pruefen() {
+            if [ "$2" = success ]; then return 0; fi
+            if [ "$2" = skipped ] && [ "$3" = false ]; then return 0; fi
+            echo "$1 ended with: $2"
             exit 1
-          done
+          }
+          pruefen unit "${{ needs.unit.result }}" "${{ needs.changes.outputs.code }}"
+          pruefen agent "${{ needs.agent.result }}" "${{ needs.changes.outputs.agent }}"
+          pruefen e2e "${{ needs.e2e.result }}" "${{ needs.changes.outputs.e2e }}"
+          pruefen server "${{ needs.server.result }}" "${{ needs.changes.outputs.server }}"

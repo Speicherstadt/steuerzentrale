@@ -170,7 +170,7 @@ nächste dort weitermacht.
 | E2E | Playwright, Desktop und Handy; jede Seite hell und dunkel ohne Befund von axe und ohne seitliches Scrollen | `ci.yml` |
 | Doku | `zensical build --strict`, jede Seite mit `description`, Demo unter `/demo/` | `docs.yml` |
 
-Nicht am Pull Request: der Release-Kandidat in einer Incus-VM (Job `release-kandidat`) läuft nur auf einem Tag nach „Bump version“ oder von Hand (**Actions → CI → Run workflow**).
+Agent, Server und E2E laufen nur, wenn ein Pull Request (oder ein Push auf `main`) ihre Dateien ändert; das entscheidet der Job `changes` in `ci.yml`. Die Tests des Agenten laufen auf vier Runnern nebeneinander. Nicht am Pull Request: der Release-Kandidat in einer Incus-VM (Job `release-kandidat`) läuft nur auf einem Tag nach „Bump version“ oder von Hand (**Actions → CI → Run workflow**).
 
 ## Sicherheitslücken
 
