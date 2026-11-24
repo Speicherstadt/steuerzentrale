@@ -13,6 +13,8 @@ export type InstallationVerweis = {
   app: string;
   host: string;
   kunde: string;
+  /** The server it runs on: the interface puts it beside that server's entries */
+  serverId: string;
 };
 export type ServerVerweis = { serverId: string; name: string };
 

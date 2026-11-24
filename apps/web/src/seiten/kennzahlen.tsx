@@ -1,29 +1,33 @@
 import { m } from "@steuerzentrale/ui";
-import { createMemo, Loading, Show } from "solid-js";
-import { appsQuelle } from "../daten/apps.ts";
-import { backupQuelle } from "../daten/backups.ts";
+import { Show } from "solid-js";
+import { suche } from "../daten/ableitungen.ts";
+import type { InstallationsAngebot } from "../daten/apps.ts";
+import type { BackupZeile } from "../daten/backups.ts";
 import { anzeige, type InstallationAnsicht } from "../daten/installation-ansicht.ts";
+import { backupsDerNacht, laufendeWelle, type Welle } from "../daten/kennzahlen.ts";
 import { bestand, mitDemo } from "../daten/quelle.ts";
 import type { ServerAnsicht } from "../daten/server-ansicht.ts";
-import type { Bestand } from "../daten/typen.ts";
-import { updateMisslungen } from "../daten/update-texte.ts";
 import { planStand } from "../daten/wellen.ts";
-import { welleName } from "../rahmen/texte.ts";
 import { Anteile, Ring, Segmente, type Ton } from "../teile/diagramme.tsx";
 import { Kennzahl } from "../teile/listen.tsx";
 import { Marke } from "../teile/zeichen.tsx";
 
 /**
- * The four key figures of the overview (DESIGN.md, "Bausteine"): servers and installations from
- * the Zentrale (BAULISTE.md Z-406), backups too (Z-601), updates too (Z-503); the demo shows its
- * own waves. Each has a small chart, as in Speicherstadt/belegt: a segment per server and per
- * backup, the installations' states as shares, an update's progress as a ring
+ * The four tiles of the overview (DESIGN.md, "Bausteine"; docs/plan.md, "Übersicht (Oberfläche
+ * 2026-11)"): servers and apps from the Zentrale (Z-406), the update wave that runs or the updates
+ * that could (Z-503; the demo shows its own waves), last night's backups with the failures named
+ * (Z-601, Z-602). Each has a small chart, as in Speicherstadt/belegt: a segment per server and per
+ * backup, the apps' states as shares, a wave's progress as a ring. "Nur für mich" (Z-805) names no
+ * customer.
  */
 
 const AGENT_TON: Record<string, Ton> = { verbunden: "ok", still: "warn", getrennt: "danger" };
 
-export const ServerZahl = (props: { server: ServerAnsicht[] }) => {
+const appName = (app: string) => suche(bestand().apps, app)?.name ?? app;
+
+export const ServerZahl = (props: { server: ServerAnsicht[]; fuerKunden: boolean }) => {
   const art = (a: string) => props.server.filter((x) => x.art === a).length;
+  const still = () => props.server.filter((x) => x.agent.zustand !== "verbunden").length;
   return (
     <Kennzahl
       name={m.nav_server()}
@@ -31,7 +35,7 @@ export const ServerZahl = (props: { server: ServerAnsicht[] }) => {
       marke={
         <Marke class="tabular-nums">
           {m.uebersicht_verbunden({
-            n: props.server.filter((x) => x.agent.zustand === "verbunden").length,
+            n: props.server.length - still(),
             gesamt: props.server.length,
           })}
         </Marke>
@@ -44,17 +48,30 @@ export const ServerZahl = (props: { server: ServerAnsicht[] }) => {
           }))}
         />
       }
-      zeile1={m.uebersicht_server_arten({
-        gemeinsam: art("gemeinsam"),
-        eigen: art("eigen"),
-        kunde: art("kunde"),
-      })}
-      zeile2={m.uebersicht_server_meldung()}
+      zeile1={
+        props.fuerKunden
+          ? m.uebersicht_server_arten({
+              gemeinsam: art("gemeinsam"),
+              eigen: art("eigen"),
+              kunde: art("kunde"),
+            })
+          : m.uebersicht_server_arten_selbst({ gemeinsam: art("gemeinsam"), eigen: art("eigen") })
+      }
+      zeile2={
+        still() === 0
+          ? m.uebersicht_server_alle()
+          : still() === 1
+            ? m.uebersicht_server_still_eins()
+            : m.uebersicht_server_still({ n: still() })
+      }
     />
   );
 };
 
-export const InstallationenZahl = (props: { installationen: InstallationAnsicht[] }) => {
+export const InstallationenZahl = (props: {
+  installationen: InstallationAnsicht[];
+  fuerKunden: boolean;
+}) => {
   const da = () => props.installationen.filter((i) => i.zustand !== "entfernt");
   const laufend = () => da().filter((i) => i.vertragsende === null);
   const n = (h: string) => laufend().filter((i) => anzeige(i) === h).length;
@@ -82,111 +99,98 @@ export const InstallationenZahl = (props: { installationen: InstallationAnsicht[
         rot: n("rot") + n("gescheitert"),
         unbekannt: n("unbekannt") + n("wird_eingerichtet"),
       })}
-      zeile2={m.uebersicht_gekuendigt({ n: da().length - laufend().length })}
+      zeile2={
+        props.fuerKunden
+          ? m.uebersicht_gekuendigt({ n: da().length - laufend().length })
+          : m.uebersicht_apps_arten({ n: new Set(da().map((i) => i.app)).size })
+      }
     />
   );
 };
 
-const UpdateDemo = (props: { b: Bestand }) => {
-  const plan = () => props.b.plaene[0];
-  const stand = () => {
-    const p = plan();
-    return p && planStand(props.b, p);
-  };
-  const welle = () => {
-    const w = stand()?.welle;
-    return w && welleName(w);
-  };
-  const neu = () =>
-    props.b.apps
-      .filter((a) => a.ohneManifest)
-      .map((a) => m.uebersicht_manifest_fehlt({ app: a.name, version: a.ohneManifest ?? "" }))
-      .join(", ") || m.uebersicht_keine_versionen();
-  return (
-    <Kennzahl
-      name={stand() ? `${stand()?.app.name} ${plan()?.version}` : m.nav_updates()}
-      wert={stand() ? `${stand()?.fertig}/${stand()?.gesamt}` : "0"}
-      marke={<Marke>{welle() ? m.welle_marke({ welle: welle() ?? "" }) : m.welle_fertig()}</Marke>}
-      diagramm={
-        <Ring anteil={stand() ? (stand()?.fertig ?? 0) / Math.max(1, stand()?.gesamt ?? 1) : 1} />
-      }
-      zeile1={
-        welle() ? m.uebersicht_welle_laeuft({ welle: welle() ?? "" }) : m.uebersicht_wellen_fertig()
-      }
-      zeile2={neu()}
-    />
-  );
-};
-
-/**
- * Signed in, from GET /api/v1/updates (Z-503): how many installations run the newest version they
- * are offered, how many updates are under way, how many get a newer version and how many last
- * ended without it
- */
-const UpdateZentrale = () => {
-  const antwort = createMemo(() => appsQuelle().angebote());
-  const liste = () => {
-    const a = antwort();
-    return a.ok ? a.daten : [];
-  };
-  const aktuell = () => liste().filter((i) => i.angeboten.length === 0).length;
-  return (
-    <Loading fallback={null}>
-      <Kennzahl
-        name={m.nav_updates()}
-        wert={`${aktuell()}/${liste().length}`}
-        diagramm={<Ring anteil={liste().length ? aktuell() / liste().length : 1} />}
-        marke={
-          <Marke class="tabular-nums">
-            {m.uebersicht_updates_laufend({ n: liste().filter((i) => i.update.laeuft).length })}
-          </Marke>
-        }
-        zeile1={m.uebersicht_updates_offen({ n: liste().length - aktuell() })}
-        zeile2={m.uebersicht_updates_zurueck({
-          n: liste().filter((i) => updateMisslungen(i.update)).length,
-        })}
-      />
-    </Loading>
-  );
-};
-
-export const UpdateZahl = () => (
-  <Show when={mitDemo()} fallback={<UpdateZentrale />}>
-    <UpdateDemo b={bestand()} />
-  </Show>
+/** The wave that runs: its progress as a ring, the other updates beside it */
+const WellenZahl = (props: { welle: Welle; moeglich: number }) => (
+  <Kennzahl
+    name={m.uebersicht_update_name({
+      app: appName(props.welle.app),
+      version: props.welle.version,
+    })}
+    wert={`${props.welle.fertig}/${props.welle.gesamt}`}
+    marke={<Marke>{m.uebersicht_update_laeuft()}</Marke>}
+    diagramm={<Ring anteil={props.welle.fertig / Math.max(1, props.welle.gesamt)} />}
+    zeile1={m.uebersicht_update_fertig({ fertig: props.welle.fertig, gesamt: props.welle.gesamt })}
+    zeile2={m.uebersicht_update_weitere({ n: props.moeglich })}
+  />
 );
 
-/**
- * The installations with parts to back up whose last run succeeded, and how many test restores
- * failed (Z-602), from GET /api/v1/backups
- */
-export const BackupZahl = () => {
-  const antwort = createMemo(() => backupQuelle().uebersicht());
-  const zeilen = () => {
-    const a = antwort();
-    return a.ok ? a.daten.filter((z) => z.teile.length > 0) : [];
+/** No wave runs: how many apps could get a newer version, and how many run the newest */
+const MoeglichZahl = (props: { moeglich: number; gesamt: number }) => (
+  <Kennzahl
+    name={m.nav_updates()}
+    wert={String(props.moeglich)}
+    marke={<Marke>{m.uebersicht_update_keine_welle()}</Marke>}
+    diagramm={<Ring anteil={(props.gesamt - props.moeglich) / Math.max(1, props.gesamt)} />}
+    zeile1={m.uebersicht_updates_moeglich({ n: props.moeglich })}
+    zeile2={m.uebersicht_updates_aktuell({ n: props.gesamt - props.moeglich })}
+  />
+);
+
+/** The demo's own wave plan (src/demo/index.ts), as the page Updates shows it */
+const demoWelle = (angebote: InstallationsAngebot[]) => {
+  const b = bestand();
+  const plan = b.plaene[0];
+  const stand = plan && planStand(b, plan);
+  if (!plan || !stand?.welle) return laufendeWelle(angebote);
+  return {
+    welle: { app: plan.app, version: plan.version, fertig: stand.fertig, gesamt: stand.gesamt },
+    moeglich: angebote.filter((a) => a.angeboten.length > 0 && a.app !== plan.app).length,
   };
-  const ok = () => zeilen().filter((z) => z.letzter?.ok).length;
-  const gescheitert = () => zeilen().filter((z) => z.letzter && !z.letzter.ok).length;
-  const pruefGescheitert = () =>
-    zeilen().filter((z) => z.pruefRestore.letzter?.ok === false).length;
+};
+
+export const UpdateZahl = (props: { angebote: InstallationsAngebot[] }) => {
+  const stand = () => (mitDemo() ? demoWelle(props.angebote) : laufendeWelle(props.angebote));
   return (
-    <Loading fallback={null}>
-      <Kennzahl
-        name={m.bak_letzter_ok()}
-        wert={`${ok()}/${zeilen().length}`}
-        marke={<Marke>{m.bak_restic()}</Marke>}
-        diagramm={
-          <Segmente
-            teile={zeilen().map((z) => ({
-              name: `${z.kundeName} · ${z.app}`,
-              ton: !z.letzter ? "leer" : z.letzter.ok ? "ok" : "danger",
-            }))}
-          />
-        }
-        zeile1={m.uebersicht_backups_gescheitert({ n: gescheitert() })}
-        zeile2={m.uebersicht_pruef_gescheitert({ n: pruefGescheitert() })}
-      />
-    </Loading>
+    <Show
+      when={stand().welle}
+      fallback={<MoeglichZahl moeglich={stand().moeglich} gesamt={props.angebote.length} />}
+    >
+      {(w) => <WellenZahl welle={w()} moeglich={stand().moeglich} />}
+    </Show>
+  );
+};
+
+/** Last night's backups: a segment per app, the failures by name, failed test restores */
+export const BackupZahl = (props: {
+  backups: BackupZeile[];
+  seit: number;
+  fuerKunden: boolean;
+}) => {
+  const nacht = () => backupsDerNacht(props.backups, props.seit);
+  const name = (t: { app: string; kundeName: string }) =>
+    props.fuerKunden
+      ? m.zutun_app_bei({ app: appName(t.app), kunde: t.kundeName })
+      : appName(t.app);
+  return (
+    <Kennzahl
+      name={m.uebersicht_backups_nacht()}
+      wert={`${nacht().ok}/${nacht().gesamt}`}
+      marke={<Marke>{m.uebersicht_backups_jede_nacht()}</Marke>}
+      diagramm={<Segmente teile={nacht().teile.map((t) => ({ name: name(t), ton: t.ton }))} />}
+      zeile1={
+        nacht().gescheitert.length === 0
+          ? m.uebersicht_backups_alle()
+          : m.uebersicht_backups_gescheitert({
+              n: nacht().gescheitert.length,
+              namen: nacht().gescheitert.map(name).join(", "),
+            })
+      }
+      zeile2={
+        nacht().pruefGescheitert === 0
+          ? m.uebersicht_pruef_ok()
+          : nacht().pruefGescheitert === 1
+            ? m.uebersicht_pruef_gescheitert_eins()
+            : m.uebersicht_pruef_gescheitert({ n: nacht().pruefGescheitert })
+      }
+    />
   );
 };

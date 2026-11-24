@@ -60,9 +60,9 @@ test.describe("real data", { tag: "@phone" }, () => {
       await expect(page.getByText(text)).toBeVisible();
 
       await page.goto("/");
-      const eintrag = page.getByRole("link", { name: new RegExp(nutzer) });
-      await expect(eintrag.getByRole("img", { name: "Warnung" })).toBeVisible();
-      await eintrag.click();
+      const zeile = page.getByRole("listitem").filter({ hasText: nutzer });
+      await expect(zeile.getByRole("img", { name: "Warnung" })).toBeVisible();
+      await zeile.getByRole("link", { name: new RegExp(nutzer) }).click();
       await expect(page).toHaveURL(`/server/${agent.serverId}`);
     } finally {
       agent.trennen();

@@ -67,6 +67,10 @@ export const demoFakten = (sv: Server, jetzt: number): ServerFakten => {
     gestartetAm: jetzt - sv.laufzeitTage * TAG_MS,
     // unattended-upgrades ran last night at 02:10 (mockup, events)
     unattendedUpgrades: { installiert: true, aktiv: true, letzterLauf: jetzt - 8 * 3600_000 },
+    // the Pforte's certificate of each installation's host, as the checks of the demo count them
+    zertifikate: demo.installationen
+      .filter((i) => i.server === sv.id)
+      .map((i) => ({ host: i.adresse, gueltigBis: jetzt + sv.zertifikatTage * TAG_MS })),
   };
 };
 

@@ -84,7 +84,7 @@ Verbindung, die nicht schreiben kann. Ein Test sucht im Code nach Schreibzugriff
 vorbei.
 
 Die Oberfläche liest ihre Daten über `apps/web/src/daten/` (Typen, `quelle.ts` und reine Ableitungen
-wie Prüfungen, Wellen und „Braucht Aufmerksamkeit“). Bis die Zentrale ihre API hat, liefert `quelle.ts`
+wie Prüfungen, Wellen und „Zu tun“). Bis die Zentrale ihre API hat, liefert `quelle.ts`
 die Demodaten aus `apps/web/src/demo/`: ein Betreiber mit den Apps der Speicherstadt, die ein
 veröffentlichtes Release haben (gelesen aus den echten Manifesten in `manifeste/`), Servern,
 Installationen, Kunden, Ereignissen und Aufträgen. Dieselben Daten zeigen `bun run dev:demo`, die

@@ -1,7 +1,7 @@
 ---
 title: Übersicht und Betrieb
 description: >-
-  Was die Übersicht nach Schwere zeigt und wohin jeder Eintrag führt, wie Aufträge, Ereignisse und
+  Was die Übersicht zeigt (zu tun, als Nächstes, von selbst erledigt) und wohin jeder Eintrag führt, wie Aufträge, Ereignisse und
   das Audit-Log seitenweise aus der Zentrale kommen, wer was lesen darf und was die Oberfläche
   angemeldet zeigt, solange ein späterer Punkt eine Seite noch nicht mit Daten füllt.
 ---
@@ -18,7 +18,7 @@ Die Seitenleiste hat acht Einträge in zwei Gruppen:
 
 | Gruppe | Eintrag | Was dort steht |
 | --- | --- | --- |
-| Betrieb | Übersicht | was Aufmerksamkeit braucht; der Zähler nennt, wie viele Störungen und Warnungen |
+| Betrieb | Übersicht | ob dich etwas braucht: was zu tun ist, was die Zentrale als Nächstes tut und was sie erledigt hat; der Zähler nennt die Zeilen von „Zu tun“ |
 | Betrieb | Apps | jede laufende App (eine Installation) mit Kunde, Zustand, Version und Server; Reiter „Backups“ |
 | Betrieb | Server | die Server mit Agent, Zustand und Wartung |
 | Betrieb | Kunden | Kunden und Verträge; Reiter „Support-Zugänge“ und „Leistungen“ |
@@ -34,15 +34,71 @@ Alte Adressen führen weiter: `/installationen` und `/installationen/<id>` zu `/
 
 ## Übersicht
 
-Oben vier Kennzahlen: Server (wie viele verbunden, nach Art), Apps (grün, gelb, rot, ohne
-Zustand, gekündigt), Updates und Backups (bei wie vielen Installationen der letzte Lauf gelang und
-wie viele Prüf-Restores scheiterten, [Backups](backups.md)). Die Kennzahl Updates zählt die
-Installationen auf der neuesten ihnen angebotenen Version, die laufenden Updates, die Installationen
-mit einer neueren Version und die, deren letztes Update zurückgenommen wurde oder scheiterte
-([Updates](updates.md)).
+Die Übersicht beantwortet eine Frage: **Brauche ich gerade etwas zu tun?** Ihre Überschrift ist die
+Antwort, „5 Dinge brauchen dich“ oder „Alles läuft“, darunter „Alles andere läuft. Stand: heute
+10:42“.
 
-Darunter **Braucht Aufmerksamkeit**: was die Zentrale unter `GET /api/v1/uebersicht` liefert, das
-Schwerste zuerst. Jeder Eintrag führt zu seiner Ursache.
+Darunter vier Kacheln:
+
+| Kachel | Zahl | Zeilen |
+| --- | --- | --- |
+| Server | wie viele; ein Feld je Server, gelb oder rot, wenn sein Agent still oder getrennt ist; „4/5 verbunden“ | nach Art („2 gemeinsam, 2 eigen, 1 beim Kunden“), wie viele sich nicht melden |
+| Apps | wie viele; ein Balken mit den Anteilen grün, gelb, rot, ohne Zustand; „12 grün“ | „1 gelb, 2 rot, 1 ohne Zustand“, wie viele davon gekündigt sind |
+| Update | die laufende Welle („Update: Belegt 0.0.7“, „1/3“ mit Ring): Apps auf ihrer Version unter denen, die ein Plan hält oder deren Update läuft; läuft keine, wie viele Updates möglich sind | wie viele fertig, wie viele Updates außerdem möglich sind ([Updates](updates.md)) |
+| Backups heute Nacht | Apps mit gelungenem Lauf seit gestern 18 Uhr unter denen mit Teilen zum Sichern; ein Feld je App, rot bei gescheitertem Lauf, gelb, wenn der letzte gelungene älter ist | die gescheiterten mit Namen, gescheiterte Prüf-Restores ([Backups](backups.md)) |
+
+Bei „Nur für mich“ nennt keine Kachel einen Kunden: Server nach „gemeinsam“ und „eigen“, statt der
+gekündigten Apps die Zahl der verschiedenen Apps, die gescheiterten Backups nur mit dem Namen der
+App.
+
+Links **Zu tun**: was die Zentrale nicht selbst lösen kann, das Dringendste zuerst. Jede Zeile ist ein
+Ding, eine App oder ein Server, mit Symbol (Störung oder Warnung), einem Titel in Worten („Schreibzeug
+bei IT Berger ist gestört“, „Platte auf Server „Studio Lind“ zu 91 % voll“), einer Zeile mit Grund
+und Zeit und ihren Knöpfen. Ein stiller oder getrennter Agent und eine volle Platte sind die Ursache
+dessen, was die Apps auf dem Server melden: das steht in der Zeile des Servers („dazu: …“), nicht
+in eigenen Zeilen. Jede andere Prüfung eines Servers ist es nicht, ihre Apps behalten ihre Zeilen.
+Was eine App sonst betrifft (ein gescheiterter Neustart einer gestörten App), steht in ihrer Zeile,
+ohne dass „dazu“ es noch einmal nennt: es sagt nur, warum sie gestört ist.
+Die Zahl neben „Übersicht“ in der Seitenleiste ist die Zahl dieser Zeilen.
+
+| Zeile | Knöpfe |
+| --- | --- |
+| App gestört oder rot | „Log ansehen“ und „Neustart“, je mit Grund, für Inhaber und Technik und für Support während seines eigenen Zugangs ([Aktionen](aktionen.md)); sonst „App öffnen“ |
+| andere Zeile einer App (gelb, Prüf-Restore, gescheiterte Einrichtung, gescheiterter Auftrag) | „App öffnen“ |
+| Server (Agent, Prüfung, Auftrag ohne App) | „Server öffnen“ |
+| Ereignis ohne App oder Server | „Im Protokoll“ |
+
+Eine Zeile nur aus Hinweisen (ohne Zustand, Prüf-Restore überfällig) wartet: sie steht unten unter
+**Ohne Eile** und zählt nicht, ebenso neue Tags der Registries, deren Manifest im Katalog fehlt
+(„Haben 0.13.0 und Kontext 0.1.40 sind erschienen, im Katalog fehlen die Manifeste. Zum Katalog“).
+Ist nichts zu tun, steht dort eine ruhige Zeile.
+
+Rechts **Als Nächstes**, nach Zeit: was die Zentrale in den nächsten 7 Tagen von selbst tut, und
+Fristen bis 30 Tage voraus. Alles kommt aus dem, was die API schon liefert; was keine Quelle hat,
+steht nicht da.
+
+| Eintrag | Quelle | Zeitraum |
+| --- | --- | --- |
+| Update einer App in einer Welle („Update: Belegt 0.0.7 bei Schreinerei Holm“, mit Backup davor) | Plan je Installation, `GET /api/v1/updates` | 7 Tage |
+| Neustart eines Servers im Wartungsfenster (neuer Kernel oder wartende Pakete) | Plan des Neustarts, `GET /api/v1/server`; nur einer, der nur auf seine Zeit wartet | 7 Tage |
+| Sperrzeit einer App, die läuft, beginnt („7.–12.12.“) | `sperrzeiten` des Manifests | 7 Tage |
+| Zertifikat läuft ab, gelb unter 14 Tagen | Zertifikate der Pforte in den Fakten des Servers | 30 Tage |
+| Vertrag eines Kunden endet, die Löschung 90 Tage danach | Vertragsende der Kunden ([Kündigung](kunden.md#kundigung)); nicht bei „Nur für mich“ | 30 Tage |
+
+Darunter **Von selbst erledigt** seit gestern 18 Uhr (Berliner Zeit): gelungene Backups und
+Prüf-Restores, durch eine Welle eingespielte Updates, Neustarts der Server nach Plan und die
+Server, auf denen unattended-upgrades lief; erneuerte Zertifikate nicht, weil die Pforte sie
+erneuert, ohne dass es jemand meldet. „Zum Protokoll“ führt zu allem, was geschah. Ereignisse und
+Aufträge stehen nicht mehr in der Übersicht, sondern im Protokoll.
+
+Die Ordnung, die 7 Tage und die Berliner Zeit sind reine Funktionen mit Tests
+(`apps/web/src/daten/zu-tun.ts`, `als-naechstes.ts`, `von-selbst.ts`, `kennzahlen.ts`;
+`sperrzeitBeginne` und `gesternAbend` in `packages/planung`).
+
+### Was die Zentrale liefert
+
+Was „Zu tun“ zeigt, liefert die Zentrale unter `GET /api/v1/uebersicht`, das Schwerste zuerst. Jeder
+Eintrag führt zu seiner Ursache und nennt bei einer App den Server, auf dem sie läuft (`serverId`).
 
 | Eintrag | Schwere | führt zu |
 | --- | --- | --- |
@@ -67,9 +123,6 @@ und nicht gesperrt ist. Ein Ereignis, dessen Installation oder Server schon eine
 nicht noch einmal da; das Ereignis `stoerung` selbst auch nicht, weil die offene Störung ihr
 eigener Eintrag ist. Von gescheiterten Aufträgen und Ereignissen nimmt die Übersicht höchstens die
 neuesten 100; alle stehen im Protokoll.
-
-Daneben die sechs neuesten Ereignisse und unten die offenen Aufträge (wartend, bereit, zugestellt,
-bestätigt, läuft).
 
 ## Aufträge, Ereignisse, Audit-Log
 

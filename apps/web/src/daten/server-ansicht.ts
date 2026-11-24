@@ -49,6 +49,8 @@ export type ServerAnsicht = {
   gestartetAm: number | null;
   unattended: NonNullable<ServerDerZentrale["fakten"]>["unattendedUpgrades"];
   neustartStand: NeustartStand;
+  /** The certificates of its installations' hosts as the Pforte holds them (Z-702); null: unread */
+  zertifikate: { host: string; gueltigBis: number }[] | null;
   /** Its checks (Z-702), on its own page; null in the list */
   pruefungen: ServerPruefung[] | null;
   demo: Server | undefined;
@@ -99,6 +101,7 @@ export const serverAnsicht = (sv: ServerDerZentrale, demo: Server | undefined): 
     gestartetAm: f?.gestartetAm ?? null,
     unattended: f?.unattendedUpgrades ?? null,
     neustartStand: sv.neustart,
+    zertifikate: f?.zertifikate ?? null,
     pruefungen: sv.pruefungen ?? null,
     demo,
   };

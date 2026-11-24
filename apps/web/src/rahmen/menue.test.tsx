@@ -1,8 +1,8 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { brauchtAufmerksamkeit } from "../daten/betrieb.ts";
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
 import type { Rolle } from "../daten/typen.ts";
+import { brauchtAufmerksamkeit } from "../daten/zu-tun.ts";
 import { demoBetrieb } from "../demo/betrieb-quelle.ts";
 import { aufraeumen, oeffne, warten } from "../seiten/test-dom.tsx";
 
@@ -53,14 +53,14 @@ describe("the sidebar", () => {
     expect(root.textContent).not.toContain("Sperrzeiten");
   });
 
-  it("counts on Übersicht what needs attention, as the overview does, and the updates", async () => {
+  it('counts on Übersicht the rows of "Zu tun", as the overview does, and the updates', async () => {
     const eintraege = await demoBetrieb().uebersicht();
     if (!eintraege.ok) throw new Error("no overview in the demo");
     const n = brauchtAufmerksamkeit(eintraege.daten);
     expect(n).toBeGreaterThan(0);
     const { root } = await oeffne("/");
     expect(zahlVon(root, "Übersicht")).toBe(String(n));
-    expect(root.textContent).toContain(`Störungen und Warnungen: ${n}`);
+    expect(root.textContent).toContain(`${n} Dinge brauchen dich`);
     expect(zahlVon(root, "Updates")).toBe("3");
     expect(zahlVon(root, "Apps")).toBeUndefined();
   });

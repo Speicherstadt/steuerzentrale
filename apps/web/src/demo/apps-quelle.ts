@@ -1,5 +1,10 @@
 import { manifestPruefen } from "@steuerzentrale/manifest";
-import { angeboteneVersionen, istVorabversion, versionVergleichen } from "@steuerzentrale/planung";
+import {
+  angeboteneVersionen,
+  istVorabversion,
+  naechsterTermin,
+  versionVergleichen,
+} from "@steuerzentrale/planung";
 import type { Fehlschlag } from "../anmeldung/api.ts";
 import type {
   AppDerZentrale,
@@ -7,14 +12,17 @@ import type {
   AppVersion,
   ImportAntwort,
   ManifestDerZentrale,
+  PlanStand,
   UpdateStand,
 } from "../daten/apps.ts";
-import type { Manifest } from "../daten/typen.ts";
+import type { Installation, Manifest } from "../daten/typen.ts";
 import { apps } from "./apps.ts";
+import { demo } from "./index.ts";
 import { installationen } from "./installationen.ts";
 import { kunden } from "./kunden.ts";
 import { MANIFESTE } from "./manifeste.ts";
 import { PROBE_MANIFEST, PROBE_VORAB } from "./probe-manifest.ts";
+import { server } from "./server.ts";
 import { JETZT } from "./zeit.ts";
 
 /*
@@ -74,6 +82,32 @@ const fehlt = (v: string): AppVersion => ({
 });
 
 const KEIN_UPDATE: UpdateStand = { letzter: null, laeuft: false };
+
+const IMMER = [0, 1, 2, 3, 4, 5, 6];
+
+/**
+ * Where the demo's wave plan (src/demo/index.ts, `plaene`) stands for an installation, as
+ * packages/planung would plan it: its next slot in its server's maintenance window outside the
+ * app's freeze windows; none once it runs the version, while its update runs, or after notice
+ */
+const demoPlan = (i: Installation, intern: boolean, jetzt: number): PlanStand | null => {
+  const plan = demo.plaene.find((p) => p.app === i.app && p.version !== i.version);
+  const sv = server.find((s) => s.id === i.server);
+  const gekuendigt = kunden.find((k) => k.id === i.kunde)?.vertrag.ende != null;
+  if (!plan || !sv || i.updateLaeuft || gekuendigt) return null;
+  const sperrzeiten = (apps.find((a) => a.id === i.app)?.sperrzeiten ?? []).map((s) => ({
+    monatlich: `${s.von}-${s.bis}`,
+    grund: s.grund,
+  }));
+  const ab = naechsterTermin([{ tage: IMMER, ...sv.wartung }], sperrzeiten, jetzt);
+  const welle = intern ? "intern" : "alle";
+  return ab === undefined
+    ? { welle, version: plan.version, art: "wartet", grund: "kein_termin" }
+    : { welle, version: plan.version, art: "termin", ab, sperrzeitUebergangen: false };
+};
+
+/** The demo's clock: its own morning, as its fixtures are written (src/demo/zeit.ts) */
+export const demoJetzt = (): number => JETZT;
 
 export const demoAppsQuelle = (jetzt: () => number): AppsQuelle => {
   let liste: Eintrag[] = START;
@@ -141,7 +175,7 @@ export const demoAppsQuelle = (jetzt: () => number): AppsQuelle => {
             version: i.version,
             intern,
             angeboten: angeboteneVersionen({ version: i.version, intern }, eigene),
-            plan: null,
+            plan: demoPlan(i, intern, jetzt()),
             update: updates.get(i.id) ?? KEIN_UPDATE,
           };
         }),
