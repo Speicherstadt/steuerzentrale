@@ -27,7 +27,9 @@ Der Workflow `Release` läuft auf dem Tag:
 
 1. die ganze CI noch einmal, darunter der Release-Kandidat in einer Incus-VM;
 2. das Image der Zentrale für amd64 und arm64 nach `ghcr.io/speicherstadt/steuerzentrale`, mit den
-   Tags `X.Y.Z`, `X.Y` und `latest` (ein Kandidat: `X.Y.Z-rc.N` und `next`);
+   Tags `X.Y.Z`, `X.Y` und `latest` (ein Kandidat: `X.Y.Z-rc.N` und `next`), mit denselben Tags
+   und demselben Digest nach Docker Hub als `tristanteu/steuerzentrale` (Secret `DOCKER_PAT`;
+   Beschreibung aus `DOCKERHUB.md`, nicht bei einem Kandidaten);
 3. ein **Entwurf** des GitHub-Release mit den Agent-Binaries (`linux-x64`, `linux-arm64`),
    `install.sh`, `VERSION`, der Quadlet-Unit `steuerzentrale.container` mit dem Digest des Images,
    `DIGEST` und `SHA256SUMS` über alle Dateien.

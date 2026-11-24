@@ -5,6 +5,9 @@ name: Release
 # binaries, install.sh, the Quadlet unit with the image's digest and SHA256SUMS. A pre-release
 # vX.Y.Z-rc.N tags the image x.y.z-rc.N and next, a release x.y.z, x.y and latest.
 #
+# As in Haben and Kennwort the same image also goes to Docker Hub as tristanteu/steuerzentrale (secret
+# DOCKER_PAT), copied from ghcr.io by digest, with the description and DOCKERHUB.md as its page.
+#
 # The image is built as in ci.yml (job release-kandidat, scripts/release-kandidat.ts): only COPY on
 # distroless, so `podman build --platform` needs no emulation.
 #
@@ -37,6 +40,8 @@ jobs:
       packages: write
     env:
       IMAGE: ghcr.io/speicherstadt/steuerzentrale
+      DOCKERHUB_IMAGE: docker.io/tristanteu/steuerzentrale
+      DOCKERHUB_USER: tristanteu
     steps:
       - uses: actions/checkout@v7
         with:
@@ -61,6 +66,7 @@ jobs:
       - name: Image for amd64 and arm64 on ghcr.io
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_PAT: ${{ secrets.DOCKER_PAT }}
         run: |
           set -euo pipefail
           kontext="$RUNNER_TEMP/kontext"
@@ -70,6 +76,7 @@ jobs:
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
             -f "$kontext/Containerfile" "$kontext"
           echo "$GHCR_TOKEN" | podman login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          echo "$DOCKER_PAT" | podman login docker.io -u "$DOCKERHUB_USER" --password-stdin
           podman manifest push --all --digestfile "$RUNNER_TEMP/digest" \
             "localhost/steuerzentrale:$VERSION" "docker://$IMAGE:$VERSION"
           digest="$(cat "$RUNNER_TEMP/digest")"
@@ -82,8 +89,23 @@ jobs:
           for tag in "${tags[@]}"; do
             skopeo copy --all "docker://$IMAGE@$digest" "docker://$IMAGE:$tag"
           done
+          # Docker Hub: the same manifest list, so the digest is the same there
+          for tag in "$VERSION" "${tags[@]}"; do
+            skopeo copy --all "docker://$IMAGE@$digest" "docker://$DOCKERHUB_IMAGE:$tag"
+          done
+          skopeo inspect --raw "docker://$DOCKERHUB_IMAGE:$VERSION" | sha256sum | grep -q "${digest#sha256:}"
           skopeo inspect --raw "docker://$IMAGE@$digest" |
             jq -e '[.manifests[].platform.architecture] | sort == ["amd64", "arm64"]'
+      # As firsttris/workflows docker-release.yml: not for a pre-release; Docker Hub allows 100 characters
+      - name: Update Docker Hub description
+        if: env.PRERELEASE == 'false'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ env.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKER_PAT }}
+          repository: tristanteu/steuerzentrale
+          short-description: "Betreibt die Apps der Speicherstadt auf eigenen Servern: installieren, updaten, sichern"
+          readme-filepath: ./DOCKERHUB.md
       - name: Release files
         run: |
           set -euo pipefail
