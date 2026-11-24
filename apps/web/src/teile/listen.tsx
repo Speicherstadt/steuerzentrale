@@ -85,15 +85,20 @@ export const Pruefzeile = (props: {
   </div>
 );
 
-/** A key figure of the overview: label, value, a badge and two lines of explanation */
+/**
+ * A key figure of the overview: label, value, a badge, an optional small chart (teile/diagramme.tsx)
+ * and two lines of explanation; with a chart the tiles of a row keep their parts on one line, as
+ * in Speicherstadt/belegt (src/components/start/Ueberblick.tsx)
+ */
 export const Kennzahl = (props: {
   name: string;
   wert: string;
   marke: JSX.Element;
+  diagramm?: JSX.Element;
   zeile1: string;
   zeile2: string;
 }) => (
-  <section class="rounded-xl border bg-linear-to-t from-primary/[0.02] to-background">
+  <section class="flex flex-col rounded-xl border bg-linear-to-t from-primary/[0.02] to-background">
     <div class="relative flex flex-col gap-1.5 p-5 pb-0">
       <h2 class="text-muted-foreground">{props.name}</h2>
       <p class="text-2xl font-semibold tabular-nums leading-none tracking-tight lg:text-3xl">
@@ -101,7 +106,10 @@ export const Kennzahl = (props: {
       </p>
       <div class="absolute top-5 right-5">{props.marke}</div>
     </div>
-    <div class="flex flex-col gap-1.5 p-5 pt-4">
+    <Show when={props.diagramm}>
+      <div class="flex min-h-8 items-center px-5 pt-4">{props.diagramm}</div>
+    </Show>
+    <div class="mt-auto flex flex-col gap-1.5 p-5 pt-4">
       <p class="font-medium leading-snug">{props.zeile1}</p>
       <p class="text-muted-foreground">{props.zeile2}</p>
     </div>
