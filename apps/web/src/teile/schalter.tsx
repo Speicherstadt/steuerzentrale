@@ -10,7 +10,7 @@ export const Schalter = <T extends string>(props: {
   aktuell: T;
   onWahl: (wert: T) => void;
 }) => (
-  <fieldset class="inline-flex h-9 max-w-full min-w-0 items-center gap-1 overflow-x-auto rounded-lg border bg-muted p-1">
+  <fieldset class="inline-flex h-9 max-w-full min-w-0 items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] rounded-lg border bg-muted p-1">
     <legend class="sr-only">{props.name}</legend>
     <For each={props.wahl}>
       {(w) => (

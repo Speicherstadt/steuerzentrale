@@ -6,7 +6,7 @@ import type { Bestand } from "./typen.ts";
  * The demo fixtures of src/demo/ for what has no API yet (BAULISTE.md Z-406; docs/plan.md, "Echte
  * Daten (Z-406)"). In `bun run dev:demo` and the component tests they are the whole demo operator;
  * once someone is signed in, main.tsx puts in `ohneDemo`: no server, installation, customer, job,
- * event or access of the demo, only the descriptions of the eight apps from manifeste/ (until the
+ * event or access of the demo, only the descriptions of the apps (src/demo/apps.ts) (until the
  * Zentrale imports manifests, Z-501), so no page shows a made-up datum beside real ones. The pages
  * read servers, installations, customers, jobs, events and the audit log from their sources.
  */

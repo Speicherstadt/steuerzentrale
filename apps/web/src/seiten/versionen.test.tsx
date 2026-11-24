@@ -63,9 +63,9 @@ const versionen = (root: HTMLElement, name: string) =>
 describe("the page Apps", () => {
   it("shows the imported versions and a new one whose manifest is missing", async () => {
     const { root } = await appsSeite();
-    expect(versionen(root, "Kontext")[0]).toContain("1.0.1neue Version, Manifest fehlt");
-    expect(versionen(root, "Kontext")[1]).toContain("1.0.0verfügbar");
-    expect(karte(root, "Kontext")?.textContent).toContain("1.0.0 · 1.0.1 neu, Manifest fehlt");
+    expect(versionen(root, "Kontext")[0]).toContain("0.1.40neue Version, Manifest fehlt");
+    expect(versionen(root, "Kontext")[1]).toContain("0.1.37verfügbar");
+    expect(karte(root, "Kontext")?.textContent).toContain("0.1.37 · 0.1.40 neu, Manifest fehlt");
     expect(versionen(root, "probe")[0]).toContain("1.1.0-rc.1verfügbarVorabversion");
   });
 
@@ -127,8 +127,8 @@ describe("the page Updates", () => {
     const zeile = [...root.querySelectorAll("tbody tr")].find((tr) =>
       tr.textContent?.startsWith("atelier-belegt"),
     );
-    expect(zeile?.textContent).toContain("0.9.0");
-    expect(zeile?.textContent).toContain("0.10.0");
+    expect(zeile?.textContent).toContain("0.0.6");
+    expect(zeile?.textContent).toContain("0.0.7");
     expect(root.textContent).toContain("Neu in der Registry");
   });
 });

@@ -68,6 +68,6 @@ describe("server checks", () => {
 
 describe("sidebar counters", () => {
   it("count only what there is to do", () => {
-    expect(zaehler(demo)).toEqual({ updates: 2, auftraege: 2, support: 1, ereignisse: 5 });
+    expect(zaehler(demo)).toEqual({ updates: 3, auftraege: 2, support: 1, ereignisse: 5 });
   });
 });

@@ -1,0 +1,26 @@
+# belegt 0.0.7 for the installation belegt-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=belegt 0.0.7, db (belegt-k1)
+
+[Container]
+ContainerName=belegt-k1-db
+Image=docker.io/library/postgres@sha256:c699303802144847d238196173655dbbecf7a96aeca1565f2b02eb671a1f0b6b
+Network=belegt-k1.network:alias=db
+Label="de.speicherstadt.steuerzentrale.installation=belegt-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=belegt"
+Label="de.speicherstadt.steuerzentrale.version=0.0.7"
+NoNewPrivileges=true
+Volume=belegt-k1-db.volume:/var/lib/postgresql
+Environment="POSTGRES_USER=belegt"
+Environment="POSTGRES_DB=belegt"
+Secret=belegt-k1-postgres-password,type=env,target=POSTGRES_PASSWORD
+
+[Service]
+Slice=belegt-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

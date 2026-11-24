@@ -136,15 +136,15 @@ describe("the dialog Installieren", () => {
     expect(platzierung()).toContain("Passt");
   });
 
-  it("says why an imported version's manifest cannot be read", async () => {
+  it("reads its form from the app's real manifest (manifeste/haben/0.12.0)", async () => {
     const { root } = await oeffne("/installationen");
-    // the demo has no text for the eight apps' manifests
     await auswaehlen(root, "atelier-nord", "shared-1");
     await waehlen("App", "haben");
-    await waehlen("Version", "1.9.0");
-    expect(dialog().querySelector("[data-testid=manifest-befund]")?.textContent).toContain(
+    await waehlen("Version", "0.12.0");
+    expect(dialog().querySelector("[data-testid=manifest-befund]")?.textContent).not.toContain(
       "kein_manifest",
     );
+    expect(dialog().textContent).toContain("OIDC_ONLY");
   });
 
   it("starts from the customer's page with the customer chosen", async () => {

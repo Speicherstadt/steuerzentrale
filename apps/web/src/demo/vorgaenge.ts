@@ -41,7 +41,7 @@ export const ereignisse: Ereignis[] = [
     zeit: heute("03:52"),
     schwere: "info",
     ziel: inst("intern-belegt"),
-    text: "Update auf Belegt 0.10.0 (Welle intern), Health grün",
+    text: "Update auf Belegt 0.0.7 (Welle intern), Health grün",
   },
   {
     zeit: heute("03:15"),
@@ -65,7 +65,7 @@ export const ereignisse: Ereignis[] = [
     zeit: gestern("11:04"),
     schwere: "info",
     ziel: inst("weber-haben"),
-    text: "Update auf Haben 1.9.0 von Hand, Units laufen",
+    text: "Update auf Haben 0.12.0 von Hand, Units laufen",
   },
 ];
 
@@ -73,7 +73,7 @@ export const auftraege: Auftrag[] = [
   {
     id: "A-2318",
     aktion: "update",
-    version: "1.9.0",
+    version: "0.12.0",
     ziel: inst("roth-haben"),
     zustand: "laeuft",
     start: heute("10:40"),
@@ -83,7 +83,7 @@ export const auftraege: Auftrag[] = [
   {
     id: "A-2320",
     aktion: "update",
-    version: "0.10.0",
+    version: "0.0.7",
     ziel: inst("atelier-belegt"),
     zustand: "laeuft",
     start: heute("10:41"),
@@ -101,7 +101,7 @@ export const auftraege: Auftrag[] = [
   {
     id: "A-2321",
     aktion: "update",
-    version: "0.10.0",
+    version: "0.0.7",
     ziel: inst("holm-belegt"),
     zustand: "wartet",
     start: heute("10:41"),
@@ -118,7 +118,7 @@ export const auftraege: Auftrag[] = [
   {
     id: "A-2315",
     aktion: "update",
-    version: "0.10.0",
+    version: "0.0.7",
     ziel: inst("intern-belegt"),
     zustand: "fertig",
     start: heute("03:50"),
@@ -219,7 +219,7 @@ export const audit: AuditEintrag[] = [
     akteur: null,
     aktion: "Update gestartet (Welle alle)",
     ziel: inst("atelier-belegt"),
-    grund: "Wellenplan Belegt 0.10.0",
+    grund: "Wellenplan Belegt 0.0.7",
   },
   {
     zeit: heute("10:40"),
@@ -260,7 +260,7 @@ export const audit: AuditEintrag[] = [
     zeit: berlin("2026-11-18", "08:00"),
     akteur: null,
     aktion: "Wellenplan angelegt",
-    ziel: { art: "app", id: "belegt", version: "0.10.0" },
+    ziel: { art: "app", id: "belegt", version: "0.0.7" },
     grund: "neue Version mit signiertem Manifest",
   },
 ];

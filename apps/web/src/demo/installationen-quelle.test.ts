@@ -126,7 +126,7 @@ describe("the demo's installations", () => {
     expect(rot && "verlauf" in rot).toBe(false);
     const eine = await q.installation("berger-schreibzeug");
     expect(eine.ok && eine.daten.verlauf.map((v) => v.bewertung)).toEqual(["rot", "gruen"]);
-    const ohne = await q.installation("kraft-fixpunkt");
+    const ohne = await q.installation("kraft-stellwerk");
     expect(ohne.ok && ohne.daten.health.grund.code).toBe("keine_meldung");
   });
 

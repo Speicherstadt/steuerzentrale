@@ -48,18 +48,18 @@ const I = (
 const bh = (app: string, kunde: string) => `${app}.${kunde}.beispiel-hosting.de`;
 
 export const installationen: Installation[] = [
-  I("intern-haben", "haben", "intern", "shared-1", "1.9.0", bh("haben", "intern"), {
+  I("intern-haben", "haben", "intern", "shared-1", "0.12.0", bh("haben", "intern"), {
     datenGb: 0.4,
   }),
-  I("intern-belegt", "belegt", "intern", "shared-1", "0.10.0", bh("belegt", "intern"), {
+  I("intern-belegt", "belegt", "intern", "shared-1", "0.0.7", bh("belegt", "intern"), {
     datenGb: 0.2,
   }),
-  I("atelier-haben", "haben", "atelier-nord", "shared-1", "1.9.0", bh("haben", "atelier-nord"), {
+  I("atelier-haben", "haben", "atelier-nord", "shared-1", "0.12.0", bh("haben", "atelier-nord"), {
     datenGb: 1.2,
-    werte: { LAYOUTS_MAX_COUNT: "20" },
+    werte: { OIDC_ONLY: "false" },
   }),
-  I("atelier-belegt", "belegt", "atelier-nord", "shared-1", "0.9.0", bh("belegt", "atelier-nord"), {
-    optionen: ["journal"],
+  I("atelier-belegt", "belegt", "atelier-nord", "shared-1", "0.0.6", bh("belegt", "atelier-nord"), {
+    optionen: ["ftp"],
     datenGb: 0.4,
     updateLaeuft: true,
   }),
@@ -68,20 +68,20 @@ export const installationen: Installation[] = [
     "schreibzeug",
     "atelier-nord",
     "shared-1",
-    "0.6.0",
+    "0.1.26",
     bh("schreibzeug", "atelier-nord"),
     { datenGb: 0.2, werte: { SCHREIBZEUG_OPEN_SIGNUP: "false" } },
   ),
-  I("weber-haben", "haben", "praxis-weber", "shared-1", "1.9.0", bh("haben", "praxis-weber"), {
+  I("weber-haben", "haben", "praxis-weber", "shared-1", "0.12.0", bh("haben", "praxis-weber"), {
     datenGb: 3.4,
   }),
-  I("roth-haben", "haben", "roth", "shared-1", "1.8.2", bh("haben", "roth"), {
+  I("roth-haben", "haben", "roth", "shared-1", "0.11.0", bh("haben", "roth"), {
     datenGb: 0.6,
     updateLaeuft: true,
   }),
-  I("sonne-haben", "haben", "sonne", "shared-1", "1.8.2", bh("haben", "sonne"), { datenGb: 1.9 }),
-  I("aust-haben", "haben", "aust", "shared-2", "1.9.0", bh("haben", "aust"), { datenGb: 2.2 }),
-  I("berger-haben", "haben", "it-berger", "shared-2", "1.8.2", bh("haben", "it-berger"), {
+  I("sonne-haben", "haben", "sonne", "shared-1", "0.11.0", bh("haben", "sonne"), { datenGb: 1.9 }),
+  I("aust-haben", "haben", "aust", "shared-2", "0.12.0", bh("haben", "aust"), { datenGb: 2.2 }),
+  I("berger-haben", "haben", "it-berger", "shared-2", "0.11.0", bh("haben", "it-berger"), {
     datenGb: 0.8,
   }),
   I(
@@ -89,7 +89,7 @@ export const installationen: Installation[] = [
     "schreibzeug",
     "it-berger",
     "shared-2",
-    "0.6.0",
+    "0.1.26",
     bh("schreibzeug", "it-berger"),
     {
       datenGb: 0.5,
@@ -100,7 +100,7 @@ export const installationen: Installation[] = [
       verfuegbarkeit: { "2026-10": 100, "2026-11": 99.71 },
     },
   ),
-  I("lind-haben", "haben", "studio-lind", "lind", "1.9.0", bh("haben", "studio-lind"), {
+  I("lind-haben", "haben", "studio-lind", "lind", "0.12.0", bh("haben", "studio-lind"), {
     datenGb: 7.9,
     health: "gelb",
     grund: "Backup älter als 26 h: Platte zu 91 % voll",
@@ -108,18 +108,19 @@ export const installationen: Installation[] = [
     pruefRestore: "offen",
     verfuegbarkeit: { "2026-10": 99.98, "2026-11": 99.95 },
   }),
-  I("holm-haben", "haben", "holm", "holm", "1.9.0", "haben.schreinerei-holm.de", { datenGb: 5.1 }),
-  I("holm-belegt", "belegt", "holm", "holm", "0.9.0", "archiv.schreinerei-holm.de", {
+  I("holm-haben", "haben", "holm", "holm", "0.12.0", "haben.schreinerei-holm.de", { datenGb: 5.1 }),
+  I("holm-belegt", "belegt", "holm", "holm", "0.0.6", "archiv.schreinerei-holm.de", {
     datenGb: 1.1,
     pruefRestore: "gescheitert",
   }),
-  I("kraft-fixpunkt", "fixpunkt", "kraft", "kraft", "0.3.0", "aufmass.ib-kraft.de", {
-    optionen: ["nodeodm"],
+  I("kraft-stellwerk", "stellwerk", "kraft", "kraft", "0.1.11", "dateien.ib-kraft.de", {
     datenGb: 112,
     backup: { zeitpunkt: heute("03:30"), ok: true },
     health: "unbekannt",
     grund: "Agent seit 6 Min. still",
-    werte: { FIXPUNKT_MAX_UPLOAD_GB: "20", FIXPUNKT_MAX_JOBS: "1" },
     verfuegbarkeit: { "2026-11": 99.9 },
+  }),
+  I("intern-kennwort", "kennwort", "intern", "shared-1", "0.1.3", bh("kennwort", "intern"), {
+    datenGb: 0.1,
   }),
 ];

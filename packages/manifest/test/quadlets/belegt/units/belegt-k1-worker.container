@@ -1,0 +1,31 @@
+# belegt 0.0.7 for the installation belegt-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=belegt 0.0.7, worker (belegt-k1)
+Requires=belegt-k1-app.service
+After=belegt-k1-app.service
+
+[Container]
+ContainerName=belegt-k1-worker
+Image=ghcr.io/speicherstadt/belegt@sha256:0aa5bcf46b6551ab9e0a6918f8e41868bc0e7074aa73c6e897a91e9a4d13603c
+Network=belegt-k1.network:alias=worker
+Label="de.speicherstadt.steuerzentrale.installation=belegt-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=belegt"
+Label="de.speicherstadt.steuerzentrale.version=0.0.7"
+NoNewPrivileges=true
+Volume=belegt-k1-daten.volume:/var/lib/belegt
+Volume=belegt-k1-eingang.volume:/var/lib/belegt/eingang
+Secret=belegt-k1-database-url,type=env,target=DATABASE_URL
+Environment="BETTER_AUTH_URL=https://belegt-k1.kunde.example"
+Secret=belegt-k1-better-auth-secret,type=env,target=BETTER_AUTH_SECRET
+Secret=belegt-k1-belegt-schluessel,type=env,target=BELEGT_SCHLUESSEL
+Exec="bun" "server/worker.ts"
+
+[Service]
+Slice=belegt-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

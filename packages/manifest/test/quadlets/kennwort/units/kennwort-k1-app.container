@@ -1,0 +1,31 @@
+# kennwort 0.1.3 for the installation kennwort-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=kennwort 0.1.3, app (kennwort-k1)
+
+[Container]
+ContainerName=kennwort-k1-app
+Image=ghcr.io/speicherstadt/kennwort@sha256:9d5856324b99e172908e393fba1bf5a978ba86649d9b788b15b4647d2dd4e3cc
+Network=kennwort-k1.network:alias=app
+Label="de.speicherstadt.steuerzentrale.installation=kennwort-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=kennwort"
+Label="de.speicherstadt.steuerzentrale.version=0.1.3"
+NoNewPrivileges=true
+PublishPort=127.0.0.1:20001:8100
+Volume=kennwort-k1-daten.volume:/data
+Environment="KENNWORT_BEHIND_PROXY=true"
+Environment="KENNWORT_PUBLIC_URL=https://kennwort-k1.kunde.example"
+Secret=kennwort-k1-kennwort-auth-secret,type=env,target=KENNWORT_AUTH_SECRET
+Secret=kennwort-k1-kennwort-setup-code,type=env,target=KENNWORT_SETUP_CODE
+Environment="KENNWORT_OIDC_ISSUER=test-oidc-kennwort_oidc_issuer"
+Environment="KENNWORT_OIDC_CLIENT_ID=test-oidc-kennwort_oidc_client_id"
+Secret=kennwort-k1-kennwort-oidc-client-secret,type=env,target=KENNWORT_OIDC_CLIENT_SECRET
+
+[Service]
+Slice=kennwort-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

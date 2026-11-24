@@ -1,24 +1,18 @@
-# Belegt 0.0.0 for the Steuerzentrale (Z-203). The source of every value: QUELLEN.md next to this file.
+# Belegt 0.0.7 for the Steuerzentrale. The source of every value: QUELLEN.md next to this file.
 schema: 1
 id: belegt
-version: 0.0.0
+version: 0.0.7
 lizenz: AGPL-3.0-only
 quelle: https://github.com/Speicherstadt/belegt
 container:
   - name: app
-    image:
-      noch_nicht_veroeffentlicht: >-
-        Kein Release: weder ghcr.io/speicherstadt/belegt noch docker.io/tristanteu/belegt ist
-        abrufbar (scripts/digest.ts, 2026-11-20)
+    image: ghcr.io/speicherstadt/belegt@sha256:0aa5bcf46b6551ab9e0a6918f8e41868bc0e7074aa73c6e897a91e9a4d13603c
     braucht: [db]
     volumes:
       - { name: daten, pfad: /var/lib/belegt }
     env: [DATABASE_URL, BETTER_AUTH_URL, BETTER_AUTH_SECRET, BELEGT_SCHLUESSEL, OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET]
   - name: worker
-    image:
-      noch_nicht_veroeffentlicht: >-
-        Kein Release: weder ghcr.io/speicherstadt/belegt noch docker.io/tristanteu/belegt ist
-        abrufbar (scripts/digest.ts, 2026-11-20)
+    image: ghcr.io/speicherstadt/belegt@sha256:0aa5bcf46b6551ab9e0a6918f8e41868bc0e7074aa73c6e897a91e9a4d13603c
     braucht: [app]
     argv: [bun, server/worker.ts]
     volumes:
@@ -26,7 +20,7 @@ container:
       - { name: eingang, pfad: /var/lib/belegt/eingang }
     env: [DATABASE_URL, BETTER_AUTH_URL, BETTER_AUTH_SECRET, BELEGT_SCHLUESSEL, EINGANG_ORDNER]
   - name: db
-    image: docker.io/library/postgres@sha256:eb63372c1e05c755f55fa30cbd07aecc443676fc6c0fa90b9002d01537841e1a
+    image: docker.io/library/postgres@sha256:c699303802144847d238196173655dbbecf7a96aeca1565f2b02eb671a1f0b6b
     volumes:
       - { name: db, pfad: /var/lib/postgresql }
     env: [POSTGRES_PASSWORD]
@@ -48,10 +42,7 @@ optionen:
     name: FTP für Netzwerkscanner
     container:
       - name: ftp
-        image:
-          noch_nicht_veroeffentlicht: >-
-            Kein Release: weder ghcr.io/speicherstadt/belegt-ftp noch docker.io/tristanteu/belegt-ftp
-            ist abrufbar (scripts/digest.ts, 2026-11-20)
+        image: ghcr.io/speicherstadt/belegt-ftp@sha256:b2ee95435fd144bb028a4d8e09363e7c52183cd5cde320770cee60c497a66d01
         volumes:
           - { name: eingang, pfad: /eingang }
         env: [FTP_BENUTZER, FTP_PASSWORT, FTP_PASV_ADRESSE, FTP_TLS]

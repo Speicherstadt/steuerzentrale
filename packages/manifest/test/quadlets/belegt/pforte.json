@@ -1,0 +1,42 @@
+{
+  "@id": "belegt-k1",
+  "match": [
+    {
+      "host": [
+        "belegt-k1.kunde.example"
+      ]
+    }
+  ],
+  "handle": [
+    {
+      "handler": "request_body",
+      "max_size": 21474836480
+    },
+    {
+      "handler": "reverse_proxy",
+      "upstreams": [
+        {
+          "dial": "127.0.0.1:20001"
+        }
+      ],
+      "transport": {
+        "protocol": "http",
+        "response_header_timeout": "3600s"
+      },
+      "headers": {
+        "request": {
+          "set": {
+            "X-Forwarded-For": [
+              "{http.request.remote.host}"
+            ]
+          },
+          "delete": [
+            "Forwarded",
+            "X-Real-IP"
+          ]
+        }
+      }
+    }
+  ],
+  "terminal": true
+}

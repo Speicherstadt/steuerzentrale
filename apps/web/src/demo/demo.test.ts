@@ -5,16 +5,14 @@ import { demo } from "./index.ts";
 const ids = <T extends { id: string }>(liste: T[]) => liste.map((x) => x.id);
 
 describe("demo fixtures", () => {
-  it("show the eight apps of the Speicherstadt (docs/plan.md)", () => {
+  it("show the apps with a released manifest in manifeste/, nothing still being built", () => {
     expect(ids(demo.apps)).toEqual([
       "haben",
       "belegt",
       "kontext",
       "schreibzeug",
       "stellwerk",
-      "fixpunkt",
       "kennwort",
-      "soll",
     ]);
   });
 
@@ -43,9 +41,15 @@ describe("demo fixtures", () => {
       expect(installationen.has(z.installationId), z.zugangId).toBe(true);
   });
 
-  it("keep Kennwort and Soll without image and the others installable", () => {
-    const ohne = demo.apps.filter((a) => a.version === null).map((a) => a.id);
-    expect(ohne).toEqual(["kennwort", "soll"]);
+  it("take each app's version from its newest released manifest", () => {
+    expect(Object.fromEntries(demo.apps.map((a) => [a.id, a.version]))).toEqual({
+      haben: "0.12.0",
+      belegt: "0.0.7",
+      kontext: "0.1.37",
+      schreibzeug: "0.1.26",
+      stellwerk: "0.1.12",
+      kennwort: "0.1.3",
+    });
   });
 
   it("use only options and architectures the manifest knows", () => {

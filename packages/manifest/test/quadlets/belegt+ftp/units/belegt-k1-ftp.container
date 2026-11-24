@@ -1,0 +1,29 @@
+# belegt 0.0.7 for the installation belegt-k1, rendered by the Steuerzentrale; do not edit
+
+[Unit]
+Description=belegt 0.0.7, ftp (belegt-k1)
+
+[Container]
+ContainerName=belegt-k1-ftp
+Image=ghcr.io/speicherstadt/belegt-ftp@sha256:b2ee95435fd144bb028a4d8e09363e7c52183cd5cde320770cee60c497a66d01
+Network=belegt-k1.network:alias=ftp
+Label="de.speicherstadt.steuerzentrale.installation=belegt-k1"
+Label="de.speicherstadt.steuerzentrale.kunde=kunde-1"
+Label="de.speicherstadt.steuerzentrale.app=belegt"
+Label="de.speicherstadt.steuerzentrale.version=0.0.7"
+NoNewPrivileges=true
+PublishPort=21:21/tcp
+PublishPort=30000-30009:30000-30009/tcp
+Volume=belegt-k1-eingang.volume:/eingang
+Environment="FTP_BENUTZER=scanner"
+Secret=belegt-k1-ftp-passwort,type=env,target=FTP_PASSWORT
+Environment="FTP_PASV_ADRESSE=203.0.113.10"
+Environment="FTP_TLS=aus"
+
+[Service]
+Slice=belegt-k1.slice
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target
