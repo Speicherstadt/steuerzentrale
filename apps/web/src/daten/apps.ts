@@ -167,7 +167,7 @@ export const apiApps: AppsQuelle = {
 const spaeterDemo = (): AppsQuelle => {
   let geladen: Promise<AppsQuelle> | undefined;
   const laden = () => {
-    geladen ??= import("../demo/apps-quelle.ts").then((d) => d.demoAppsQuelle(Date.now));
+    geladen ??= import("../demo/apps-quelle.ts").then((d) => d.demoAppsQuelle(d.demoJetzt));
     return geladen;
   };
   return {

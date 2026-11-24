@@ -88,28 +88,60 @@ describe("pages", () => {
   it("open the overview with what needs attention, worst first", async () => {
     const root = await oeffne("/");
     expect(ueberschrift(root)).toBe("Übersicht");
+    // the verdict as the visible heading, as many things as "Zu tun" has rows
+    const zeilen = [...root.querySelectorAll<HTMLElement>("main ul.divide-y > li")].filter((li) =>
+      li.querySelector("[aria-label=Störung], [aria-label=Warnung]"),
+    );
+    expect(root.querySelector("main h2")?.textContent).toBe(`${zeilen.length} Dinge brauchen dich`);
     // the open fault first, leading to its installation (Z-406: as GET /api/v1/uebersicht orders)
-    const erster = root.querySelector<HTMLAnchorElement>("main ul li a");
-    expect(erster?.textContent).toContain("IT Berger · Schreibzeug");
+    const erster = zeilen[0];
+    expect(erster?.textContent).toContain("Schreibzeug bei IT Berger ist gestört");
     expect(erster?.querySelector("svg")?.getAttribute("aria-label")).toBe("Störung");
-    expect(erster?.getAttribute("href")).toBe("/apps/berger-schreibzeug");
+    expect(erster?.querySelector("a")?.getAttribute("href")).toBe("/apps/berger-schreibzeug");
     const rang = { Störung: 0, Warnung: 1, Hinweis: 2 } as Record<string, number>;
-    const schweren = [
-      ...root.querySelectorAll("main ul.divide-y > li > a > span:first-child svg"),
-    ].map((s) => rang[s.getAttribute("aria-label") ?? ""] ?? 9);
+    const schweren = zeilen.map(
+      (li) => rang[li.querySelector("svg")?.getAttribute("aria-label") ?? ""] ?? 9,
+    );
     expect(schweren.length).toBeGreaterThan(3);
     expect(schweren).toEqual([...schweren].sort((a, b) => a - b));
+    // events and jobs are in the Protokoll now
+    expect(root.textContent).not.toContain("Letzte Ereignisse");
+    expect(root.textContent).not.toContain("Offene Aufträge");
   });
 
-  // Z-702: a check red over 90 % disk is a fault, leading to its server
+  // Z-702: a check red over 90 % disk is a fault, leading to its server; what its apps report
+  // because of it stands in the same row
   it("name a server's check on the overview, leading to the server", async () => {
     const root = await oeffne("/");
-    const eintrag = [...root.querySelectorAll<HTMLAnchorElement>("main ul li a")].find((a) =>
-      a.textContent?.includes("Platte: 91 % belegt (Grenze 90 %)"),
+    const zeile = [...root.querySelectorAll<HTMLElement>("main ul.divide-y > li")].find((li) =>
+      li.textContent?.includes("Platte auf Server „Studio Lind“ zu 91 % voll"),
     );
-    expect(eintrag?.textContent).toContain("Studio Lind");
-    expect(eintrag?.querySelector("svg")?.getAttribute("aria-label")).toBe("Störung");
-    expect(eintrag?.getAttribute("href")).toBe("/server/lind");
+    expect(zeile?.textContent).toContain("91 % belegt (Grenze 90 %)");
+    expect(zeile?.textContent).toContain("Haben bei Studio Lind läuft eingeschränkt");
+    expect(zeile?.querySelector("svg")?.getAttribute("aria-label")).toBe("Störung");
+    expect(zeile?.querySelector("a")?.getAttribute("href")).toBe("/server/lind");
+    expect(
+      [...(zeile?.querySelectorAll("a") ?? [])].find((a) => a.textContent === "Server öffnen"),
+    ).toBeDefined();
+  });
+
+  it("say on the overview what the Zentrale does next and did by itself", async () => {
+    const root = await oeffne("/");
+    const karte = (titel: string) =>
+      [...root.querySelectorAll<HTMLElement>("main section")].find(
+        (s) => s.querySelector("h2")?.textContent === titel,
+      );
+    const naechstes = karte("Als Nächstes")?.textContent ?? "";
+    // holm-belegt in its maintenance window tonight, shared-2 for its new kernel (demo plans)
+    expect(naechstes).toContain("heute 22:00");
+    expect(naechstes).toContain("Update: Belegt 0.0.7 bei Schreinerei Holm");
+    expect(naechstes).toContain("Neustart: Gemeinsamer Server 2");
+    expect(naechstes).toContain("in 12 Tagen");
+    expect(naechstes).toContain("Vertrag Café Sonne endet");
+    expect(karte("Von selbst erledigt")?.textContent).toContain("15 Backups gesichert");
+    expect(root.textContent).toContain(
+      "Haben 0.13.0 und Kontext 0.1.40 sind erschienen, im Katalog fehlen die Manifeste.",
+    );
   });
 
   it("show the apps with a released manifest in the catalog, and an app only imported (Z-501)", async () => {

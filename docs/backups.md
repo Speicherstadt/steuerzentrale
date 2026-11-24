@@ -210,8 +210,9 @@ schreibt das Ereignis `backup_gescheitert` (Schwere `fehler`) mit seinem Grund, 
 
 Die Seite **Backups** zeigt jede Installation mit ihren Teilen, dem letzten Lauf (gescheitert mit
 Grund und dem letzten Erfolg), den Snapshots des letzten Laufs und dem Stand: Zugang wird angelegt,
-wird auf dem Server eingerichtet, eingerichtet. Die Übersicht zählt, bei wie vielen Installationen der
-letzte Lauf gelang; sie ist über „Alle Backups“ im Reiter **Backups** einer App erreichbar. Der Reiter
+wird auf dem Server eingerichtet, eingerichtet; sie ist über „Alle Backups“ im Reiter **Backups**
+einer App erreichbar. Die Kachel „Backups heute Nacht“ der Übersicht zählt, bei wie vielen Apps seit
+gestern 18 Uhr ein Lauf gelang, und nennt die gescheiterten mit Namen. Der Reiter
 **Backups** einer App zeigt die letzten 100 Läufe mit jedem Snapshot. Der Reiter **Überblick** nennt
 den letzten Lauf mit Größe und den letzten Prüf-Restore, der Reiter **Messwerte** die Größe jedes
 nächtlichen Backups über 24 Stunden, 7 oder 30 Tage: die Summe der Bytes, die restic je Teil las

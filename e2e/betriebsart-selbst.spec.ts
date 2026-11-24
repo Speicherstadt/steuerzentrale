@@ -63,6 +63,21 @@ test.describe("Nur für mich", { tag: "@phone" }, () => {
     }
   });
 
+  // docs/plan.md, "Übersicht (Oberfläche 2026-11)": the overview names no customer and no contract
+  test("shows the overview without customers", async ({ page }) => {
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Zu tun", exact: true }),
+    ).toBeVisible();
+    const tiles = page.locator("main section").filter({
+      has: page.getByRole("heading", { level: 2, name: "Server", exact: true }),
+    });
+    await expect(tiles).not.toContainText("beim Kunden");
+    await expect(page.locator("main")).not.toContainText("gekündigt");
+    await expect(page.locator("main")).not.toContainText(/Vertrag .* endet/);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  });
+
   test("answers 409 betriebsart where customers are made", async ({ page }) => {
     const antwort = await page.request.post("/api/v1/kunden", {
       data: {

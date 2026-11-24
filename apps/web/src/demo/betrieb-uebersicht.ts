@@ -42,6 +42,7 @@ const verweis = (i: Installation) => ({
   app: i.app,
   host: i.adresse,
   kunde: kunde(i.kunde)?.name ?? i.kunde,
+  serverId: i.server,
 });
 
 const grund = (i: Installation) => ({ code: "health" as const, werte: { text: i.grund ?? "" } });
@@ -151,7 +152,11 @@ export const demoUebersicht = (
       aktion: a.aktion,
       fehler: a.fehler,
       server: a.server,
-      installation: a.installation && { ...a.installation, app: a.app },
+      installation: a.installation && {
+        ...a.installation,
+        app: a.app,
+        serverId: a.server.serverId,
+      },
       seit: a.geaendertAm,
     }));
   const meldungen: UebersichtEintrag[] = ereignisse

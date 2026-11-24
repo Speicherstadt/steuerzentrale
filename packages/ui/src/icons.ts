@@ -19,6 +19,7 @@ export {
   ChartNoAxesColumn,
   Check,
   ChevronRight,
+  CircleAlert,
   CircleArrowUp,
   CircleCheck,
   CircleDashed,

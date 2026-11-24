@@ -22,19 +22,22 @@ test.describe("checks of a server", { tag: "@phone" }, () => {
     });
     try {
       await page.goto("/");
-      const platte = page
-        .getByRole("link", { name: /Platte: 95 % belegt \(Grenze 90 %\)/ })
-        .filter({
-          hasText: agent.name,
-        });
-      await expect(platte.getByRole("img", { name: "Störung" })).toBeVisible();
-      const ports = page
-        .getByRole("link", { name: /Offene Ports: 5432\/tcp: in keinem Manifest/ })
-        .filter({ hasText: agent.name });
-      await expect(ports.getByRole("img", { name: "Warnung" })).toBeVisible();
+      // one row per server in "Zu tun": the worst check names it, the port stands beside it
+      const zeile = page
+        .getByRole("listitem")
+        .filter({ hasText: `Platte auf Server „${agent.name}“ zu 95 % voll` });
+      await expect(zeile).toContainText("95 % belegt (Grenze 90 %)");
+      await expect(zeile).toContainText(`Offene Ports auf Server „${agent.name}“ prüfen`);
+      await expect(zeile.getByRole("img", { name: "Störung" })).toBeVisible();
+      await expect(zeile.getByRole("link", { name: "Server öffnen" })).toHaveAttribute(
+        "href",
+        `/server/${agent.serverId}`,
+      );
       await ohneBefund(page);
 
-      await platte.click();
+      await zeile
+        .getByRole("link", { name: `Platte auf Server „${agent.name}“ zu 95 % voll` })
+        .click();
       await expect(page).toHaveURL(`/server/${agent.serverId}`);
       const karte = page.locator("section", {
         has: page.getByRole("heading", { name: "Prüfungen" }),

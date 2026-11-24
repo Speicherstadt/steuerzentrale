@@ -53,10 +53,16 @@ const mitKunde = (deps: UebersichtDeps, betreiberId: string) =>
     .where(and(eq(installationen.betreiberId, betreiberId), ne(installationen.zustand, "entfernt")))
     .all();
 
+/** What an entry names of an installation, with its customer's name and its server */
+const verweisAuf = (
+  i: { installationId: string; app: string; host: string; serverId: string },
+  kunde: string,
+) => ({ installationId: i.installationId, app: i.app, host: i.host, kunde, serverId: i.serverId });
+
 /** Running installations whose rating is not green, or that have an open fault */
 const installationsEintraege = (deps: UebersichtDeps, betreiberId: string): Eintrag[] =>
   mitKunde(deps, betreiberId).flatMap(({ i, kunde }): Eintrag[] => {
-    const installation = { installationId: i.installationId, app: i.app, host: i.host, kunde };
+    const installation = verweisAuf(i, kunde);
     const stand = bewertungJetzt(standVon(i), deps.jetzt);
     if (stoerungOffen(deps.db, betreiberId, i.installationId))
       return [
@@ -88,7 +94,7 @@ const pruefRestoreEintraege = (deps: UebersichtDeps, betreiberId: string): Eintr
       return [];
     const a = pruefRestoreAufmerksamkeit(deps.db, i, deps.jetzt);
     if (!a) return [];
-    const installation = { installationId: i.installationId, app: i.app, host: i.host, kunde };
+    const installation = verweisAuf(i, kunde);
     return [
       { art: "pruef_restore", schwere: a.gescheitert ? "warnung" : "hinweis", installation, ...a },
     ];
@@ -154,7 +160,11 @@ const auftragsEintraege = (deps: UebersichtDeps, betreiberId: string): Eintrag[]
       aktion: a.aktion,
       fehler: a.fehler,
       server: a.server,
-      installation: a.installation && { ...a.installation, app: a.app },
+      installation: a.installation && {
+        ...a.installation,
+        app: a.app,
+        serverId: a.server.serverId,
+      },
       seit: a.geaendertAm,
     }));
 };

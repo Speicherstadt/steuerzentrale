@@ -2,6 +2,7 @@ import type { NeustartEntscheid, Serverpruefung } from "@steuerzentrale/planung"
 import { type Antwort, api } from "../anmeldung/api.ts";
 import { server as demoServer } from "../demo/server.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
+import { JETZT } from "../demo/zeit.ts";
 import type { AgentZustand } from "./typen.ts";
 
 /*
@@ -131,7 +132,8 @@ export const agentAnzeige = (
   letzteMeldung: sv.agent.letzterHeartbeat ?? sv.beigetretenAm,
 });
 
-let quelle: ServerQuelle = demoServerQuelle(demoServer, Date.now);
+// the demo at its own morning, as its fixtures are written (src/demo/zeit.ts)
+let quelle: ServerQuelle = demoServerQuelle(demoServer, () => JETZT);
 
 export const serverQuelle = (): ServerQuelle => quelle;
 

@@ -171,10 +171,13 @@ describe("signed in, against a Zentrale without data", () => {
     await vi.waitFor(() => {
       if (!root.textContent?.includes("Nichts zu tun")) throw new Error("not yet");
     });
-    expect(root.textContent).toContain("Keine Ereignisse.");
-    expect(root.textContent).toContain("Keine Aufträge.");
-    expect(root.textContent).toContain("0 Installationen bekommen eine neuere Version");
-    expect(root.textContent).toContain("Letzter Lauf erfolgreich0/0");
+    // the verdict says so, and the other cards are calm without data
+    expect(root.querySelector("main h2")?.textContent).toBe("Alles läuft");
+    expect(root.textContent).toContain("In den nächsten 7 Tagen ist nichts geplant.");
+    expect(root.textContent).toContain("Seit gestern Abend nichts.");
+    expect(root.textContent).toContain("0 Updates möglich");
+    expect(root.textContent).toContain("Backups heute Nacht0/0");
+    expect(root.textContent).not.toContain("Ohne Eile");
   });
 
   it("shows the services of the Zentrale and downloads the month from it (Z-804)", async () => {

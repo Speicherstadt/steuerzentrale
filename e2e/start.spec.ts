@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { installationAnlegen, neuerHost } from "./hilfen/installationen.ts";
 import { rotGemeldet } from "./hilfen/zustand.ts";
@@ -5,10 +6,69 @@ import { rotGemeldet } from "./hilfen/zustand.ts";
 test.use({ locale: "de-DE" });
 
 test.describe("the interface", { tag: "@phone" }, () => {
-  test("opens on the overview with what needs attention", async ({ page }) => {
+  // docs/plan.md, "Übersicht (Oberfläche 2026-11)": the verdict, four tiles, "Zu tun", "Als
+  // Nächstes" and "Von selbst erledigt"; events and jobs are in the Protokoll
+  test("opens on the overview, which says whether anything needs you", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1, name: "Übersicht" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Braucht Aufmerksamkeit" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Übersicht" })).toBeAttached();
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: /^(Alles läuft|1 Ding braucht dich|\d+ Dinge brauchen dich)$/,
+      }),
+    ).toBeVisible();
+    for (const name of [
+      "Server",
+      "Apps",
+      "Backups heute Nacht",
+      "Zu tun",
+      "Als Nächstes",
+      "Von selbst erledigt",
+    ])
+      await expect(page.getByRole("heading", { level: 2, name, exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Letzte Ereignisse" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Zum Protokoll" })).toHaveAttribute(
+      "href",
+      "/protokoll",
+    );
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  });
+
+  // the number beside "Übersicht" in the menu is the number of rows of "Zu tun"
+  test("counts the rows of Zu tun in the menu", async ({ page }) => {
+    const i = await installationAnlegen(page.request, neuerHost("laeuft"));
+    try {
+      await rotGemeldet(page.request, i);
+      const zuTun = page.locator("section", {
+        has: page.getByRole("heading", { name: "Zu tun", exact: true }),
+      });
+      const zeilen = zuTun.locator("ul > li").filter({
+        has: page.getByRole("img", { name: /^(Störung|Warnung)$/ }),
+      });
+      // other tests add and fix entries meanwhile: read the page again until all three agree
+      await expect
+        .poll(
+          async () => {
+            await page.goto("/");
+            await expect(zuTun.getByText(`probe bei ${i.kunde.name} ist gestört`)).toBeVisible();
+            const n = await zeilen.count();
+            const urteil = await page.locator("main h2").first().textContent();
+            const knopf = page.getByRole("button", { name: "Navigation", exact: true });
+            if (await knopf.isVisible()) await knopf.click();
+            const eintrag = page
+              .getByRole("navigation", { name: "Bereiche" })
+              .filter({ visible: true })
+              .getByRole("link", { name: /^Übersicht/ });
+            const zahl = await eintrag.textContent();
+            const erwartet = n === 1 ? "1 Ding braucht dich" : `${n} Dinge brauchen dich`;
+            return urteil === erwartet && zahl === `Übersicht${n}`;
+          },
+          { timeout: 30_000 },
+        )
+        .toBe(true);
+    } finally {
+      i.agent.trennen();
+    }
   });
 
   test("reaches the Zentrale through the same origin", async ({ request }) => {
@@ -44,12 +104,17 @@ test.describe("the interface", { tag: "@phone" }, () => {
     try {
       await rotGemeldet(page.request, i);
       await page.goto("/");
-      const eintrag = page
-        .locator("section", { has: page.getByRole("heading", { name: "Braucht Aufmerksamkeit" }) })
-        .getByRole("link", { name: new RegExp(`${i.kunde.name} · probe`) });
-      await expect(eintrag).toContainText("Health: HTTP 503");
-      await expect(eintrag.getByRole("img", { name: "Störung" })).toBeVisible();
-      await eintrag.click();
+      const titel = `probe bei ${i.kunde.name} ist gestört`;
+      const zeile = page
+        .locator("section", { has: page.getByRole("heading", { name: "Zu tun", exact: true }) })
+        .getByRole("listitem")
+        .filter({ hasText: titel });
+      await expect(zeile).toContainText("Health: HTTP 503");
+      await expect(zeile.getByRole("img", { name: "Störung" })).toBeVisible();
+      // the owner of the e2e Zentrale may look into it and restart it from here
+      await expect(zeile.getByRole("button", { name: "Neustart" })).toBeVisible();
+      await expect(zeile.getByRole("button", { name: "Log ansehen" })).toBeVisible();
+      await zeile.getByRole("link", { name: titel }).click();
       await expect(page).toHaveURL(`/apps/${i.installationId}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(`probe · ${i.kunde.name}`);
     } finally {

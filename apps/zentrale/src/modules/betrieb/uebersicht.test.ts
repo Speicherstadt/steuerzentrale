@@ -80,8 +80,13 @@ describe("uebersichtLesen", () => {
         app: "probe",
         host: "i1.kanzlei.example",
         kunde: "Kanzlei",
+        serverId: "s1",
       },
       grund: { code: "health", werte: { text: "HTTP rot" } },
+    });
+    // the server it runs on, so the interface can put it beside its server's entries
+    expect(eintraege.at(-1)).toMatchObject({
+      installation: { installationId: "i4", serverId: "s2" },
     });
   });
 
@@ -201,7 +206,13 @@ describe("checks in the overview (Z-702)", () => {
 });
 
 describe("ordnen", () => {
-  const installation = { installationId: "i1", app: "probe", host: "h", kunde: "K" };
+  const installation = {
+    installationId: "i1",
+    app: "probe",
+    host: "h",
+    kunde: "K",
+    serverId: "s1",
+  };
   const grund = { code: "health" as const, werte: {} };
 
   it("leaves out an event whose target an entry already names, and keeps the newest first", () => {

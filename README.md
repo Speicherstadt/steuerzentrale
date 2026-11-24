@@ -4,7 +4,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/uebersicht-dunkel.webp">
-  <img src="docs/assets/screenshots/uebersicht-hell.webp" alt="Übersicht der Steuerzentrale: fünf Server, 16 Installationen, eine laufende Update-Welle, Backups und alles, was Aufmerksamkeit braucht, nach Schwere geordnet" width="900">
+  <img src="docs/assets/screenshots/uebersicht-hell.webp" alt="Übersicht der Steuerzentrale: „5 Dinge brauchen dich“, vier Kacheln zu Servern, Apps, Update-Welle und Backups, links was zu tun ist mit seinen Knöpfen, rechts was die Zentrale als Nächstes tut und was sie von selbst erledigt hat" width="900">
 </picture>
 
 **Open-Source-Betrieb für die Apps der Speicherstadt: installieren, aktualisieren, sichern und überwachen, auf deinen eigenen Servern.**
@@ -63,7 +63,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
 
 | Bereich | Was die Steuerzentrale kann |
 |---|---|
-| 🧭 [Übersicht](https://speicherstadt.org/steuerzentrale/uebersicht.html) | Alles, was Aufmerksamkeit braucht, nach Schwere geordnet: Störungen, rote und gelbe Installationen, stille Agenten, Prüfungen, gescheiterte Aufträge; jeder Eintrag führt zu seiner Ursache |
+| 🧭 [Übersicht](https://speicherstadt.org/steuerzentrale/uebersicht.html) | Beantwortet „Brauche ich gerade etwas zu tun?“: das Urteil als Überschrift, vier Kacheln, „Zu tun“ mit einer Zeile je App oder Server und ihren Knöpfen (Log ansehen, Neustart, App oder Server öffnen), „Als Nächstes“ (Updates, Neustarts, Sperrzeiten, Zertifikate, Vertragsenden) und „Von selbst erledigt“ seit gestern Abend |
 | 🗂️ [Navigation](https://speicherstadt.org/steuerzentrale/uebersicht.html#navigation) | Acht Einträge in zwei Gruppen: Betrieb (Übersicht, Apps, Server, Kunden, Updates) und Verwaltung (Katalog, Protokoll, Einstellungen); laufende Apps heißen Apps, die Manifeste Katalog, Ereignisse, Aufträge und Änderungen stehen im Protokoll |
 | 🖥️ [Server hinzufügen](https://speicherstadt.org/steuerzentrale/server-hinzufuegen.html) | Ein Befehl mit Einmal-Token; `install.sh` richtet auf Debian 13 oder Ubuntu 24.04 Podman, unattended-upgrades und den signierten Agenten ein; Zertifikat rotiert selbst, sofort sperrbar |
 | 📦 [Apps installieren](https://speicherstadt.org/steuerzentrale/installieren.html) | Dialog mit Kunde, Server und Adresse; Platzierung nach Platz und Art des Servers; Einstellungen als Formular aus dem Manifest, Geheimnisse als Podman-Secrets |
