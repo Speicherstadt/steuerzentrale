@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f5f4d9f1-9951-4481-948d-80a3e995be8c",
+  "id": "0f9a49bd-450f-473c-8dfa-1bd6cfb0641d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "audit_log": {
@@ -2825,7 +2825,7 @@
           "name": "installationen_host",
           "columns": ["betreiber_id", "host"],
           "isUnique": true,
-          "where": "\"installationen\".\"zustand\" <> 'entfernt'"
+          "where": "\"installationen\".\"zustand\" <> ?"
         }
       },
       "foreignKeys": {

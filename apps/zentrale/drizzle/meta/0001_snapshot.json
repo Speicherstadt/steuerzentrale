@@ -1,6 +1,6 @@
 {
-  "id": "3a6430e3-8be3-4875-809a-7416e986fe60",
-  "prevId": "f5f4d9f1-9951-4481-948d-80a3e995be8c",
+  "id": "6c401310-5f05-4d5c-a6a7-5c0cfb4b2703",
+  "prevId": "0f9a49bd-450f-473c-8dfa-1bd6cfb0641d",
   "version": "6",
   "dialect": "sqlite",
   "tables": {
@@ -2824,7 +2824,7 @@
         "installationen_host": {
           "name": "installationen_host",
           "columns": ["betreiber_id", "host"],
-          "where": "\"installationen\".\"zustand\" <> 'entfernt'",
+          "where": "\"installationen\".\"zustand\" <> ?",
           "isUnique": true
         }
       },

@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { ne } from "drizzle-orm";
 import {
   foreignKey,
   index,
@@ -85,10 +85,9 @@ export const installationen = sqliteTable(
     primaryKey({ columns: [t.betreiberId, t.installationId] }),
     index("installationen_server").on(t.betreiberId, t.serverId),
     index("installationen_dns").on(t.dnsNaechsterVersuch),
-    uniqueIndex("installationen_host")
-      .on(t.betreiberId, t.host)
-      // a literal: drizzle-kit writes a bound value here, which SQLite refuses in an index
-      .where(sql`${t.zustand} <> 'entfernt'`),
+    // drizzle-kit writes the value as `?`, which SQLite refuses in an index: the migration carries
+    // the literal 'entfernt' instead (apps/zentrale/drizzle/0000_fundament.sql)
+    uniqueIndex("installationen_host").on(t.betreiberId, t.host).where(ne(t.zustand, "entfernt")),
     foreignKey({
       columns: [t.betreiberId, t.serverId],
       foreignColumns: [server.betreiberId, server.serverId],
