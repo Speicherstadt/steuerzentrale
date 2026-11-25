@@ -1,9 +1,7 @@
-import type { KundenLeistung } from "@steuerzentrale/planung";
 import { Icon, m } from "@steuerzentrale/ui";
-import { For, Show } from "solid-js";
+import { For } from "solid-js";
 import type { AppZeile } from "../daten/apps-liste.ts";
 import type { Kunde } from "../daten/typen.ts";
-import { gbAusBytes, minuten, prozent, zahl } from "../format/zahl.ts";
 import { datum } from "../format/zeit.ts";
 import { slaName, slaText, welleName } from "../rahmen/texte.ts";
 import { appIcon } from "../teile/app-icon.ts";
@@ -13,16 +11,8 @@ import { ZustandIcon, zustandText } from "./apps-tabelle.tsx";
 
 /*
  * The tab "Überblick" of a customer (docs/plan.md, "Server und Kunden (Oberfläche 2026-11)"): its
- * apps with address, version and state (Z-402, Z-403), this month's figures as the page
- * "Leistungen" has them (Z-804), its contract and its contact (Z-801).
+ * apps with address, version and state (Z-402, Z-403), its contract and its contact (Z-801).
  */
-
-/** A share as the pages write it: whole at 100 %, else two places cut off, never rounded up */
-export const anteilText = (anteil: number | null): string => {
-  if (anteil === null) return m.aussen_nicht_gemessen();
-  const p = anteil * 100;
-  return p >= 100 ? prozent(100) : prozent(Math.floor(p * 100) / 100, 2);
-};
 
 const versionText = (z: AppZeile) =>
   z.ziel ? `${z.a.version} → ${z.ziel}` : m.app_version({ version: z.a.version });
@@ -59,33 +49,6 @@ const AppsKarte = (props: { zeilen: AppZeile[] }) => (
       </ul>
     </KartenInhalt>
   </Karte>
-);
-
-const Zahl = (props: { wert: string; name: string }) => (
-  <div class="grid gap-0.5">
-    <p class="text-2xl font-semibold tabular-nums">{props.wert}</p>
-    <p class="text-muted-foreground">{props.name}</p>
-  </div>
-);
-
-/** This month as the page "Leistungen" counts it; without its figures nothing is shown */
-const DieserMonat = (props: { apps: number; l: KundenLeistung | undefined }) => (
-  <Show when={props.l}>
-    {(l) => (
-      <Karte>
-        <KartenKopf titel={m.kunde_dieser_monat()} />
-        <KartenInhalt class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Zahl wert={zahl(props.apps)} name={m.nav_apps()} />
-          <Zahl
-            wert={l().speicherBytes === null ? "–" : gbAusBytes(l().speicherBytes ?? 0)}
-            name={m.inst_spalte_daten()}
-          />
-          <Zahl wert={anteilText(l().verfuegbarkeit.anteil)} name={m.inst_verfuegbarkeit()} />
-          <Zahl wert={minuten(l().supportMinuten)} name={m.kunde_reiter_support()} />
-        </KartenInhalt>
-      </Karte>
-    )}
-  </Show>
 );
 
 const VertragsKarte = (props: { k: Kunde }) => (
@@ -126,15 +89,10 @@ const KontaktKarte = (props: { k: Kunde }) => (
   </Karte>
 );
 
-export const KundeUeberblick = (props: {
-  k: Kunde;
-  zeilen: AppZeile[];
-  monat: KundenLeistung | undefined;
-}) => (
+export const KundeUeberblick = (props: { k: Kunde; zeilen: AppZeile[] }) => (
   <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
     <div class="grid gap-4">
       <AppsKarte zeilen={props.zeilen} />
-      <DieserMonat apps={props.zeilen.length} l={props.monat} />
     </div>
     <div class="grid gap-4">
       <VertragsKarte k={props.k} />

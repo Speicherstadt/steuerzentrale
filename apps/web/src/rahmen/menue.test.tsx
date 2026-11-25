@@ -75,7 +75,6 @@ describe("the sidebar", () => {
     ["/apps/lind-haben", "Apps"],
     ["/backups", "Apps"],
     ["/support", "Kunden"],
-    ["/leistungen", "Kunden"],
     ["/katalog/haben", "Katalog"],
     ["/protokoll?tab=auftraege", "Protokoll"],
   ])("marks the area of %s", async (pfad, name) => {
@@ -85,14 +84,13 @@ describe("the sidebar", () => {
 });
 
 describe("pages without an entry", () => {
-  it("are tabs of Kunden: Support-Zugänge and Leistungen", async () => {
+  it("are tabs of Kunden: Support-Zugänge, and no Leistungen (Z-1201)", async () => {
     const { root } = await oeffne("/support");
-    const nav = root.querySelector('main nav[aria-label="Kunden, Support-Zugänge und Leistungen"]');
+    const nav = root.querySelector('main nav[aria-label="Kunden und Support-Zugänge"]');
     const links = [...(nav?.querySelectorAll("a") ?? [])];
     expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
       ["Kunden", "/kunden"],
       ["Support-Zugänge", "/support"],
-      ["Leistungen", "/leistungen"],
     ]);
     expect(nav?.querySelector('[aria-current="page"]')?.textContent).toBe("Support-Zugänge");
     expect(ueberschrift(root)).toBe("Support-Zugänge");

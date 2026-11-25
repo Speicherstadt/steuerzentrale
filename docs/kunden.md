@@ -12,9 +12,8 @@ zeigt später das Portal. Unter **Kunden** legt der Betreiber Kunden an, die nic
 kommen, ändert ihre Angaben und trägt eine Kündigung ein.
 
 Die Seite **Kunden** ist eine Tabelle: Kunde mit E-Mail-Adresse, SLA, Apps, Server und Vertrag
-(„seit …“, „intern“ oder „Gekündigt zum …“), mit Suche und **Kunde anlegen**. Darüber führen
-**Support-Zugänge** ([Support-Zugang](support.md)) und **Leistungen** ([Leistungen](leistungen.md))
-zu den Seiten derselben Dinge für alle Kunden. Ein Klick auf einen Kunden öffnet
+(„seit …“, „intern“ oder „Gekündigt zum …“), mit Suche und **Kunde anlegen**. Darüber führt
+**Support-Zugänge** ([Support-Zugang](support.md)) zur Liste der Zugänge aller Kunden. Ein Klick auf einen Kunden öffnet
 [seine Seite](#die-seite-eines-kunden).
 
 ## Was zu einem Kunden gehört
@@ -185,12 +184,11 @@ Löschung und **Kündigung zurücknehmen**. Die Reiter stehen in der Adresse (`?
 
 | Reiter | Inhalt | Woher |
 | --- | --- | --- |
-| Überblick | die Apps mit Adresse, Version, Server und Zustand; „Dieser Monat“ (Apps, Daten, Verfügbarkeit, Support); Vertrag und Kontakt | `GET /api/v1/installationen`, `/leistungen` des laufenden Monats, der Kunde |
+| Überblick | die Apps mit Adresse, Version, Server und Zustand; Vertrag und Kontakt | `GET /api/v1/installationen`, der Kunde |
 | Support | die Support-Zugänge zu seinen Apps, laufend und beendet, und „Zugang starten“ | `GET /api/v1/support-zugaenge?kundeId=…` |
-| Leistungen | die Verfügbarkeit jeder App und aller zusammen in den letzten sechs Monaten, unter 99,9 % gelb, ein Monat ohne Prüfung leer; was der Vertrag enthält mit Support und Daten des Monats | `GET /api/v1/installationen/<id>/aussen` je App, `/leistungen` |
 | Verlauf | die Ereignisse seiner Apps | `GET /api/v1/ereignisse` |
 
-„Alle zusammen“ ist der Anteil aller gemessenen Minuten der Apps, so zählt eine App mit wenigen
-Minuten weniger. In der Betriebsart „Nur für mich“ fehlt „Kunden“ in der Seitenleiste, und mit ihm Support-Zugänge und Leistungen.
+Die Verfügbarkeit je Monat steht an jeder App (Reiter „Technik“, [Prüfung von außen](aussen.md)).
+In der Betriebsart „Nur für mich“ fehlt „Kunden“ in der Seitenleiste, und mit ihm die Support-Zugänge.
 `bun run dev:demo` zeigt Kunden aus den Demodaten; was man dort anlegt oder ändert, bleibt bis zum
 Neuladen der Seite im Browser.

@@ -163,7 +163,7 @@ export const snapshotAus = (aus: string): string | undefined => {
 
 /**
  * What restic read for a part: `total_bytes_processed` of the summary of `backup --json`
- * (doc/075_scripting.rst, "backup"), the storage of the Leistungen (Z-804); none in other output
+ * (doc/075_scripting.rst, "backup"), the size of the run; none in other output
  */
 export const bytesAus = (aus: string): number | undefined => {
   for (const zeile of aus.split("\n")) {

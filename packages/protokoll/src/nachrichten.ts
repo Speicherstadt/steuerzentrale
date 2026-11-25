@@ -169,7 +169,7 @@ export const ZertifikatAnfrage = z.object({
 /**
  * One part of a backup run (Z-601): its tag, and restic's snapshot ID when it made one; `bytes`
  * (Z-804, still protocol 1: an agent before it leaves it out) is what restic read for the part,
- * its summary's `total_bytes_processed`, the storage of the Leistungen
+ * its summary's `total_bytes_processed`, the size of the run
  */
 const backupTeil = z.object({
   tag: z.string().min(1).max(300),

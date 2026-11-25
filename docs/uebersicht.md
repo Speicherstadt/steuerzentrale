@@ -21,7 +21,7 @@ Die Seitenleiste hat acht Einträge in zwei Gruppen:
 | Betrieb | Übersicht | ob dich etwas braucht: was zu tun ist, was die Zentrale als Nächstes tut und was sie erledigt hat; der Zähler nennt die Zeilen von „Zu tun“ |
 | Betrieb | Apps | jede laufende App (eine Installation) mit Kunde, Zustand, Version, letztem Backup und Server; je App eine Seite mit Reitern ([Apps installieren](installieren.md#die-seite-einer-app)); die Seite **Backups** aller Apps über „Alle Backups“ im Reiter „Backups“ einer App |
 | Betrieb | Server | die Server mit Art, Zustand, Platte, Apps und System; je Server eine Seite mit Reitern ([unten](#server-und-kundenseite)) |
-| Betrieb | Kunden | Kunden und Verträge; darüber „Support-Zugänge“ und „Leistungen“ für alle Kunden, je Kunde eine Seite mit den Reitern Überblick, Support, Leistungen und Verlauf |
+| Betrieb | Kunden | Kunden und Verträge; darüber „Support-Zugänge“ für alle Kunden, je Kunde eine Seite mit den Reitern Überblick, Support und Verlauf |
 | Betrieb | Updates | neue Versionen je App, darunter die Sperrzeiten der Apps; der Zähler nennt die Apps mit einer neueren Version |
 | Verwaltung | Katalog | die Apps der Speicherstadt, wie ihre Manifeste sie beschreiben: woher die Apps kommen; Manifest importieren, nach neuen Versionen suchen ([Katalog, Manifeste und Versionen](manifeste.md)) |
 | Verwaltung | Protokoll | Reiter „Ereignisse“, „Aufträge“ und „Änderungen“ (das Audit-Log) |
@@ -30,11 +30,11 @@ Die Seitenleiste hat acht Einträge in zwei Gruppen:
 Unten in der Seitenleiste stehen das eigene Konto mit Rolle (ein Klick führt zu Einstellungen →
 Konten) und die Version der Zentrale. Die Kopfzeile nennt den Bereich und auf einer Seite darunter
 die App, den Server oder den Kunden („Server › Studio Lind“). Eigene Einträge für Sperrzeiten,
-Support-Zugänge, Leistungen, Backups, Ereignisse, Aufträge oder das Audit-Log gibt es nicht mehr.
+Support-Zugänge, Backups, Ereignisse, Aufträge oder das Audit-Log gibt es nicht mehr.
 
 Der Reiter des Protokolls steht in der Adresse (`/protokoll?tab=auftraege`); unter den Reitern
 stehen gleich die Filter (Ereignisse nach Schwere, Aufträge nach Zustand) und die Liste.
-„Änderungen“ sehen nur Inhaber und Technik. Bei „Nur für mich“ fehlt „Kunden“ und mit ihm Support-Zugänge und Leistungen.
+„Änderungen“ sehen nur Inhaber und Technik. Bei „Nur für mich“ fehlt „Kunden“ und mit ihm die Support-Zugänge.
 Alte Adressen führen weiter: `/installationen` und `/installationen/<id>` zu `/apps`,
 `/ereignisse`, `/auftraege` und `/audit` zum passenden Reiter des Protokolls.
 

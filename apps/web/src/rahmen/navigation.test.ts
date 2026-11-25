@@ -49,7 +49,6 @@ describe("navigation", () => {
     expect(heimat("/apps/lind-haben")).toBe("/apps");
     expect(heimat("/backups")).toBe("/apps");
     expect(heimat("/support")).toBe("/kunden");
-    expect(heimat("/leistungen")).toBe("/kunden");
     expect(heimat("/katalog/haben")).toBe("/katalog");
     expect(heimat("/protokoll")).toBe("/protokoll");
   });
@@ -82,10 +81,6 @@ describe("navigation", () => {
     expect(pfadStufen(demo, "/support")).toEqual([
       { name: "Kunden", pfad: "/kunden" },
       { name: "Support-Zugänge" },
-    ]);
-    expect(pfadStufen(demo, "/leistungen")).toEqual([
-      { name: "Kunden", pfad: "/kunden" },
-      { name: "Leistungen" },
     ]);
     expect(pfadStufen(demo, "/backups")).toEqual([
       { name: "Apps", pfad: "/apps" },

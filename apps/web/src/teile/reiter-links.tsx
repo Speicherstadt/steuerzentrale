@@ -3,13 +3,13 @@ import { Link } from "@tanstack/solid-router";
 import { For } from "solid-js";
 
 /**
- * Pages of one area as links that look like tabs (Kunden | Support-Zugänge | Leistungen): each
+ * Pages of one area as links that look like tabs (Kunden | Support-Zugänge): each
  * is its own route, so the link of the open page is marked as the current page, not as a selected
  * tab (docs/plan.md, "Navigation (Oberfläche 2026-11)")
  */
 
 export type ReiterLink = {
-  pfad: "/kunden" | "/support" | "/leistungen";
+  pfad: "/kunden" | "/support";
   name: string;
 };
 
@@ -32,14 +32,13 @@ export const ReiterLinks = (props: { label: string; links: ReiterLink[] }) => (
   </nav>
 );
 
-/** Kunden with support accesses and usage, which have no menu entry of their own */
+/** Kunden with support accesses, which have no menu entry of their own */
 export const KundenReiter = () => (
   <ReiterLinks
     label={m.kunden_reiter()}
     links={[
       { pfad: "/kunden", name: m.nav_kunden() },
       { pfad: "/support", name: m.nav_support() },
-      { pfad: "/leistungen", name: m.nav_leistungen() },
     ]}
   />
 );

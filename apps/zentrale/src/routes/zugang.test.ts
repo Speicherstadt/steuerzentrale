@@ -154,3 +154,21 @@ describe("Better Auth's paths", () => {
     }
   });
 });
+
+/*
+ * BAULISTE.md stage 2, phase 9: what was removed stays removed. Each path answers 404 to a member
+ * with a session, in every role, and is in no entry of ROUTEN.
+ */
+const ENTFERNT: [string, string][] = [
+  // Z-1201: the services per customer and month (Z-804), also as CSV
+  ["GET", "/api/v1/leistungen"],
+  ["GET", "/api/v1/leistungen?monat=2026-11&format=csv"],
+];
+
+describe("removed routes", () => {
+  it.each(ENTFERNT)("%s %s answers 404", async (method, pfad) => {
+    for (const rolle of ROLLEN)
+      expect((await personen[rolle].json(pfad, { method })).status, rolle).toBe(404);
+    expect(NAMEN.some((name) => name.endsWith(` ${pfad.split("?")[0]}`))).toBe(false);
+  });
+});

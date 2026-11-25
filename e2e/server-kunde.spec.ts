@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { agentVerbinden } from "./hilfen/agent.ts";
-import { installationAnlegen } from "./hilfen/installationen.ts";
+import { installationAnlegen, neuerHost } from "./hilfen/installationen.ts";
 
 test.use({ locale: "de-DE" });
 
@@ -59,31 +59,44 @@ test.describe("servers and customers", { tag: "@phone" }, () => {
     }
   });
 
-  test("open a customer's page with its apps, support and services", async ({ page }) => {
+  test("open a customer's page with its apps and support", async ({ page }) => {
     const i = await installationAnlegen(page.request);
     try {
       await page.goto(`/kunden/${i.kunde.id}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(i.kunde.name);
-      await expect(page.getByRole("tab")).toHaveText([
-        "Überblick",
-        "Support",
-        "Leistungen",
-        "Verlauf",
-      ]);
+      await expect(page.getByRole("tab")).toHaveText(["Überblick", "Support", "Verlauf"]);
       await expect(page.getByTestId("kunde-apps")).toContainText(i.host);
       await expect(page.getByText(/Basis-Vertrag seit/)).toBeVisible();
       await ohneBefund(page);
 
-      await page.getByRole("tab", { name: "Leistungen" }).click();
-      await expect(page).toHaveURL(`/kunden/${i.kunde.id}?tab=leistungen`);
-      const tabelle = page.getByRole("region", { name: "Verfügbarkeit je App und Monat" });
-      await expect(tabelle.getByRole("columnheader")).toHaveCount(7);
-      await expect(tabelle.locator("tbody tr").last()).toContainText("Alle Apps");
-      await expect(page.getByText("Was der Vertrag enthält")).toBeVisible();
-      await ohneBefund(page);
-
       await page.getByRole("tab", { name: "Support" }).click();
       await expect(page.getByRole("button", { name: "Zugang starten" })).toBeVisible();
+      await ohneBefund(page);
+    } finally {
+      i.agent.trennen();
+    }
+  });
+
+  // Z-1201: the services are gone, from the menu and as a page; the availability per month stays
+  // at the app (Z-704)
+  test("find no services, and the availability at the app", async ({ page }) => {
+    const i = await installationAnlegen(page.request, neuerHost("laeuft"));
+    try {
+      await page.goto("/kunden");
+      await expect(page.getByRole("link", { name: "Support-Zugänge", exact: true })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Leistungen", exact: true })).toHaveCount(0);
+      expect((await page.request.get("/api/v1/leistungen")).status()).toBe(404);
+      await page.goto("/leistungen");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nicht gefunden");
+
+      await expect
+        .poll(async () => {
+          const r = await page.request.get(`/api/v1/installationen/${i.installationId}`);
+          return ((await r.json()) as { zustand: string }).zustand;
+        })
+        .toBe("laeuft");
+      await page.goto(`/apps/${i.installationId}?tab=technik`);
+      await expect(page.getByTestId("verfuegbarkeit")).toContainText("Verfügbarkeit je Monat");
       await ohneBefund(page);
     } finally {
       i.agent.trennen();

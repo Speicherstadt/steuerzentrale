@@ -135,37 +135,30 @@ describe("the page of a server", () => {
 });
 
 describe("the page of a customer", () => {
-  it("heads with its apps in a sentence and its contract, and has four tabs", async () => {
+  it("heads with its apps in a sentence and its contract, and has three tabs", async () => {
     const { root } = await oeffne("/kunden/atelier-nord");
     expect(root.querySelector("main h1")?.textContent).toBe("Atelier Nord");
     expect(root.textContent).toMatch(/\d+ Apps, (alle laufen|wird eingerichtet|davon)/);
     expect(root.textContent).toMatch(/Basis-Vertrag seit \d\d\.\d\d\.\d{4}/);
-    expect(reiter(root)).toEqual(["Überblick", "Support", "Leistungen", "Verlauf"]);
+    expect(reiter(root)).toEqual(["Überblick", "Support", "Verlauf"]);
     expect(root.querySelector('main [aria-haspopup="menu"]')?.textContent).toBe("Mehr …");
   });
 
-  it("shows its apps, this month, its contract and contact on Überblick", async () => {
+  it("shows its apps, its contract and contact on Überblick", async () => {
     const { root } = await oeffne("/kunden/atelier-nord");
     const apps = [...root.querySelectorAll("[data-testid=kunde-apps] li")];
     expect(apps.length).toBeGreaterThan(0);
     expect(apps[0]?.textContent).toContain("atelier-nord");
     expect(apps[0]?.querySelector("a")?.getAttribute("href")).toMatch(/^\/apps\//);
-    expect(root.textContent).toContain("Dieser Monat");
+    expect(root.textContent).not.toContain("Dieser Monat");
     expect(root.textContent).toContain("StufeBasis");
     expect(root.textContent).toContain("Ansprechperson");
   });
 
-  it("shows the availability per month and app on Leistungen, and what the contract includes", async () => {
+  it("has no tab Leistungen any more (Z-1201)", async () => {
     const { root } = await oeffne("/kunden/atelier-nord?tab=leistungen");
-    await warten();
-    const kopf = spalten(root);
-    expect(kopf[0]).toBe("App");
-    expect(kopf).toHaveLength(7);
-    const zeilen = [...root.querySelectorAll("main tbody tr")];
-    expect(zeilen.at(-1)?.textContent).toMatch(/^Alle Apps/);
-    expect(zeilen.at(-1)?.textContent).toMatch(/\d+(,\d+)? %$/);
-    expect(root.textContent).toContain("Was der Vertrag enthält");
-    expect(root.textContent).toContain("gemessen je App und Monat, Ziel 99,9 %");
+    expect(reiter(root)).not.toContain("Leistungen");
+    expect(root.textContent).not.toContain("Was der Vertrag enthält");
   });
 
   it("lists its support accesses on Support", async () => {

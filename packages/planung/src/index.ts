@@ -44,7 +44,6 @@ export {
   nachFrist,
   STOERUNG_NACH_MS,
 } from "./bewertung.ts";
-export { type CsvWert, csvFeld, csvText } from "./csv.ts";
 export {
   nachSperrzeit,
   naechsterTermin,
@@ -62,26 +61,6 @@ export {
   type Vertragsphase,
   vertragsphase,
 } from "./kuendigung.ts";
-export {
-  type InstallationsLeistung,
-  type KundenLeistung,
-  type LeistungsBackup,
-  type LeistungsEingaben,
-  type LeistungsInstallation,
-  type LeistungsKunde,
-  type LeistungsZugang,
-  leistungenImMonat,
-  monatAusText,
-  monatText,
-  speicherImMonat,
-  supportMinutenImMonat,
-} from "./leistungen.ts";
-export {
-  LEISTUNGEN_KOPF,
-  type Leistungen,
-  leistungenCsv,
-  leistungenDatei,
-} from "./leistungen-csv.ts";
 export {
   NEUSTART_PAUSE_MS,
   type NeustartEntscheid,
