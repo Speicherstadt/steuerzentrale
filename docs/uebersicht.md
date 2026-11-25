@@ -200,7 +200,7 @@ mit welchem Punkt sie kommen:
 
 | Seite oder Teil | kommt mit |
 | --- | --- |
-| CPU und Arbeitsspeicher eines Servers, Pakete mit Namen; die Platte zeigt der Reiter „Auslastung“, das Betriebssystem seit Z-701 die Karte „Wartung“ | noch ohne Punkt |
+| CPU und Arbeitsspeicher eines Servers, Pakete mit Namen; die Platte zeigt der Reiter „Auslastung“, das Betriebssystem seit Z-701 die Karte „Wartung“ | Z-1106 |
 
 Name, Symbol und Kurztext der Apps (Katalog) stehen in `apps/web/src/demo/apps.ts`; alles
 Technische (Version, Container, Ports, Health, Backup, Sperrzeiten, Einstellungen) liest die Demo aus

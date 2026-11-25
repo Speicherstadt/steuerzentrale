@@ -147,8 +147,6 @@ Unter Einstellungen → Benachrichtigungen stehen die 20 neuesten Zustellungen m
 zugestellt, aufgegeben), Versuchen und dem letzten Fehler. Jede Zustellung und jeder Versuch steht im
 Audit-Log, ohne Passwort, Adresse oder Schlüssel eines Webhooks. Zustellungen bleiben 30 Tage.
 
-Dieselbe Zustellung nutzt später das Portal (Z-903): es ist ein Webhook-Empfänger wie jeder andere.
-
 ## API
 
 | Route | Rolle | Wirkung |

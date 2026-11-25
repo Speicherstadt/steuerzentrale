@@ -19,7 +19,7 @@ installieren“ als `<app>.<kürzel>.<domain>` vor, z. B. `haben.kanzlei-west.ap
 
 Liegt der Host unter dieser Domain, setzt die Zentrale seine DNS-Einträge bei Cloudflare und löscht
 sie wieder, wenn die Installation entfernt ist. Ein anderer Host bleibt erlaubt; seine Einträge setzt
-der Betreiber selbst. Eigene Domains der Kunden mit Prüfung kommen mit Z-409.
+der Betreiber selbst.
 
 ## DNS-Einstellungen
 

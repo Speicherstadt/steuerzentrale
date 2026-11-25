@@ -29,7 +29,8 @@ zu den Seiten derselben Dinge für alle Kunden. Ein Klick auf einen Kunden öffn
 
 Jeder Kunde hat in Stufe 1 genau einen Vertrag, der mit ihm angelegt wird. Sein SLA ist **Basis**:
 Updates kommen mit allen anderen, nach der internen Welle ([Updates](updates.md)). Plus (frühe
-Welle) und Ruhe (späte Welle) kennt die Datenbank schon; angeboten werden sie erst mit Z-505.
+Welle) und Ruhe (späte Welle) kennt die Datenbank, angeboten werden sie nicht; die SLA entfällt mit
+Z-1202.
 
 Vertragsbeginn und Vertragsende sind Tage. Die Zentrale speichert den Beginn dieses Tages in
 `Europe/Berlin` als Zeitpunkt in UTC-Millisekunden; die Oberfläche zeigt ihn als TT.MM.JJJJ. Einen
