@@ -16,7 +16,7 @@ import type { WebhookZiel } from "./webhook.ts";
  * delivery of every operator is sent, a fault at once, anything else after the operator's quiet
  * hours; a failure waits 1, 2, 4 … minutes, at most an hour, and after 10 attempts the delivery is
  * given up. Each result goes through `schreiben`, so the audit log shows when an operator was told.
- * The same delivery serves the Portal later (Z-903). A crash between sending and writing sends once
+ * A crash between sending and writing sends once
  * more: the receiver knows a repeat by the delivery's id.
  */
 export const MAX_VERSUCHE = 10;

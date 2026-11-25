@@ -5,7 +5,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * `X-Steuerzentrale-Signatur: t=<ms>,v1=<hex>`, where v1 is the HMAC-SHA256 with the recipient's
  * key over "<t>.<body>" (the raw bytes of the body as sent). The time binds the signature to the
  * moment, so a recorded request cannot be replayed after five minutes; the same function checks it
- * in the tests' receiver and, later, in the Portal (Z-903).
+ * in the tests' receiver.
  */
 export const SIGNATUR_HEADER = "x-steuerzentrale-signatur";
 /** The id of a delivery: the same on every attempt, so a receiver recognises a repeat */

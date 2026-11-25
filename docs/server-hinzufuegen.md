@@ -141,14 +141,15 @@ TLS beendet Caddy, die Pforte auf dem Server der Zentrale. Auf `agent.<domain>` 
 Client-Zertifikat, wenn eines kommt (`install.sh` und der Token-Tausch kommen ohne), gegen die
 Agent-CA des Betreibers und gibt seinen SHA-256-Fingerabdruck an die Zentrale auf `127.0.0.1`
 weiter. Auf allen anderen Hostnamen löscht sie den Header, damit niemand einen Fingerabdruck
-erfinden kann. Die Zentrale glaubt ihn nur vom Loopback:
+erfinden kann. Die Zentrale glaubt ihn nur vom Loopback. `steuerzentrale pforte` schreibt das als
+JSON für die Admin-API der Pforte, die CA steht dort inline; als Caddyfile entspräche es etwa:
 
 ```text
 agent.example.de {
 	tls {
 		client_auth {
 			mode verify_if_given
-			trust_pool file /var/lib/steuerzentrale/agent-ca.pem
+			trust_pool inline <Agent-CA, base64 DER>
 		}
 	}
 	reverse_proxy 127.0.0.1:8300 {

@@ -9,7 +9,7 @@ description: >-
 
 Wer die Zentrale hat, hat alle Kunden. Deshalb braucht jedes Konto einen zweiten Faktor, und jede
 Route der Zentrale prüft die Rolle dessen, der sie aufruft. Kunden melden sich nie an der Zentrale
-an; ihren Zustand sehen sie im Portal.
+an.
 
 ## Erster Inhaber
 
