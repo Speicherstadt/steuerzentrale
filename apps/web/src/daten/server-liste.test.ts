@@ -5,7 +5,7 @@ import { suche } from "./ableitungen.ts";
 import type { InstallationAnsicht } from "./installation-ansicht.ts";
 import { bestand } from "./quelle.ts";
 import { serverAnsicht } from "./server-ansicht.ts";
-import { brauchtJemanden, lastGemessen, serverStand, serverZeilen } from "./server-liste.ts";
+import { lastGemessen, serverStand, serverZeilen } from "./server-liste.ts";
 
 const b = { ...bestand(), jetzt: JETZT };
 const ansichten = b.server.map((sv) =>
@@ -26,14 +26,7 @@ describe("the table of the page Server", () => {
       ["bestand", "ok"],
       ["shared-1", "ok"],
     ]);
-    expect(zeilen.map((z) => brauchtJemanden(z.stand))).toEqual([
-      true,
-      true,
-      true,
-      true,
-      false,
-      false,
-    ]);
+    expect(zeilen.map((z) => z.stand.art !== "ok")).toEqual([true, true, true, true, false, false]);
   });
 
   it("counts the apps not removed and their customers", () => {

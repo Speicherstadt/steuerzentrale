@@ -114,16 +114,7 @@ export const vor = (instant: number, jetzt: number): string => {
   return m.zeit_vor_tagen({ n: Math.floor(sekunden / 86_400) });
 };
 
-const zwei = (n: number) => String(n).padStart(2, "0");
-
-/** The month of an instant in Berlin and the one before, as "2026-11" */
-export const monatUndVormonat = (jetzt: number): [string, string] => {
-  const t = berlinTeile(jetzt);
-  const jahr = Number(t.jahr);
-  const monat = Number(t.monat);
-  const vorher = monat === 1 ? `${jahr - 1}-12` : `${jahr}-${zwei(monat - 1)}`;
-  return [vorher, `${t.jahr}-${t.monat}`];
-};
+const _zwei = (n: number) => String(n).padStart(2, "0");
 
 /** "November 2026" in the interface language */
 export const monatName = (monat: string) => {

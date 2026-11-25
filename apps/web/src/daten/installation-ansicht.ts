@@ -90,10 +90,6 @@ export const anzeige = (a: Pick<InstallationAnsicht, "zustand" | "health">): Anz
 export const titelVon = (a: Pick<InstallationAnsicht, "kundeName" | "appName">) =>
   `${a.kundeName} · ${a.appName}`;
 
-/** "App · Customer", the heading of an app's page and its place in the path */
-export const appTitelVon = (a: Pick<InstallationAnsicht, "kundeName" | "appName">) =>
-  `${a.appName} · ${a.kundeName}`;
-
 export const linuxNutzerVon = (a: Pick<InstallationAnsicht, "id">) => `sz-${a.id}`;
 
 /** What stands on a server: its installations not removed (Z-406) */

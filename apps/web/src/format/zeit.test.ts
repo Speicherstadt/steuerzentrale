@@ -1,16 +1,6 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  berlin,
-  datum,
-  isoTag,
-  monatName,
-  monatUndVormonat,
-  tageSpaeter,
-  uhrzeit,
-  vor,
-  zeitpunkt,
-} from "./zeit.ts";
+import { berlin, datum, isoTag, monatName, tageSpaeter, uhrzeit, vor, zeitpunkt } from "./zeit.ts";
 
 const jetzt = berlin("2026-11-20", "10:42");
 
@@ -56,9 +46,7 @@ describe("times in Europe/Berlin", () => {
     expect(datum(jetzt)).toBe("20.11.2026");
   });
 
-  it("names the month and the one before, across the new year", () => {
-    expect(monatUndVormonat(jetzt)).toEqual(["2026-10", "2026-11"]);
-    expect(monatUndVormonat(berlin("2027-01-01", "00:30"))).toEqual(["2026-12", "2027-01"]);
+  it("names a month", () => {
     expect(monatName("2026-11")).toBe("November 2026");
   });
 });

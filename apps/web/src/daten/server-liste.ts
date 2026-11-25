@@ -47,9 +47,6 @@ export const serverStand = (b: Bestand, a: ServerAnsicht): ServerStand => {
   }
 };
 
-/** Whether the state needs someone: anything but all well */
-export const brauchtJemanden = (s: ServerStand): boolean => s.art !== "ok";
-
 export type ServerZeile = {
   a: ServerAnsicht;
   stand: ServerStand;

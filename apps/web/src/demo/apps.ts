@@ -139,10 +139,3 @@ export const apps: Manifest[] = Object.entries(DARSTELLUNG).flatMap(([id, d]) =>
   const e = neuestes(id);
   return e ? [ausManifest(e.manifest, d)] : [];
 });
-
-/** The version an app's newest released manifest names, for the fixtures */
-export const versionVon = (app: string): string => {
-  const v = apps.find((a) => a.id === app)?.version;
-  if (!v) throw new Error(`no released manifest for ${app} in manifeste/`);
-  return v;
-};

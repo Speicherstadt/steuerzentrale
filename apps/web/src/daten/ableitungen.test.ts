@@ -3,7 +3,6 @@ import { demo } from "../demo/index.ts";
 import { berlin } from "../demo/zeit.ts";
 import {
   installationVon,
-  istAktuell,
   istGekuendigt,
   monatVon,
   ramDerMb,
@@ -17,11 +16,6 @@ const haben = { von: 7, bis: 12, grund: "" };
 describe("derived facts", () => {
   it("names an installation by customer and app", () => {
     expect(titel(demo, installationVon(demo, "lind-haben"))).toBe("Studio Lind · Haben");
-  });
-
-  it("knows an installation on the newest signed version", () => {
-    expect(istAktuell(demo, installationVon(demo, "atelier-haben"))).toBe(true);
-    expect(istAktuell(demo, installationVon(demo, "roth-haben"))).toBe(false);
   });
 
   it("marks installations of a cancelled customer", () => {

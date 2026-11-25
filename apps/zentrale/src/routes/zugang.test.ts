@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ROLLEN, type Rolle } from "../auth/rollen.ts";
+import { darf, ROLLEN, type Rolle } from "../auth/rollen.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
-import { AUTH_PFADE, ROUTEN, type RoutenName, rollenFuer } from "./zugang.ts";
+import { AUTH_PFADE, ROUTEN, type RoutenName } from "./zugang.ts";
 
 /*
  * BAULISTE.md Z-104: every route checks its roles. The cases come from ROUTEN, the one list of all
@@ -11,6 +11,12 @@ import { AUTH_PFADE, ROUTEN, type RoutenName, rollenFuer } from "./zugang.ts";
  */
 const NAMEN = Object.keys(ROUTEN) as RoutenName[];
 const MIT_RECHT = NAMEN.filter((name) => ROUTEN[name].art === "recht");
+/** The roles that reach a route; for a public one or the setup: every role; an agent's: none */
+const rollenFuer = (name: RoutenName): readonly Rolle[] => {
+  const zugang = ROUTEN[name];
+  if (zugang.art === "agent") return [];
+  return zugang.art === "recht" ? ROLLEN.filter((rolle) => darf(rolle, zugang.recht)) : ROLLEN;
+};
 const ABGEWIESEN = [
   "nicht_angemeldet",
   "zweiter_faktor_fehlt",
@@ -49,12 +55,12 @@ describe("the list of routes", () => {
   });
 
   it("gives every route that needs a right at least one role", () => {
-    for (const name of MIT_RECHT) expect(rollenFuer(ROUTEN[name]).length, name).toBeGreaterThan(0);
+    for (const name of MIT_RECHT) expect(rollenFuer(name).length, name).toBeGreaterThan(0);
   });
 });
 
 describe.each(MIT_RECHT)("%s", (name) => {
-  const erlaubt = rollenFuer(ROUTEN[name]);
+  const erlaubt = rollenFuer(name);
 
   it.each(ROLLEN)("as %s answers by the list", async (rolle) => {
     const { pfad, init } = anfrage(name);
@@ -97,14 +103,12 @@ describe("a member", () => {
   });
 
   it.each(MITGLIED_DARF)("reaches %s", (name) => {
-    expect(rollenFuer(ROUTEN[name as RoutenName])).toContain("mitglied");
+    expect(rollenFuer(name as RoutenName)).toContain("mitglied");
   });
 
   it("reads every GET route but the open invitations", () => {
     for (const name of NAMEN.filter((n) => ROUTEN[n].art === "recht" && n.startsWith("GET ")))
-      expect(rollenFuer(ROUTEN[name]).includes("mitglied"), name).toBe(
-        name !== "GET /api/v1/einladungen",
-      );
+      expect(rollenFuer(name).includes("mitglied"), name).toBe(name !== "GET /api/v1/einladungen");
   });
 });
 

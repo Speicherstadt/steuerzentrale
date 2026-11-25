@@ -18,17 +18,6 @@ export const Balken = (props: { wert: number; warn?: boolean; name: string; clas
   </div>
 );
 
-/** A labelled load meter of the server page */
-export const Messer = (props: { name: string; wert: number; grenze: number }) => (
-  <div class="grid gap-1">
-    <div class="flex justify-between text-xs">
-      <span class="text-muted-foreground">{props.name}</span>
-      <span class="tabular-nums">{prozent(props.wert)}</span>
-    </div>
-    <Balken name={props.name} wert={props.wert} warn={props.wert >= props.grenze} />
-  </div>
-);
-
 /** A short bar with the number beside it, for table cells */
 export const Mini = (props: { name: string; wert: number; grenze: number }) => (
   <div class="flex items-center gap-2">

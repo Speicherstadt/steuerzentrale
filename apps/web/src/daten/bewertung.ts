@@ -51,6 +51,3 @@ export const grundText = (g: HealthGrund): string => {
 /** Whether a unit is fine: active yes, unreadable unknown, anything else no */
 export const unitOk = (aktiv: string): boolean | null =>
   aktiv === "active" ? true : aktiv === "unknown" ? null : false;
-
-/** Whether the state's reason is worth a line beside the badge: everything but plain green */
-export const grundZeigen = (h: Pick<HealthDerZentrale, "zustand">) => h.zustand !== "gruen";
