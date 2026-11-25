@@ -28,28 +28,26 @@ const SYMBOL: Record<Dringlichkeit, Schwere> = {
 const linkClass = "underline underline-offset-4 hover:text-foreground";
 
 /** The title, a link to the thing's page where it has one */
-const Titel = (props: { zeile: ZuTunZeile; fuerKunden: boolean }) => (
-  <Switch fallback={zuTunTitel(props.zeile.haupt, props.fuerKunden)}>
+const Titel = (props: { zeile: ZuTunZeile }) => (
+  <Switch fallback={zuTunTitel(props.zeile.haupt)}>
     <Match when={idFuer(props.zeile.haupt, "installation")}>
-      {(id) => (
-        <ZuInstallation id={id()}>{zuTunTitel(props.zeile.haupt, props.fuerKunden)}</ZuInstallation>
-      )}
+      {(id) => <ZuInstallation id={id()}>{zuTunTitel(props.zeile.haupt)}</ZuInstallation>}
     </Match>
     <Match when={idFuer(props.zeile.haupt, "server")}>
-      {(id) => <ZuServer id={id()}>{zuTunTitel(props.zeile.haupt, props.fuerKunden)}</ZuServer>}
+      {(id) => <ZuServer id={id()}>{zuTunTitel(props.zeile.haupt)}</ZuServer>}
     </Match>
   </Switch>
 );
 
-const Zeile = (props: { zeile: ZuTunZeile; fuerKunden: boolean; neu: () => void }) => (
+const Zeile = (props: { zeile: ZuTunZeile; neu: () => void }) => (
   <li class="flex flex-wrap items-center gap-x-4 gap-y-3 py-4 first:pt-0 sm:flex-nowrap">
     <div class="flex min-w-0 flex-1 basis-full items-start gap-3 sm:basis-auto">
       <SchwereSymbol schwere={SYMBOL[props.zeile.schwere]} />
       <div class="grid min-w-0 gap-0.5">
         <p class="font-medium leading-snug">
-          <Titel zeile={props.zeile} fuerKunden={props.fuerKunden} />
+          <Titel zeile={props.zeile} />
         </p>
-        <p class="break-words text-muted-foreground">{zuTunGrund(props.zeile, props.fuerKunden)}</p>
+        <p class="break-words text-muted-foreground">{zuTunGrund(props.zeile)}</p>
       </div>
     </div>
     <div class="flex shrink-0 flex-wrap gap-2 pl-11 sm:pl-0">
@@ -64,7 +62,7 @@ const versionenText = (neu: NeueVersion[]) =>
     neu.map((v) => `${suche(bestand().apps, v.app)?.name ?? v.app} ${v.version}`),
   );
 
-const OhneEile = (props: { zeilen: ZuTunZeile[]; neu: NeueVersion[]; fuerKunden: boolean }) => (
+const OhneEile = (props: { zeilen: ZuTunZeile[]; neu: NeueVersion[] }) => (
   <Show when={props.zeilen.length > 0 || props.neu.length > 0}>
     <div class="grid gap-1 border-t px-5 py-4 text-muted-foreground">
       <For each={props.zeilen}>
@@ -72,9 +70,9 @@ const OhneEile = (props: { zeilen: ZuTunZeile[]; neu: NeueVersion[]; fuerKunden:
           <p>
             {m.zutun_ohne_eile()}{" "}
             <span class="text-foreground">
-              <Titel zeile={z} fuerKunden={props.fuerKunden} />
+              <Titel zeile={z} />
             </span>
-            {` · ${zuTunGrund(z, props.fuerKunden)}`}
+            {` · ${zuTunGrund(z)}`}
           </p>
         )}
       </For>
@@ -98,7 +96,6 @@ const OhneEile = (props: { zeilen: ZuTunZeile[]; neu: NeueVersion[]; fuerKunden:
 export const ZuTunKarte = (props: {
   zuTun: ZuTun;
   neu: NeueVersion[];
-  fuerKunden: boolean;
   aktualisieren: () => void;
 }) => (
   <Karte class="self-start">
@@ -110,17 +107,11 @@ export const ZuTunKarte = (props: {
       >
         <ul class="grid grid-cols-[minmax(0,1fr)] divide-y">
           <For each={props.zuTun.zeilen}>
-            {(zeile) => (
-              <Zeile
-                zeile={zeile}
-                fuerKunden={props.fuerKunden}
-                neu={() => props.aktualisieren()}
-              />
-            )}
+            {(zeile) => <Zeile zeile={zeile} neu={() => props.aktualisieren()} />}
           </For>
         </ul>
       </Show>
     </KartenInhalt>
-    <OhneEile zeilen={props.zuTun.ohneEile} neu={props.neu} fuerKunden={props.fuerKunden} />
+    <OhneEile zeilen={props.zuTun.ohneEile} neu={props.neu} />
   </Karte>
 );

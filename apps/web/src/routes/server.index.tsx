@@ -1,7 +1,6 @@
 import { m } from "@steuerzentrale/ui";
 import { createFileRoute } from "@tanstack/solid-router";
 import { createMemo, For, Loading, refresh, Show } from "solid-js";
-import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { uebersichtLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
 import { lastGemessen, type ServerZeile, serverZeilen } from "../daten/server-liste.ts";
@@ -19,8 +18,7 @@ import { ZuServer } from "../teile/verweise.tsx";
  * 2026-11)"): its name and kind in words, its state in words with an icon, CPU and RAM where
  * something measured them (the agent does not report them yet: the demo's values), how full its
  * disk is from the agent's facts, its apps and their customers, and its operating system; what
- * needs attention first, the whole row opens the server. In "Nur für mich" no customers are
- * counted and no kind is named, as every server is the operator's own.
+ * needs attention first, the whole row opens the server.
  */
 
 const Leer = () => <span class="text-xs text-muted-foreground">–</span>;
@@ -33,7 +31,7 @@ const Last = (props: { name: string; wert: number | null; grenze: number }) => (
   </td>
 );
 
-const Zeile = (props: { z: ServerZeile; mitLast: boolean; fuerKunden: boolean; jetzt: number }) => (
+const Zeile = (props: { z: ServerZeile; mitLast: boolean; jetzt: number }) => (
   <Reihe class="relative [&>td]:align-middle">
     <td>
       <ZuServer
@@ -63,9 +61,7 @@ const Zeile = (props: { z: ServerZeile; mitLast: boolean; fuerKunden: boolean; j
       wert={props.z.a.platte}
       grenze={PLATTE_WARNUNG}
     />
-    <td class="whitespace-nowrap">
-      {appsText(props.z.apps, props.fuerKunden ? props.z.kunden : null)}
-    </td>
+    <td class="whitespace-nowrap">{appsText(props.z.apps, props.z.kunden)}</td>
     <td class="whitespace-nowrap text-muted-foreground">
       {props.z.a.os ?? m.server_keine_fakten()}
     </td>
@@ -74,7 +70,6 @@ const Zeile = (props: { z: ServerZeile; mitLast: boolean; fuerKunden: boolean; j
 
 const ServerListe = () => {
   const antwort = createMemo(() => uebersichtLaden());
-  const art = createMemo(() => betriebsartLesen());
   const zeilen = createMemo(() => {
     const a = antwort();
     return a.ok ? serverZeilen(bestand(), a.daten.server, a.daten.installationen) : [];
@@ -110,14 +105,7 @@ const ServerListe = () => {
           spalten={spalten()}
         >
           <For each={zeilen()}>
-            {(z) => (
-              <Zeile
-                z={z}
-                mitLast={lastGemessen(zeilen())}
-                fuerKunden={!nurFuerMich(art())}
-                jetzt={bestand().jetzt}
-              />
-            )}
+            {(z) => <Zeile z={z} mitLast={lastGemessen(zeilen())} jetzt={bestand().jetzt} />}
           </For>
         </Tabelle>
       </Loading>

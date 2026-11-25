@@ -17,8 +17,7 @@ export type Rolle = (typeof ROLLEN)[number];
 
 const ANWEISUNGEN = {
   ...defaultStatements,
-  // betriebsart: "Nur für mich" or "Für Kunden" (Z-805), only the owner
-  betreiber: ["lesen", "betriebsart"],
+  betreiber: ["lesen"],
   mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
   // intern: marking a customer as our own (Z-501), which brings its installations pre-releases
   kunden: ["lesen", "schreiben", "intern"],
@@ -59,7 +58,7 @@ export const ROLLEN_ZUGRIFF = {
   // the owner answers for the operator: invites, changes roles, removes members
   inhaber: zugriff.newRole({
     ...KEINE_RECHTE_IN_BETTER_AUTH,
-    betreiber: ["lesen", "betriebsart"],
+    betreiber: ["lesen"],
     mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
     kunden: ["lesen", "schreiben", "intern"],
     server: ["anlegen", "lesen", "sperren", "neustart"],

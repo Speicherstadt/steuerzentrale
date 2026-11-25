@@ -18,7 +18,6 @@ import { aussenRouten } from "./routes/aussen.ts";
 import { backupRouten } from "./routes/backups.ts";
 import { benachrichtigungRouten } from "./routes/benachrichtigungen.ts";
 import { betriebRouten } from "./routes/betrieb.ts";
-import { betriebsartRouten } from "./routes/betriebsart.ts";
 import { dienstRouten } from "./routes/dienste.ts";
 import { dnsRouten } from "./routes/dns.ts";
 import { einladungRouten } from "./routes/einladungen.ts";
@@ -131,7 +130,6 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   route("POST /api/auth/*", betterAuthRoute(deps));
   ersterInhaberRouten(route, deps);
   kontoRouten(route, deps);
-  betriebsartRouten(route, deps);
   mitgliederRouten(route, deps);
   einladungRouten(route, deps);
   kundenRouten(route, deps);

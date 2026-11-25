@@ -14,7 +14,6 @@ import { Route as AnmeldenRouteImport } from './routes/anmelden'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AuftraegeRouteImport } from './routes/auftraege'
 import { Route as BackupsRouteImport } from './routes/backups'
-import { Route as BetriebsartRouteImport } from './routes/betriebsart'
 import { Route as EinladungRouteImport } from './routes/einladung'
 import { Route as EinrichtungRouteImport } from './routes/einrichtung'
 import { Route as EinstellungenRouteImport } from './routes/einstellungen'
@@ -56,11 +55,6 @@ const AuftraegeRoute = AuftraegeRouteImport.update({
 const BackupsRoute = BackupsRouteImport.update({
   id: '/backups',
   path: '/backups',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BetriebsartRoute = BetriebsartRouteImport.update({
-  id: '/betriebsart',
-  path: '/betriebsart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EinladungRoute = EinladungRouteImport.update({
@@ -155,7 +149,6 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/auftraege': typeof AuftraegeRoute
   '/backups': typeof BackupsRoute
-  '/betriebsart': typeof BetriebsartRoute
   '/einladung': typeof EinladungRoute
   '/einrichtung': typeof EinrichtungRoute
   '/einstellungen': typeof EinstellungenRoute
@@ -180,7 +173,6 @@ export interface FileRoutesByTo {
   '/audit': typeof AuditRoute
   '/auftraege': typeof AuftraegeRoute
   '/backups': typeof BackupsRoute
-  '/betriebsart': typeof BetriebsartRoute
   '/einladung': typeof EinladungRoute
   '/einrichtung': typeof EinrichtungRoute
   '/einstellungen': typeof EinstellungenRoute
@@ -206,7 +198,6 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/auftraege': typeof AuftraegeRoute
   '/backups': typeof BackupsRoute
-  '/betriebsart': typeof BetriebsartRoute
   '/einladung': typeof EinladungRoute
   '/einrichtung': typeof EinrichtungRoute
   '/einstellungen': typeof EinstellungenRoute
@@ -233,7 +224,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/auftraege'
     | '/backups'
-    | '/betriebsart'
     | '/einladung'
     | '/einrichtung'
     | '/einstellungen'
@@ -258,7 +248,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/auftraege'
     | '/backups'
-    | '/betriebsart'
     | '/einladung'
     | '/einrichtung'
     | '/einstellungen'
@@ -283,7 +272,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/auftraege'
     | '/backups'
-    | '/betriebsart'
     | '/einladung'
     | '/einrichtung'
     | '/einstellungen'
@@ -309,7 +297,6 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   AuftraegeRoute: typeof AuftraegeRoute
   BackupsRoute: typeof BackupsRoute
-  BetriebsartRoute: typeof BetriebsartRoute
   EinladungRoute: typeof EinladungRoute
   EinrichtungRoute: typeof EinrichtungRoute
   EinstellungenRoute: typeof EinstellungenRoute
@@ -364,13 +351,6 @@ declare module '@tanstack/solid-router' {
       path: '/backups'
       fullPath: '/backups'
       preLoaderRoute: typeof BackupsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/betriebsart': {
-      id: '/betriebsart'
-      path: '/betriebsart'
-      fullPath: '/betriebsart'
-      preLoaderRoute: typeof BetriebsartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/einladung': {
@@ -501,7 +481,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   AuftraegeRoute: AuftraegeRoute,
   BackupsRoute: BackupsRoute,
-  BetriebsartRoute: BetriebsartRoute,
   EinladungRoute: EinladungRoute,
   EinrichtungRoute: EinrichtungRoute,
   EinstellungenRoute: EinstellungenRoute,

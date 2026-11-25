@@ -36,6 +36,9 @@ test.describe("the interface", { tag: "@phone" }, () => {
 
   // the number beside "Übersicht" in the menu is the number of rows of "Zu tun"
   test("counts the rows of Zu tun in the menu", async ({ page }) => {
+    // setting up an installation plus up to 30 s of reading the page again: more than the default
+    // 30 s of a test once every spec runs against the one Zentrale at the same time (Z-1206)
+    test.setTimeout(90_000);
     const i = await installationAnlegen(page.request, neuerHost("laeuft"));
     try {
       await rotGemeldet(page.request, i);
@@ -59,6 +62,8 @@ test.describe("the interface", { tag: "@phone" }, () => {
               .getByRole("navigation", { name: "Bereiche" })
               .filter({ visible: true })
               .getByRole("link", { name: /^Übersicht/ });
+            // on the phone the menu opens only now and reads its count a moment later
+            await expect(eintrag).toHaveText(/^Übersicht\d+$/);
             const zahl = await eintrag.textContent();
             const erwartet = n === 1 ? "1 Ding braucht dich" : `${n} Dinge brauchen dich`;
             return urteil === erwartet && zahl === `Übersicht${n}`;

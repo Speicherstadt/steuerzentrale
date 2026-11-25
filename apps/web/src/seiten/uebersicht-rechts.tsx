@@ -15,7 +15,7 @@ import { terminText, wann } from "./vorschau-texte.ts";
 
 const linkClass = "underline underline-offset-4 hover:text-foreground";
 
-export const AlsNaechstes = (props: { termine: Termin[]; jetzt: number; fuerKunden: boolean }) => (
+export const AlsNaechstes = (props: { termine: Termin[]; jetzt: number }) => (
   <Karte>
     <KartenKopf titel={m.naechstes_titel()} text={m.naechstes_text()} />
     <KartenInhalt>
@@ -36,10 +36,8 @@ export const AlsNaechstes = (props: { termine: Termin[]; jetzt: number; fuerKund
                   {wann(t, props.jetzt)}
                 </span>
                 <span class="min-w-0">
-                  <span class="block font-medium">{terminText(t, props.fuerKunden).titel}</span>
-                  <span class="block break-words text-muted-foreground">
-                    {terminText(t, props.fuerKunden).text}
-                  </span>
+                  <span class="block font-medium">{terminText(t).titel}</span>
+                  <span class="block break-words text-muted-foreground">{terminText(t).text}</span>
                 </span>
               </li>
             )}
@@ -53,7 +51,7 @@ export const AlsNaechstes = (props: { termine: Termin[]; jetzt: number; fuerKund
 type Zeile = { was: string; rest: string };
 
 /** The lines of "Von selbst erledigt": what in bold, then the rest of the sentence */
-const erledigtZeilen = (e: Erledigt, fuerKunden: boolean): Zeile[] => [
+const erledigtZeilen = (e: Erledigt): Zeile[] => [
   ...(e.backups > 0
     ? [
         {
@@ -67,9 +65,7 @@ const erledigtZeilen = (e: Erledigt, fuerKunden: boolean): Zeile[] => [
     rest:
       u.kunden.length > 1
         ? m.erledigt_eingespielt_apps({ n: u.kunden.length })
-        : fuerKunden
-          ? m.erledigt_eingespielt_bei({ kunde: u.kunden[0] ?? "" })
-          : m.erledigt_eingespielt(),
+        : m.erledigt_eingespielt_bei({ kunde: u.kunden[0] ?? "" }),
   })),
   ...(e.pruefRestores > 0
     ? [
@@ -103,16 +99,16 @@ const erledigtZeilen = (e: Erledigt, fuerKunden: boolean): Zeile[] => [
     : []),
 ];
 
-export const VonSelbst = (props: { erledigt: Erledigt; fuerKunden: boolean }) => (
+export const VonSelbst = (props: { erledigt: Erledigt }) => (
   <Karte>
     <KartenKopf titel={m.erledigt_titel()} text={m.erledigt_text()} />
     <KartenInhalt>
       <Show
-        when={erledigtZeilen(props.erledigt, props.fuerKunden).length > 0}
+        when={erledigtZeilen(props.erledigt).length > 0}
         fallback={<p class="text-muted-foreground">{m.erledigt_leer()}</p>}
       >
         <ul class="grid divide-y">
-          <For each={erledigtZeilen(props.erledigt, props.fuerKunden)}>
+          <For each={erledigtZeilen(props.erledigt)}>
             {(z) => (
               <li class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <Icon icon={CircleCheck} class="shrink-0 text-ok" />

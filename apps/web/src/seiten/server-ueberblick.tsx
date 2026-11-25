@@ -169,7 +169,7 @@ const Zeilen = (props: Hier) => (
 /** How many apps the card shows before "Alle … Apps" */
 const ERSTE = 4;
 
-const AppsKarte = (props: { a: ServerAnsicht; zeilen: AppZeile[]; fuerKunden: boolean }) => (
+const AppsKarte = (props: { a: ServerAnsicht; zeilen: AppZeile[] }) => (
   <Karte>
     <div class="grid gap-1 p-5 pb-2">
       <h2 class="font-semibold leading-none">{m.server_apps_hier()}</h2>
@@ -184,9 +184,7 @@ const AppsKarte = (props: { a: ServerAnsicht; zeilen: AppZeile[]; fuerKunden: bo
             <ZustandIcon z={z.zustand} />
             <ZuInstallation id={z.a.id} class="min-w-0 flex-1 truncate">
               <span class="font-medium">{z.a.appName}</span>
-              <Show when={props.fuerKunden}>
-                <span class="text-muted-foreground"> · {z.a.kundeName}</span>
-              </Show>
+              <span class="text-muted-foreground"> · {z.a.kundeName}</span>
             </ZuInstallation>
             <Show when={z.stufe !== "gut"}>
               <span class="shrink-0 text-xs text-muted-foreground">{zustandText(z.zustand)}</span>
@@ -208,11 +206,11 @@ const AppsKarte = (props: { a: ServerAnsicht; zeilen: AppZeile[]; fuerKunden: bo
   </Karte>
 );
 
-export const ServerUeberblick = (props: Hier & { zeilen: AppZeile[]; fuerKunden: boolean }) => (
+export const ServerUeberblick = (props: Hier & { zeilen: AppZeile[] }) => (
   <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
     <Zeilen b={props.b} a={props.a} />
     <div class="grid gap-4">
-      <AppsKarte a={props.a} zeilen={props.zeilen} fuerKunden={props.fuerKunden} />
+      <AppsKarte a={props.a} zeilen={props.zeilen} />
       <Zuletzt
         ziele={[`server:${props.a.id}`, ...props.zeilen.map((z) => `installation:${z.a.id}`)]}
         link={

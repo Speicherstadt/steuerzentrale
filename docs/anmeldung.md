@@ -25,22 +25,8 @@ Datenbank steht nur sein SHA-256. Auf der Seite **Zentrale einrichten** (`/erste
 damit den Betreiber und seinen ersten Inhaber an: Name des Betreibers, Name, E-Mail-Adresse und
 wahlweise ein Passwort. Danach geht es direkt zur Einrichtung des zweiten Faktors.
 
-### Nur für mich oder für Kunden
-
-Nach dem zweiten Faktor fragt die Zentrale den Inhaber einmal, wofür sie da ist (Seite
-`/betriebsart`):
-
-- **Nur für mich**: eigene Apps auf eigenen Servern. Kunden, Verträge und Kündigung
-  verschwinden aus Seitenleiste (der Eintrag „Kunden“), Übersicht und Dialogen; „App installieren“ fragt keinen
-  Kunden. Alle Installationen gehören einem festen internen Kunden des Betreibers, den die Zentrale
-  dabei anlegt (`kunden.intern`), also gibt es nur eine Welle.
-- **Für Kunden**: Hosting für andere, mit allem, was dazugehört.
-
-Solange die Frage offen ist, führt jede Seite der Oberfläche den Inhaber wieder dorthin; andere
-Rollen können sie nicht beantworten und sehen die Oberfläche wie „Für Kunden“. Die erste Antwort
-braucht keinen Grund (im Audit-Log steht „Erste Einrichtung“). Ändern lässt sie sich später nur vom
-Inhaber unter [Einstellungen](einstellungen.md#betriebsart), mit Grund. Betreiber aus der Zeit vor
-dieser Frage gelten als „Für Kunden“.
+Eine Frage „Nur für mich oder für Kunden“ gibt es seit Z-1206 nicht mehr: Kunden gibt es immer,
+eigene Installationen gehören einem internen Kunden ([Kunden und Verträge](kunden.md)).
 
 Ist der Code abgelaufen, erzeugt ein Neustart der Zentrale einen neuen; ältere Codes gelten dann
 nicht mehr. Sobald es einen Inhaber gibt, schreibt die Zentrale keinen Code mehr und nimmt auch keinen
@@ -107,7 +93,6 @@ oder geändert hat.
 | `GET`, `POST /api/v1/erster-inhaber` | alle (der Einrichtungscode ist der Schlüssel) |
 | `POST /api/v1/einladung/ansehen`, `…/annehmen` | alle (der Token im Körper ist der Schlüssel) |
 | `GET /api/v1/einrichtung` | jede Sitzung, auch ohne zweiten Faktor |
-| `PUT /api/v1/betriebsart` | Inhaber |
 | `GET /api/v1/ich`, `GET /api/v1/mitglieder` | alle Rollen |
 | `PATCH`, `DELETE /api/v1/mitglieder/:nutzerId` | Inhaber |
 | `GET`, `POST /api/v1/einladungen`, `DELETE …/:einladungId` | Inhaber |

@@ -7,7 +7,7 @@ import { welleName } from "../rahmen/texte.ts";
 /*
  * The words of "Als Nächstes" (docs/plan.md, "Übersicht (Oberfläche 2026-11)"): when, in the
  * shortest form that is clear ("heute 22:00", "Sa 03:00", "in 12 Tagen", "7.–12.12.", "30.11."), and
- * what in a title and a line. "Nur für mich" (Z-805) names no customer.
+ * what in a title and a line.
  */
 
 const TAG_MS = 86_400_000;
@@ -72,17 +72,15 @@ const kundenText = (kunden: string[]) =>
     : m.naechstes_kunden_mehr({ erste: kunden[0] ?? "", n: kunden.length - 1 });
 
 /** The title and the line under it */
-export const terminText = (t: Termin, fuerKunden: boolean): { titel: string; text: string } => {
+export const terminText = (t: Termin): { titel: string; text: string } => {
   switch (t.art) {
     case "update":
       return {
-        titel: fuerKunden
-          ? m.naechstes_update_bei({
-              app: t.appName,
-              version: t.version,
-              kunden: kundenText(t.kunden),
-            })
-          : m.naechstes_update({ app: t.appName, version: t.version }),
+        titel: m.naechstes_update_bei({
+          app: t.appName,
+          version: t.version,
+          kunden: kundenText(t.kunden),
+        }),
         text: m.naechstes_update_text({ welle: welleName(t.welle) }),
       };
     case "neustart":

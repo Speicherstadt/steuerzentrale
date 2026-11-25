@@ -29,7 +29,7 @@ import { serverAnlegen } from "./server.ts";
  */
 
 // The Zentrale of the e2e tests (playwright.config.ts): agents reach it directly, not through Vite;
-// the one the install command names, so the Zentrale "Nur für mich" (Z-805) gets its own agents
+// the one the install command names
 const ZENTRALE = "127.0.0.1:28300";
 const zentraleAus = (befehl: string): string => {
   const port = /:(\d+)\/install\.sh/.exec(befehl)?.[1];

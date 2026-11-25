@@ -27,15 +27,8 @@ process.env.SZ_E2E_DATEN ??= mkdtempSync(join(tmpdir(), "sz-test-e2e-"));
 const daten = process.env.SZ_E2E_DATEN;
 const testSchluessel = Buffer.alloc(32, 7).toString("base64");
 const inhaberSitzung = join(daten, "inhaber.json");
-// Z-805: a second Zentrale whose owner answers "Nur für mich", with its own database and interface,
-// since the first one's other customers' installations rule that out (e2e/betriebsart-selbst.spec.ts)
-const selbstPort = 5183;
 // The demo build with its fixtures and hash routes (e2e/demo.spec.ts), no Zentrale behind it
 const demoPort = 5184;
-const selbstZentralePort = 28310;
-const selbstDaten = join(daten, "selbst");
-mkdirSync(selbstDaten, { recursive: true });
-const selbstSitzung = join(selbstDaten, "inhaber.json");
 // The public test key as the Zentrale's `minisign.pub` (beside install.sh): it checks an uploaded
 // manifest with it (Z-402), and e2e/hilfen/installationen.ts signs with the test key's secret half
 const agentDateien = join(daten, "agent-dateien");
@@ -63,14 +56,14 @@ export default defineConfig({
     {
       name: "desktop",
       dependencies: ["einrichtung"],
-      testIgnore: /selbst|demo\.spec/,
+      testIgnore: /demo\.spec/,
       use: { ...devices["Desktop Chrome"], launchOptions, storageState: inhaberSitzung },
     },
     {
       name: "phone",
       grep: /@phone/,
       dependencies: ["einrichtung"],
-      testIgnore: /selbst|demo\.spec/,
+      testIgnore: /demo\.spec/,
       use: { ...devices["Pixel 7"], launchOptions, storageState: inhaberSitzung },
     },
     // every route of the demo build, which no signed-in spec sees
@@ -83,33 +76,6 @@ export default defineConfig({
         baseURL: `http://localhost:${demoPort}/steuerzentrale/demo/`,
       },
     },
-    // the second Zentrale, "Nur für mich" (Z-805): its own first owner, then the spec on both
-    {
-      name: "einrichtung-selbst",
-      testMatch: /selbst\.setup\.ts/,
-      use: {
-        ...devices["Desktop Chrome"],
-        launchOptions,
-        baseURL: `http://localhost:${selbstPort}`,
-      },
-    },
-    ...(
-      [
-        ["selbst-desktop", devices["Desktop Chrome"]],
-        ["selbst-phone", devices["Pixel 7"]],
-      ] as const
-    ).map(([name, geraet]) => ({
-      name,
-      testMatch: /betriebsart-selbst\.spec\.ts/,
-      dependencies: ["einrichtung-selbst"],
-      ...(name === "selbst-phone" ? { grep: /@phone/ } : {}),
-      use: {
-        ...geraet,
-        launchOptions,
-        baseURL: `http://localhost:${selbstPort}`,
-        storageState: selbstSitzung,
-      },
-    })),
   ],
   webServer: [
     {
@@ -129,22 +95,6 @@ export default defineConfig({
         STEUERZENTRALE_CLOUDFLARE_API: `http://127.0.0.1:${cloudflarePort}/client/v4`,
         STEUERZENTRALE_REGISTRY_HTTP: `http://127.0.0.1:${registryPort}`,
         // the hosts of e2e installations are made up: no check from outside (Z-704) asks for them
-        STEUERZENTRALE_AUSSEN_PRUEFUNG: "aus",
-      },
-    },
-    {
-      command: `bun apps/zentrale/src/main.ts > ${join(selbstDaten, "zentrale.log")} 2>&1`,
-      port: selbstZentralePort,
-      reuseExistingServer: false,
-      env: {
-        STEUERZENTRALE_PORT: String(selbstZentralePort),
-        STEUERZENTRALE_DATA: selbstDaten,
-        STEUERZENTRALE_SECRET_KEY: testSchluessel,
-        STEUERZENTRALE_URL: `http://localhost:${selbstPort}`,
-        STEUERZENTRALE_AGENT_URL: `http://localhost:${selbstZentralePort}`,
-        STEUERZENTRALE_AGENT_DATEIEN: agentDateien,
-        STEUERZENTRALE_CLOUDFLARE_API: `http://127.0.0.1:${cloudflarePort}/client/v4`,
-        STEUERZENTRALE_REGISTRY_HTTP: `http://127.0.0.1:${registryPort}`,
         STEUERZENTRALE_AUSSEN_PRUEFUNG: "aus",
       },
     },
@@ -179,13 +129,6 @@ export default defineConfig({
         VITE_DEMO_SEITE: "1",
         STEUERZENTRALE_WEB_BASE: "/steuerzentrale/demo/",
       },
-    },
-    {
-      // the same interface for the second Zentrale, built into a folder of its own
-      command: `cd apps/web && bunx vite build --mode demo --outDir dist-selbst && bunx vite preview --outDir dist-selbst --port ${selbstPort} --strictPort`,
-      port: selbstPort,
-      reuseExistingServer: false,
-      env: { STEUERZENTRALE_API_PORT: String(selbstZentralePort) },
     },
   ],
 });

@@ -61,7 +61,6 @@ const KundenWahl = (props: { vorgabe: string | null }) => {
 
 type FormularProps = {
   dienst?: Dienst | undefined;
-  mitKunde: boolean;
   onClose: () => void;
   gespeichert: () => void;
 };
@@ -75,8 +74,7 @@ const Formular = (props: FormularProps) => {
       name: w.name ?? "",
       adresse: w.adresse ?? "",
       pfad: w.pfad ?? "/",
-      // without customers ("Nur für mich") a service keeps what it had
-      kundeId: props.mitKunde ? (w.kundeId ?? null) : (props.dienst?.kundeId ?? null),
+      kundeId: w.kundeId ?? null,
       innen: innenAusFeldern(w, props.dienst?.innen ?? null),
     };
     setLaeuft(true);
@@ -119,9 +117,7 @@ const Formular = (props: FormularProps) => {
         value={props.dienst?.pfad ?? ""}
         hint={m.dienst_pfad_hinweis()}
       />
-      <Show when={props.mitKunde}>
-        <KundenWahl vorgabe={props.dienst?.kundeId ?? null} />
-      </Show>
+      <KundenWahl vorgabe={props.dienst?.kundeId ?? null} />
       <InnenFelder innen={props.dienst?.innen ?? null} />
       <Fehler text={fehler()} />
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -145,7 +141,6 @@ export const DienstDialog = (props: FormularProps & { open: boolean }) => (
     <Show when={props.open}>
       <Formular
         dienst={props.dienst}
-        mitKunde={props.mitKunde}
         onClose={() => props.onClose()}
         gespeichert={() => props.gespeichert()}
       />

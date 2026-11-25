@@ -19,7 +19,6 @@ const LESEN: Recht[] = [
 ];
 const MITGLIED: Recht[] = [...LESEN, "installationen:neustart", "installationen:log_auszug"];
 const SCHREIBEN: Recht[] = [
-  "betreiber:betriebsart",
   "mitglieder:einladen",
   "mitglieder:rolle",
   "mitglieder:entfernen",

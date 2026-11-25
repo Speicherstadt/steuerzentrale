@@ -187,6 +187,7 @@ Löschung und **Kündigung zurücknehmen**. Die Reiter stehen in der Adresse (`?
 | Verlauf | die Ereignisse seiner Apps | `GET /api/v1/ereignisse` |
 
 Die Verfügbarkeit je Monat steht an jeder App (Reiter „Technik“, [Prüfung von außen](aussen.md)).
-In der Betriebsart „Nur für mich“ fehlt „Kunden“ in der Seitenleiste.
+Kunden gibt es immer; eigene Installationen gehören einem als intern markierten Kunden
+(Welle „intern“).
 `bun run dev:demo` zeigt Kunden aus den Demodaten; was man dort anlegt oder ändert, bleibt bis zum
 Neuladen der Seite im Browser.

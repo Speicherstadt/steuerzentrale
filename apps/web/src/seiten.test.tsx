@@ -208,6 +208,13 @@ describe("pages", () => {
     dispose();
     // Z-1203: the support accesses
     expect(ueberschrift(await oeffne("/support"))).toBe("Nicht gefunden");
+    dispose();
+    // Z-1206: the question "Nur für mich oder für Kunden" after the first owner
+    expect(ueberschrift(await oeffne("/betriebsart"))).toBe("Nicht gefunden");
+    dispose();
+    const einstellungen = await oeffne("/einstellungen");
+    expect(einstellungen.textContent).not.toContain("Betriebsart");
+    expect(einstellungen.textContent).not.toContain("Nur für mich");
   });
 });
 

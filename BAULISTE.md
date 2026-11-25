@@ -657,7 +657,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   Platzierungsregel dazu.
   Fertig, wenn: „Server hinzufügen“ keine Art fragt (Playwright), Installationen zweier Kunden auf
   einen Server passen (Test) und die Migration vorhandene Server behält (Test).
-- [ ] **Z-1206 Betriebsart entfernen** – die Frage „Nur für mich oder für Kunden“ (Z-805) entfällt.
+- [x] **Z-1206 Betriebsart entfernen** – die Frage „Nur für mich oder für Kunden“ (Z-805) entfällt.
   Kunden gibt es immer; der interne Kunde bleibt für eigene Installationen und die Welle „intern“.
   nach: Z-1201, Z-1203
   Fertig, wenn: nach dem ersten Inhaber keine Frage kommt (Playwright), kein Endpunkt mehr

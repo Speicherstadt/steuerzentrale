@@ -9,8 +9,8 @@ import {
 import { Seitenkopf } from "../teile/karte.tsx";
 
 /**
- * How the Zentrale is set up, one section at a time (seiten/einstellungen-abschnitte.tsx): the mode
- * of operation (Z-805), the operator's values per app (Z-404: a form from each app's manifest),
+ * How the Zentrale is set up, one section at a time (seiten/einstellungen-abschnitte.tsx): the
+ * operator's values per app (Z-404: a form from each app's manifest),
  * backup target (Z-601), DNS (Z-407), notifications (Z-703), accounts, the Zentrale, the look. The
  * section is in the URL (?tab=), "Werte für Apps" without one.
  */

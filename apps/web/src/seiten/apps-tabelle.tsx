@@ -136,7 +136,7 @@ const KundeZelle = (props: { z: AppZeile }) => (
 );
 
 /** One app; its name is the link, and the link covers the row, so a click anywhere opens it */
-const Zeile = (props: { z: AppZeile; mitKunde: boolean; mitLast: boolean; jetzt: number }) => (
+const Zeile = (props: { z: AppZeile; mitLast: boolean; jetzt: number }) => (
   <Reihe class="relative [&>td]:align-middle">
     <td>
       <ZuInstallation
@@ -149,9 +149,7 @@ const Zeile = (props: { z: AppZeile; mitKunde: boolean; mitLast: boolean; jetzt:
         {props.z.a.appName}
       </ZuInstallation>
     </td>
-    <Show when={props.mitKunde}>
-      <KundeZelle z={props.z} />
-    </Show>
+    <KundeZelle z={props.z} />
     <td>
       <ZustandWorte z={props.z.zustand} />
     </td>
@@ -200,13 +198,12 @@ const Gruppenkopf = (props: { g: Gruppe; spalten: number }) => (
 export const AppsTabelle = (props: {
   zeilen: AppZeile[];
   gruppen: Gruppe[] | null;
-  mitKunde: boolean;
   jetzt: number;
 }) => {
   const mitLast = () => props.zeilen.some((z) => z.cpu !== null || z.ramMb !== null);
   const spalten = () => [
     { name: m.inst_spalte_app() },
-    ...(props.mitKunde ? [{ name: m.inst_spalte_kunde() }] : []),
+    { name: m.inst_spalte_kunde() },
     { name: m.server_spalte_zustand() },
     { name: m.server_version() },
     { name: m.apps_spalte_backup() },
@@ -222,7 +219,7 @@ export const AppsTabelle = (props: {
   return (
     <Tabelle
       name={m.inst_tabelle()}
-      minBreite={props.mitKunde ? 1000 : 820}
+      minBreite={1000}
       leer={m.installationen_keine()}
       anzahl={props.zeilen.length}
       spalten={spalten()}
@@ -231,9 +228,7 @@ export const AppsTabelle = (props: {
         when={props.gruppen}
         fallback={
           <For each={props.zeilen}>
-            {(z) => (
-              <Zeile z={z} mitKunde={props.mitKunde} mitLast={mitLast()} jetzt={props.jetzt} />
-            )}
+            {(z) => <Zeile z={z} mitLast={mitLast()} jetzt={props.jetzt} />}
           </For>
         }
       >
@@ -243,14 +238,7 @@ export const AppsTabelle = (props: {
               <>
                 <Gruppenkopf g={g} spalten={spalten().length} />
                 <For each={g.zeilen}>
-                  {(z) => (
-                    <Zeile
-                      z={z}
-                      mitKunde={props.mitKunde}
-                      mitLast={mitLast()}
-                      jetzt={props.jetzt}
-                    />
-                  )}
+                  {(z) => <Zeile z={z} mitLast={mitLast()} jetzt={props.jetzt} />}
                 </For>
               </>
             )}

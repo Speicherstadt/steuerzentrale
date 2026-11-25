@@ -17,8 +17,7 @@ import { Marke } from "../teile/zeichen.tsx";
  * 2026-11)"): servers and apps from the Zentrale (Z-406), the update wave that runs or the updates
  * that could (Z-503; the demo shows its own waves), last night's backups with the failures named
  * (Z-601, Z-602). Each has a small chart, as in Speicherstadt/belegt: a segment per server and per
- * backup, the apps' states as shares, a wave's progress as a ring. "Nur für mich" (Z-805) names no
- * customer.
+ * backup, the apps' states as shares, a wave's progress as a ring.
  */
 
 const AGENT_TON: Record<string, Ton> = { verbunden: "ok", still: "warn", getrennt: "danger" };
@@ -59,10 +58,7 @@ export const ServerZahl = (props: { server: ServerAnsicht[] }) => {
   );
 };
 
-export const InstallationenZahl = (props: {
-  installationen: InstallationAnsicht[];
-  fuerKunden: boolean;
-}) => {
+export const InstallationenZahl = (props: { installationen: InstallationAnsicht[] }) => {
   const da = () => props.installationen.filter((i) => i.zustand !== "entfernt");
   const laufend = () => da().filter((i) => i.vertragsende === null);
   const n = (h: string) => laufend().filter((i) => anzeige(i) === h).length;
@@ -90,11 +86,7 @@ export const InstallationenZahl = (props: {
         rot: n("rot") + n("gescheitert"),
         unbekannt: n("unbekannt") + n("wird_eingerichtet"),
       })}
-      zeile2={
-        props.fuerKunden
-          ? m.uebersicht_gekuendigt({ n: da().length - laufend().length })
-          : m.uebersicht_apps_arten({ n: new Set(da().map((i) => i.app)).size })
-      }
+      zeile2={m.uebersicht_gekuendigt({ n: da().length - laufend().length })}
     />
   );
 };
@@ -151,16 +143,10 @@ export const UpdateZahl = (props: { angebote: InstallationsAngebot[] }) => {
 };
 
 /** Last night's backups: a segment per app, the failures by name, failed test restores */
-export const BackupZahl = (props: {
-  backups: BackupZeile[];
-  seit: number;
-  fuerKunden: boolean;
-}) => {
+export const BackupZahl = (props: { backups: BackupZeile[]; seit: number }) => {
   const nacht = () => backupsDerNacht(props.backups, props.seit);
   const name = (t: { app: string; kundeName: string }) =>
-    props.fuerKunden
-      ? m.zutun_app_bei({ app: appName(t.app), kunde: t.kundeName })
-      : appName(t.app);
+    m.zutun_app_bei({ app: appName(t.app), kunde: t.kundeName });
   return (
     <Kennzahl
       name={m.uebersicht_backups_nacht()}

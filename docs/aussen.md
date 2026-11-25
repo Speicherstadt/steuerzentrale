@@ -151,7 +151,7 @@ Ereignis an die [Empfänger](benachrichtigungen.md). Jede Prüfung zählt in ihr
 Auftrag an einen Agenten.
 
 Auf der Seite **Apps** stehen die beobachteten Dienste unter den Apps in einer eigenen Tabelle, mit
-der Marke „beobachtet“, dem Kunden (nicht in „Nur für mich“), dem Zustand von außen in Worten und
+der Marke „beobachtet“, dem Kunden, dem Zustand von außen in Worten und
 der Verfügbarkeit des Monats; was rot ist, zuerst. In der **Übersicht** steht ein Dienst mit offener
 Störung unter „Zu tun“, einer, der rot ist, als Warnung, einer ohne Prüfung seit 3 Minuten unter
 „Ohne Eile“; die Zeile führt zur Seite Apps. Das Protokoll nennt ihn mit seinem Namen.

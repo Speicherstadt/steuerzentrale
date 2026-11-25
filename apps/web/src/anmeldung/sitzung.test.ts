@@ -8,13 +8,11 @@ describe("zielFuer", () => {
 
   it("sends an account without its second factor to the setup", () => {
     expect(zielFuer("/", "einrichtung")).toBe("/einrichtung");
-    // Z-805: the owner answers "Nur für mich" or "Für Kunden" before any page of the shell
-    expect(zielFuer("/server", "betriebsart")).toBe("/betriebsart");
-    expect(zielFuer("/betriebsart", "betriebsart")).toBeUndefined();
   });
 
-  it("lets a ready account and an unknown state through", () => {
+  it("lets a ready account and an unknown state through, asking nothing after the first owner (Z-1206)", () => {
     expect(zielFuer("/kunden", "bereit")).toBeUndefined();
+    expect(zielFuer("/", "bereit")).toBeUndefined();
     expect(zielFuer("/kunden", "unbekannt")).toBeUndefined();
   });
 

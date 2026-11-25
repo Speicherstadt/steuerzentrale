@@ -201,6 +201,8 @@ const ENTFERNT: [string, string][] = [
   ["GET", "/api/v1/support-zugaenge"],
   ["POST", "/api/v1/support-zugaenge"],
   ["POST", "/api/v1/support-zugaenge/gibt-es-nicht/beenden"],
+  // Z-1206: the Betriebsart (Z-805)
+  ["PUT", "/api/v1/betriebsart"],
 ];
 
 describe("removed routes", () => {

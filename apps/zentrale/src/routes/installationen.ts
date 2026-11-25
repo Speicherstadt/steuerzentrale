@@ -3,7 +3,6 @@ import { HOST, type OeffentlicherSchluessel } from "@steuerzentrale/manifest";
 import { bewertungJetzt } from "@steuerzentrale/planung";
 import type { Context } from "hono";
 import { z } from "zod";
-import { betriebsartLesen } from "../modules/betriebsart/index.ts";
 import { standVon, verlaufLesen } from "../modules/bewertung/index.ts";
 import {
   angeboteneAktionen,
@@ -198,12 +197,6 @@ export const installationenRouten = (route: Registrar, deps: RoutenDeps): void =
     const key = await schluessel();
     if (!key) return fehler(c, { grund: "kein_schluessel" });
     const { grund: begruendung, ...neu } = angaben;
-    // Z-805: "Nur für mich" installs only for the operator's fixed internal customer. Checked after
-    // the last await, so no switch to "selbst" can run between this check and the synchronous
-    // write of installationAnlegen (betriebsart-wettlauf.test.ts)
-    const art = betriebsartLesen(deps.db, c.get("betreiberId"));
-    if (art.betriebsart === "selbst" && angaben.kundeId !== art.eigenerKundeId)
-      return c.json({ fehler: "betriebsart" }, 409);
     const angelegt = installationAnlegen(modul, kontext(c, begruendung), key, neu);
     if (!angelegt.ok) return fehler(c, angelegt);
     return c.json(installationAntwort(angelegt.installation, deps.now()), 201);

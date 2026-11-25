@@ -29,8 +29,6 @@ export type VorschauEingabe = {
   server: Pick<ServerAnsicht, "id" | "name" | "kernel" | "neustartStand" | "zertifikate">[];
   angebote: Pick<InstallationsAngebot, "installationId" | "plan">[];
   apps: Pick<Manifest, "id" | "name" | "sperrzeiten">[];
-  /** "Für Kunden" (Z-805): only then are there contracts */
-  fuerKunden: boolean;
 };
 
 /** `zeit` the instant it happens; `warn` when it needs an eye on it */
@@ -139,7 +137,6 @@ const sperrzeiten = (e: VorschauEingabe, f: Fenster): Termin[] => {
 
 /** Each customer once: its contract's end ahead, or the deletion after an end */
 const vertraege = (e: VorschauEingabe, f: Fenster): Termin[] => {
-  if (!e.fuerKunden) return [];
   const kunden = new Map(
     e.installationen.flatMap((i) => (i.vertragsende === null ? [] : [[i.kundeId, i] as const])),
   );

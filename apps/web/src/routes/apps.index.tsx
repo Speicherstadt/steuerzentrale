@@ -10,7 +10,6 @@ import {
   gruppiert,
   passt,
 } from "../daten/apps-liste.ts";
-import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { appsListeLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
@@ -24,8 +23,7 @@ import { Schalter } from "../teile/schalter.tsx";
  * Every app of the operator in one table (BAULISTE.md Z-402; docs/plan.md, "Navigation (Oberfläche
  * 2026-11)"): what needs attention first, filtered to what needs someone or can be updated, as a
  * list or grouped by customer or server, with a search, and the dialog "App installieren". The
- * state, version, backup and server of each from the Zentrale (daten/apps-liste.ts); in the
- * Betriebsart "Nur für mich" without the column "Kunde", as every app is the operator's own. Under
+ * state, version, backup and server of each from the Zentrale (daten/apps-liste.ts). Under
  * it the observed services (Z-1101), which the Zentrale checks from outside only.
  */
 
@@ -40,7 +38,6 @@ const Apps = () => {
   const [gruppe, setGruppe] = createSignal<Gruppierung>("none");
   const [frage, setFrage] = createSignal("");
   const antwort = createMemo(() => appsListeLaden());
-  const art = createMemo(() => betriebsartLesen());
   const zeilen = createMemo(() => {
     const a = antwort();
     if (!a.ok) return [];
@@ -84,9 +81,7 @@ const Apps = () => {
               onWahl={setGruppe}
               wahl={[
                 { wert: "none" as const, name: m.apps_gruppe_nicht() },
-                ...(nurFuerMich(art())
-                  ? []
-                  : [{ wert: "kunde" as const, name: m.apps_gruppe_kunde() }]),
+                { wert: "kunde" as const, name: m.apps_gruppe_kunde() },
                 { wert: "server" as const, name: m.apps_gruppe_server() },
               ]}
             />
@@ -101,15 +96,10 @@ const Apps = () => {
           </div>
         </div>
         <Fehler text={fehler()} />
-        <AppsTabelle
-          zeilen={treffer()}
-          gruppen={gruppen()}
-          mitKunde={!nurFuerMich(art())}
-          jetzt={bestand().jetzt}
-        />
+        <AppsTabelle zeilen={treffer()} gruppen={gruppen()} jetzt={bestand().jetzt} />
       </Loading>
       <Loading fallback={null}>
-        <Dienste mitKunde={!nurFuerMich(art())} />
+        <Dienste />
       </Loading>
     </div>
   );
