@@ -158,7 +158,7 @@ wenn der Agent grün meldet; dann endet sie erst, wenn innen und außen wieder g
 Meldung; die Seite einer Installation dazu `verlauf`, die letzten 200 Wechsel, neueste zuerst. Vor der
 ersten Meldung ist der Zustand unbekannt mit dem Grund `noch_keine_meldung`.
 
-Die Liste unter „Apps“ sagt den Zustand in Worten, rot als „Störung: “ mit dem Grund, gelb und
+Die Tabelle unter „Apps“ sagt den Zustand in Worten, rot als „Störung: “ mit dem Grund, gelb und
 unbekannt mit dem Grund ([Installieren](installieren.md)); die Seite einer App sagt ihn im Kopf in
 einem Satz, zeigt im Reiter „Technik“ die Karte „Units und Health“ (Zustand mit Grund und seit,
 zuletzt gemeldet, jede Unit) und im Reiter „Verlauf“ jeden Wechsel. Bis die Installation läuft,

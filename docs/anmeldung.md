@@ -32,7 +32,7 @@ Nach dem zweiten Faktor fragt die Zentrale den Inhaber einmal, wofür sie da ist
 `/betriebsart`):
 
 - **Nur für mich**: eigene Apps auf eigenen Servern. Kunden, Verträge, Kündigung, Support-Zugänge
-  und Leistungen verschwinden aus Menü (der Eintrag „Kunden“), Übersicht und Dialogen; „App installieren“ fragt keinen
+  und Leistungen verschwinden aus Seitenleiste (der Eintrag „Kunden“), Übersicht und Dialogen; „App installieren“ fragt keinen
   Kunden. Alle Installationen gehören einem festen internen Kunden des Betreibers, den die Zentrale
   dabei anlegt (`kunden.intern`), also gibt es nur eine Welle.
 - **Für Kunden**: Hosting für andere, mit allem, was dazugehört.
@@ -125,7 +125,7 @@ oder geändert hat.
 | `GET /api/v1/kunden`, `GET …/:kundeId` | alle Rollen ([Kunden und Verträge](kunden.md)) |
 | `POST /api/v1/kunden`, `PUT …/:kundeId`, `PUT`, `DELETE …/:kundeId/kuendigung` | Inhaber, Technik |
 | `PUT /api/v1/kunden/:kundeId/intern` | Inhaber |
-| `GET /api/v1/apps`, `GET /api/v1/manifeste/:app/:version`, `GET /api/v1/updates` | alle Rollen ([Manifeste und Versionen](manifeste.md)) |
+| `GET /api/v1/apps`, `GET /api/v1/manifeste/:app/:version`, `GET /api/v1/updates` | alle Rollen ([Katalog, Manifeste und Versionen](manifeste.md)) |
 | `POST /api/v1/manifeste`, `POST /api/v1/versionen/abfragen` | Inhaber, Technik |
 | `GET /api/v1/installationen`, `GET …/:installationId`, `POST …/platzierung` | alle Rollen ([Apps installieren](installieren.md)) |
 | `POST /api/v1/installationen`, `DELETE …/:installationId` | Inhaber, Technik |

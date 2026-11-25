@@ -15,7 +15,7 @@ Schema. Es gibt drei Ebenen:
 | Ebene | Wer setzt den Wert | Wo |
 | --- | --- | --- |
 | `betreiber` | der Betreiber, einmal je App; gilt für jede Installation dieser App | Einstellungen, Abschnitt „Werte für Apps“, und im Dialog „App installieren“, wenn ein Pflichtwert fehlt |
-| `installation` | der Betreiber je Installation | Dialog „App installieren“ und „Einstellungen ändern“ auf der Seite der Installation |
+| `installation` | der Betreiber je Installation | Dialog „App installieren“ und „Einstellungen ändern“ unter „Mehr …“ auf der Seite der App |
 | `auto` | die Zentrale (Zufallswerte, Adresse, Vorlagen) | nirgends; erzeugte Werte zeigt sie nie |
 
 ## Das Formular
@@ -43,12 +43,10 @@ Die Ablehnung kommt als `einstellung_ungueltig` mit `detail`, das jedes Feld nen
 ## Werte des Betreibers
 
 Die Werte des Betreibers stehen je Betreiber und App in der Tabelle `app_einstellungen`, ein
-geheimer verschlüsselt (Spalte `wert_verschluesselt`, an Betreiber, App und Namen gebunden). Bis
-Manifeste importiert werden (Z-501), kennt die Zentrale das Manifest einer App nur aus ihren
-Installationen: geprüft wird gegen das **neueste Manifest der Installationen dieser App beim
-Betreiber**, das mit der höchsten Version, bei gleicher Version das der zuletzt angelegten
-Installation, gleich in welchem Zustand. Ohne Installation gibt es kein Formular
-(`kein_manifest`, 404); die ersten Werte kommen dann mit dem Dialog.
+geheimer verschlüsselt (Spalte `wert_verschluesselt`, an Betreiber, App und Namen gebunden). Geprüft
+wird gegen das **neueste importierte Manifest der App** ([Katalog, Manifeste und Versionen](manifeste.md)):
+das mit der höchsten Version, die keine Vorabversion ist, sonst die höchste Vorabversion. Ohne
+importiertes Manifest gibt es kein Formular (`kein_manifest`, 404).
 
 Ein Wert eines Namens, den das neueste Manifest nicht mehr kennt, bleibt stehen: eine ältere
 Installation kann ihn noch brauchen.
@@ -68,14 +66,14 @@ Werte des Betreibers erst mit „Einstellungen ändern“.
 Fehlt ein Pflichtwert der Ebene `betreiber`, meldet die Platzierung `betreiberwert_fehlt` mit dem
 Namen. Der Dialog zeigt dann unter der Platzierung die Felder dieser Werte („Fehlende Werte des
 Betreibers“); was dort steht, schickt er als `betreiberWerte` mit. Die Zentrale prüft sie gegen das
-hochgeladene Manifest, rechnet sie für Platzierung und Gegenrendern zu den gespeicherten Werten und
+gewählte Manifest, rechnet sie für Platzierung und Gegenrendern zu den gespeicherten Werten und
 schreibt sie **in derselben Transaktion wie die Installation** nach `app_einstellungen`. Scheitert
 das Anlegen, bleibt nichts gespeichert. Fehlt danach noch ein Pflichtwert, lehnt die Zentrale die
 Installation wie bisher mit `passt_nicht` und dem Namen ab.
 
 ## Neu konfigurieren
 
-Auf der Seite einer laufenden Installation öffnet **Einstellungen ändern** (nur Inhaber und Technik)
+Auf der Seite einer laufenden App öffnet **Einstellungen ändern** unter „Mehr …“ (nur Inhaber und Technik)
 das Formular der Ebene `installation` mit den Optionen der Installation und ihren aktuellen Werten;
 dazu ein Grund. Die Zentrale
 
@@ -128,7 +126,7 @@ sehen sie nur.
 - **Zu „Für Kunden“**: ändert nichts außer der Betriebsart; keine Installation geht verloren, der
   interne Kunde bleibt als Kunde stehen.
 
-In der Demo (`bun run dev:demo`) ist derselbe Reiter der Umschalter zwischen beiden Arten; sie
+In der Demo (`bun run dev:demo`) ist derselbe Abschnitt der Umschalter zwischen beiden Arten; sie
 beginnt mit „Für Kunden“ und lehnt „Nur für mich“ trotz der Beispielkunden nicht ab.
 
 ## API
@@ -165,7 +163,7 @@ Datenbank.
   fremder Kunden, `409 betriebsart` an jedem ausgeblendeten Endpunkt, ein anderer Betreiber bleibt
   unberührt.
 - `apps/web/src/seiten/betriebsart.test.tsx` und `apps/web/src/rahmen/navigation.test.ts`: der
-  Reiter je Rolle, das Menü ohne Kunden (und damit ohne Support-Zugänge und Leistungen), der
+  Abschnitt je Rolle, das Menü ohne Kunden (und damit ohne Support-Zugänge und Leistungen), der
   Dialog ohne Kunden.
 - `e2e/selbst.setup.ts` und `e2e/betriebsart-selbst.spec.ts` (Desktop und Handy, gegen eine zweite
   Zentrale): die Frage kommt nach dem ersten Inhaber und ohne Antwort wieder; „Nur für mich“ zeigt

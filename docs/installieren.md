@@ -37,7 +37,7 @@ drei Ergebnissen:
 ## Installation anlegen
 
 Der Betreiber wählt im Dialog App und Version aus den importierten Manifesten
-([Manifeste und Versionen](manifeste.md)); ein Hochladen gibt es seit Z-501 nicht mehr. Eine
+([Katalog, Manifeste und Versionen](manifeste.md)); ein Hochladen gibt es seit Z-501 nicht mehr. Eine
 Vorabversion bietet der Dialog nur für einen internen Kunden an, und die Zentrale lehnt sie für jeden
 anderen ab (`409 nur_intern`), auch über die API. Eine Version ohne importiertes Manifest lehnt sie
 mit `404 kein_manifest` ab. Die Signatur prüft die Zentrale noch einmal mit dem Schlüssel, den sie in
@@ -98,14 +98,14 @@ die Löschung 90 Tage nach dem Vertragsende (`installation_loeschen`, nach einem
 
 ## In der Oberfläche
 
-Den Knopf **App installieren** zeigen die Seite „Apps“ und die Seite eines Kunden, dessen
-Vertrag nicht gekündigt ist, nur den Rollen Inhaber und Technik. Der Dialog fragt:
+Den Knopf **App installieren** zeigen die Seite **Apps**, die Seite eines Kunden, dessen Vertrag
+nicht gekündigt ist, und im **Katalog** jede App mit einem importierten Manifest („Installieren“ auf
+ihrer Kachel und auf ihrer Seite), nur den Rollen Inhaber und Technik. Der Dialog fragt:
 
-- **Kunde** (von der Kundenseite aus schon gewählt) und **Server**; gesperrte Server und Kunden nach
-  Vertragsende stehen nicht zur Wahl;
-- **Manifest** (`manifest.yml`) und **Signatur** (`manifest.yml.minisig`) als Dateien. Die
-  Oberfläche liest das Manifest mit derselben Funktion wie die Zentrale (`manifestPruefen`) und nennt
-  App und Version oder, was am Manifest nicht stimmt; die Signatur prüft nur die Zentrale;
+- **Kunde** (von der Kundenseite aus schon gewählt; in der Betriebsart „Nur für mich“ gar nicht) und
+  **Server**; gesperrte Server und Kunden nach Vertragsende stehen nicht zur Wahl;
+- **App** und **Version** aus den importierten, signierten Manifesten (aus dem Katalog schon
+  gewählt); eine Vorabversion nur für einen internen Kunden;
 - **Optionen** aus dem Manifest, je ein Kästchen;
 - **Einstellungen dieser Installation**: ein Feld je Feld von `einstellungsFormular` für die Ebene
   `installation` und die gewählten Optionen, nach seinem Typ (Text, Zahl, Ja/Nein, geheim als
@@ -120,14 +120,14 @@ Vertrag nicht gekündigt ist, nur den Rollen Inhaber und Technik. Der Dialog fra
   Kunde oder ein neues Manifest bringt einen neuen Vorschlag ([DNS](dns.md));
 - **Grund** fürs Audit-Log.
 
-Sobald Kunde, Server, Manifest und Signatur da sind, fragt der Dialog die **Platzierung** ab und
-wiederholt das bei jeder Änderung von Kunde, Server, Manifest, Signatur oder Optionen; nur dieses
+Sobald Kunde, Server, App und Version gewählt sind, fragt der Dialog die **Platzierung** ab und
+wiederholt das bei jeder Änderung von Kunde, Server, App, Version oder Optionen; nur dieses
 Feld wartet auf die Antwort. Es zeigt „Passt“, „Passt, mit Hinweis“ oder „Passt nicht“ und jeden
 Grund und Hinweis als Satz; die Codes der Zentrale übersetzt die Oberfläche selbst, einen
 unbekannten zeigt sie mit seinem Namen. Lehnt die Zentrale das Anlegen ab, bleibt der Dialog offen
 und nennt den Fehler, bei `passt_nicht` mit allen Gründen.
 
-Nach dem Anlegen steht die Installation in der Liste mit dem Zustand **wird eingerichtet**.
+Nach dem Anlegen steht die App in der Tabelle unter **Apps** mit dem Zustand **wird eingerichtet**.
 
 ### Die Seite „Apps“
 
@@ -179,7 +179,7 @@ ins Audit-Log geht.
 
 | Route | Körper | Antwort |
 | --- | --- | --- |
-| `POST /api/v1/installationen/platzierung` | `kundeId`, `serverId`, `manifest`, `signatur`, `optionen` | `{ platzierung }` mit `art` `passt`, `hinweise` oder `passt_nicht` und den Codes |
+| `POST /api/v1/installationen/platzierung` | `kundeId`, `serverId`, `app`, `version`, `optionen` | `{ platzierung }` mit `art` `passt`, `hinweise` oder `passt_nicht` und den Codes |
 | `POST /api/v1/installationen` | wie oben, dazu `host`, `einstellungen` (Ebene `installation`), `betreiberWerte` (fehlende Werte des Betreibers, freiwillig), `grund` | `201` mit der Installation |
 | `GET /api/v1/installationen` | – | `{ installationen }` |
 | `GET /api/v1/installationen/:installationId` | – | die Installation mit ihren Aufträgen (Zustand, letzter Schritt, Fehler) und dem Formular ihrer Einstellungen |
