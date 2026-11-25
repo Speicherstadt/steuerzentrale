@@ -4,7 +4,6 @@ import { createMemo, Loading, Match, refresh, Show, Switch } from "solid-js";
 import type { Antwort } from "../anmeldung/api.ts";
 import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { type Einzelansicht, einzelansichtLaden } from "../daten/installationen-laden.ts";
-import { eigenerZugang, supportQuelle } from "../daten/support.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { AppKopf } from "../seiten/app-kopf.tsx";
 import { AppMesswerte } from "../seiten/app-messwerte.tsx";
@@ -22,7 +21,7 @@ import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
  * One app (BAULISTE.md Z-402; docs/plan.md, "Navigation (Oberfläche 2026-11)"): its head with its
  * state, address and actions, after a failed setup the way to remove it, and its tabs in the URL
  * (`?tab=`): Überblick, Messwerte, Backups, Einstellungen, Verlauf and Technik. Each part reads its
- * own source (Z-403 to Z-406, Z-503, Z-601 to Z-604, Z-704, Z-802).
+ * own source (Z-403 to Z-406, Z-503, Z-601 to Z-604, Z-704).
  */
 
 const REITER = [
@@ -38,18 +37,8 @@ type Reiter = (typeof REITER)[number];
 const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
   const suche = Route.useSearch();
   const navigate = useNavigate();
-  // the member's own support access to it (Z-802), which opens log excerpt and restart to support
-  const zugaenge = createMemo(() => supportQuelle().liste({ installationId: props.a.id }));
   const art = createMemo(() => betriebsartLesen());
-  const eigener = () => {
-    const z = zugaenge();
-    return z.ok ? eigenerZugang(z.daten, props.a.id) : undefined;
-  };
   const fuerKunden = () => !nurFuerMich(art());
-  const zugangNeu = () => {
-    refresh(zugaenge);
-    props.neu();
-  };
   const waehlen = (tab: string) => {
     const neu = REITER.find((r) => r === tab);
     if (neu)
@@ -79,25 +68,12 @@ const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
     {
       id: "technik",
       label: m.app_technik(),
-      content: () => (
-        <TechnikReiter
-          a={props.a}
-          eigener={eigener()}
-          fuerKunden={fuerKunden()}
-          zugangNeu={zugangNeu}
-        />
-      ),
+      content: () => <TechnikReiter a={props.a} />,
     },
   ];
   return (
     <div class="grid gap-6">
-      <AppKopf
-        a={props.a}
-        eigener={eigener()}
-        fuerKunden={fuerKunden()}
-        neu={() => props.neu()}
-        zugangNeu={zugangNeu}
-      />
+      <AppKopf a={props.a} neu={() => props.neu()} />
       <Show when={props.a.zustand === "gescheitert"}>
         <Gescheitert a={props.a} entfernt={() => props.neu()} />
       </Show>

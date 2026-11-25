@@ -99,5 +99,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0024_ohne_sla",
     "sql": "ALTER TABLE `vertraege` DROP COLUMN `sla`;"
+  },
+  {
+    "tag": "0025_ohne_support_zugaenge",
+    "sql": "DROP TABLE `support_zugaenge`;"
   }
 ];

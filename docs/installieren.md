@@ -155,10 +155,9 @@ Alle Backups auf einen Blick zeigt die Seite **Backups**, erreichbar über „Al
 
 Im Kopf das Symbol, „App · Kunde“, der Zustand in einem Satz („Läuft, alles in Ordnung“ oder die
 Störung) und die Adresse. Daneben **Öffnen** (die Adresse in einem neuen Fenster), **Neustart** und
-**Mehr …** mit Log-Auszug, Backup jetzt, Prüf-Restore jetzt, Einstellungen ändern, Support-Zugang
-starten oder beenden und „nur lesen“: jede Aktion nur, wo das Manifest oder die Backups sie anbieten,
+**Mehr …** mit Log-Auszug, Backup jetzt, Prüf-Restore jetzt, Einstellungen ändern und „nur lesen“: jede Aktion nur, wo das Manifest oder die Backups sie anbieten,
 und mit denselben Rechten wie bisher ([Aktionen](aktionen.md), [Backups](backups.md),
-[Einstellungen](einstellungen.md), [Support-Zugang](support.md)). Nach einer gescheiterten
+[Einstellungen](einstellungen.md)). Nach einer gescheiterten
 Einrichtung steht darunter **Entfernen …** mit Grund.
 
 Die Reiter stehen in der Adresse (`?tab=`):
@@ -170,7 +169,7 @@ Die Reiter stehen in der Adresse (`?tab=`):
 | Backups | Läufe, Prüf-Restore, Wiederherstellen und was nach einem Vertragsende folgt; „Alle Backups“ |
 | Einstellungen | die Werte dieser Installation (ohne Geheimnisse) |
 | Verlauf | jeder Wechsel des Zustands und die Ereignisse der App |
-| Technik | Units und Health, Linux-Nutzer, Adresse, HTTP-Port, weitere Ports, Optionen, Version und Manifest (mit SHA-256), angelegt; Adresse und Prüfung von außen; die Aufträge der Einrichtung mit Zustand, letztem Schritt und Fehler; der Support-Zugang |
+| Technik | Units und Health, Linux-Nutzer, Adresse, HTTP-Port, weitere Ports, Optionen, Version und Manifest (mit SHA-256), angelegt; Adresse und Prüfung von außen; die Aufträge der Einrichtung mit Zustand, letztem Schritt und Fehler |
 
 ## API
 

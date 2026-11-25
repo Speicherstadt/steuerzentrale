@@ -28,7 +28,6 @@ import { kundenRouten } from "./routes/kunden.ts";
 import { manifesteRouten } from "./routes/manifeste.ts";
 import { mitgliederRouten } from "./routes/mitglieder.ts";
 import { serverPlattenRouten, serverRouten } from "./routes/server.ts";
-import { supportRouten } from "./routes/support.ts";
 import { updateRouten } from "./routes/updates.ts";
 import { verbindungRouten } from "./routes/verbindung.ts";
 import {
@@ -109,7 +108,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
 
   const route = routenRegistrar(
     app,
-    wache(deps.auth, deps.db, deps.socketAdresse, deps.now, new URL(deps.url).origin),
+    wache(deps.auth, deps.db, deps.socketAdresse, new URL(deps.url).origin),
   );
   // For an external monitor (Z-704): no login, nothing but whether the Zentrale and its database
   // answer, and the version; 503 without a reason when the database does not
@@ -139,7 +138,6 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   manifesteRouten(route, deps);
   updateRouten(route, deps);
   benachrichtigungRouten(route, deps);
-  supportRouten(route, deps);
   agentRouten(route, deps);
   verbindungRouten(route, deps);
   // The interface's files and the SPA's routes: only what no route took (Z-1004)

@@ -150,7 +150,6 @@ describe("the Betriebsart", () => {
       ["PUT", `/api/v1/kunden/${eigener}/kuendigung`, { ende: BEGINN, grund: "g" }],
       ["DELETE", `/api/v1/kunden/${eigener}/kuendigung`, { grund: "g" }],
       ["PUT", `/api/v1/kunden/${eigener}/intern`, { intern: false, grund: "g" }],
-      ["POST", "/api/v1/support-zugaenge", { installationId: "x", dauer: 30, grund: "g" }],
     ];
     for (const [method, pfad, body] of anfragen)
       expect(await json(inhaber, pfad, { method, ...(body ? { body } : {}) })).toEqual({

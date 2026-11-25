@@ -54,7 +54,6 @@ const ALLE = [
   ["/backups", "Backups"],
   ["/kunden", "Kunden"],
   ["/kunden/sonne", "Café Sonne"],
-  ["/support", "Support-Zugänge"],
   ["/katalog", "Katalog"],
   ["/katalog/haben", "Haben"],
   ["/protokoll", "Protokoll"],
@@ -206,6 +205,9 @@ describe("pages", () => {
   it("are gone where stage 2 removed them", async () => {
     // Z-1201: the services per customer and month
     expect(ueberschrift(await oeffne("/leistungen"))).toBe("Nicht gefunden");
+    dispose();
+    // Z-1203: the support accesses
+    expect(ueberschrift(await oeffne("/support"))).toBe("Nicht gefunden");
   });
 });
 

@@ -1,7 +1,7 @@
-import type { AuditEintrag, Auftrag, Ereignis, Konto, Zugang } from "../daten/typen.ts";
-import { berlin, gestern, heute, JETZT } from "./zeit.ts";
+import type { AuditEintrag, Auftrag, Ereignis, Konto } from "../daten/typen.ts";
+import { berlin, gestern, heute } from "./zeit.ts";
 
-/** What happened today and before: events, jobs, support accesses, audit log (design/mockup/) */
+/** What happened today and before: events, jobs, audit log (design/mockup/) */
 
 const inst = (id: string) => ({ art: "installation" as const, id });
 const srv = (id: string) => ({ art: "server" as const, id });
@@ -18,12 +18,6 @@ export const ereignisse: Ereignis[] = [
     schwere: "warn",
     ziel: srv("kraft"),
     text: "Agent seit 6 Min. still; Ereignis nach 3 Min.",
-  },
-  {
-    zeit: heute("09:58"),
-    schwere: "info",
-    ziel: inst("lind-haben"),
-    text: "Support-Zugang gestartet: Ole Kamp, 2 h, „Backup schlägt fehl, Platte prüfen“",
   },
   {
     zeit: heute("08:47"),
@@ -142,76 +136,7 @@ export const auftraege: Auftrag[] = [
   },
 ];
 
-const MINUTE = 60_000;
-
-/** A support access of the demo as the API answers it; ended early when `minuten` is given */
-const zugang = (
-  angaben: Pick<
-    Zugang,
-    "zugangId" | "installationId" | "kundeId" | "grund" | "beginn" | "aktionen"
-  > & {
-    wer: string;
-    eigen: boolean;
-    minuten?: number;
-  },
-): Zugang => {
-  const ende = angaben.beginn + 120 * MINUTE;
-  const beendetAm =
-    angaben.minuten === undefined ? null : angaben.beginn + angaben.minuten * MINUTE;
-  return {
-    zugangId: angaben.zugangId,
-    installationId: angaben.installationId,
-    kundeId: angaben.kundeId,
-    nutzer: { id: angaben.wer, name: angaben.wer },
-    grund: angaben.grund,
-    beginn: angaben.beginn,
-    ende,
-    beendetAm,
-    beendetVon: beendetAm === null ? null : angaben.wer,
-    endetAm: beendetAm ?? ende,
-    aktiv: beendetAm === null && ende > JETZT,
-    eigen: angaben.eigen,
-    aktionen: angaben.aktionen,
-  };
-};
-
-export const zugaenge: Zugang[] = [
-  zugang({
-    zugangId: "Z-41",
-    installationId: "lind-haben",
-    kundeId: "studio-lind",
-    wer: "Ole Kamp",
-    eigen: false,
-    grund: "Backup schlägt fehl, Platte prüfen",
-    beginn: heute("09:58"),
-    aktionen: ["log_auszug"],
-  }),
-  zugang({
-    zugangId: "Z-39",
-    installationId: "berger-schreibzeug",
-    kundeId: "it-berger",
-    wer: "Jana Beispiel",
-    eigen: true,
-    grund: "Dokumente laden nicht, Log ansehen",
-    beginn: berlin("2026-11-12", "09:30"),
-    minuten: 10,
-    aktionen: ["log_auszug", "neustart"],
-  }),
-  zugang({
-    zugangId: "Z-38",
-    installationId: "atelier-haben",
-    kundeId: "atelier-nord",
-    wer: "Ole Kamp",
-    eigen: false,
-    grund: "Langsame Anmeldung",
-    beginn: berlin("2026-10-28", "16:20"),
-    minuten: 25,
-    aktionen: ["log_auszug"],
-  }),
-];
-
 const jana = { name: "Jana Beispiel", rolle: "inhaber" as const };
-const ole = { name: "Ole Kamp", rolle: "support" as const };
 
 export const audit: AuditEintrag[] = [
   {
@@ -230,17 +155,10 @@ export const audit: AuditEintrag[] = [
   },
   {
     zeit: heute("10:35"),
-    akteur: ole,
+    akteur: jana,
     aktion: "Neustart",
     ziel: inst("berger-schreibzeug"),
     grund: "Health rot seit 10:31",
-  },
-  {
-    zeit: heute("09:58"),
-    akteur: ole,
-    aktion: "Support-Zugang gestartet (2 h)",
-    ziel: inst("lind-haben"),
-    grund: "Backup schlägt fehl, Platte prüfen",
   },
   {
     zeit: gestern("17:12"),

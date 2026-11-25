@@ -163,12 +163,17 @@ const ENTFERNT: [string, string][] = [
   // Z-1201: the services per customer and month (Z-804), also as CSV
   ["GET", "/api/v1/leistungen"],
   ["GET", "/api/v1/leistungen?monat=2026-11&format=csv"],
+  // Z-1203: the support accesses (Z-802)
+  ["GET", "/api/v1/support-zugaenge"],
+  ["POST", "/api/v1/support-zugaenge"],
+  ["POST", "/api/v1/support-zugaenge/gibt-es-nicht/beenden"],
 ];
 
 describe("removed routes", () => {
   it.each(ENTFERNT)("%s %s answers 404", async (method, pfad) => {
     for (const rolle of ROLLEN)
       expect((await personen[rolle].json(pfad, { method })).status, rolle).toBe(404);
-    expect(NAMEN.some((name) => name.endsWith(` ${pfad.split("?")[0]}`))).toBe(false);
+    const ohneAbfrage = (pfad.split("?")[0] ?? "").replace("gibt-es-nicht", ":zugangId");
+    expect(NAMEN.some((name) => name.endsWith(` ${ohneAbfrage}`))).toBe(false);
   });
 });

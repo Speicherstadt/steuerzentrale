@@ -9,7 +9,6 @@ import {
   ramDerMb,
   sperrzeitAktiv,
   sperrzeitenDer,
-  supportMinuten,
   titel,
 } from "./ableitungen.ts";
 
@@ -45,12 +44,6 @@ describe("derived facts", () => {
   it("sums the RAM limits of the installed apps' manifests, an unknown app as none", () => {
     // Haben 2048 + Belegt 2048, as on the customer's own server
     expect(ramDerMb(demo, ["haben", "belegt", "probe"])).toBe(4096);
-  });
-
-  it("sums support minutes per customer and Berlin month", () => {
-    expect(supportMinuten(demo, "studio-lind", "2026-11")).toBe(44);
-    expect(supportMinuten(demo, "atelier-nord", "2026-10")).toBe(25);
-    expect(supportMinuten(demo, "atelier-nord", "2026-11")).toBe(0);
   });
 
   it("takes the month in Berlin, not in UTC", () => {

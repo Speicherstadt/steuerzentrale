@@ -22,8 +22,6 @@ const pages = [
   "/backups",
   "/kunden",
   "/kunden/praxis-weber",
-  "/kunden/praxis-weber?tab=support",
-  "/support",
   "/katalog",
   "/katalog/haben",
   "/protokoll",

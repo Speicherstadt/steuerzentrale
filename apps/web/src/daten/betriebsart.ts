@@ -4,7 +4,7 @@ import { demoBetriebsart } from "../demo/betriebsart.ts";
 
 /*
  * The operator's Betriebsart (BAULISTE.md Z-805; docs/einstellungen.md): `selbst` ("Nur für mich")
- * hides customers, contracts, support accesses and services, and every installation goes to the
+ * hides customers and contracts, and every installation goes to the
  * fixed internal customer; `kunden` ("Für Kunden") shows everything; null until the owner answered.
  * Read from GET /api/v1/ich, set with PUT /api/v1/betriebsart; in the demo in memory.
  */

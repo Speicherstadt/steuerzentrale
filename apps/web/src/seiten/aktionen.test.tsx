@@ -5,19 +5,17 @@ import { installationenQuelleEinsetzen } from "../daten/installationen.ts";
 import { kundenQuelleEinsetzen } from "../daten/kunden.ts";
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
 import { serverQuelleEinsetzen } from "../daten/server.ts";
-import { supportQuelleEinsetzen } from "../daten/support.ts";
 import type { Rolle } from "../daten/typen.ts";
 import { demoAppsQuelle } from "../demo/apps-quelle.ts";
 import { demo } from "../demo/index.ts";
 import { demoInstallationenQuelle } from "../demo/installationen-quelle.ts";
 import { demoKunden } from "../demo/kunden-quelle.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
-import { demoSupport } from "../demo/support-quelle.ts";
 import { aufraeumen, dialog, eintragen, knopf, oeffne, warten } from "./test-dom.tsx";
 
 // BAULISTE.md Z-405: the actions of an installation against the demo sources, which answer as the
-// Zentrale does: only the offered ones, each with a reason, for support only during its own support
-// access (Z-802); a log excerpt shows its lines once they came
+// Zentrale does: only the offered ones, each with a reason, none for support (Z-1203); a log excerpt
+// shows its lines once they came
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
 
@@ -42,12 +40,6 @@ beforeEach(() => {
       server: server.liste,
       manifest: demoAppsQuelle(() => demo.jetzt).manifest,
       betreiberWerte: [],
-    }),
-  );
-  supportQuelleEinsetzen(
-    demoSupport([], () => demo.jetzt, {
-      name: "Ole Kamp",
-      kundeVon: (id) => demo.installationen.find((i) => i.id === id)?.kunde,
     }),
   );
   rolle("technik");
@@ -92,23 +84,23 @@ describe("the actions of an installation", () => {
     expect(dialog().textContent).toContain("4 Zeilen");
   });
 
-  it("shows support log excerpt and restart only during its own support access (Z-802)", async () => {
+  it("offers support no action and no support access any more (Z-1203)", async () => {
     rolle("support");
-    // the access with its reason and time left stands in the tab Technik
     const { root } = await oeffne(`/apps/${ohneSperrzeit()}?tab=technik`);
     expect(knopf(root, "Log-Auszug")).toBeUndefined();
     expect(knopf(root, "Neustart")).toBeUndefined();
-    knopf(root, "Zugang starten")?.click();
-    await warten();
-    expect(dialog().textContent).toContain("Endet von selbst");
-    await absenden("Anfrage aus dem Portal");
-    expect(document.querySelector("dialog[open]")).toBeNull();
-    expect(knopf(root, "Log-Auszug")).toBeDefined();
-    expect(knopf(root, "Neustart")).toBeDefined();
-    expect(root.textContent).toContain("„Anfrage aus dem Portal“");
-    knopf(root, "Zugang beenden")?.click();
-    await warten();
-    expect(knopf(root, "Log-Auszug")).toBeUndefined();
-    expect(knopf(root, "Zugang starten")).toBeDefined();
+    expect(knopf(root, "Zugang starten")).toBeUndefined();
+    expect(root.textContent).not.toContain("Support-Zugang");
+  });
+
+  it("offers owner and technik log excerpt and restart without any access (Z-1203)", async () => {
+    for (const r of ["inhaber", "technik"] as const) {
+      rolle(r);
+      const { root } = await oeffne(`/apps/${ohneSperrzeit()}?tab=technik`);
+      expect(knopf(root, "Log-Auszug"), r).toBeDefined();
+      expect(knopf(root, "Neustart"), r).toBeDefined();
+      expect(knopf(root, "Zugang starten"), r).toBeUndefined();
+      aufraeumen();
+    }
   });
 });

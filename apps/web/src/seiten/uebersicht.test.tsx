@@ -7,7 +7,7 @@ import { aufraeumen, dialog, knopf, oeffne, warten } from "./test-dom.tsx";
 /*
  * The actions of "Zu tun" (docs/plan.md, "Übersicht (Oberfläche 2026-11)") against the demo: a
  * broken app offers "Log ansehen" and "Neustart" with the rights they have on its page (owner and
- * technik; support only during its own access), each through its dialog with a reason; every
+ * technik; support none, Z-1203), each through its dialog with a reason; every
  * other row leads to its app or server.
  */
 

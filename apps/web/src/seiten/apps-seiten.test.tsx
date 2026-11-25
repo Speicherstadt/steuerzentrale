@@ -169,23 +169,14 @@ describe("the menu Mehr", () => {
   const stand = {
     aktionen: { neustart: true, log_auszug: true, nur_lesen: false },
     recht: true,
-    zugang: false,
-    fuerKunden: true,
     backup: true,
     pruef: true,
   };
 
   it("offers what the buttons offered, with the same rights", () => {
-    expect(mehrEintraege(stand)).toEqual(["log", "backup", "pruef", "einstellungen", "zugang"]);
-    expect(mehrEintraege({ ...stand, recht: false })).toEqual(["zugang"]);
-    expect(mehrEintraege({ ...stand, recht: false, zugang: true })).toEqual([
-      "log",
-      "zugang_beenden",
-    ]);
-    expect(mehrEintraege({ ...stand, fuerKunden: false, backup: false })).toEqual([
-      "log",
-      "pruef",
-      "einstellungen",
-    ]);
+    expect(mehrEintraege(stand)).toEqual(["log", "backup", "pruef", "einstellungen"]);
+    // no support access opens anything to a role without the right (Z-1203)
+    expect(mehrEintraege({ ...stand, recht: false })).toEqual([]);
+    expect(mehrEintraege({ ...stand, backup: false })).toEqual(["log", "pruef", "einstellungen"]);
   });
 });

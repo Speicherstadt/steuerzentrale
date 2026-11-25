@@ -3,17 +3,16 @@ import { ExternalLink } from "@steuerzentrale/ui/icons";
 import { Show } from "solid-js";
 import { type AppZustand, appZustand } from "../daten/apps-liste.ts";
 import type { Einzelansicht } from "../daten/installationen-laden.ts";
-import type { Zugang } from "../daten/typen.ts";
 import { appIcon } from "../teile/app-icon.ts";
 import { Mehr } from "./app-mehr.tsx";
 import { ZustandWorte } from "./apps-tabelle.tsx";
 import { SchreibendeAktion } from "./installation-aktionen.tsx";
-import { MitRechtOderZugang } from "./recht.tsx";
+import { MitInstallationsRecht } from "./recht.tsx";
 
 /*
  * The head of an app's page (docs/plan.md, "Navigation (Oberfläche 2026-11)"): its icon, "App ·
- * Customer", its state in one sentence and its address; "Öffnen" opens the address, "Neustart" with
- * the rights it had (Z-405, Z-802), "Mehr …" the other actions. The actions only while it runs.
+ * Customer", its state in one sentence and its address; "Öffnen" opens the address, "Neustart" for
+ * owner and technik (Z-405), "Mehr …" the other actions. The actions only while it runs.
  */
 
 /** The state of the head: as in the list, but a well-running app says so in a whole sentence */
@@ -44,13 +43,7 @@ const Zustandszeile = (props: { a: Einzelansicht }) => (
   </p>
 );
 
-export const AppKopf = (props: {
-  a: Einzelansicht;
-  eigener: Zugang | undefined;
-  fuerKunden: boolean;
-  neu: () => void;
-  zugangNeu: () => void;
-}) => (
+export const AppKopf = (props: { a: Einzelansicht; neu: () => void }) => (
   <div class="flex flex-wrap items-start justify-between gap-4">
     <div class="flex min-w-0 items-start gap-4">
       <span class="flex size-13 shrink-0 items-center justify-center rounded-xl border bg-muted">
@@ -70,16 +63,10 @@ export const AppKopf = (props: {
         <Icon icon={ExternalLink} size={14} />
       </a>
       <Show when={props.a.zustand === "laeuft"}>
-        <MitRechtOderZugang zugang={props.eigener !== undefined}>
+        <MitInstallationsRecht>
           <SchreibendeAktion a={props.a} aktion="neustart" neu={() => props.neu()} />
-        </MitRechtOderZugang>
-        <Mehr
-          a={props.a}
-          eigener={props.eigener}
-          fuerKunden={props.fuerKunden}
-          neu={() => props.neu()}
-          zugangNeu={() => props.zugangNeu()}
-        />
+        </MitInstallationsRecht>
+        <Mehr a={props.a} neu={() => props.neu()} />
       </Show>
     </div>
   </div>

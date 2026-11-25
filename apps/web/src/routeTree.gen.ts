@@ -21,7 +21,6 @@ import { Route as EinstellungenRouteImport } from './routes/einstellungen'
 import { Route as EreignisseRouteImport } from './routes/ereignisse'
 import { Route as ErsterInhaberRouteImport } from './routes/erster-inhaber'
 import { Route as ProtokollRouteImport } from './routes/protokoll'
-import { Route as SupportRouteImport } from './routes/support'
 import { Route as UpdatesRouteImport } from './routes/updates'
 import { Route as AppsIndexRouteImport } from './routes/apps.index'
 import { Route as AppsIdRouteImport } from './routes/apps.$id'
@@ -94,11 +93,6 @@ const ProtokollRoute = ProtokollRouteImport.update({
   path: '/protokoll',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SupportRoute = SupportRouteImport.update({
-  id: '/support',
-  path: '/support',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const UpdatesRoute = UpdatesRouteImport.update({
   id: '/updates',
   path: '/updates',
@@ -168,7 +162,6 @@ export interface FileRoutesByFullPath {
   '/ereignisse': typeof EreignisseRoute
   '/erster-inhaber': typeof ErsterInhaberRoute
   '/protokoll': typeof ProtokollRoute
-  '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
   '/apps/$id': typeof AppsIdRoute
   '/installationen/$id': typeof InstallationenIdRoute
@@ -194,7 +187,6 @@ export interface FileRoutesByTo {
   '/ereignisse': typeof EreignisseRoute
   '/erster-inhaber': typeof ErsterInhaberRoute
   '/protokoll': typeof ProtokollRoute
-  '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
   '/apps/$id': typeof AppsIdRoute
   '/installationen/$id': typeof InstallationenIdRoute
@@ -221,7 +213,6 @@ export interface FileRoutesById {
   '/ereignisse': typeof EreignisseRoute
   '/erster-inhaber': typeof ErsterInhaberRoute
   '/protokoll': typeof ProtokollRoute
-  '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
   '/apps/$id': typeof AppsIdRoute
   '/installationen/$id': typeof InstallationenIdRoute
@@ -249,7 +240,6 @@ export interface FileRouteTypes {
     | '/ereignisse'
     | '/erster-inhaber'
     | '/protokoll'
-    | '/support'
     | '/updates'
     | '/apps/$id'
     | '/installationen/$id'
@@ -275,7 +265,6 @@ export interface FileRouteTypes {
     | '/ereignisse'
     | '/erster-inhaber'
     | '/protokoll'
-    | '/support'
     | '/updates'
     | '/apps/$id'
     | '/installationen/$id'
@@ -301,7 +290,6 @@ export interface FileRouteTypes {
     | '/ereignisse'
     | '/erster-inhaber'
     | '/protokoll'
-    | '/support'
     | '/updates'
     | '/apps/$id'
     | '/installationen/$id'
@@ -328,7 +316,6 @@ export interface RootRouteChildren {
   EreignisseRoute: typeof EreignisseRoute
   ErsterInhaberRoute: typeof ErsterInhaberRoute
   ProtokollRoute: typeof ProtokollRoute
-  SupportRoute: typeof SupportRoute
   UpdatesRoute: typeof UpdatesRoute
   AppsIdRoute: typeof AppsIdRoute
   InstallationenIdRoute: typeof InstallationenIdRoute
@@ -428,13 +415,6 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ProtokollRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/support': {
-      id: '/support'
-      path: '/support'
-      fullPath: '/support'
-      preLoaderRoute: typeof SupportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/updates': {
       id: '/updates'
       path: '/updates'
@@ -528,7 +508,6 @@ const rootRouteChildren: RootRouteChildren = {
   EreignisseRoute: EreignisseRoute,
   ErsterInhaberRoute: ErsterInhaberRoute,
   ProtokollRoute: ProtokollRoute,
-  SupportRoute: SupportRoute,
   UpdatesRoute: UpdatesRoute,
   AppsIdRoute: AppsIdRoute,
   InstallationenIdRoute: InstallationenIdRoute,

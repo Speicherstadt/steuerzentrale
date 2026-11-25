@@ -24,7 +24,6 @@ import { apiMitglieder, mitgliederQuelleEinsetzen } from "./daten/mitglieder.ts"
 import { bestand, bestandEinsetzen, ohneDemo } from "./daten/quelle.ts";
 import { apiRolle, rollenQuelleEinsetzen } from "./daten/rolle.ts";
 import { apiServer, serverQuelle, serverQuelleEinsetzen } from "./daten/server.ts";
-import { apiSupport, supportQuelle, supportQuelleEinsetzen } from "./daten/support.ts";
 import { aufraeumen, oeffne, warten } from "./seiten/test-dom.tsx";
 
 /*
@@ -55,7 +54,6 @@ const LEER: Record<string, unknown> = {
   "/api/v1/apps": { apps: [] },
   "/api/v1/updates": { installationen: [] },
   "/api/v1/benachrichtigungen": { smtp: null, ruhezeit: null, empfaenger: [], zustellungen: [] },
-  "/api/v1/support-zugaenge": { zugaenge: [] },
 };
 
 /** Names of the demo operator (src/demo/) that must not show */
@@ -84,7 +82,6 @@ const SEITEN = [
   "/einstellungen",
   "/updates",
   "/backups",
-  "/support",
   "/katalog",
 ];
 
@@ -98,7 +95,6 @@ const vorher = {
   backups: backupQuelle(),
   benachrichtigungen: benachrichtigungsQuelle(),
   apps: appsQuelle(),
-  support: supportQuelle(),
 };
 
 beforeAll(() => {
@@ -114,7 +110,6 @@ beforeAll(() => {
   backupQuelleEinsetzen(apiBackups);
   benachrichtigungsQuelleEinsetzen(apiBenachrichtigungen);
   appsQuelleEinsetzen(apiApps);
-  supportQuelleEinsetzen(apiSupport);
 });
 
 afterAll(() => {
@@ -127,7 +122,6 @@ afterAll(() => {
   backupQuelleEinsetzen(vorher.backups);
   benachrichtigungsQuelleEinsetzen(vorher.benachrichtigungen);
   appsQuelleEinsetzen(vorher.apps);
-  supportQuelleEinsetzen(vorher.support);
 });
 
 beforeEach(() => {
@@ -172,15 +166,6 @@ describe("signed in, against a Zentrale without data", () => {
     expect(root.textContent).toContain("0 Updates möglich");
     expect(root.textContent).toContain("Backups heute Nacht0/0");
     expect(root.textContent).not.toContain("Ohne Eile");
-  });
-
-  it("shows the support accesses of the Zentrale: none yet (Z-802)", async () => {
-    const { root } = await oeffne("/support");
-    await vi.waitFor(() => {
-      if (!root.textContent?.includes("Gerade kein Zugang aktiv.")) throw new Error("not yet");
-    });
-    expect(root.textContent).toContain("Noch keiner beendet.");
-    expect(root.textContent).not.toContain("Z-802");
   });
 
   it("shows the updates of the Zentrale: none yet, without a word of Z-503", async () => {

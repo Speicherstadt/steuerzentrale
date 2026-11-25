@@ -31,8 +31,8 @@ wahlweise ein Passwort. Danach geht es direkt zur Einrichtung des zweiten Faktor
 Nach dem zweiten Faktor fragt die Zentrale den Inhaber einmal, wofür sie da ist (Seite
 `/betriebsart`):
 
-- **Nur für mich**: eigene Apps auf eigenen Servern. Kunden, Verträge, Kündigung und
-  Support-Zugänge verschwinden aus Seitenleiste (der Eintrag „Kunden“), Übersicht und Dialogen; „App installieren“ fragt keinen
+- **Nur für mich**: eigene Apps auf eigenen Servern. Kunden, Verträge und Kündigung
+  verschwinden aus Seitenleiste (der Eintrag „Kunden“), Übersicht und Dialogen; „App installieren“ fragt keinen
   Kunden. Alle Installationen gehören einem festen internen Kunden des Betreibers, den die Zentrale
   dabei anlegt (`kunden.intern`), also gibt es nur eine Welle.
 - **Für Kunden**: Hosting für andere, mit allem, was dazugehört.
@@ -92,9 +92,7 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 | Installationen und Platzierung sehen | ja | ja | ja |
 | Installationen anlegen, gescheiterte entfernen | ja | ja | – |
 | „nur lesen“ einer Installation | ja | ja | – |
-| Neustart, Log-Auszug anfordern und lesen | ja | ja | nur mit Support-Zugang |
-| Support-Zugänge sehen, eigenen starten und beenden | ja | ja | ja |
-| fremden Support-Zugang beenden | ja | ja | – |
+| Neustart, Log-Auszug anfordern und lesen | ja | ja | – |
 | Übersicht, Aufträge und Ereignisse sehen | ja | ja | ja |
 | Audit-Log lesen | ja | ja | – |
 | Backups und S3-Ziel sehen | ja | ja | ja |
@@ -103,8 +101,8 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 Die Rollen sind die Zugriffssteuerung des Organization-Plugins von Better Auth; jeder Betreiber ist
 dort eine Organisation mit derselben ID. Ein Betreiber behält immer einen Inhaber: der letzte kann
 seine Rolle nicht abgeben und nicht entfernt werden. Wer entfernt wird, verliert den Zugang sofort.
-Ein [Support-Zugang](support.md) gilt für eine Installation, ist zeitlich begrenzt und steht mit
-Grund im Audit-Log und in den Ereignissen des Kunden.
+Support-Zugänge gibt es seit Z-1203 nicht mehr: Support sieht, löst aber weder Neustart noch
+Log-Auszug aus.
 Technik legt Kunden an und pflegt ihre Verträge, weil eine Installation von ihnen ausgeht; Support
 sieht sie nur ([Kunden und Verträge](kunden.md)).
 

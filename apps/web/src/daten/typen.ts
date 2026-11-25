@@ -172,28 +172,6 @@ export type Auftrag = {
 
 export type Rolle = "inhaber" | "technik" | "support";
 
-/**
- * A support access as GET /api/v1/support-zugaenge answers it (BAULISTE.md Z-802): one member's,
- * on one installation, from `beginn` until `endetAm` (its planned `ende`, or `beendetAm` when it was
- * ended early); `aktionen` what its holder did on the installation meanwhile; `eigen` whether the
- * signed-in member holds it
- */
-export type Zugang = {
-  zugangId: string;
-  installationId: string;
-  kundeId: string;
-  nutzer: { id: string; name: string };
-  grund: string;
-  beginn: number;
-  ende: number;
-  beendetAm: number | null;
-  beendetVon: string | null;
-  endetAm: number;
-  aktiv: boolean;
-  eigen: boolean;
-  aktionen: ("neustart" | "log_auszug")[];
-};
-
 export type AuditEintrag = {
   zeit: number;
   /** null: the Zentrale itself */
@@ -232,7 +210,6 @@ export type Bestand = {
   installationen: Installation[];
   ereignisse: Ereignis[];
   auftraege: Auftrag[];
-  zugaenge: Zugang[];
   audit: AuditEintrag[];
   konten: Konto[];
   plaene: Updateplan[];

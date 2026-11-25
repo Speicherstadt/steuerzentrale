@@ -26,7 +26,7 @@ Server bringt (docs/plan.md, Sicherheit). Besonders wichtig sind deshalb:
 - Wege, den Agenten etwas ausführen zu lassen, das kein signiertes Manifest beschreibt;
 - alles, womit ein Server, ein Agent-Zertifikat oder ein API-Token an Daten eines anderen Kunden oder Betreibers kommt;
 - Geheimnisse im Klartext in Datenbank, Log, API-Antwort oder Oberfläche;
-- Lücken in Anmeldung, zweitem Faktor, Rollen, Support-Zugang und Audit-Log;
+- Lücken in Anmeldung, zweitem Faktor, Rollen und Audit-Log;
 - `install.sh` und Agent-Updates ohne Prüfung von Prüfsumme und Signatur.
 
 Probleme in Podman, Caddy, restic, Bun oder anderen eingebundenen Programmen gehören zu diesen Projekten; macht erst die

@@ -18,8 +18,7 @@ import { installationsFehler } from "./installieren-texte.ts";
 /*
  * The actions of an installation (BAULISTE.md Z-405; mockup, installation page and "Log-Auszug";
  * docs/plan.md, "Aktionen einer Installation"): only the actions its manifest offers, each with a
- * reason for the audit log. Owner and technik see every action; support sees log excerpt and
- * restart while its own support access to the installation runs (Z-802), never "nur lesen". A log
+ * reason for the audit log. Owner and technik see every action; support none (Z-1203). A log
  * excerpt is a job: the dialog asks the Zentrale every second for its lines until
  * the agent sent them, and shows them. The head of an app's page offers them (app-kopf.tsx,
  * app-mehr.tsx), which decides who sees which.
