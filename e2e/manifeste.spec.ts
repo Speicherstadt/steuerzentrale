@@ -40,7 +40,7 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
     const dialog = page.getByRole("dialog", { name: "Manifest importieren" });
     await dialog.getByLabel("Manifest (manifest.yml)").setInputFiles(dateien.manifest);
     await dialog.getByLabel("Signatur (manifest.yml.minisig)").setInputFiles(dateien.signatur);
-    await dialog.getByLabel("Grund").fill("Release 1.0.0");
+    await expect(dialog.getByLabel("Grund")).toHaveCount(0);
     await ohneBefund(page);
     await dialog.getByRole("button", { name: "Importieren" }).click();
     await expect(dialog).toBeHidden();
@@ -56,7 +56,7 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
     await page.getByRole("button", { name: "Manifest importieren" }).click();
     await dialog.getByLabel("Manifest (manifest.yml)").setInputFiles(anders.manifest);
     await dialog.getByLabel("Signatur (manifest.yml.minisig)").setInputFiles(anders.signatur);
-    await dialog.getByLabel("Grund").fill("anders");
+    await expect(dialog.getByLabel("Grund")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Importieren" }).click();
     await expect(dialog.getByRole("alert")).toContainText("schon mit anderem Inhalt importiert");
     await ohneBefund(page);
@@ -102,7 +102,7 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
       await page.getByRole("button", { name: "Mehr …" }).click();
       await page.getByRole("menuitem", { name: "Als intern markieren" }).click();
       const dialog = page.getByRole("dialog", { name: `${kunde.name} als intern markieren` });
-      await dialog.getByLabel("Grund").fill("unsere eigene Installation");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Als intern markieren" }).click();
       await expect(dialog).toBeHidden();
@@ -121,7 +121,7 @@ test.describe("manifests and versions", { tag: "@phone" }, () => {
       await expect(installieren.getByTestId("platzierung")).toContainText("Passt");
       await installieren.getByLabel("PROBE_KENNWORT").fill("kennwort-der-installation");
       await installieren.getByLabel("Adresse").fill(neuerHost());
-      await installieren.getByLabel("Grund").fill("Vorabversion testen");
+      await expect(installieren.getByLabel("Grund")).toHaveCount(0);
       await installieren.getByRole("button", { name: "Installieren" }).click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(`${app} · ${kunde.name}`);
       await expect(page.getByText("2.0.0-rc.1").first()).toBeVisible();

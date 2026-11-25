@@ -45,7 +45,7 @@ test.describe("installing", { tag: "@phone" }, () => {
 
       await dialog.getByLabel("PROBE_KENNWORT").fill("kennwort-der-installation");
       await dialog.getByLabel("Adresse").fill(host);
-      await dialog.getByLabel("Grund").fill("Bestellung vom 20.11.");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Installieren" }).click();
       await expect(dialog).toBeHidden();
@@ -93,7 +93,7 @@ test.describe("installing", { tag: "@phone" }, () => {
     await ohneBefund(page);
   });
 
-  test("removes a failed setup with a reason", async ({ page }) => {
+  test("removes a failed setup without a reason", async ({ page }) => {
     const i = await installationAnlegen(page.request, neuerHost("kaputt"));
     try {
       await expect
@@ -105,9 +105,16 @@ test.describe("installing", { tag: "@phone" }, () => {
       await page.goto(`/apps/${i.installationId}?tab=technik`);
       await expect(page.getByText("Einrichtung gescheitert").first()).toBeVisible();
       await expect(page.getByText("Fehler: image ziehen: manifest unknown")).toBeVisible();
-      await page.getByRole("button", { name: "Entfernen …" }).click();
       const dialog = page.getByRole("dialog", { name: `${i.kunde.name} · probe entfernen` });
-      await dialog.getByLabel("Grund").fill("Image fehlte, neu anlegen");
+      // Z-1207: without the confirmation nothing happens
+      await page.getByRole("button", { name: "Entfernen …" }).click();
+      await dialog.getByRole("button", { name: "Abbrechen" }).click();
+      await expect(dialog).toBeHidden();
+      const vorher = await page.request.get(`/api/v1/installationen/${i.installationId}`);
+      const { auftraege } = (await vorher.json()) as { auftraege: { aktion: string }[] };
+      expect(auftraege.map((a) => a.aktion)).not.toContain("installation_entfernen");
+      await page.getByRole("button", { name: "Entfernen …" }).click();
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Entfernen" }).click();
       await expect(dialog).toBeHidden();

@@ -15,7 +15,7 @@ test.describe("adding a server", { tag: "@phone" }, () => {
     await expect(dialog.getByRole("radio")).toHaveCount(0);
     await expect(dialog.getByText("Art", { exact: true })).toHaveCount(0);
     await expect(dialog.getByLabel("Kunde", { exact: true })).toHaveCount(0);
-    await dialog.getByLabel("Grund").fill("neuer Server für die Kanzlei");
+    await expect(dialog.getByLabel("Grund")).toHaveCount(0);
     expect((await new AxeBuilder({ page }).include("dialog").analyze()).violations).toEqual([]);
     await dialog.getByRole("button", { name: "Weiter" }).click();
 

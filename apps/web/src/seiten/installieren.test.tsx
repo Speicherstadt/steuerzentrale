@@ -81,7 +81,7 @@ describe("the dialog Installieren", () => {
     expect(feld<HTMLInputElement>("PROBE_LIMIT").type).toBe("number");
     eintragen("PROBE_KENNWORT", "geheim-7");
     eintragen("Adresse", "probe.atelier-nord.example");
-    eintragen("Grund", "Bestellung vom 20.11.");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();
@@ -114,7 +114,7 @@ describe("the dialog Installieren", () => {
     expect(platzierung()).toContain("Der Agent des Servers ist nicht verbunden.");
     eintragen("PROBE_KENNWORT", "geheim-7");
     eintragen("Adresse", "probe.atelier-nord.example");
-    eintragen("Grund", "Test");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();
@@ -165,13 +165,26 @@ describe("the dialog Installieren", () => {
 });
 
 describe("a failed setup", () => {
-  it("is removed with a reason, and the removal job shows", async () => {
+  it("is not removed without the confirmation (Z-1207)", async () => {
+    const { root } = await oeffne(`/apps/${GESCHEITERT}?tab=technik`);
+    const vorher = root.textContent;
+    knopf(root, "Entfernen …")?.click();
+    await warten();
+    knopf(dialog(), "Abbrechen")?.click();
+    await warten();
+    expect(document.querySelector("dialog[open]")).toBeNull();
+    expect(root.textContent).toBe(vorher);
+    expect(root.textContent).not.toContain("an den Agenten zugestellt");
+    expect(knopf(root, "Entfernen …")).toBeDefined();
+  });
+
+  it("is removed without a reason (Z-1207), and the removal job shows", async () => {
     const { root } = await oeffne(`/apps/${GESCHEITERT}?tab=technik`);
     expect(root.textContent).toContain("Einrichtung gescheitert");
     expect(root.textContent).toContain("Fehler: image ziehen");
     knopf(root, "Entfernen …")?.click();
     await warten();
-    eintragen("Grund", "neu anlegen");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();

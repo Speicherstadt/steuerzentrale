@@ -180,10 +180,9 @@ export const demoAppsQuelle = (jetzt: () => number): AppsQuelle => {
           };
         }),
       ),
-    update: async (installationId, version, grund) => {
+    update: async (installationId, version) => {
       const i = installationen.find((x) => x.id === installationId);
       if (!i) return nein(404, "keine_installation");
-      if (!grund.trim()) return nein(400, "ungueltig");
       if (updates.get(installationId)?.laeuft) return nein(409, "auftrag_offen");
       if (!liste.some((e) => e.app === i.app && e.version === version))
         return nein(422, "kein_manifest");

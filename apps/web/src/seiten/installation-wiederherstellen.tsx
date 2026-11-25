@@ -1,4 +1,4 @@
-import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
+import { Button, Dialog, Icon, m } from "@steuerzentrale/ui";
 import { CircleCheck, TriangleAlert } from "@steuerzentrale/ui/icons";
 import { createSignal, Match, Show, Switch } from "solid-js";
 import type { Fehlschlag } from "../anmeldung/api.ts";
@@ -12,7 +12,7 @@ import { type InstallationAnsicht, titelVon } from "../daten/installation-ansich
 import { bestand } from "../daten/quelle.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Zustand } from "../teile/zeichen.tsx";
-import { Fehler, fehlerText, felder } from "./anmeldung-teile.tsx";
+import { Fehler, fehlerText } from "./anmeldung-teile.tsx";
 
 /*
  * Restoring a run (BAULISTE.md Z-603; mockup, installation page, tab "Backups", "Snapshot
@@ -98,11 +98,11 @@ export const WiederherstellenDialog = (props: {
     props.onClose();
   };
   const senden = async (event: SubmitEvent) => {
-    const werte = felder(event);
+    event.preventDefault();
     const lauf = props.lauf;
     if (!lauf) return;
     setLaeuft(true);
-    const antwort = await backupQuelle().wiederherstellen(props.a.id, lauf.id, werte.grund ?? "");
+    const antwort = await backupQuelle().wiederherstellen(props.a.id, lauf.id);
     setLaeuft(false);
     if (!antwort.ok) return setFehler(fehlerVon(antwort));
     setFehler("");
@@ -118,14 +118,6 @@ export const WiederherstellenDialog = (props: {
       <Show when={props.lauf}>
         <form class="grid gap-4" onSubmit={senden}>
           <Hinweis />
-          <Input
-            label={m.feld_grund()}
-            name="grund"
-            required
-            maxlength={500}
-            placeholder={m.wh_grund_platzhalter()}
-            hint={m.feld_grund_hinweis()}
-          />
           <Fehler text={fehler()} />
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button onClick={schliessen}>{m.knopf_abbrechen()}</Button>

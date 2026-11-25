@@ -1,5 +1,4 @@
 import { setLocale } from "@steuerzentrale/ui";
-import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { installationenQuelleEinsetzen } from "../daten/installationen.ts";
 import { kundenQuelleEinsetzen } from "../daten/kunden.ts";
@@ -11,7 +10,7 @@ import { demo } from "../demo/index.ts";
 import { demoInstallationenQuelle } from "../demo/installationen-quelle.ts";
 import { demoKunden } from "../demo/kunden-quelle.ts";
 import { demoServerQuelle } from "../demo/server-quelle.ts";
-import { aufraeumen, dialog, eintragen, knopf, oeffne, warten } from "./test-dom.tsx";
+import { aufraeumen, dialog, knopf, oeffne, warten } from "./test-dom.tsx";
 
 // BAULISTE.md Z-405: the actions of an installation against the demo sources, which answer as the
 // Zentrale does: only the offered ones, each with a reason, for both roles restart and log excerpt (Z-1204); a log excerpt
@@ -46,9 +45,9 @@ beforeEach(() => {
 });
 afterEach(aufraeumen);
 
-const absenden = async (grund: string) => {
-  eintragen("Grund", grund);
-  flush();
+const absenden = async () => {
+  // Z-1207: no dialog asks for a reason
+  expect(dialog().textContent).not.toContain("Grund");
   dialog().querySelector("form")?.requestSubmit();
   await warten();
 };
@@ -62,12 +61,12 @@ describe("the actions of an installation", () => {
     expect(knopf(root, "Nur lesen")).toBeUndefined();
   });
 
-  it("restarts with a reason, and the job shows", async () => {
+  it("restarts without a reason (Z-1207), and the job shows", async () => {
     const { root } = await oeffne(`/apps/${ohneSperrzeit()}`);
     knopf(root, "Neustart")?.click();
     await warten();
     expect(dialog().textContent).toContain("nie in einer Sperrzeit");
-    await absenden("Health rot seit 10:31");
+    await absenden();
     expect(document.querySelector("dialog[open]")).toBeNull();
     expect(root.textContent).toContain("Neustart");
     expect(root.textContent).toContain("an den Agenten zugestellt");
@@ -77,7 +76,7 @@ describe("the actions of an installation", () => {
     const { root } = await oeffne(`/apps/${ohneSperrzeit()}`);
     knopf(root, "Log-Auszug")?.click();
     await warten();
-    await absenden("Anmeldung langsam");
+    await absenden();
     const zeilen = dialog().querySelector("[data-testid=log-zeilen]")?.textContent ?? "";
     expect(zeilen).toContain("started");
     expect(zeilen).toContain("OIDC_CLIENT_SECRET=[geheim]");

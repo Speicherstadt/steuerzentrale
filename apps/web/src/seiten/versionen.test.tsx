@@ -10,7 +10,7 @@ import { demo } from "../demo/index.ts";
 import { kunden } from "../demo/kunden.ts";
 import { demoKunden } from "../demo/kunden-quelle.ts";
 import { PROBE_MANIFEST } from "../demo/probe-manifest.ts";
-import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
+import { aufraeumen, dialog, feld, knopf, oeffne, warten } from "./test-dom.tsx";
 
 /*
  * BAULISTE.md Z-501 in the interface, against the demo sources: the page Apps with the imported
@@ -90,14 +90,14 @@ describe("the page Apps", () => {
     expect(feld<HTMLSelectElement>("App").value).toBe("belegt");
   });
 
-  it("imports a signed manifest with a reason, and says when it was there already", async () => {
+  it("imports a signed manifest without a reason (Z-1207), and says when it was there already", async () => {
     const { root, router } = await appsSeite();
     knopf(root, "Manifest importieren")?.click();
     await warten();
     const neu = PROBE_MANIFEST.replace("version: 1.0.0", "version: 1.2.0\ndringend: true");
     await hochladen("Manifest (manifest.yml)", neu, "manifest.yml");
     await hochladen("Signatur (manifest.yml.minisig)", "sig", "manifest.yml.minisig");
-    eintragen("Grund", "Release 1.2.0");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();
@@ -115,7 +115,7 @@ describe("the page Apps", () => {
     await warten();
     await hochladen("Manifest (manifest.yml)", `${PROBE_MANIFEST}hinweis: anders\n`, "m.yml");
     await hochladen("Signatur (manifest.yml.minisig)", "sig", "m.yml.minisig");
-    eintragen("Grund", "anders");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();
@@ -196,13 +196,13 @@ describe("the page Updates", () => {
 });
 
 describe("an internal customer", () => {
-  it("is marked by the owner with a reason", async () => {
+  it("is marked by the owner without a reason (Z-1207)", async () => {
     rolle("inhaber");
     const { root } = await oeffne("/kunden/atelier-nord");
     knopf(root, "Als intern markieren")?.click();
     await warten();
     expect(dialog().textContent).toContain("Atelier Nord als intern markieren");
-    eintragen("Grund", "unsere Testinstallation");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();

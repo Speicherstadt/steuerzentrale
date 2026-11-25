@@ -33,18 +33,6 @@ type DialogProps = {
   gespeichert: (kunde: Kunde) => void;
 };
 
-/** The reason every write asks for; it stands in the audit log */
-const GrundFeld = (props: { platzhalter: string }) => (
-  <Input
-    label={m.feld_grund()}
-    name="grund"
-    required
-    maxlength={500}
-    placeholder={props.platzhalter}
-    hint={m.feld_grund_hinweis()}
-  />
-);
-
 /**
  * A form that sends its fields once and reports the Zentrale's answer: an error stays in the
  * dialog, a success hands the customer on
@@ -55,7 +43,7 @@ const Formular = (props: {
   onClose: () => void;
   knopf: string;
   gefahr?: boolean;
-  children: JSX.Element;
+  children?: JSX.Element;
 }) => {
   const [fehler, setFehler] = createSignal("");
   const [laeuft, setLaeuft] = createSignal(false);
@@ -187,17 +175,13 @@ export const KundeAnlegen = (props: DialogProps & { heute: number }) => (
         onClose={() => props.onClose()}
         gespeichert={(k) => props.gespeichert(k)}
         senden={(werte) =>
-          kundenQuelle().anlegen(
-            {
-              ...stammdatenAus(werte),
-              vertrag: { beginn: berlin(werte.beginn ?? "") },
-            },
-            werte.grund ?? "",
-          )
+          kundenQuelle().anlegen({
+            ...stammdatenAus(werte),
+            vertrag: { beginn: berlin(werte.beginn ?? "") },
+          })
         }
       >
         <KundenFelder heute={props.heute} />
-        <GrundFeld platzhalter={m.kunde_grund_anlegen()} />
       </Formular>
     </Show>
   </Dialog>
@@ -217,15 +201,13 @@ export const KundeAendern = (props: DialogProps & { kunde: Kunde }) => (
         onClose={() => props.onClose()}
         gespeichert={(k) => props.gespeichert(k)}
         senden={(werte) =>
-          kundenQuelle().aendern(
-            props.kunde.id,
-            { ...stammdatenAus(werte), beginn: berlin(werte.beginn ?? "") },
-            werte.grund ?? "",
-          )
+          kundenQuelle().aendern(props.kunde.id, {
+            ...stammdatenAus(werte),
+            beginn: berlin(werte.beginn ?? ""),
+          })
         }
       >
         <KundenFelder kunde={props.kunde} heute={props.kunde.vertrag.beginn} />
-        <GrundFeld platzhalter={m.kunde_grund_aendern()} />
       </Formular>
     </Show>
   </Dialog>
@@ -263,12 +245,9 @@ export const KundeKuendigen = (props: DialogProps & { kunde: Kunde }) => (
         gefahr
         onClose={() => props.onClose()}
         gespeichert={(k) => props.gespeichert(k)}
-        senden={(werte) =>
-          kundenQuelle().kuendigen(props.kunde.id, berlin(werte.ende ?? ""), werte.grund ?? "")
-        }
+        senden={(werte) => kundenQuelle().kuendigen(props.kunde.id, berlin(werte.ende ?? ""))}
       >
         <EndeFeld beginn={props.kunde.vertrag.beginn} />
-        <GrundFeld platzhalter={m.kunde_grund_kuendigen()} />
       </Formular>
     </Show>
   </Dialog>
@@ -287,10 +266,8 @@ export const KuendigungZuruecknehmen = (props: DialogProps & { kunde: Kunde; end
         knopf={m.kunde_zuruecknehmen()}
         onClose={() => props.onClose()}
         gespeichert={(k) => props.gespeichert(k)}
-        senden={(werte) => kundenQuelle().zuruecknehmen(props.kunde.id, werte.grund ?? "")}
-      >
-        <GrundFeld platzhalter={m.kunde_grund_zuruecknehmen()} />
-      </Formular>
+        senden={() => kundenQuelle().zuruecknehmen(props.kunde.id)}
+      />
     </Show>
   </Dialog>
 );
@@ -315,12 +292,8 @@ export const KundeIntern = (props: DialogProps & { kunde: Kunde }) => (
         knopf={props.kunde.intern ? m.kunde_intern_aufheben() : m.kunde_intern_markieren()}
         onClose={() => props.onClose()}
         gespeichert={(k) => props.gespeichert(k)}
-        senden={(werte) =>
-          kundenQuelle().intern(props.kunde.id, !props.kunde.intern, werte.grund ?? "")
-        }
-      >
-        <GrundFeld platzhalter={m.kunde_grund_intern()} />
-      </Formular>
+        senden={() => kundenQuelle().intern(props.kunde.id, !props.kunde.intern)}
+      />
     </Show>
   </Dialog>
 );

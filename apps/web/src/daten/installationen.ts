@@ -120,21 +120,16 @@ export type InstallationenQuelle = {
   installation: (id: string) => Promise<Antwort<InstallationMitAuftraegen>>;
   /** Whether the app fits the server; writes nothing, needs no reason */
   platzierung: (wunsch: PlatzWunsch) => Promise<Antwort<Platzierung>>;
-  anlegen: (neu: NeueInstallation, grund: string) => Promise<Antwort<InstallationDerZentrale>>;
+  anlegen: (neu: NeueInstallation) => Promise<Antwort<InstallationDerZentrale>>;
   /** Only an installation whose setup failed (Z-402); answers it with the new removal job */
-  entfernen: (id: string, grund: string) => Promise<Antwort<InstallationMitAuftraegen>>;
+  entfernen: (id: string) => Promise<Antwort<InstallationMitAuftraegen>>;
   /** "Einstellungen ändern" (Z-404); answers the installation with the new job */
   konfigurieren: (
     id: string,
     einstellungen: Record<string, Einstellungswert>,
-    grund: string,
   ) => Promise<Antwort<InstallationMitAuftraegen>>;
   /** Restart, log excerpt or "nur lesen" (Z-405), with a reason; answers the new job */
-  aktion: (
-    id: string,
-    aktion: InstallationsAktion,
-    grund: string,
-  ) => Promise<Antwort<AktionsAuftrag>>;
+  aktion: (id: string, aktion: InstallationsAktion) => Promise<Antwort<AktionsAuftrag>>;
   /** The lines of a log excerpt, once the agent sent them */
   logAuszug: (id: string, auftragId: string) => Promise<Antwort<LogAuszug>>;
 };
@@ -161,17 +156,16 @@ export const apiInstallationen: InstallationenQuelle = {
     });
     return antwort.ok ? { ...antwort, daten: antwort.daten.platzierung } : antwort;
   },
-  anlegen: (neu, grund) => api<InstallationDerZentrale>(PFAD, { body: { ...neu, grund } }),
-  entfernen: (id, grund) =>
-    api<InstallationMitAuftraegen>(pfad(id), { method: "DELETE", body: { grund } }),
-  konfigurieren: (id, einstellungen, grund) =>
+  anlegen: (neu) => api<InstallationDerZentrale>(PFAD, { body: neu }),
+  entfernen: (id) => api<InstallationMitAuftraegen>(pfad(id), { method: "DELETE", body: {} }),
+  konfigurieren: (id, einstellungen) =>
     api<InstallationMitAuftraegen>(`${pfad(id)}/einstellungen`, {
       method: "PUT",
-      body: { einstellungen, grund },
+      body: { einstellungen },
     }),
-  aktion: async (id, aktion, grund) => {
+  aktion: async (id, aktion) => {
     const antwort = await api<{ auftrag: AktionsAuftrag }>(`${pfad(id)}/${AKTIONS_PFAD[aktion]}`, {
-      body: { grund },
+      body: {},
     });
     return antwort.ok ? { ...antwort, daten: antwort.daten.auftrag } : antwort;
   },
@@ -201,10 +195,10 @@ const spaeterDemo = (): InstallationenQuelle => {
     liste: async () => (await laden()).liste(),
     installation: async (id) => (await laden()).installation(id),
     platzierung: async (w) => (await laden()).platzierung(w),
-    anlegen: async (neu, grund) => (await laden()).anlegen(neu, grund),
-    entfernen: async (id, grund) => (await laden()).entfernen(id, grund),
-    konfigurieren: async (id, e, grund) => (await laden()).konfigurieren(id, e, grund),
-    aktion: async (id, a, grund) => (await laden()).aktion(id, a, grund),
+    anlegen: async (neu) => (await laden()).anlegen(neu),
+    entfernen: async (id) => (await laden()).entfernen(id),
+    konfigurieren: async (id, e) => (await laden()).konfigurieren(id, e),
+    aktion: async (id, a) => (await laden()).aktion(id, a),
     logAuszug: async (id, auftragId) => (await laden()).logAuszug(id, auftragId),
   };
 };

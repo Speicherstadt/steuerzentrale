@@ -11,7 +11,7 @@ test.use({ locale: "de-DE" });
 // tab "Technik", the button in the head, the event in "Verlauf". The agent's own side (`systemctl reboot`, the boot
 // id) is tested in apps/agent, the real reboot in an Incus VM in CI (job `server`).
 test.describe("the reboot of a server", { tag: "@phone" }, () => {
-  test("shows the operating system and reboots by hand with a reason", async ({ page }) => {
+  test("shows the operating system and reboots by hand without a reason", async ({ page }) => {
     const agent = await agentVerbinden(page.request, "Neustart");
     try {
       await page.goto(`/server/${agent.serverId}?tab=technik`);
@@ -28,7 +28,7 @@ test.describe("the reboot of a server", { tag: "@phone" }, () => {
       await page.getByRole("main").getByRole("button", { name: "Neu starten" }).click();
       const dialog = page.getByRole("dialog", { name: "Neu starten" });
       await expect(dialog).toContainText("vorher sichert die Zentrale jede laufende Installation");
-      await dialog.getByLabel("Grund").fill("Kernel-Update, Kunden informiert");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       expect((await new AxeBuilder({ page }).include("dialog").analyze()).violations).toEqual([]);
       await dialog.getByRole("button", { name: "Neu starten" }).click();
       await expect(dialog).toBeHidden();

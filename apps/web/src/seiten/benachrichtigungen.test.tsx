@@ -37,7 +37,7 @@ const tab = async () => {
 };
 
 describe("mail server and quiet hours", () => {
-  it("are saved with a reason; the password shows only as set and its field stays empty", async () => {
+  it("are saved without a reason (Z-1207); the password shows only as set and its field stays empty", async () => {
     const root = await tab();
     const k = karte(root, "Benachrichtigungen");
     expect(feld<HTMLInputElement>("SMTP-Server", k).value).toBe("smtp.beispiel-hosting.de");
@@ -47,7 +47,7 @@ describe("mail server and quiet hours", () => {
     eintragen("Passwort", "neues-passwort-4711", k);
     eintragen("Ruhezeit von", "", k);
     eintragen("Ruhezeit bis", "", k);
-    eintragen("Grund", "neuer Mailserver", k);
+    expect(k.textContent).not.toContain("Grund");
     flush();
     k.querySelector("form")?.requestSubmit();
     await warten();
@@ -98,7 +98,7 @@ describe("recipients", () => {
     await warten();
     expect(feld<HTMLInputElement>("Signierschlüssel").value).not.toBe(schluessel);
     eintragen("URL des Webhooks", "https://hooks.portal.example/zentrale/geheim");
-    eintragen("Grund", "Portal");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();
@@ -128,7 +128,7 @@ describe("recipients", () => {
     expect(root.textContent).not.toContain("tk_geheim0123");
   });
 
-  it("get a test message and are removed with a reason", async () => {
+  it("get a test message and are removed without a reason (Z-1207)", async () => {
     const root = await tab();
     const test = root.querySelector<HTMLButtonElement>(
       '[aria-label="Test senden an betrieb@beispiel-hosting.de"]',
@@ -143,7 +143,7 @@ describe("recipients", () => {
     expect(dialog().textContent).toContain(
       "betrieb@beispiel-hosting.de bekommt keine Nachrichten mehr",
     );
-    eintragen("Grund", "Postfach aufgelöst");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();

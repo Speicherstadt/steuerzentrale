@@ -37,14 +37,14 @@ export type ArchivLinks = { gueltigBis: number; links: (ArchivDatei & { url: str
 
 export type AbwicklungQuelle = {
   lesen: (id: string) => Promise<Antwort<Abwicklung>>;
-  link: (id: string, grund: string) => Promise<Antwort<ArchivLinks>>;
+  link: (id: string) => Promise<Antwort<ArchivLinks>>;
 };
 
 const pfad = (id: string) => `/api/v1/installationen/${encodeURIComponent(id)}`;
 
 export const apiAbwicklung: AbwicklungQuelle = {
   lesen: (id) => api<Abwicklung>(`${pfad(id)}/abwicklung`),
-  link: (id, grund) => api<ArchivLinks>(`${pfad(id)}/archiv-link`, { body: { grund } }),
+  link: (id) => api<ArchivLinks>(`${pfad(id)}/archiv-link`, { body: {} }),
 };
 
 let quelle: AbwicklungQuelle = demoAbwicklung();

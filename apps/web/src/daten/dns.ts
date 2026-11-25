@@ -19,13 +19,12 @@ export type DnsAenderung = { domain: string; zoneId: string; token?: string };
 
 export type DnsQuelle = {
   lesen: () => Promise<Antwort<DnsEinstellungen>>;
-  setzen: (neu: DnsAenderung, grund: string) => Promise<Antwort<DnsEinstellungen>>;
+  setzen: (neu: DnsAenderung) => Promise<Antwort<DnsEinstellungen>>;
 };
 
 export const apiDns: DnsQuelle = {
   lesen: () => api<DnsEinstellungen>("/api/v1/dns"),
-  setzen: (neu, grund) =>
-    api<DnsEinstellungen>("/api/v1/dns", { method: "PUT", body: { ...neu, grund } }),
+  setzen: (neu) => api<DnsEinstellungen>("/api/v1/dns", { method: "PUT", body: neu }),
 };
 
 let quelle: DnsQuelle = demoDns();

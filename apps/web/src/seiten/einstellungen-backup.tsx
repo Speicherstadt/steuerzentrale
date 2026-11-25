@@ -64,10 +64,12 @@ const Formular = (props: { z: BackupZiel; gespeichert: () => void }) => {
     const w = felder(event);
     setLaeuft(true);
     const zugang = w.access && w.secret ? { accessKey: w.access, secretKey: w.secret } : {};
-    const antwort = await backupQuelle().zielSetzen(
-      { endpunkt: w.endpunkt ?? "", region: w.region ?? "", bucket: w.bucket ?? "", ...zugang },
-      w.grund ?? "",
-    );
+    const antwort = await backupQuelle().zielSetzen({
+      endpunkt: w.endpunkt ?? "",
+      region: w.region ?? "",
+      bucket: w.bucket ?? "",
+      ...zugang,
+    });
     setLaeuft(false);
     setFehler(fehlerText(antwort));
     if (!antwort.ok) return;
@@ -120,14 +122,6 @@ const Formular = (props: { z: BackupZiel; gespeichert: () => void }) => {
         type="password"
         autocomplete="off"
         required={!props.z.zugangGesetzt}
-      />
-      <Input
-        label={m.feld_grund()}
-        name="grund"
-        required
-        maxlength={500}
-        placeholder={m.einst_backup_grund_platzhalter()}
-        hint={m.feld_grund_hinweis()}
       />
       <Fehler text={fehler()} />
       <div class="flex justify-end">

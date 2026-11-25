@@ -32,7 +32,7 @@ test.describe("notifications", () => {
       await versand.getByLabel("Absender").fill("zentrale@betreiber.test");
       await versand.getByLabel("Ruhezeit von").fill("22:00");
       await versand.getByLabel("Ruhezeit bis").fill("07:00");
-      await versand.getByLabel("Grund").fill("Mailserver eingerichtet");
+      await expect(versand.getByLabel("Grund")).toHaveCount(0);
       await versand.getByRole("button", { name: "Speichern" }).click();
       await expect(page.getByText("Benachrichtigungen gespeichert.")).toBeVisible();
 
@@ -40,7 +40,7 @@ test.describe("notifications", () => {
       const dialog = page.getByRole("dialog", { name: "Empfänger hinzufügen" });
       await dialog.getByLabel("Empfänger", { exact: true }).fill(adresse);
       await dialog.getByLabel("Ab Schwere").selectOption("fehler");
-      await dialog.getByLabel("Grund").fill("Bereitschaft per Mail");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Empfänger hinzufügen" }).click();
       await expect(dialog).toBeHidden();
@@ -56,7 +56,7 @@ test.describe("notifications", () => {
       const schluessel = await dialog.getByLabel("Signierschlüssel").inputValue();
       expect(schluessel).toMatch(/^[A-Za-z0-9_-]{43}$/);
       await dialog.getByLabel("URL des Webhooks").fill("https://hooks.e2e.example/geheimer-pfad");
-      await dialog.getByLabel("Grund").fill("Portal");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await dialog.getByRole("button", { name: "Empfänger hinzufügen" }).click();
       await expect(dialog).toBeHidden();
       await expect(page.getByText("https://hooks.e2e.example").first()).toBeVisible();
@@ -68,7 +68,7 @@ test.describe("notifications", () => {
 
       await page.getByRole("button", { name: `${adresse} entfernen` }).click();
       const weg = page.getByRole("dialog", { name: "Empfänger entfernen" });
-      await weg.getByLabel("Grund").fill("Postfach aufgelöst");
+      await expect(weg.getByLabel("Grund")).toHaveCount(0);
       await weg.getByRole("button", { name: "Entfernen" }).click();
       await expect(weg).toBeHidden();
       await expect(page.getByText("Empfänger entfernt.")).toBeVisible();

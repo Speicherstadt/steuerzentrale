@@ -24,7 +24,7 @@ test.describe("customers", { tag: "@phone" }, () => {
     await anlegen.getByLabel("E-Mail-Adresse").fill("mia@muster-design.test");
     await anlegen.getByLabel("Telefon").fill("+49 40 5550199");
     await anlegen.getByLabel("Vertragsbeginn").fill("2026-12-01");
-    await anlegen.getByLabel("Grund").fill("Vertrag vom 20.11.");
+    await expect(anlegen.getByLabel("Grund")).toHaveCount(0);
     await anlegen.getByRole("button", { name: "Anlegen" }).click();
     await expect(page).toHaveURL(/\/kunden\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
@@ -36,17 +36,27 @@ test.describe("customers", { tag: "@phone" }, () => {
     const aendern = page.getByRole("dialog", { name: `${name} ändern` });
     await expect(aendern.getByLabel("Ansprechperson")).toHaveValue("Mia Muster");
     await aendern.getByLabel("Ansprechperson").fill("Max Muster");
-    await aendern.getByLabel("Grund").fill("neue Ansprechperson");
+    await expect(aendern.getByLabel("Grund")).toHaveCount(0);
     await aendern.getByRole("button", { name: "Speichern" }).click();
     await expect(aendern).toBeHidden();
     await expect(page.getByText("Max Muster")).toBeVisible();
 
+    const kuendigen = page.getByRole("dialog", { name: `${name} kündigen` });
+    // Z-1207: without the confirmation nothing happens
     await page.getByRole("button", { name: "Mehr …" }).click();
     await page.getByRole("menuitem", { name: "Kündigen …" }).click();
-    const kuendigen = page.getByRole("dialog", { name: `${name} kündigen` });
+    await kuendigen.getByLabel("Vertragsende").fill("2027-01-31");
+    await kuendigen.getByRole("button", { name: "Abbrechen" }).click();
+    await expect(kuendigen).toBeHidden();
+    await page.reload();
+    await expect(page.getByText("ungekündigt").first()).toBeVisible();
+    await expect(page.getByText(/Gekündigt zum/)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Mehr …" }).click();
+    await page.getByRole("menuitem", { name: "Kündigen …" }).click();
     await kuendigen.getByLabel("Vertragsende").fill("2027-01-31");
     await expect(kuendigen.getByText("Löschung am 01.05.2027")).toBeVisible();
-    await kuendigen.getByLabel("Grund").fill("Kündigung per Mail vom 20.11.");
+    await expect(kuendigen.getByLabel("Grund")).toHaveCount(0);
     await ohneBefund(page);
     await kuendigen.getByRole("button", { name: "Kündigung eintragen" }).click();
     await expect(kuendigen).toBeHidden();
@@ -63,7 +73,7 @@ test.describe("customers", { tag: "@phone" }, () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
   });
 
-  test("take a notice back with a reason", async ({ page }, info) => {
+  test("take a notice back without a reason", async ({ page }, info) => {
     const name = `Café ${info.project.name} ${randomUUID().slice(0, 8)}`;
     const antwort = await page.request.post("/api/v1/kunden", {
       data: {
@@ -82,7 +92,7 @@ test.describe("customers", { tag: "@phone" }, () => {
     await page.getByRole("button", { name: "Kündigung zurücknehmen" }).click();
     const dialog = page.getByRole("dialog", { name: `Kündigung von ${name} zurücknehmen` });
     await expect(dialog.getByText("die Löschung am 28.02.2027 entfällt")).toBeVisible();
-    await dialog.getByLabel("Grund").fill("Kunde bleibt, Mail vom 20.11.");
+    await expect(dialog.getByLabel("Grund")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Kündigung zurücknehmen" }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByText("Gekündigt zum")).toHaveCount(0);

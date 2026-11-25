@@ -1,4 +1,4 @@
-import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
+import { Button, Dialog, Icon, m } from "@steuerzentrale/ui";
 import { CalendarX } from "@steuerzentrale/ui/icons";
 import { createMemo, createSignal, For, Loading, refresh, Show } from "solid-js";
 import type { Fehlschlag } from "../anmeldung/api.ts";
@@ -12,7 +12,7 @@ import { type InstallationAnsicht, titelVon } from "../daten/installation-ansich
 import { speicher } from "../format/zahl.ts";
 import { datum, zeitpunkt } from "../format/zeit.ts";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
-import { Fehler, fehlerText, felder } from "./anmeldung-teile.tsx";
+import { Fehler, fehlerText } from "./anmeldung-teile.tsx";
 import { installationsRecht } from "./recht.tsx";
 
 /*
@@ -72,9 +72,9 @@ const LinkDialog = (props: {
   const [fehler, setFehler] = createSignal("");
   const [laeuft, setLaeuft] = createSignal(false);
   const senden = async (event: SubmitEvent) => {
-    const werte = felder(event);
+    event.preventDefault();
     setLaeuft(true);
-    const antwort = await abwicklungQuelle().link(props.a.id, werte.grund ?? "");
+    const antwort = await abwicklungQuelle().link(props.a.id);
     setLaeuft(false);
     if (!antwort.ok) return setFehler(fehlerVon(antwort));
     setFehler("");
@@ -89,14 +89,6 @@ const LinkDialog = (props: {
     >
       <Show when={props.open}>
         <form class="grid gap-4" onSubmit={senden}>
-          <Input
-            label={m.feld_grund()}
-            name="grund"
-            required
-            maxlength={500}
-            placeholder={m.abw_link_grund_platzhalter()}
-            hint={m.feld_grund_hinweis()}
-          />
           <Fehler text={fehler()} />
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button onClick={() => props.onClose()}>{m.knopf_abbrechen()}</Button>

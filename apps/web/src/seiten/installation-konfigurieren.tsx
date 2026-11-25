@@ -1,4 +1,4 @@
-import { Button, Dialog, Input, m } from "@steuerzentrale/ui";
+import { Button, Dialog, m } from "@steuerzentrale/ui";
 import { createSignal, Show } from "solid-js";
 import { einstellungenAus } from "../daten/einstellungs-formular.ts";
 import { type InstallationAnsicht, titelVon } from "../daten/installation-ansicht.ts";
@@ -32,7 +32,6 @@ export const KonfigurierenDialog = (props: {
     const antwort = await installationenQuelle().konfigurieren(
       props.a.id,
       einstellungenAus(props.a.formular.felder, werte, { aendern: true }),
-      werte.grund ?? "",
     );
     setLaeuft(false);
     if (!antwort.ok) return setFehler(installationsFehler(antwort));
@@ -52,14 +51,6 @@ export const KonfigurierenDialog = (props: {
             titel={m.installieren_einstellungen()}
             text={m.inst_konfigurieren_felder_text()}
             bestand={{ werte: props.a.werte, gesetzt: props.a.formular.gesetzt }}
-          />
-          <Input
-            label={m.feld_grund()}
-            name="grund"
-            required
-            maxlength={500}
-            placeholder={m.inst_konfigurieren_grund_platzhalter()}
-            hint={m.feld_grund_hinweis()}
           />
           <Fehler text={fehler()} />
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

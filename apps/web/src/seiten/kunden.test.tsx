@@ -52,6 +52,8 @@ const knopf = (root: HTMLElement, text: string) => {
 const ausfuellen = async (root: HTMLElement, werte: Record<string, string>) => {
   const dialog = root.querySelector<HTMLDialogElement>("dialog[open]");
   if (!dialog) throw new Error("no open dialog");
+  // Z-1207: no dialog asks for a reason
+  expect(dialog.textContent).not.toContain("Grund");
   for (const [label, wert] of Object.entries(werte)) {
     const marke = [...dialog.querySelectorAll("label")].find((l) => l.textContent === label);
     const feld = dialog.querySelector<HTMLInputElement>(`#${CSS.escape(marke?.htmlFor ?? "")}`);
@@ -76,7 +78,6 @@ describe("the customer pages", () => {
       Ansprechperson: "Mia Muster",
       "E-Mail-Adresse": "mia@muster.test",
       Vertragsbeginn: "2026-12-01",
-      Grund: "Vertrag vom 20.11.",
     });
     expect(router.state.location.pathname).toMatch(/^\/kunden\/[\w-]+$/);
     expect(ueberschrift(root)).toBe("Muster Design");
@@ -97,7 +98,7 @@ describe("the customer pages", () => {
     const { root } = await oeffne("/kunden/atelier-nord");
     knopf(root, "Ändern").click();
     flush();
-    await ausfuellen(root, { "Name des Kunden": "Atelier Nord GmbH", Grund: "Umfirmierung" });
+    await ausfuellen(root, { "Name des Kunden": "Atelier Nord GmbH" });
     expect(ueberschrift(root)).toBe("Atelier Nord GmbH");
     expect(root.querySelector("dialog[open]")).toBeNull();
   });
@@ -106,22 +107,43 @@ describe("the customer pages", () => {
     const { root } = await oeffne("/kunden/atelier-nord");
     menuePunkt(root, "Kündigen …")?.click();
     flush();
-    await ausfuellen(root, { Vertragsende: "2026-11-30", Grund: "Mail vom 18.11." });
+    await ausfuellen(root, { Vertragsende: "2026-11-30" });
     expect(root.textContent).toContain("Gekündigt zum 30.11.2026");
     expect(root.textContent).toContain("Löschung am 28.02.2027");
     knopf(root, "Kündigung zurücknehmen").click();
     flush();
-    await ausfuellen(root, { Grund: "Kunde bleibt" });
+    await ausfuellen(root, {});
     expect(root.textContent).not.toContain("Gekündigt zum");
     expect(root.textContent).toContain("ungekündigt");
     expect(menuePunkt(root, "Kündigen …")).toBeDefined();
+  });
+
+  it("give no notice without the confirmation (Z-1207)", async () => {
+    const { root } = await oeffne("/kunden/atelier-nord");
+    menuePunkt(root, "Kündigen …")?.click();
+    flush();
+    const offen = root.querySelector<HTMLDialogElement>("dialog[open]");
+    if (!offen) throw new Error("no open dialog");
+    const marke = [...offen.querySelectorAll("label")].find(
+      (l) => l.textContent === "Vertragsende",
+    );
+    const ende = offen.querySelector<HTMLInputElement>(`#${CSS.escape(marke?.htmlFor ?? "")}`);
+    if (!ende) throw new Error("no field Vertragsende");
+    ende.value = "2026-11-30";
+    ende.dispatchEvent(new Event("input", { bubbles: true }));
+    flush();
+    knopf(offen, "Abbrechen").click();
+    await warten();
+    expect(root.querySelector("dialog[open]")).toBeNull();
+    expect(root.textContent).not.toContain("Gekündigt zum");
+    expect(root.textContent).toContain("ungekündigt");
   });
 
   it("keep the dialog open with the Zentrale's error", async () => {
     const { root } = await oeffne("/kunden/atelier-nord");
     menuePunkt(root, "Kündigen …")?.click();
     flush();
-    await ausfuellen(root, { Vertragsende: "2020-01-01", Grund: "zu früh" });
+    await ausfuellen(root, { Vertragsende: "2020-01-01" });
     expect(root.querySelector("dialog[open] [role=alert]")?.textContent).toBe(
       "Das Vertragsende liegt vor dem Vertragsbeginn.",
     );
@@ -156,12 +178,11 @@ describe("a customer's short name (Z-407)", () => {
       Ansprechperson: "Mia Muster",
       "E-Mail-Adresse": "mia@muster.test",
       Vertragsbeginn: "2026-12-01",
-      Grund: "Vertrag vom 20.11.",
     });
     expect(root.textContent).toContain("Kürzelmueller-soehne");
     knopf(root, "Ändern").click();
     flush();
-    await ausfuellen(root, { Kürzel: "atelier-nord", Grund: "anderes Kürzel" });
+    await ausfuellen(root, { Kürzel: "atelier-nord" });
     expect(root.querySelector("dialog[open] [role=alert]")?.textContent).toBe(
       "Dieses Kürzel hat schon ein anderer Kunde.",
     );

@@ -7,7 +7,7 @@ import type { Rolle } from "../daten/typen.ts";
 import { planText, updateText } from "../daten/update-texte.ts";
 import { demoAppsQuelle } from "../demo/apps-quelle.ts";
 import { demo } from "../demo/index.ts";
-import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
+import { aufraeumen, dialog, feld, knopf, oeffne, warten } from "./test-dom.tsx";
 
 /*
  * BAULISTE.md Z-503 in the interface, against the demo source: an update by hand on the page
@@ -39,7 +39,7 @@ const zeilen = (root: HTMLElement) =>
   );
 
 describe("an update by hand", () => {
-  it("asks for version and reason, backs up first, and shows it under way", async () => {
+  it("asks for the version, no reason (Z-1207), backs up first, and shows it under way", async () => {
     const { root } = await oeffne("/updates");
     const vorher = zeile(root, "roth-haben");
     expect(vorher?.textContent).toContain("Update verfügbar");
@@ -51,7 +51,7 @@ describe("an update by hand", () => {
       "Vorher wird der Ist-Zustand gesichert",
     );
     expect(feld<HTMLSelectElement>("Version").value).toBe("0.12.0");
-    eintragen("Grund", "Fehlerbehebung laut Hersteller");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();
@@ -70,19 +70,19 @@ describe("an update by hand", () => {
     expect(knopf(root, "Manifest importieren")).toBeUndefined();
   });
 
-  it("sends version and reason to the Zentrale", async () => {
+  it("sends the version, no reason, to the Zentrale (Z-1207)", async () => {
     const anfragen: { pfad: string; body: unknown }[] = [];
     vi.stubGlobal("fetch", async (pfad: string, init?: RequestInit) => {
       anfragen.push({ pfad, body: JSON.parse(String(init?.body ?? "null")) });
       return Response.json({ backup: {}, update: {} }, { status: 201 });
     });
     appsQuelleEinsetzen(apiApps);
-    const r = await apiApps.update("probe-ab12cd", "1.3.0", "Wunsch des Kunden");
+    const r = await apiApps.update("probe-ab12cd", "1.3.0");
     expect(r.ok).toBe(true);
     expect(anfragen).toEqual([
       {
         pfad: "/api/v1/installationen/probe-ab12cd/update",
-        body: { version: "1.3.0", grund: "Wunsch des Kunden" },
+        body: { version: "1.3.0" },
       },
     ]);
   });

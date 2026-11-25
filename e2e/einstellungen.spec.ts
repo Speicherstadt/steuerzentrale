@@ -71,7 +71,7 @@ test.describe("settings", { tag: "@phone" }, () => {
       await dialog.getByLabel("PROBE_LIZENZ").fill("lizenz-aus-dem-dialog");
       await dialog.getByLabel("PROBE_KENNWORT").fill("kennwort-der-installation");
       await dialog.getByLabel("Adresse").fill(neuerHost());
-      await dialog.getByLabel("Grund").fill("erste Installation");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Installieren" }).click();
       await expect(dialog).toBeHidden();
@@ -96,7 +96,7 @@ test.describe("settings", { tag: "@phone" }, () => {
     }
   });
 
-  test("configures a running installation anew with a reason", async ({ page }) => {
+  test("configures a running installation anew without a reason", async ({ page }) => {
     const i = await installationAnlegen(page.request, neuerHost("laeuft"));
     try {
       await expect
@@ -111,7 +111,7 @@ test.describe("settings", { tag: "@phone" }, () => {
       const dialog = page.getByRole("dialog", { name: /^Einstellungen von .* ändern$/ });
       await expect(dialog.getByLabel("PROBE_KENNWORT")).toHaveValue("");
       await dialog.getByLabel("PROBE_TITEL").fill("Kanzlei Ost");
-      await dialog.getByLabel("Grund").fill("Wunsch des Kunden per Mail");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Neu konfigurieren" }).click();
       await expect(dialog).toBeHidden();

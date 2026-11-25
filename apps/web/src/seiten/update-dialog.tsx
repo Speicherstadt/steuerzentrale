@@ -1,4 +1,4 @@
-import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
+import { Button, Dialog, Icon, m } from "@steuerzentrale/ui";
 import { TriangleAlert } from "@steuerzentrale/ui/icons";
 import { createSignal, createUniqueId, For, Show } from "solid-js";
 import type { Fehlschlag } from "../anmeldung/api.ts";
@@ -81,11 +81,7 @@ export const UpdateDialog = (props: {
     const i = props.i;
     if (!i) return;
     setLaeuft(true);
-    const antwort = await appsQuelle().update(
-      i.installationId,
-      werte.version ?? "",
-      werte.grund ?? "",
-    );
+    const antwort = await appsQuelle().update(i.installationId, werte.version ?? "");
     setLaeuft(false);
     if (!antwort.ok) return setFehler(fehlerVon(antwort));
     setFehler("");
@@ -106,14 +102,6 @@ export const UpdateDialog = (props: {
           <form class="grid gap-4" onSubmit={senden}>
             <Hinweis />
             <VersionsWahl angeboten={i().angeboten} />
-            <Input
-              label={m.feld_grund()}
-              name="grund"
-              required
-              maxlength={500}
-              placeholder={m.upd_grund_platzhalter()}
-              hint={m.feld_grund_hinweis()}
-            />
             <Fehler text={fehler()} />
             <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button onClick={schliessen}>{m.knopf_abbrechen()}</Button>

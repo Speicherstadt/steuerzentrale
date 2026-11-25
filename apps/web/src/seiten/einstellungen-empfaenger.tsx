@@ -81,17 +81,6 @@ const Wahl = (props: {
   );
 };
 
-const GrundFeld = (props: { platzhalter: string }) => (
-  <Input
-    label={m.feld_grund()}
-    name="grund"
-    required
-    maxlength={500}
-    placeholder={props.platzhalter}
-    hint={m.feld_grund_hinweis()}
-  />
-);
-
 const Knoepfe = (props: {
   onClose: () => void;
   knopf: string;
@@ -174,10 +163,7 @@ const HinzufuegenFormular = (props: { onClose: () => void; angelegt: () => void 
   const senden = async (event: SubmitEvent) => {
     const w = felder(event);
     setLaeuft(true);
-    const antwort = await benachrichtigungsQuelle().anlegen(
-      neuerEmpfaenger(art(), w),
-      w.grund ?? "",
-    );
+    const antwort = await benachrichtigungsQuelle().anlegen(neuerEmpfaenger(art(), w));
     setLaeuft(false);
     if (!antwort.ok) return setFehler(fehlerVon(antwort.fehler));
     props.angelegt();
@@ -217,9 +203,6 @@ const HinzufuegenFormular = (props: { onClose: () => void; angelegt: () => void 
         text={(w) => SCHWERE[w as Schwere]()}
         wert="warn"
       />
-      <Show when={art() !== "ntfy"}>
-        <GrundFeld platzhalter={m.melden_anlegen_platzhalter()} />
-      </Show>
       <Fehler text={fehler()} />
       <Knoepfe onClose={props.onClose} knopf={m.melden_hinzufuegen()} laeuft={laeuft()} />
     </form>
@@ -230,16 +213,15 @@ const EntfernenFormular = (props: { r: Empfaenger; onClose: () => void; entfernt
   const [fehler, setFehler] = createSignal("");
   const [laeuft, setLaeuft] = createSignal(false);
   const senden = async (event: SubmitEvent) => {
-    const w = felder(event);
+    event.preventDefault();
     setLaeuft(true);
-    const antwort = await benachrichtigungsQuelle().entfernen(props.r.empfaengerId, w.grund ?? "");
+    const antwort = await benachrichtigungsQuelle().entfernen(props.r.empfaengerId);
     setLaeuft(false);
     if (!antwort.ok) return setFehler(fehlerVon(antwort.fehler));
     props.entfernt();
   };
   return (
     <form class="grid gap-4" onSubmit={senden}>
-      <GrundFeld platzhalter={m.melden_entfernen_platzhalter()} />
       <Fehler text={fehler()} />
       <Knoepfe onClose={props.onClose} knopf={m.melden_entfernen()} gefahr laeuft={laeuft()} />
     </form>

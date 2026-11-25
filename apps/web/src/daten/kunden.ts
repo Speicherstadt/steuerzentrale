@@ -24,14 +24,14 @@ export type KundeAenderung = Stammdaten & { beginn: number };
 export type KundenQuelle = {
   liste: () => Promise<Antwort<Kunde[]>>;
   kunde: (id: string) => Promise<Antwort<Kunde>>;
-  anlegen: (neu: KundeNeu, grund: string) => Promise<Antwort<Kunde>>;
-  aendern: (id: string, daten: KundeAenderung, grund: string) => Promise<Antwort<Kunde>>;
+  anlegen: (neu: KundeNeu) => Promise<Antwort<Kunde>>;
+  aendern: (id: string, daten: KundeAenderung) => Promise<Antwort<Kunde>>;
   /** Sets the day the contract ends: the customer gave notice */
-  kuendigen: (id: string, ende: number, grund: string) => Promise<Antwort<Kunde>>;
+  kuendigen: (id: string, ende: number) => Promise<Antwort<Kunde>>;
   /** Takes the notice back: the contract runs on */
-  zuruecknehmen: (id: string, grund: string) => Promise<Antwort<Kunde>>;
+  zuruecknehmen: (id: string) => Promise<Antwort<Kunde>>;
   /** Marks the customer as our own or takes it back (Z-501); only the owner */
-  intern: (id: string, intern: boolean, grund: string) => Promise<Antwort<Kunde>>;
+  intern: (id: string, intern: boolean) => Promise<Antwort<Kunde>>;
 };
 
 const pfad = (id: string) => `/api/v1/kunden/${encodeURIComponent(id)}`;
@@ -42,14 +42,11 @@ export const apiKunden: KundenQuelle = {
     return antwort.ok ? { ...antwort, daten: antwort.daten.kunden } : antwort;
   },
   kunde: (id) => api<Kunde>(pfad(id)),
-  anlegen: (neu, grund) => api<Kunde>("/api/v1/kunden", { body: { ...neu, grund } }),
-  aendern: (id, daten, grund) => api<Kunde>(pfad(id), { method: "PUT", body: { ...daten, grund } }),
-  kuendigen: (id, ende, grund) =>
-    api<Kunde>(`${pfad(id)}/kuendigung`, { method: "PUT", body: { ende, grund } }),
-  zuruecknehmen: (id, grund) =>
-    api<Kunde>(`${pfad(id)}/kuendigung`, { method: "DELETE", body: { grund } }),
-  intern: (id, intern, grund) =>
-    api<Kunde>(`${pfad(id)}/intern`, { method: "PUT", body: { intern, grund } }),
+  anlegen: (neu) => api<Kunde>("/api/v1/kunden", { body: neu }),
+  aendern: (id, daten) => api<Kunde>(pfad(id), { method: "PUT", body: daten }),
+  kuendigen: (id, ende) => api<Kunde>(`${pfad(id)}/kuendigung`, { method: "PUT", body: { ende } }),
+  zuruecknehmen: (id) => api<Kunde>(`${pfad(id)}/kuendigung`, { method: "DELETE", body: {} }),
+  intern: (id, intern) => api<Kunde>(`${pfad(id)}/intern`, { method: "PUT", body: { intern } }),
 };
 
 let quelle: KundenQuelle = demoKunden(kunden, Date.now);

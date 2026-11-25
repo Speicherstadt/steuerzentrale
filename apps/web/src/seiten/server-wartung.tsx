@@ -1,4 +1,4 @@
-import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
+import { Button, Dialog, Icon, m } from "@steuerzentrale/ui";
 import { Power } from "@steuerzentrale/ui/icons";
 import { createSignal, Show } from "solid-js";
 import { sperrzeitAktiv, sperrzeitenDer } from "../daten/ableitungen.ts";
@@ -7,7 +7,7 @@ import type { ServerAnsicht } from "../daten/server-ansicht.ts";
 import type { Bestand } from "../daten/typen.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
-import { Fehler, felder } from "./anmeldung-teile.tsx";
+import { Fehler } from "./anmeldung-teile.tsx";
 import {
   letzterText,
   neustartFehler,
@@ -83,9 +83,9 @@ const NeustartDialog = (props: {
   const [fehler, setFehler] = createSignal("");
   const [laeuft, setLaeuft] = createSignal(false);
   const senden = async (event: SubmitEvent) => {
-    const werte = felder(event);
+    event.preventDefault();
     setLaeuft(true);
-    const antwort = await serverQuelle().neustart(props.a.id, werte.grund ?? "");
+    const antwort = await serverQuelle().neustart(props.a.id);
     setLaeuft(false);
     if (!antwort.ok) return setFehler(neustartFehler(antwort));
     setFehler("");
@@ -100,14 +100,6 @@ const NeustartDialog = (props: {
     >
       <Show when={props.open}>
         <form class="grid gap-4" onSubmit={senden}>
-          <Input
-            label={m.feld_grund()}
-            name="grund"
-            required
-            maxlength={500}
-            placeholder={m.server_neustart_grund_platzhalter()}
-            hint={m.feld_grund_hinweis()}
-          />
           <Fehler text={fehler()} />
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button onClick={() => props.onClose()}>{m.knopf_abbrechen()}</Button>

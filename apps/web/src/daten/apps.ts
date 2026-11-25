@@ -124,20 +124,13 @@ export type AppsQuelle = {
   liste: () => Promise<Antwort<AppDerZentrale[]>>;
   manifest: (app: string, version: string) => Promise<Antwort<ManifestDerZentrale>>;
   /** The owner, with a reason: the manifest's exact text and its .minisig */
-  importieren: (
-    eingabe: { manifest: string; signatur: string },
-    grund: string,
-  ) => Promise<Antwort<ImportAntwort>>;
+  importieren: (eingabe: { manifest: string; signatur: string }) => Promise<Antwort<ImportAntwort>>;
   /** "Registry abfragen": answers once every registry answered */
   abfragen: () => Promise<Antwort<AppDerZentrale[]>>;
   /** What each installation of the operator is offered, its plan and its last update */
   angebote: () => Promise<Antwort<InstallationsAngebot[]>>;
   /** The owner, with a reason: an update to a version the installation is offered (Z-503) */
-  update: (
-    installationId: string,
-    version: string,
-    grund: string,
-  ) => Promise<Antwort<UpdateAngefordert>>;
+  update: (installationId: string, version: string) => Promise<Antwort<UpdateAngefordert>>;
 };
 
 const appsAus = (a: Antwort<{ apps: AppDerZentrale[] }>): Antwort<AppDerZentrale[]> =>
@@ -149,17 +142,16 @@ export const apiApps: AppsQuelle = {
     api<ManifestDerZentrale>(
       `/api/v1/manifeste/${encodeURIComponent(app)}/${encodeURIComponent(version)}`,
     ),
-  importieren: (eingabe, grund) =>
-    api<ImportAntwort>("/api/v1/manifeste", { body: { ...eingabe, grund } }),
+  importieren: (eingabe) => api<ImportAntwort>("/api/v1/manifeste", { body: eingabe }),
   abfragen: async () =>
     appsAus(await api<{ apps: AppDerZentrale[] }>("/api/v1/versionen/abfragen", { body: {} })),
   angebote: async () => {
     const a = await api<{ installationen: InstallationsAngebot[] }>("/api/v1/updates");
     return a.ok ? { ...a, daten: a.daten.installationen } : a;
   },
-  update: (installationId, version, grund) =>
+  update: (installationId, version) =>
     api<UpdateAngefordert>(`/api/v1/installationen/${encodeURIComponent(installationId)}/update`, {
-      body: { version, grund },
+      body: { version },
     }),
 };
 
@@ -173,10 +165,10 @@ const spaeterDemo = (): AppsQuelle => {
   return {
     liste: async () => (await laden()).liste(),
     manifest: async (app, version) => (await laden()).manifest(app, version),
-    importieren: async (e, grund) => (await laden()).importieren(e, grund),
+    importieren: async (e) => (await laden()).importieren(e),
     abfragen: async () => (await laden()).abfragen(),
     angebote: async () => (await laden()).angebote(),
-    update: async (id, version, grund) => (await laden()).update(id, version, grund),
+    update: async (id, version) => (await laden()).update(id, version),
   };
 };
 

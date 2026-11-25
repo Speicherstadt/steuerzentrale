@@ -25,7 +25,7 @@ const zeile = (root: HTMLElement, text: string) =>
 const GESTOERT = "Schreibzeug bei IT Berger ist gestört";
 
 describe("the rows of Zu tun", () => {
-  it("offer log and restart of a broken app to the owner, through the dialog with a reason", async () => {
+  it("offer log and restart of a broken app to the owner, through the dialog, without a reason (Z-1207)", async () => {
     rolle("inhaber");
     const { root } = await oeffne("/");
     await warten();
@@ -33,7 +33,8 @@ describe("the rows of Zu tun", () => {
     expect(knopf(z, "Log ansehen")).toBeDefined();
     knopf(z, "Neustart")?.click();
     await warten();
-    expect(dialog().textContent).toContain("Grund");
+    expect(dialog().textContent).toContain("Neustart");
+    expect(dialog().textContent).not.toContain("Grund");
   });
 
   it("offer a member restart and log too (Z-1204)", async () => {

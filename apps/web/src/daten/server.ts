@@ -126,9 +126,9 @@ export type ServerQuelle = {
   /** CPU, load and memory per hour, the highest reading (Z-1106, GET /api/v1/server/:id/last) */
   last: (id: string, tage: number) => Promise<Antwort<ServerLastStunde[]>>;
   /** Revokes the server's certificate: its agent is refused from now on */
-  sperren: (id: string, grund: string) => Promise<Antwort<ServerDerZentrale>>;
+  sperren: (id: string) => Promise<Antwort<ServerDerZentrale>>;
   /** Reboots the server by hand (Z-701): its installations are backed up first */
-  neustart: (id: string, grund: string) => Promise<Antwort<NeustartAngelegt>>;
+  neustart: (id: string) => Promise<Antwort<NeustartAngelegt>>;
 };
 
 const pfad = (id: string) => `/api/v1/server/${encodeURIComponent(id)}`;
@@ -147,8 +147,8 @@ export const apiServer: ServerQuelle = {
     const antwort = await api<{ stunden: ServerLastStunde[] }>(`${pfad(id)}/last?tage=${tage}`);
     return antwort.ok ? { ...antwort, daten: antwort.daten.stunden } : antwort;
   },
-  sperren: (id, grund) => api<ServerDerZentrale>(`${pfad(id)}/sperren`, { body: { grund } }),
-  neustart: (id, grund) => api<NeustartAngelegt>(`${pfad(id)}/neustart`, { body: { grund } }),
+  sperren: (id) => api<ServerDerZentrale>(`${pfad(id)}/sperren`, { body: {} }),
+  neustart: (id) => api<NeustartAngelegt>(`${pfad(id)}/neustart`, { body: {} }),
 };
 
 /**
