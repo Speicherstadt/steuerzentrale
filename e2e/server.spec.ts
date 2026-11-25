@@ -11,6 +11,9 @@ test.describe("adding a server", { tag: "@phone" }, () => {
     await page.getByRole("button", { name: "Server hinzufügen" }).click();
     const dialog = page.getByRole("dialog", { name: "Server hinzufügen" });
     await dialog.getByLabel("Name", { exact: true }).fill("Gemeinsamer Server 3");
+    // Z-1205: every server is the operator's own for several customers, the dialog asks no kind
+    await expect(dialog.getByRole("radio")).toHaveCount(0);
+    await expect(dialog.getByText("Art", { exact: true })).toHaveCount(0);
     await expect(dialog.getByLabel("Kunde", { exact: true })).toHaveCount(0);
     await dialog.getByLabel("Grund").fill("neuer Server für die Kanzlei");
     expect((await new AxeBuilder({ page }).include("dialog").analyze()).violations).toEqual([]);
@@ -27,15 +30,5 @@ test.describe("adding a server", { tag: "@phone" }, () => {
     // Z-304: the list comes from the Zentrale; the new server is there, without facts yet
     const zeile = page.getByRole("row").filter({ hasText: "Gemeinsamer Server 3" }).first();
     await expect(zeile).toContainText("noch keine Fakten");
-  });
-
-  test("asks for the customer of a server at the customer", async ({ page }) => {
-    await page.goto("/server");
-    await page.getByRole("button", { name: "Server hinzufügen" }).click();
-    const dialog = page.getByRole("dialog", { name: "Server hinzufügen" });
-    await dialog.getByRole("radio", { name: /Beim Kunden/ }).check();
-    await expect(dialog.getByLabel("Kunde", { exact: true })).toBeVisible();
-    await dialog.getByRole("button", { name: "Abbrechen" }).click();
-    await expect(dialog).toBeHidden();
   });
 });

@@ -1,7 +1,6 @@
 import type { JSX } from "@solidjs/web";
 import { Icon, m } from "@steuerzentrale/ui";
 import {
-  Building2,
   CalendarX,
   CircleCheck,
   CircleDashed,
@@ -12,14 +11,12 @@ import {
   type IconNode,
   LoaderCircle,
   Power,
-  Server as ServerIcon,
   TriangleAlert,
   Unplug,
-  Users,
 } from "@steuerzentrale/ui/icons";
 import { Show } from "solid-js";
 import type { Anzeige } from "../daten/installation-ansicht.ts";
-import type { AgentZustand, Art, Health, Manifest } from "../daten/typen.ts";
+import type { AgentZustand, Health, Manifest } from "../daten/typen.ts";
 import type { ServerZustand } from "../daten/zustand.ts";
 import { appIcon } from "./app-icon.ts";
 
@@ -136,21 +133,6 @@ const AGENT: Record<AgentZustand, Omit<Darstellung, "text">> = {
 
 export const AgentZeichen = (props: { zustand: AgentZustand; text: string }) => (
   <Zustand icon={AGENT[props.zustand].icon} farbe={AGENT[props.zustand].farbe} text={props.text} />
-);
-
-export const ART: Record<Art, { icon: IconNode; text: () => string }> = {
-  gemeinsam: { icon: Users, text: () => m.server_art_gemeinsam() },
-  eigen: { icon: ServerIcon, text: () => m.server_art_eigen() },
-  kunde: { icon: Building2, text: () => m.server_art_kunde() },
-};
-
-export const artIcon = (art: Art) => ART[art].icon;
-
-export const ArtZeichen = (props: { art: Art }) => (
-  <span class="inline-flex items-center gap-1 rounded-md bg-accent px-1.5 py-0.5 text-xs font-medium whitespace-nowrap">
-    <Icon icon={ART[props.art].icon} size={14} />
-    {ART[props.art].text()}
-  </span>
 );
 
 export const AppZeichen = (props: { app: Manifest }) => (

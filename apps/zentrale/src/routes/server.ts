@@ -1,7 +1,6 @@
 import { PLATTEN_TAGE_MAX } from "@steuerzentrale/planung";
 import { TRENNUNG } from "@steuerzentrale/protokoll";
 import { z } from "zod";
-import { kundeLesen } from "../modules/kunden/index.ts";
 import { neustartAnlegen, neustartStand } from "../modules/neustart/index.ts";
 import { pruefungenLesen } from "../modules/pruefungen/index.ts";
 import {

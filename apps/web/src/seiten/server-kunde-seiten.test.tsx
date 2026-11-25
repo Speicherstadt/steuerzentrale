@@ -43,12 +43,13 @@ describe("the page Server", () => {
       "/server/bestand",
       "/server/shared-1",
     ]);
-    expect(zeilen[0]?.textContent).toContain("Studio Lindeigener Server eines Kunden");
+    expect(zeilen[0]?.textContent).toContain("Studio Lind");
+    expect(zeilen[0]?.textContent).not.toContain("eigener Server eines Kunden");
     expect(zeilen[0]?.textContent).toContain("Platte fast voll");
     expect(zeilen[0]?.textContent).toContain("91 %");
     expect(zeilen[1]?.textContent).toContain("meldet sich nicht, zuletzt vor 6 Min.");
     expect(zeilen[2]?.textContent).toMatch(/Neustart nötig, geplant /);
-    expect(zeilen[4]?.textContent).toContain("für mehrere Kunden");
+    expect(zeilen[4]?.textContent).not.toContain("für mehrere Kunden");
     expect(zeilen[4]?.textContent).toContain("verbunden");
     expect(zeilen[4]?.textContent).toMatch(/\d+ Apps · \d+ Kunden/);
     expect(zeilen[4]?.textContent).toContain("Debian 13");
@@ -67,12 +68,10 @@ describe("the page Server", () => {
 });
 
 describe("the page of a server", () => {
-  it("heads with name and kind, its state in a sentence and its tabs in the URL", async () => {
+  it("heads with its name, no kind (Z-1205), its state in a sentence and its tabs in the URL", async () => {
     const { root, router } = await oeffne("/server/shared-1");
     expect(root.querySelector("main h1")?.textContent).toBe("Gemeinsamer Server 1");
-    expect(root.querySelector("main")?.textContent).toContain(
-      "Gemeinsamer Server 1· für mehrere Kunden",
-    );
+    expect(root.querySelector("main")?.textContent).not.toContain("für mehrere Kunden");
     expect(root.textContent).toContain("Verbunden, alles in Ordnung");
     expect(root.textContent).toContain("203.0.113.11");
     expect(knopf(root, "Neu starten")).toBeDefined();

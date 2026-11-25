@@ -5,7 +5,7 @@ import type {
   InstallationsZustand,
 } from "./installationen.ts";
 import type { ServerDerZentrale } from "./server.ts";
-import type { Art, Health, Installation, Kunde, Manifest } from "./typen.ts";
+import type { Health, Installation, Kunde, Manifest } from "./typen.ts";
 
 /*
  * An installation as the installation pages show it (BAULISTE.md Z-402): what the Zentrale's API
@@ -35,7 +35,6 @@ export type InstallationAnsicht = {
   kundeIntern: boolean;
   serverId: string;
   serverName: string;
-  serverArt: Art | null;
   version: string;
   /** The SHA-256 of the signed manifest it was set up with */
   manifestHash: string;
@@ -50,8 +49,6 @@ export type InstallationAnsicht = {
   geaendertAm: number;
   demo: Installation | undefined;
 };
-
-const ARTEN = { gemeinsam: "gemeinsam", eigen: "eigen", beim_kunden: "kunde" } as const;
 
 export const installationAnsicht = (i: InstallationDerZentrale, n: Namen): InstallationAnsicht => {
   const kunde = n.kunden.find((k) => k.id === i.kundeId);
@@ -69,7 +66,6 @@ export const installationAnsicht = (i: InstallationDerZentrale, n: Namen): Insta
     kundeIntern: kunde?.intern ?? false,
     serverId: i.serverId,
     serverName: server?.name ?? i.serverId,
-    serverArt: server ? ARTEN[server.art] : null,
     version: i.version,
     manifestHash: i.manifestHash,
     host: i.host,

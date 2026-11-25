@@ -59,16 +59,12 @@ export type Manifest = {
   variablen: Variable[];
 };
 
-export type Art = "gemeinsam" | "eigen" | "kunde";
 export type AgentZustand = "verbunden" | "still" | "getrennt";
 
 export type Server = {
   id: string;
   name: string;
   host: string;
-  art: Art;
-  /** The customer a server of its own or at the customer belongs to */
-  kunde?: string;
   anbieter: string;
   arch: string;
   ramGb: number;

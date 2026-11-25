@@ -25,8 +25,7 @@ const AGENT_TON: Record<string, Ton> = { verbunden: "ok", still: "warn", getrenn
 
 const appName = (app: string) => suche(bestand().apps, app)?.name ?? app;
 
-export const ServerZahl = (props: { server: ServerAnsicht[]; fuerKunden: boolean }) => {
-  const art = (a: string) => props.server.filter((x) => x.art === a).length;
+export const ServerZahl = (props: { server: ServerAnsicht[] }) => {
   const still = () => props.server.filter((x) => x.agent.zustand !== "verbunden").length;
   return (
     <Kennzahl
@@ -48,15 +47,7 @@ export const ServerZahl = (props: { server: ServerAnsicht[]; fuerKunden: boolean
           }))}
         />
       }
-      zeile1={
-        props.fuerKunden
-          ? m.uebersicht_server_arten({
-              gemeinsam: art("gemeinsam"),
-              eigen: art("eigen"),
-              kunde: art("kunde"),
-            })
-          : m.uebersicht_server_arten_selbst({ gemeinsam: art("gemeinsam"), eigen: art("eigen") })
-      }
+      zeile1={m.uebersicht_server_eigene({ n: props.server.length })}
       zeile2={
         still() === 0
           ? m.uebersicht_server_alle()

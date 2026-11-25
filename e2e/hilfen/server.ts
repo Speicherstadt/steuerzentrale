@@ -9,7 +9,6 @@ export const serverAnlegen = async (request: APIRequestContext, name: string) =>
   const antwort = await request.post("/api/v1/server", {
     data: {
       name: `${name} ${randomUUID().slice(0, 8)}`,
-      art: "gemeinsam",
       wartungsfenster: { tage: [0, 1, 2, 3, 4, 5, 6], von: "03:30", bis: "04:30" },
       grund: "Test",
     },

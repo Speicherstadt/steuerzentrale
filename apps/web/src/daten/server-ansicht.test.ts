@@ -38,8 +38,6 @@ const FAKTEN: ServerFakten = {
 const sv = (aenderung: Partial<ServerDerZentrale> = {}): ServerDerZentrale => ({
   serverId: "s1",
   name: "Gemeinsamer Server 3",
-  art: "beim_kunden",
-  kundeId: "k1",
   wartungsfenster: { tage: [1], von: "03:30", bis: "04:30" },
   angelegtAm: JETZT - 1000,
   beigetretenAm: JETZT - 500,
@@ -62,8 +60,6 @@ describe("a server as the pages show it (Z-304)", () => {
   it("shows the agent's facts as they came", () => {
     expect(serverAnsicht(sv(), undefined)).toMatchObject({
       id: "s1",
-      art: "kunde",
-      kunde: "k1",
       host: "server-a.example.org",
       os: "Debian GNU/Linux 13",
       arch: "arm64",

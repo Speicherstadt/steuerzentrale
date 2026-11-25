@@ -97,7 +97,7 @@ const Detail = (props: { a: ServerAnsicht; neu: () => void }) => {
   ];
   return (
     <div class="grid gap-6">
-      <ServerKopf b={b} a={props.a} fuerKunden={fuerKunden()} neu={() => props.neu()} />
+      <ServerKopf b={b} a={props.a} neu={() => props.neu()} />
       <Loading fallback={<p class="text-muted-foreground">{m.server_laden()}</p>}>
         <Fehler text={fehler()} />
         <Tabs

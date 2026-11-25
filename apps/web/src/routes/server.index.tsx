@@ -8,7 +8,7 @@ import { lastGemessen, type ServerZeile, serverZeilen } from "../daten/server-li
 import { PLATTE_STOERUNG, PLATTE_WARNUNG } from "../daten/zustand.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { ServerHinzufuegen } from "../seiten/server-hinzufuegen.tsx";
-import { appsText, artText, StandWorte } from "../seiten/server-zustand.tsx";
+import { appsText, StandWorte } from "../seiten/server-zustand.tsx";
 import { Mini } from "../teile/balken.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
@@ -42,11 +42,6 @@ const Zeile = (props: { z: ServerZeile; mitLast: boolean; fuerKunden: boolean; j
       >
         {props.z.a.name}
       </ZuServer>
-      <Show when={props.fuerKunden}>
-        <span class="block text-xs whitespace-nowrap text-muted-foreground">
-          {artText(props.z.a.art)}
-        </span>
-      </Show>
     </td>
     <td class="whitespace-nowrap">
       <StandWorte stand={props.z.stand} jetzt={props.jetzt} />
@@ -69,10 +64,7 @@ const Zeile = (props: { z: ServerZeile; mitLast: boolean; fuerKunden: boolean; j
       grenze={PLATTE_WARNUNG}
     />
     <td class="whitespace-nowrap">
-      {appsText(
-        props.z.apps,
-        props.fuerKunden && props.z.a.art === "gemeinsam" ? props.z.kunden : null,
-      )}
+      {appsText(props.z.apps, props.fuerKunden ? props.z.kunden : null)}
     </td>
     <td class="whitespace-nowrap text-muted-foreground">
       {props.z.a.os ?? m.server_keine_fakten()}

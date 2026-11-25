@@ -218,8 +218,6 @@ describe("servers of the Zentrale", () => {
   const mitFakten: ServerDerZentrale = {
     serverId: "s-fakten",
     name: "Neuer Server",
-    art: "gemeinsam",
-    kundeId: null,
     wartungsfenster: { tage: [0, 1, 2, 3, 4, 5, 6], von: "03:30", bis: "04:30" },
     angelegtAm: JETZT - 3600_000,
     beigetretenAm: JETZT - 3000_000,
@@ -300,7 +298,7 @@ describe("servers of the Zentrale", () => {
     flush();
     await new Promise((fertig) => setTimeout(fertig, 0));
     const neu = zeileVon(root, "Neuer Server");
-    expect(neu).toContain("für mehrere Kunden");
+    expect(neu).not.toContain("für mehrere Kunden");
     expect(neu).toContain("Debian GNU/Linux 13");
     expect(neu).toContain("Neustart nötig");
     expect(neu).toContain("50 %");
