@@ -64,6 +64,33 @@ describe("the members of an operator", () => {
     ]);
   });
 
+  // Z-1207: members and invitations never asked for a reason; each write stands in the audit log
+  it("are changed, removed and invited without a reason, each in the audit log", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const zweite = await server.eingeladen(inhaber, "mitglied", "zweite@betreiber.test");
+    const anzahl = () => server.db.select().from(auditLog).all().length;
+    const pfad = `/api/v1/mitglieder/${zweite.nutzerId}`;
+    const schritte: [string, string, Record<string, unknown> | undefined, number][] = [
+      ["PATCH", pfad, { rolle: "inhaber" }, 200],
+      ["DELETE", pfad, undefined, 204],
+      ["POST", "/api/v1/einladungen", { rolle: "mitglied" }, 201],
+    ];
+    for (const [method, ziel, body, status] of schritte) {
+      const vorher = anzahl();
+      const r = await inhaber.anfrage(ziel, { method, ...(body ? { body } : {}) });
+      expect(r.status, `${method} ${ziel}`).toBe(status);
+      expect(anzahl(), `${method} ${ziel}`).toBeGreaterThan(vorher);
+    }
+    const { daten } = await inhaber.json("/api/v1/einladungen");
+    const einladungId = (daten as { einladungen: { einladungId: string }[] }).einladungen[0]
+      ?.einladungId;
+    const vorher = anzahl();
+    const weg = await inhaber.anfrage(`/api/v1/einladungen/${einladungId}`, { method: "DELETE" });
+    expect(weg.status).toBe(204);
+    expect(anzahl()).toBeGreaterThan(vorher);
+  });
+
   it("lose access at once when removed", async () => {
     const server = testServer();
     const inhaber = await server.inhaber();

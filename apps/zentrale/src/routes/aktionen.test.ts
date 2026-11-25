@@ -89,16 +89,22 @@ describe("the actions of an installation", () => {
     );
   });
 
-  it.each(["neustart", "log-auszug", "nur-lesen"])("%s is refused without a reason", async (a) => {
-    const id = await laufend("aktionen", `ohne-${a}.kanzlei.test`);
-    const vorher = server.db.select().from(auftraege).all().length;
-    for (const grund of [undefined, "", "   "])
-      expect(await ausloesen(teufel, id, a, grund)).toEqual({
-        status: 400,
-        daten: { fehler: "ungueltig" },
-      });
-    expect(server.db.select().from(auftraege).all()).toHaveLength(vorher);
-  });
+  it.each([
+    ["neustart", "probe", "installation.neustart"],
+    ["log-auszug", "probe", "installation.log_auszug"],
+    ["nur-lesen", "aktionen", "installation.nur_lesen"],
+  ] as const)(
+    "%s is taken without a reason, with an empty one in the audit log (Z-1207)",
+    async (a, app, aktion) => {
+      const id = await laufend(app, `ohne-${a}.kanzlei.test`);
+      const r = await ausloesen(teufel, id, a);
+      expect(r.status).toBe(201);
+      const auftragId = (r.daten.auftrag as { auftragId: string }).auftragId;
+      expect(server.db.select().from(auditLog).all()).toContainEqual(
+        expect.objectContaining({ aktion, ziel: `auftraege:${auftragId}`, grund: "" }),
+      );
+    },
+  );
 
   it("is refused when its manifest does not offer it", async () => {
     const aktionen = await laufend("aktionen", "nicht-a.kanzlei.test");

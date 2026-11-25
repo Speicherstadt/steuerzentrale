@@ -670,7 +670,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   nach: Z-1203
   Fertig, wenn: jede schreibende Route ohne `grund` angenommen wird und ihren Eintrag im Audit-Log
   schreibt (Test je Route), kein Dialog das Feld zeigt (Playwright) und die vier genannten Aktionen
-  ohne Bestätigung nichts tun (Playwright).
+  ohne Bestätigung nichts tun (Playwright; „Zertifikat sperren“ hat keine Oberfläche, nur die API).
   Sicherheitsrelevant: Audit-Log.
 - [ ] **Z-1208 Ein Betreiber** – die Zentrale hat genau einen Betreiber: ein zweiter lässt sich nicht
   anlegen, „von einem anderen Betreiber“ und die Marke je Betreiber entfallen, es gibt eine

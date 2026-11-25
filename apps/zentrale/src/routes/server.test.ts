@@ -67,9 +67,23 @@ describe("adding a server", () => {
     expect(daten).not.toHaveProperty("kundeId");
   });
 
+  it("is added without a reason, with an empty one in the audit log (Z-1207)", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const { grund: _, ...ohneGrund } = NEUER_SERVER;
+    const { status, daten } = await inhaber.json("/api/v1/server", { body: ohneGrund });
+    expect(status).toBe(201);
+    expect(server.db.select().from(auditLog).all()).toContainEqual(
+      expect.objectContaining({
+        aktion: "server.anlegen",
+        ziel: `server:${(daten as { serverId: string }).serverId}`,
+        grund: "",
+      }),
+    );
+  });
+
   it.each([
     ["no name", { name: " " }],
-    ["no reason", { grund: "" }],
     ["a time that is none", { wartungsfenster: { tage: [1], von: "24:00", bis: "01:00" } }],
     ["no weekday", { wartungsfenster: { tage: [], von: "03:30", bis: "04:30" } }],
     ["a weekday twice", { wartungsfenster: { tage: [1, 1], von: "03:30", bis: "04:30" } }],
@@ -199,8 +213,12 @@ describe("the servers of the operator", () => {
     const inhaber = await server.inhaber();
     const { serverId, token } = await serverHinzufuegen(inhaber);
     const pfad = `/api/v1/server/${serverId}/sperren`;
-    expect((await inhaber.json(pfad, { body: {} })).status).toBe(400);
-    expect((await inhaber.json(pfad, { body: { grund: "verloren" } })).status).toBe(200);
+    // Z-1207: without a reason, with an empty one in the audit log
+    expect((await inhaber.json(pfad, { body: {} })).status).toBe(200);
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "server.sperren",
+      grund: "",
+    });
     expect(await inhaber.json(pfad, { body: { grund: "noch mal" } })).toEqual({
       status: 409,
       daten: { fehler: "schon_gesperrt" },

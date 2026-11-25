@@ -90,7 +90,18 @@ describe("the DNS settings", () => {
     expect(eintraege[1]?.inhalt).toContain("[verschlüsselt]");
   });
 
-  it("refuses mitglied, an invalid field and a missing reason", async () => {
+  it("are set without a reason, with an empty one in the audit log (Z-1207)", async () => {
+    const { grund: _, ...ohneGrund } = setzen();
+    expect((await json(teufel, "/api/v1/dns", { method: "PUT", body: ohneGrund })).status).toBe(
+      200,
+    );
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "dns.einstellungen",
+      grund: "",
+    });
+  });
+
+  it("refuses mitglied and an invalid field", async () => {
     expect(await json(mitglied, "/api/v1/dns", { method: "PUT", body: setzen() })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
@@ -101,7 +112,6 @@ describe("the DNS settings", () => {
       { zoneId: "zone" },
       { token: "kurz" },
       { token: `${TEST_TOKEN}\nX-Header: 1` },
-      { grund: " " },
       { unbekannt: 1 },
     ])
       expect(

@@ -120,7 +120,18 @@ describe("the S3 target", () => {
     expect(eintraege[1]?.inhalt).toContain("[verschlüsselt]");
   });
 
-  it("refuses mitglied, an invalid field and a missing reason", async () => {
+  it("is set without a reason, with an empty one in the audit log (Z-1207)", async () => {
+    const { grund: _, ...ohneGrund } = ziel();
+    expect(
+      (await json(teufel, "/api/v1/backup-ziel", { method: "PUT", body: ohneGrund })).status,
+    ).toBe(200);
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "backup.ziel",
+      grund: "",
+    });
+  });
+
+  it("refuses mitglied and an invalid field", async () => {
     expect(await json(mitglied, "/api/v1/backup-ziel", { method: "PUT", body: ziel() })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
@@ -134,7 +145,6 @@ describe("the S3 target", () => {
       { region: "EU Central" },
       { secretKey: undefined },
       { accessKey: "mit leerzeichen" },
-      { grund: " " },
       { unbekannt: 1 },
     ])
       expect(
@@ -208,14 +218,12 @@ describe("the backups of an installation", () => {
     });
   });
 
-  it("are run now only once set up, with a reason, by owner and inhaber2", async () => {
-    const jetzt = (p: Pick<Person, "json">, grund = "vor dem Update") =>
-      json(p, `${backupPfad()}/backup`, { body: { grund } });
+  it("are run now only once set up, without a reason too (Z-1207), by owner and inhaber2", async () => {
+    const jetzt = (p: Pick<Person, "json">) => json(p, `${backupPfad()}/backup`, { body: {} });
     expect(await jetzt(inhaber2)).toEqual({ status: 409, daten: { fehler: "nicht_eingerichtet" } });
     erledigt(auftragVon(BACKUP_AKTIONEN.einrichten)?.auftragId ?? "");
     expect((await json(mitglied, `${backupPfad()}/backups`)).daten.eingerichtet).toBe(true);
     expect((await jetzt(mitglied)).status).toBe(403);
-    expect((await jetzt(inhaber2, " ")).status).toBe(400);
     const r = await jetzt(inhaber2);
     expect(r).toMatchObject({
       status: 201,
@@ -230,9 +238,7 @@ describe("the backups of an installation", () => {
       .from(auditLog)
       .all()
       .filter((e) => e.aktion === "installation.backup");
-    expect(audit).toEqual([
-      expect.objectContaining({ akteur: inhaber2.nutzerId, grund: "vor dem Update" }),
-    ]);
+    expect(audit).toEqual([expect.objectContaining({ akteur: inhaber2.nutzerId, grund: "" })]);
   });
 
   it("show the runs the agent reported, here and on the page Backups", async () => {

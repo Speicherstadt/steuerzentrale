@@ -64,7 +64,7 @@ describe("after the contract's end over HTTP", () => {
     expect((await link(teufel)).daten).toEqual({ fehler: "kein_archiv" });
     expect((await link(inhaber2)).status).toBe(409);
     expect((await link(mitglied)).status).toBe(403);
-    expect((await link(teufel, {})).status).toBe(400);
+    expect(await link(teufel, {})).toEqual({ status: 409, daten: { fehler: "kein_archiv" } });
   });
 
   it("names the phase and deadlines once the contract ended", async () => {

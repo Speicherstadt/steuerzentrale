@@ -99,11 +99,8 @@ describe("a customer", () => {
     for (const daten of antworten) expect(JSON.stringify(daten)).not.toMatch(/"sla"/);
   });
 
-  it("needs a reason and valid fields for every write", async () => {
-    const { grund: _, ...ohneGrund } = neuerKunde();
+  it("needs valid fields for every write", async () => {
     const falsch = [
-      ohneGrund,
-      { ...neuerKunde(), grund: "   " },
       { ...neuerKunde(), name: "" },
       { ...neuerKunde(), kontakt: { name: "A", email: "keine-adresse" } },
       { ...neuerKunde(), unbekannt: 1 },
@@ -119,11 +116,29 @@ describe("a customer", () => {
     const pfad = `/api/v1/kunden/${kunde.id}`;
     expect((await inhaber.json(pfad, { method: "PUT", body: { name: "X" } })).status).toBe(400);
     expect(
-      (await inhaber.json(`${pfad}/kuendigung`, { method: "PUT", body: { ende: BEGINN } })).status,
+      (await inhaber.json(`${pfad}/kuendigung`, { method: "PUT", body: { ende: -1 } })).status,
     ).toBe(400);
-    expect((await inhaber.json(`${pfad}/kuendigung`, { method: "DELETE", body: {} })).status).toBe(
-      400,
-    );
+  });
+
+  it("takes every write without a reason, with an empty one in the audit log (Z-1207)", async () => {
+    const letzter = () => server.db.select().from(auditLog).all().at(-1);
+    const { grund: _, ...ohneGrund } = neuerKunde("Ohne Grund GmbH");
+    const neu = await inhaber.json("/api/v1/kunden", { body: ohneGrund });
+    expect(neu.status).toBe(201);
+    expect(letzter()).toMatchObject({ aktion: "kunde.anlegen", grund: "" });
+    const pfad = `/api/v1/kunden/${(neu.daten as KundeAntwort).id}`;
+    const { vertrag: _v, ...stamm } = ohneGrund;
+    const schritte: [string, string, Record<string, unknown>, string][] = [
+      ["PUT", pfad, { ...stamm, name: "Ohne Grund AG", beginn: BEGINN }, "kunde.aendern"],
+      ["PUT", `${pfad}/kuendigung`, { ende: BEGINN + 400 * TAG }, "vertrag.kuendigen"],
+      ["DELETE", `${pfad}/kuendigung`, {}, "vertrag.zuruecknehmen"],
+      ["PUT", `${pfad}/intern`, { intern: true }, "kunde.intern"],
+    ];
+    for (const [method, ziel, body, aktion] of schritte) {
+      const r = await inhaber.json(ziel, { method, body });
+      expect(r.status, `${method} ${ziel} ${JSON.stringify(r.daten)}`).toBe(200);
+      expect(letzter(), aktion).toMatchObject({ aktion, grund: "" });
+    }
   });
 
   it("is changed with a reason, and only what changed stands in the audit log", async () => {

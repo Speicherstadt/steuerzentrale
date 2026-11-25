@@ -58,8 +58,8 @@ const auftragVon = (aktion: string) =>
     | undefined;
 
 const pfad = () => `/api/v1/installationen/${installationId}`;
-const jetzt = (p: Pick<Person, "json">, grund = "nach dem Umzug des Buckets") =>
-  json(p, `${pfad()}/pruef-restore`, { body: { grund } });
+const jetzt = (p: Pick<Person, "json">, grund?: string) =>
+  json(p, `${pfad()}/pruef-restore`, { body: grund === undefined ? {} : { grund } });
 
 beforeAll(async () => {
   server = testServer(afterAll);
@@ -134,12 +134,11 @@ describe("Prüf-Restore jetzt", () => {
     );
   });
 
-  it("is refused to mitglied and without a reason", async () => {
+  it("is refused to mitglied", async () => {
     expect(await jetzt(mitglied)).toEqual({ status: 403, daten: { fehler: "keine_berechtigung" } });
-    expect((await jetzt(inhaber2, " ")).status).toBe(400);
   });
 
-  it("makes the job with a reason, by inhaber2, and only one at a time", async () => {
+  it("makes the job without a reason (Z-1207), by inhaber2, and only one at a time", async () => {
     const r = await jetzt(inhaber2);
     expect(r).toMatchObject({
       status: 201,
@@ -164,8 +163,7 @@ describe("Prüf-Restore jetzt", () => {
       "installationsPorts",
       "installationsPorts",
     ]);
-    for (const e of audit)
-      expect(e).toMatchObject({ akteur: inhaber2.nutzerId, grund: "nach dem Umzug des Buckets" });
+    for (const e of audit) expect(e).toMatchObject({ akteur: inhaber2.nutzerId, grund: "" });
   });
 
   it("shows the newest test restore, and a failed one in the overview", async () => {

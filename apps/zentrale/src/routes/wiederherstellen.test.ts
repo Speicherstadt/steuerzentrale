@@ -151,13 +151,12 @@ describe("restoring a run", () => {
     expect((await backups()).wiederherstellen).toEqual({ letzter: null, laeuft: false });
   });
 
-  it("is refused to mitglied, without a reason and without a run", async () => {
+  it("is refused to mitglied and without a run", async () => {
     const gut = (await laeufe()).find((x) => x.ok)?.id;
     expect(await wiederherstellen(mitglied, { lauf: gut, grund: "x" })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
-    expect((await wiederherstellen(inhaber2, { lauf: gut, grund: " " })).status).toBe(400);
     expect((await wiederherstellen(inhaber2, { grund: "x" })).status).toBe(400);
   });
 
@@ -173,9 +172,9 @@ describe("restoring a run", () => {
     });
   });
 
-  it("backs up first and restores after it, by inhaber2, with the reason in the audit log", async () => {
+  it("backs up first and restores after it, by inhaber2, without a reason too (Z-1207)", async () => {
     const gut = (await laeufe()).find((x) => x.ok)?.id;
-    const r = await wiederherstellen(inhaber2, { lauf: gut, grund: "Auftrag des Kunden" });
+    const r = await wiederherstellen(inhaber2, { lauf: gut });
     expect(r).toMatchObject({
       status: 201,
       daten: {
@@ -202,8 +201,7 @@ describe("restoring a run", () => {
       "auftraege",
       "wiederherstellungen",
     ]);
-    for (const e of audit)
-      expect(e).toMatchObject({ akteur: inhaber2.nutzerId, grund: "Auftrag des Kunden" });
+    for (const e of audit) expect(e).toMatchObject({ akteur: inhaber2.nutzerId, grund: "" });
   });
 
   it("shows the restore under way, then done, and its event", async () => {

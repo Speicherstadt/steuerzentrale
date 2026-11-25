@@ -143,14 +143,10 @@ describe("making a restore", () => {
     expect(u.auftraegeVon(id).wiederherstellen).toBeUndefined();
   });
 
-  it("refuses without a reason, beside an open job and for an installation not running", async () => {
+  it("takes no reason (Z-1207), refuses beside an open job and for an installation not running", async () => {
     const { u, id, lauf, anlegen } = await umgebung();
-    const ohneGrund = { ...u.kontext("b1"), grund: " " };
-    expect(wiederherstellenAnlegen(u.deps, ohneGrund, id, lauf)).toEqual({
-      ok: false,
-      grund: "grund_fehlt",
-    });
-    expect(anlegen().ok).toBe(true);
+    const ohneGrund = { ...u.kontext("b1"), grund: "" };
+    expect(wiederherstellenAnlegen(u.deps, ohneGrund, id, lauf).ok).toBe(true);
     expect(anlegen()).toEqual({ ok: false, grund: "auftrag_offen" });
     const ohneLauf = await u.eingerichtet();
     expect(anlegen(lauf, ohneLauf)).toEqual({ ok: false, grund: "lauf_unbekannt" });
