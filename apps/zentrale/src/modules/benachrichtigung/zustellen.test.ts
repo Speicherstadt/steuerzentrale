@@ -322,6 +322,7 @@ describe("held deliveries", () => {
         gesendet.push(JSON.parse(n.body).ereignis.art);
         return { ok: true as const };
       },
+      ntfy: async () => ({ ok: true as const }),
     };
     return { gesendet, versand };
   };

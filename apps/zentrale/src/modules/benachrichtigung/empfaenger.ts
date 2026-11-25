@@ -6,6 +6,7 @@ import { empfaenger, zustellungen } from "../../db/schema.ts";
 import type { Schluesselbund } from "../../db/schluessel.ts";
 import { type Kontext, schreiben } from "../audit/index.ts";
 import { spalteEntschluesseln, spalteVerschluesseln } from "../geheim/spalten.ts";
+import type { NtfyZiel } from "./ntfy.ts";
 import type { WebhookZiel } from "./webhook.ts";
 
 /*
@@ -14,12 +15,13 @@ import type { WebhookZiel } from "./webhook.ts";
  * recipient; the API shows only the URL's origin, since a chat's hook carries its key in the path,
  * and never the key: the operator enters it (the interface offers one made in the browser, shown
  * once before saving) and keeps it for the receiver. Removing a recipient ends its waiting
- * deliveries.
+ * deliveries. A ntfy topic (Z-1105) likewise: its address and access token encrypted in `geheim`,
+ * the API shows the server's origin only, since on a public server the topic's name is its key.
  */
 
 export type Empfaenger = {
   empfaengerId: string;
-  art: "mail" | "webhook";
+  art: "mail" | "webhook" | "ntfy";
   anzeige: string;
   abSchwere: Schwere;
   angelegtAm: number;
@@ -27,7 +29,8 @@ export type Empfaenger = {
 
 export type NeuerEmpfaenger =
   | { art: "mail"; adresse: string; abSchwere: Schwere }
-  | { art: "webhook"; url: string; schluessel: string; abSchwere: Schwere };
+  | { art: "webhook"; url: string; schluessel: string; abSchwere: Schwere }
+  | { art: "ntfy"; url: string; token: string | null; abSchwere: Schwere };
 
 export type EmpfaengerZeile = typeof empfaenger.$inferSelect;
 
@@ -66,16 +69,22 @@ export const empfaengerAnlegen = (
   empfaengerId: string = randomUUID(),
 ): Empfaenger => {
   const { betreiberId, jetzt } = kontext;
-  const geheim =
+  const klar =
     neu.art === "webhook"
-      ? spalteVerschluesseln(
+      ? { url: neu.url, schluessel: neu.schluessel }
+      : neu.art === "ntfy"
+        ? { url: neu.url, token: neu.token }
+        : null;
+  const geheim =
+    klar === null
+      ? null
+      : spalteVerschluesseln(
           deps.schluessel,
           "empfaenger",
           betreiberId,
           { empfaengerId },
-          JSON.stringify({ url: neu.url, schluessel: neu.schluessel }),
-        )
-      : null;
+          JSON.stringify(klar),
+        );
   const zeile = schreiben(deps.schreibDb, kontext, "benachrichtigung.empfaenger-anlegen", (w) =>
     w.einfuegen("empfaenger", {
       betreiberId,
@@ -131,4 +140,17 @@ export const webhookZiel = (bund: Schluesselbund, z: EmpfaengerZeile): WebhookZi
     z.geheim,
   );
   return klar.ok ? (JSON.parse(klar.wert) as WebhookZiel) : undefined;
+};
+
+/** A ntfy topic's address and token, decrypted, for the delivery only; undefined if unreadable */
+export const ntfyZiel = (bund: Schluesselbund, z: EmpfaengerZeile): NtfyZiel | undefined => {
+  if (z.art !== "ntfy" || !z.geheim) return undefined;
+  const klar = spalteEntschluesseln(
+    bund,
+    "empfaenger",
+    z.betreiberId,
+    { empfaengerId: z.empfaengerId },
+    z.geheim,
+  );
+  return klar.ok ? (JSON.parse(klar.wert) as NtfyZiel) : undefined;
 };

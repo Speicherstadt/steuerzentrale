@@ -9,14 +9,17 @@ import {
   type Versand,
   zustellungenLesen,
 } from "../modules/benachrichtigung/index.ts";
+import { ntfyThema } from "../modules/benachrichtigung/ntfy.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
 import type { Registrar } from "./zugang.ts";
 
 /*
  * The operator's notifications (BAULISTE.md Z-703; docs/plan.md, "Benachrichtigungen"): every role
  * reads mail server, quiet hours, recipients and the newest deliveries; owner and technik change
- * them with a reason and send a test message. The SMTP password and a webhook's URL and key go in
- * and never come back: the password shows as `passwortGesetzt`, a webhook as its origin.
+ * them with a reason and send a test message. The SMTP password, a webhook's URL and key and a ntfy
+ * topic's address and token (Z-1105) go in and never come back: the password shows as
+ * `passwortGesetzt`, a webhook and a topic as its origin. A ntfy recipient asks no reason
+ * (BAULISTE.md, Stufe 2).
  */
 
 // RFC 5321 allows more, but a line break, a bracket or a space in an address would make a header
@@ -70,6 +73,14 @@ const webhookUrl = z
     return url?.protocol === "https:" && !url.username && !url.password && !url.hash;
   });
 
+// a ntfy token: visible ASCII; ntfy's own start with `tk_`, a server of one's own may differ
+const TOKEN = /^[\x21-\x7e]{1,200}$/;
+
+const ntfyUrl = z
+  .string()
+  .max(2000)
+  .refine((text) => text.startsWith("https://") && ntfyThema(text) !== undefined);
+
 const empfaengerSchema = z.discriminatedUnion("art", [
   z
     .object({
@@ -86,6 +97,15 @@ const empfaengerSchema = z.discriminatedUnion("art", [
       schluessel: z.string().regex(SCHLUESSEL),
       abSchwere: SCHWERE,
       grund: GRUND,
+    })
+    .strict(),
+  z
+    .object({
+      art: z.literal("ntfy"),
+      url: ntfyUrl,
+      token: z.string().regex(TOKEN).nullable().default(null),
+      abSchwere: SCHWERE,
+      grund: GRUND.optional(),
     })
     .strict(),
 ]);
@@ -123,7 +143,8 @@ export const benachrichtigungRouten = (
     const angaben = await eingabe(c, empfaengerSchema);
     if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
     const { grund, ...neu } = angaben;
-    return c.json(empfaengerAnlegen(deps, kontext(c, grund), neu), 201);
+    const k = kontext(c, grund ?? "Empfänger angelegt");
+    return c.json(empfaengerAnlegen(deps, k, neu), 201);
   });
 
   route("DELETE /api/v1/benachrichtigungen/empfaenger/:empfaengerId", async (c) => {

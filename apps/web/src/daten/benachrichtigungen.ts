@@ -24,7 +24,7 @@ export type Ruhezeit = { von: string; bis: string };
 
 export type Empfaenger = {
   empfaengerId: string;
-  art: "mail" | "webhook";
+  art: "mail" | "webhook" | "ntfy";
   /** The address, or a webhook's origin only */
   anzeige: string;
   abSchwere: Schwere;
@@ -56,7 +56,8 @@ export type SmtpAenderung = Omit<Smtp, "passwortGesetzt"> & { passwort?: string 
 
 export type NeuerEmpfaenger =
   | { art: "mail"; adresse: string; abSchwere: Schwere }
-  | { art: "webhook"; url: string; schluessel: string; abSchwere: Schwere };
+  | { art: "webhook"; url: string; schluessel: string; abSchwere: Schwere }
+  | { art: "ntfy"; url: string; token: string | null; abSchwere: Schwere };
 
 export type BenachrichtigungsQuelle = {
   lesen: () => Promise<Antwort<Benachrichtigungen>>;
@@ -74,7 +75,9 @@ const PFAD = "/api/v1/benachrichtigungen";
 export const apiBenachrichtigungen: BenachrichtigungsQuelle = {
   lesen: () => api<Benachrichtigungen>(PFAD),
   setzen: (neu, grund) => api<Benachrichtigungen>(PFAD, { method: "PUT", body: { ...neu, grund } }),
-  anlegen: (neu, grund) => api<Empfaenger>(`${PFAD}/empfaenger`, { body: { ...neu, grund } }),
+  // a ntfy topic asks no reason (Z-1105, BAULISTE.md Stufe 2)
+  anlegen: (neu, grund) =>
+    api<Empfaenger>(`${PFAD}/empfaenger`, { body: neu.art === "ntfy" ? neu : { ...neu, grund } }),
   entfernen: (id, grund) =>
     api<null>(`${PFAD}/empfaenger/${encodeURIComponent(id)}`, {
       method: "DELETE",

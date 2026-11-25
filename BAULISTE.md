@@ -572,13 +572,18 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   `https://<team>.cloudflareaccess.com` kommen und bei unbekannter Schlüssel-ID einmal neu geladen
   werden (Test); `docs/installation.md` beide Wege beschreibt.
   Sicherheitsrelevant: Anmeldung, Pforte.
-- [ ] **Z-1105 Meldung aufs Handy** – Empfänger-Art `ntfy` neben Mail und Webhook: `POST` an die
+- [x] **Z-1105 Meldung aufs Handy** – Empfänger-Art `ntfy` neben Mail und Webhook: `POST` an die
   Adresse des Themas mit dem Text des Ereignisses, Titel und Priorität nach Schwere (ntfy-Doku,
   „Publishing“), das Zugriffstoken verschlüsselt; Ruhezeit und Wiederholung wie in Z-703.
   nach: Z-703
   Fertig, wenn: Störung und Behebung beim Test-Empfänger mit Titel und Priorität ankommen (Test), das
   Token in keiner Antwort und keinem Log steht (Test) und eine gescheiterte Zustellung wiederholt
   wird (Test).
+  Geschärft: veröffentlicht wird als JSON an die Wurzel des ntfy-Servers (ntfy-Doku, „Publish as
+  JSON“: `topic`, `title`, `message`, `priority`, `tags`); Priorität 5 für eine Störung, 4 für eine
+  Warnung, 3 für Hinweis und Behebung (Test); die Adresse des Themas nur `https://`, an eine
+  öffentliche Adresse wie ein Webhook (Test); das Token ist freiwillig (öffentliches Thema); das
+  Anlegen fragt keinen Grund.
 - [ ] **Z-1106 CPU und Arbeitsspeicher** – der Agent meldet mit den Fakten, was bisher nur die Demo
   zeigt: je Server CPU-Auslastung (aus `/proc/stat`, über die Zeit zwischen zwei Meldungen), Last
   (`/proc/loadavg`) und belegten Arbeitsspeicher (`MemTotal` minus `MemAvailable` aus

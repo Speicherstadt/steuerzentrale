@@ -5,8 +5,9 @@ import { ereignisse, zustellungen } from "../../db/schema.ts";
 import type { Schluesselbund } from "../../db/schluessel.ts";
 import { schreiben } from "../audit/index.ts";
 import { ruhezeitVon, smtpZugang } from "./einstellungen.ts";
-import { type EmpfaengerZeile, empfaengerZeile, webhookZiel } from "./empfaenger.ts";
+import { type EmpfaengerZeile, empfaengerZeile, ntfyZiel, webhookZiel } from "./empfaenger.ts";
 import { type Ereignis, mailVon, webhookBody } from "./nachricht.ts";
+import { type NtfyNachricht, type NtfyZiel, ntfyNachricht } from "./ntfy.ts";
 import type { Gesendet, Mail, SmtpZugang } from "./smtp.ts";
 import type { WebhookZiel } from "./webhook.ts";
 
@@ -25,7 +26,7 @@ const MINUTE = 60_000;
 export const wartezeit = (versuche: number): number =>
   Math.min(MINUTE * 2 ** Math.max(0, versuche - 1), 60 * MINUTE);
 
-/** How mail and webhooks go out: the real ones in main.ts, stand-ins in tests */
+/** How mail, webhooks and ntfy go out: the real ones in main.ts, stand-ins in tests */
 export type Versand = {
   mail: (zugang: SmtpZugang, mail: Mail) => Promise<Gesendet>;
   webhook: (
@@ -33,6 +34,7 @@ export type Versand = {
     nachricht: { zustellungId: string; body: string },
     jetzt: number,
   ) => Promise<Gesendet>;
+  ntfy: (ziel: NtfyZiel, nachricht: NtfyNachricht) => Promise<Gesendet>;
 };
 
 export type ZustellDeps = {
@@ -59,6 +61,11 @@ export const senden = (
     const smtp = smtpZugang(deps.db, deps.schluessel, r.betreiberId);
     if (!smtp.ok) return Promise.resolve(smtp);
     return deps.versand.mail(smtp.zugang, mailVon(e, z, r.anzeige, deps.url));
+  }
+  if (r.art === "ntfy") {
+    const thema = ntfyZiel(deps.schluessel, r);
+    if (!thema) return Promise.resolve({ ok: false, fehler: "the ntfy token does not decrypt" });
+    return deps.versand.ntfy(thema, ntfyNachricht(e, z));
   }
   const ziel = webhookZiel(deps.schluessel, r);
   if (!ziel) return Promise.resolve({ ok: false, fehler: "the webhook's key does not decrypt" });

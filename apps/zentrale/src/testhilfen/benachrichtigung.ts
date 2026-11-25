@@ -10,33 +10,32 @@ import {
   zustellungenAnlegen,
   zustellungenSenden,
 } from "../modules/benachrichtigung/index.ts";
+import { ntfySenden } from "../modules/benachrichtigung/ntfy.ts";
+import type { WebhookDeps } from "../modules/benachrichtigung/oeffentlich.ts";
 import { mailSenden } from "../modules/benachrichtigung/smtp.ts";
 import { webhookSenden } from "../modules/benachrichtigung/webhook.ts";
 import { bewertungsUmgebung } from "./bewertung.ts";
 
 /*
  * For the tests of notifications (Z-703): the operators of the rating tests with a clock that the
- * test moves, the real SMTP client and webhook sender pointed at stand-ins on localhost (plain SMTP,
+ * test moves, the real SMTP client, webhook and ntfy sender pointed at stand-ins on localhost (plain SMTP,
  * http, any address: what production refuses, the tests of webhook.ts prove), and one run of the
  * loop as `lauf`.
  */
 export const T0 = Date.UTC(2026, 10, 23, 11);
 
+const lokal: WebhookDeps = {
+  fetch,
+  aufloesen: async () => ["127.0.0.1"],
+  adresseErlaubt: () => true,
+  nurHttps: false,
+  zeitlimitMs: 5000,
+};
+
 export const versandImTest = (): Versand => ({
   mail: (zugang, mail) => mailSenden(zugang, mail, { zeitlimitMs: 5000 }),
-  webhook: (ziel, nachricht, jetzt) =>
-    webhookSenden(
-      {
-        fetch,
-        aufloesen: async () => ["127.0.0.1"],
-        adresseErlaubt: () => true,
-        nurHttps: false,
-        zeitlimitMs: 5000,
-      },
-      ziel,
-      nachricht,
-      jetzt,
-    ),
+  webhook: (ziel, nachricht, jetzt) => webhookSenden(lokal, ziel, nachricht, jetzt),
+  ntfy: (ziel, nachricht) => ntfySenden(lokal, ziel, nachricht),
 });
 
 export const benachrichtigungsUmgebung = (versand: Versand = versandImTest()) => {

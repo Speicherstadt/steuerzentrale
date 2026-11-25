@@ -1,8 +1,9 @@
 import { Button, Dialog, Input, m } from "@steuerzentrale/ui";
-import { createSignal, createUniqueId, For, Show } from "solid-js";
+import { createSignal, createUniqueId, For, Match, Show, Switch } from "solid-js";
 import {
   benachrichtigungsQuelle,
   type Empfaenger,
+  type NeuerEmpfaenger,
   neuerSchluessel,
   type Schwere,
 } from "../daten/benachrichtigungen.ts";
@@ -16,7 +17,20 @@ import { MitInstallationsRecht } from "./recht.tsx";
  * webhook, each from a severity upwards. Owner and technik add one with a reason, send it a test
  * message and remove it with a reason; support sees the list. A webhook's signing key is made in
  * the browser and shown here once, before saving; afterwards the Zentrale shows only the URL's host.
+ * A ntfy topic (Z-1105) takes its address and, for a protected one, an access token, and no reason.
  */
+
+const ARTEN = ["mail", "webhook", "ntfy"] as const;
+type Art = (typeof ARTEN)[number];
+
+const ART_TEXT: Record<Art, () => string> = {
+  mail: m.melden_art_mail,
+  webhook: m.einst_webhook,
+  ntfy: m.melden_art_ntfy,
+};
+
+/** A recipient's kind in words */
+export const artText = (art: string): string => (ART_TEXT[art as Art] ?? (() => art))();
 
 export const SCHWERE: Record<Schwere, () => string> = {
   info: m.melden_schwere_info,
@@ -122,20 +136,48 @@ const WebhookFelder = (props: { schluessel: string; neu: () => void }) => (
   </>
 );
 
+/** A ntfy topic's address and, for a protected topic, its access token */
+const NtfyFelder = () => (
+  <>
+    <Input
+      label={m.melden_ntfy_url()}
+      name="url"
+      type="url"
+      required
+      autocomplete="off"
+      placeholder={m.melden_ntfy_url_platzhalter()}
+      hint={m.melden_ntfy_url_hinweis()}
+    />
+    <Input
+      label={m.melden_ntfy_token()}
+      name="token"
+      type="password"
+      autocomplete="off"
+      hint={m.melden_ntfy_token_hinweis()}
+    />
+  </>
+);
+
+const neuerEmpfaenger = (art: Art, w: Record<string, string>): NeuerEmpfaenger => {
+  const abSchwere = (w.abSchwere ?? "warn") as Schwere;
+  if (art === "webhook")
+    return { art, url: w.url ?? "", schluessel: w.schluessel ?? "", abSchwere };
+  if (art === "ntfy") return { art, url: w.url ?? "", token: w.token ?? null, abSchwere };
+  return { art, adresse: w.adresse ?? "", abSchwere };
+};
+
 const HinzufuegenFormular = (props: { onClose: () => void; angelegt: () => void }) => {
-  const [art, setArt] = createSignal<"mail" | "webhook">("mail");
+  const [art, setArt] = createSignal<Art>("mail");
   const [schluessel, setSchluessel] = createSignal(neuerSchluessel());
   const [fehler, setFehler] = createSignal("");
   const [laeuft, setLaeuft] = createSignal(false);
   const senden = async (event: SubmitEvent) => {
     const w = felder(event);
-    const abSchwere = (w.abSchwere ?? "warn") as Schwere;
-    const neu =
-      art() === "mail"
-        ? { art: "mail" as const, adresse: w.adresse ?? "", abSchwere }
-        : { art: "webhook" as const, url: w.url ?? "", schluessel: w.schluessel ?? "", abSchwere };
     setLaeuft(true);
-    const antwort = await benachrichtigungsQuelle().anlegen(neu, w.grund ?? "");
+    const antwort = await benachrichtigungsQuelle().anlegen(
+      neuerEmpfaenger(art(), w),
+      w.grund ?? "",
+    );
     setLaeuft(false);
     if (!antwort.ok) return setFehler(fehlerVon(antwort.fehler));
     props.angelegt();
@@ -145,13 +187,12 @@ const HinzufuegenFormular = (props: { onClose: () => void; angelegt: () => void 
       <Wahl
         label={m.melden_art()}
         name="art"
-        werte={["mail", "webhook"]}
-        text={(w) => (w === "mail" ? m.melden_art_mail() : m.einst_webhook())}
+        werte={ARTEN}
+        text={artText}
         wert={art()}
-        onChange={(w) => setArt(w === "webhook" ? "webhook" : "mail")}
+        onChange={(w) => setArt(ARTEN.find((a) => a === w) ?? "mail")}
       />
-      <Show
-        when={art() === "webhook"}
+      <Switch
         fallback={
           <Input
             label={m.melden_adresse()}
@@ -162,8 +203,13 @@ const HinzufuegenFormular = (props: { onClose: () => void; angelegt: () => void 
           />
         }
       >
-        <WebhookFelder schluessel={schluessel()} neu={() => setSchluessel(neuerSchluessel())} />
-      </Show>
+        <Match when={art() === "webhook"}>
+          <WebhookFelder schluessel={schluessel()} neu={() => setSchluessel(neuerSchluessel())} />
+        </Match>
+        <Match when={art() === "ntfy"}>
+          <NtfyFelder />
+        </Match>
+      </Switch>
       <Wahl
         label={m.melden_ab_schwere()}
         name="abSchwere"
@@ -171,7 +217,9 @@ const HinzufuegenFormular = (props: { onClose: () => void; angelegt: () => void 
         text={(w) => SCHWERE[w as Schwere]()}
         wert="warn"
       />
-      <GrundFeld platzhalter={m.melden_anlegen_platzhalter()} />
+      <Show when={art() !== "ntfy"}>
+        <GrundFeld platzhalter={m.melden_anlegen_platzhalter()} />
+      </Show>
       <Fehler text={fehler()} />
       <Knoepfe onClose={props.onClose} knopf={m.melden_hinzufuegen()} laeuft={laeuft()} />
     </form>
@@ -204,7 +252,7 @@ const Zeile = (props: {
   entfernen: (r: Empfaenger) => void;
 }) => (
   <Reihe>
-    <td class="text-xs">{props.r.art === "mail" ? m.melden_art_mail() : m.einst_webhook()}</td>
+    <td class="text-xs">{artText(props.r.art)}</td>
     <td class="font-mono text-xs">{props.r.anzeige}</td>
     <td class="text-xs">{SCHWERE[props.r.abSchwere]()}</td>
     <td class="text-xs text-muted-foreground">{datum(props.r.angelegtAm)}</td>

@@ -17,6 +17,9 @@ type Antwort = { status: number; daten: Record<string, unknown> };
 const PASSWORT = "smtp-passwort-sehr-geheim-0815";
 const SCHLUESSEL = "webhook-schluessel-1234567890abcdefghijklmnop";
 const HOOK_PFAD = "/services/T000/B000/geheimer-pfad-xyz";
+// Z-1105: a ntfy topic's name is its key on a public server, its token the key of a protected one
+const NTFY_THEMA = "sz-geheimes-thema-4711";
+const NTFY_TOKEN = "tk_ntfy-token-sehr-geheim-0815";
 let server: TestServer;
 let teufel: Person;
 let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
@@ -235,10 +238,48 @@ describe("recipients", () => {
     expect((await json(teufel, pfad, { body: {} })).status).toBe(404);
   });
 
+  it("take a ntfy topic without a reason, shown only by its server's origin (Z-1105)", async () => {
+    const ntfy = {
+      art: "ntfy",
+      url: `https://ntfy.sh/${NTFY_THEMA}`,
+      token: NTFY_TOKEN,
+      abSchwere: "fehler",
+    };
+    const n = await json(teufel, "/api/v1/benachrichtigungen/empfaenger", { body: ntfy });
+    expect(n).toEqual({
+      status: 201,
+      daten: {
+        empfaengerId: expect.any(String),
+        art: "ntfy",
+        anzeige: "https://ntfy.sh",
+        abSchwere: "fehler",
+        angelegtAm: expect.any(Number),
+      },
+    });
+    const ohneToken = { ...ntfy, url: "https://push.example.de/ntfy/oeffentlich", token: null };
+    expect(
+      (await json(teufel, "/api/v1/benachrichtigungen/empfaenger", { body: ohneToken })).status,
+    ).toBe(201);
+    for (const falsch of [
+      { ...ntfy, url: `http://ntfy.sh/${NTFY_THEMA}` },
+      { ...ntfy, url: "https://ntfy.sh/" },
+      { ...ntfy, url: `https://ntfy.sh/${NTFY_THEMA}?x=1` },
+      { ...ntfy, url: `https://kim:pw@ntfy.sh/${NTFY_THEMA}` },
+      { ...ntfy, token: "mit leerzeichen" },
+    ])
+      expect(
+        (await json(teufel, "/api/v1/benachrichtigungen/empfaenger", { body: falsch })).status,
+        JSON.stringify(falsch),
+      ).toBe(400);
+    expect(
+      (await json(support, "/api/v1/benachrichtigungen/empfaenger", { body: ntfy })).status,
+    ).toBe(403);
+  });
+
   it("never show a secret in an answer, the log, the audit log or the database file", () => {
     const alles = JSON.stringify(antworten);
     const audit = JSON.stringify(server.db.select().from(auditLog).all());
-    for (const geheim of [PASSWORT, SCHLUESSEL, HOOK_PFAD]) {
+    for (const geheim of [PASSWORT, SCHLUESSEL, HOOK_PFAD, NTFY_THEMA, NTFY_TOKEN]) {
       expect(alles, geheim).not.toContain(geheim);
       expect(server.log.join("\n"), geheim).not.toContain(geheim);
       expect(audit, geheim).not.toContain(geheim);
