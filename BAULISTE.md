@@ -570,7 +570,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   systemd nicht kennt (`LoadState=not-found`), ist unbekannt (Test); fünf Minuten rot innen ergeben
   die Störung des Dienstes, behoben erst, wenn innen und außen grün sind (Test).
   Sicherheitsrelevant: was der Agent ausführt.
-- [ ] **Z-1104 Oberfläche über Cloudflare Tunnel** – ein zweiter Weg neben WireGuard: Mit
+- [x] **Z-1104 Oberfläche über Cloudflare Tunnel** – ein zweiter Weg neben WireGuard: Mit
   `STEUERZENTRALE_ACCESS_TEAM` und `STEUERZENTRALE_ACCESS_AUD` nimmt die Zentrale Oberfläche und API
   nur mit gültigem `Cf-Access-Jwt-Assertion` an (Signatur gegen die Schlüssel des Teams, Audience,
   Ablauf; Cloudflare-Doku „Validate JWTs“); die eigene Anmeldung mit zweitem Faktor bleibt dahinter.
@@ -582,6 +582,12 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   `X-SZ-Client-Fingerabdruck` keine Rechte eines Agenten bekommt (Test); die Schlüssel nur von
   `https://<team>.cloudflareaccess.com` kommen und bei unbekannter Schlüssel-ID einmal neu geladen
   werden (Test); `docs/installation.md` beide Wege beschreibt.
+  Geschärft: mit nur einer der beiden Variablen oder einem Team-Namen, der kein einzelnes DNS-Label
+  ist, startet die Zentrale nicht (Test); die Pfade von `agent.<domain>` brauchen kein Token (Test);
+  eine Anfrage mit einem Kopf von Cloudflare (`Cf-Access-Jwt-Assertion`, `Cf-Connecting-Ip`,
+  `Cf-Ray`) gilt nie als Agent (Test); neu geladen wird höchstens einmal je Minute (Test);
+  `--tunnel` nimmt keine Netze und gibt dem Namen der Oberfläche ein Zertifikat der lokalen CA, alle
+  anderen Namen behalten ACME (Test).
   Sicherheitsrelevant: Anmeldung, Pforte.
 - [x] **Z-1105 Meldung aufs Handy** – Empfänger-Art `ntfy` neben Mail und Webhook: `POST` an die
   Adresse des Themas mit dem Text des Ereignisses, Titel und Priorität nach Schwere (ntfy-Doku,

@@ -213,4 +213,32 @@ describe("parseEnv", () => {
       "STEUERZENTRALE_AUSSEN_PRUEFUNG",
     );
   });
+
+  // Z-1104: the interface through a Cloudflare Tunnel, with both variables or neither
+  it("takes Cloudflare Access only with team and audience together, else WireGuard", () => {
+    const basis = {
+      STEUERZENTRALE_SECRET_KEY: KEY,
+      STEUERZENTRALE_URL: URL_,
+      STEUERZENTRALE_AGENT_URL: AGENT_,
+    };
+    const aud = "4714c1358e65fe4b408ad6d432a5f878f08194bdb4752441fd56faefa9b2b6f2";
+    expect(parseEnv(basis).access).toBeUndefined();
+    expect(
+      parseEnv({ ...basis, STEUERZENTRALE_ACCESS_TEAM: "teufel", STEUERZENTRALE_ACCESS_AUD: aud })
+        .access,
+    ).toEqual({ team: "teufel", aud });
+    expect(fehlerVon({ ...basis, STEUERZENTRALE_ACCESS_TEAM: "teufel" })).toContain(
+      "STEUERZENTRALE_ACCESS_AUD",
+    );
+    expect(fehlerVon({ ...basis, STEUERZENTRALE_ACCESS_AUD: aud })).toContain(
+      "STEUERZENTRALE_ACCESS_TEAM",
+    );
+    for (const team of ["boese.example/x", "a.b", "Teufel", "teufel.cloudflareaccess.com"])
+      expect(
+        fehlerVon({ ...basis, STEUERZENTRALE_ACCESS_TEAM: team, STEUERZENTRALE_ACCESS_AUD: aud }),
+      ).toContain("STEUERZENTRALE_ACCESS_TEAM");
+    expect(
+      fehlerVon({ ...basis, STEUERZENTRALE_ACCESS_TEAM: "teufel", STEUERZENTRALE_ACCESS_AUD: "x" }),
+    ).toContain("STEUERZENTRALE_ACCESS_AUD");
+  });
 });

@@ -3,6 +3,7 @@ import { type Auth, CLIENT_HEADER } from "./auth/auth.ts";
 import type { Db, SchreibDb } from "./db/oeffnen.ts";
 import type { Schluesselbund } from "./db/schluessel.ts";
 import { formatRequestLog, type LogSink, redactUrl } from "./log.ts";
+import { type AccessPruefung, accessWache } from "./modules/access/index.ts";
 import { clientAdresse } from "./modules/anmeldung/adresse.ts";
 import { datenbankAntwortet } from "./modules/aussen/index.ts";
 import type { Versand } from "./modules/benachrichtigung/index.ts";
@@ -70,6 +71,11 @@ export type AppDeps = {
   versand?: Versand;
   /** The built interface (STEUERZENTRALE_WEB, modules/web); unset: no files are served */
   web?: string;
+  /**
+   * Checks the token of Cloudflare Access (Z-1104, modules/access); set with STEUERZENTRALE_ACCESS_TEAM
+   * and STEUERZENTRALE_ACCESS_AUD, unset: the interface is reached over WireGuard as before
+   */
+  access?: (token: string | null) => Promise<AccessPruefung>;
 };
 
 const AUTH_BASIS = "/api/auth";
@@ -106,6 +112,9 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
       }),
     );
   });
+
+  // behind a Cloudflare Tunnel: no route, file or SPA page without a valid token of Access
+  if (deps.access) app.use(accessWache(deps.access, deps.log));
 
   const route = routenRegistrar(
     app,

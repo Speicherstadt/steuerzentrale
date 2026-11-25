@@ -12,6 +12,7 @@ import { oeffneDatenbank } from "./db/oeffnen.ts";
 import type { Schluesselbund } from "./db/schluessel.ts";
 import { parseEnv } from "./env.ts";
 import { abwicklungSchleife } from "./modules/abwicklung/index.ts";
+import { accessPruefen, accessSchluessel } from "./modules/access/index.ts";
 import { agentUpdateSchleife } from "./modules/agent-update/index.ts";
 import { einrichtungscodeErzeugen } from "./modules/anmeldung/einrichtungscode.ts";
 import { aufbewahrungsSchleife } from "./modules/aufbewahrung/index.ts";
@@ -144,8 +145,9 @@ if (process.argv[2] === "manifest" && process.argv[3] === "importieren") {
   process.exit(1);
 }
 
-// `steuerzentrale pforte <netz>… [--intern]` (Z-1004): the Pforte's configuration on stdin, printed
-// with the Zentrale's routes and the operators' CAs for its admin API (docs/installation.md)
+// `steuerzentrale pforte <netz>… [--intern]` (Z-1004) or `pforte --tunnel [--intern]` (Z-1104): the
+// Pforte's configuration on stdin, printed with the Zentrale's routes and the operators' CAs for its
+// admin API (docs/installation.md)
 if (process.argv[2] === "pforte") {
   const args = vorneArgumente(process.argv.slice(3));
   if (!args.ok) {
@@ -331,6 +333,17 @@ benachrichtigungsSchleife(
   planen,
 );
 const auth = createAuth({ schreibDb, url: env.url, geheimnis: datenbank.anmeldeGeheimnis });
+// Cloudflare Access in front of the interface (Z-1104): the team's keys, loaded at the first token
+const zugangsPruefung = (a: { team: string; aud: string }) => {
+  const schluessel = accessSchluessel({
+    team: a.team,
+    holen: (url, init) => fetch(url, init),
+    jetzt: Date.now,
+  });
+  return (token: string | null) =>
+    accessPruefen(token, { team: a.team, aud: a.aud, jetzt: Date.now(), schluessel });
+};
+
 const app = createApp({
   log,
   now: Date.now,
@@ -350,7 +363,9 @@ const app = createApp({
   versionen: neueVersionen,
   versand,
   ...(env.web === undefined ? {} : { web: env.web }),
+  ...(env.access === undefined ? {} : { access: zugangsPruefung(env.access) }),
 });
+if (env.access) log(JSON.stringify({ msg: "cloudflare access in front", team: env.access.team }));
 // `websocket` carries the agents' connections (src/routes/verbindung.ts)
 const server = Bun.serve({ port: env.port, hostname: env.host, fetch: app.fetch, websocket });
 log(JSON.stringify({ msg: "listening", url: server.url.href, version: VERSION }));
