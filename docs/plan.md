@@ -38,7 +38,7 @@ Bauliste baut dafür um:
 
 - **dazu**: beobachtete Dienste (Prüfung von außen ohne Agent und Manifest), Server nur beobachten
   (Agent ohne Pforte und Podman), vorhandene systemd-Units lesen, Oberfläche über Cloudflare Tunnel
-  als zweiter Weg neben WireGuard, Meldung aufs Handy;
+  als zweiter Weg neben WireGuard, Meldung aufs Handy, CPU und Arbeitsspeicher je Server und App;
 - **weg**: Leistungen, SLA, Support-Zugänge, die dritte Rolle (es bleiben Inhaber und Mitglied),
   Server-Art, Betriebsart, der Grund in jedem Dialog, weitere Betreiber.
 
@@ -587,7 +587,7 @@ Zwei Stufen:
   4 Installationen mit DNS · 5 Updates (Wellen „intern“ und „alle“) · 6 Backups und Kündigung ·
   7 Server-Pflege, Prüfung von außen, Kunden, Support-Zugang, Leistungen, Härtung, Release 1.0.
   Betrieben werden Haben, Belegt, Schreibzeug und Fixpunkt auf unseren Servern, ein Betreiber.
-- **Stufe 2 – Zuschnitt auf den eigenen Betrieb** (13 Punkte), erst nach Freigabe durch einen
+- **Stufe 2 – Zuschnitt auf den eigenen Betrieb** (14 Punkte), erst nach Freigabe durch einen
   Menschen: 8 Bestehendes überwachen (beobachtete Dienste und Server, Cloudflare Tunnel, Meldung
   aufs Handy) · 9 Ausbau (Leistungen, SLA, Support-Zugänge, zwei Rollen, Server-Art, Betriebsart,
   Grund, weitere Betreiber). Warum, steht unter „Zuschnitt“ und in den Entscheidungen.

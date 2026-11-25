@@ -573,6 +573,21 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   Fertig, wenn: Störung und Behebung beim Test-Empfänger mit Titel und Priorität ankommen (Test), das
   Token in keiner Antwort und keinem Log steht (Test) und eine gescheiterte Zustellung wiederholt
   wird (Test).
+- [ ] **Z-1106 CPU und Arbeitsspeicher** – der Agent meldet mit den Fakten, was bisher nur die Demo
+  zeigt: je Server CPU-Auslastung (aus `/proc/stat`, über die Zeit zwischen zwei Meldungen), Last
+  (`/proc/loadavg`) und belegten Arbeitsspeicher (`MemTotal` minus `MemAvailable` aus
+  `/proc/meminfo`); je Installation und je beobachtetem Dienst mit Linux-Nutzer dasselbe aus der
+  cgroup seines Nutzers (`memory.current`, `cpu.stat` unter `user-<uid>.slice`). Er liest nur
+  Dateien. Die Zentrale bewahrt die Werte 30 Tage auf wie die Platte; der Reiter „Auslastung“ des
+  Servers und „Messwerte“ der App zeigen sie über 24 Stunden, 7 und 30 Tage, die Tabellen Server und
+  Apps bekommen die Spalten. Eine Prüfung meldet Arbeitsspeicher über 90 % gelb, über 95 % rot
+  (Z-702). Der Hinweis „noch ohne Punkt“ in `docs/uebersicht.md` entfällt.
+  nach: Z-304, Z-702
+  Fertig, wenn: die Werte aus festen Beispieldateien richtig berechnet werden, auch beim ersten
+  Lauf ohne Vorwert und nach einem Neustart des Servers (Test); eine nicht lesbare Datei als
+  unbekannt gemeldet wird, nie als 0 (Test); in der CI eine Installation, die Speicher belegt, mit
+  einem höheren Wert erscheint als davor (Test); die Verläufe in Playwright stehen (Desktop und
+  `@phone`) und die Demo dieselben Felder nutzt wie die API.
 
 ## Phase 9 – Ausbau
 
