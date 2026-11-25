@@ -10,6 +10,7 @@ export { agentCa, CA_GEHEIMNIS } from "./ca.ts";
 export { type Drossel, drossel, drosselSchluessel } from "./drossel.ts";
 export {
   mountFuer,
+  nurBeobachtet,
   type PlatzServerErgebnis,
   platzServer,
   type ServerFakten,

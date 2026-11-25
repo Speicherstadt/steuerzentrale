@@ -8,7 +8,7 @@ import { auftragEinfuegen, auftragVorbereiten, type Vorbereitet } from "../auftr
 import { type Auftrag, auftragLesen } from "../auftraege/lesen.ts";
 import { type AuftragDeps, zustellen } from "../auftraege/zustellen.ts";
 import { backupAuftragVorbereiten } from "../backups/auftraege.ts";
-import { type Server, serverFakten, serverLesen } from "../server/index.ts";
+import { nurBeobachtet, type Server, serverFakten, serverLesen } from "../server/index.ts";
 import { zuSichern } from "./lage.ts";
 import { sperrzeitenAufServer } from "./sperrzeiten.ts";
 
@@ -26,6 +26,7 @@ export type NeustartFehler =
   | "kein_server"
   | "nicht_beigetreten"
   | "server_gesperrt"
+  | "nur_beobachten"
   | "unbekannt"
   | "auftrag_offen"
   | "backup_fehlt"
@@ -62,6 +63,7 @@ const pruefen = (
   if (!sv) return nein("kein_server");
   if (sv.gesperrtAm !== null) return nein("server_gesperrt");
   if (sv.beigetretenAm === null) return nein("nicht_beigetreten");
+  if (nurBeobachtet(sv)) return nein("nur_beobachten");
   const bootId = serverFakten(sv)?.bootId;
   if (!bootId) return nein("unbekannt");
   if (offen(deps, sv.betreiberId, sv.serverId)) return nein("auftrag_offen");

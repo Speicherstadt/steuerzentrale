@@ -21,6 +21,13 @@ export const serverFakten = (sv: Pick<Server, "fakten">): ServerFakten | null =>
   }
 };
 
+/**
+ * Whether the server's agent reports that it is only observed (Z-1102): the Zentrale makes no job
+ * that changes it and places nothing there; the agent refuses such jobs in any case
+ */
+export const nurBeobachtet = (sv: Pick<Server, "fakten">): boolean =>
+  serverFakten(sv)?.nurBeobachten === true;
+
 /** Installations live in the home directories of their users (`sz-<installation>`) */
 const INSTALLATIONEN = "/home/sz-";
 
@@ -61,6 +68,7 @@ export const platzServer = (
       art: sv.art as PlatzServer["art"],
       kundeId: sv.kundeId,
       agentVerbunden,
+      nurBeobachten: f.nurBeobachten === true,
       architektur,
       ramMb: f.ramMb,
       platteFreiMb: platte.freiMb,

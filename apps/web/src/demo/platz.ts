@@ -34,6 +34,7 @@ export const demoPlatzServer = (
       art: sv.art,
       kundeId: sv.kundeId,
       agentVerbunden: sv.agent.zustand === "verbunden",
+      nurBeobachten: f.nurBeobachten === true,
       architektur,
       ramMb: f.ramMb,
       platteFreiMb: platte.freiMb,

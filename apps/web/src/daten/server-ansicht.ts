@@ -53,6 +53,8 @@ export type ServerAnsicht = {
   neustartStand: NeustartStand;
   /** The certificates of its installations' hosts as the Pforte holds them (Z-702); null: unread */
   zertifikate: { host: string; gueltigBis: number }[] | null;
+  /** Only observed (Z-1102): the Zentrale changes nothing there, not even a reboot */
+  nurBeobachten: boolean;
   /** Its checks (Z-702), on its own page; null in the list */
   pruefungen: ServerPruefung[] | null;
   demo: Server | undefined;
@@ -106,6 +108,7 @@ export const serverAnsicht = (sv: ServerDerZentrale, demo: Server | undefined): 
     neustartStand: sv.neustart,
     zertifikate: f?.zertifikate ?? null,
     pruefungen: sv.pruefungen ?? null,
+    nurBeobachten: f?.nurBeobachten === true,
     demo,
   };
 };

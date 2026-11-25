@@ -166,6 +166,8 @@ export type PruefFakten = {
   zertifikate?: { host: string; gueltigBis: number }[] | null;
   uhrzeitAbweichungMs: number | null;
   uhrSynchron?: boolean | null;
+  /** Only observed (Z-1102): what listens there is not the Zentrale's, so no port is foreign */
+  nurBeobachten?: boolean;
 };
 
 export type PruefEingabe = {
@@ -187,7 +189,7 @@ export const serverPruefen = (e: PruefEingabe): Serverpruefung[] => {
     plattePruefen(f?.platten ?? null),
     zertifikatePruefen(f?.zertifikate ?? null, e.hosts, e.jetzt),
     backupsPruefen(e.backups, e.jetzt),
-    portsPruefen(f?.portsOffen ?? null, e.erlaubtePorts),
+    f?.nurBeobachten ? portsPruefen([], []) : portsPruefen(f?.portsOffen ?? null, e.erlaubtePorts),
     uhrzeitPruefen(f?.uhrzeitAbweichungMs ?? null, f?.uhrSynchron ?? null),
   ];
 };

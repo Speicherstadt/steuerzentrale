@@ -71,6 +71,7 @@ const FEHLER: Record<string, () => string> = {
   unbekannt: m.server_neustart_fehler_unbekannt,
   nicht_beigetreten: m.server_neustart_fehler_unbekannt,
   server_gesperrt: m.server_neustart_fehler_gesperrt,
+  nur_beobachten: m.server_neustart_fehler_nur_beobachten,
 };
 
 /** Why the Zentrale refused a reboot by hand, as one sentence */

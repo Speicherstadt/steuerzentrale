@@ -21,6 +21,7 @@ export const pruefFakten = (sv: Server): PruefFakten | null => {
     am: sv.faktenAm,
     platten: f.platten,
     portsOffen: f.portsOffen ?? null,
+    nurBeobachten: f.nurBeobachten === true,
     zertifikate: f.zertifikate ?? null,
     uhrzeitAbweichungMs: f.uhrzeitAbweichungMs,
     uhrSynchron: f.uhrSynchron ?? null,

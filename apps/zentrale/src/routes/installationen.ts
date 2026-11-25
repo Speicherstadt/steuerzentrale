@@ -64,6 +64,7 @@ const STATUS: Record<string, 400 | 404 | 409 | 422 | 500 | 503> = {
   nur_intern: 409,
   keine_installation: 404,
   server_gesperrt: 409,
+  nur_beobachten: 409,
   passt_nicht: 409,
   host_vergeben: 409,
   keine_ports: 409,
