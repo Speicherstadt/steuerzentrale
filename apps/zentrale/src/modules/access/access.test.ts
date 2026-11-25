@@ -165,6 +165,19 @@ describe("the team's keys", () => {
     expect(u.gefragt).toHaveLength(1);
   });
 
+  it("keep the keys they have when a reload answers without any key", async () => {
+    const u = await umgebung();
+    expect((await u.pruefen(await tokenSignieren(u.a, JETZT))).ok).toBe(true);
+    // an unknown key id loads the keys again, and the answer is 200 with an empty list
+    u.setzen([]);
+    u.uhr.ms += 61_000;
+    const x = await paarErzeugen("kid-x");
+    expect((await u.pruefen(await tokenSignieren(x, u.uhr.ms))).ok).toBe(false);
+    expect(u.gefragt).toHaveLength(2);
+    // the key that signed every session so far still counts
+    expect((await u.pruefen(await tokenSignieren(u.a, u.uhr.ms))).ok).toBe(true);
+  });
+
   it("refuse every token while they cannot be loaded", async () => {
     const a = await paarErzeugen("kid-a");
     const schluessel = accessSchluessel({

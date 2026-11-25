@@ -79,7 +79,8 @@ export const accessSchluessel = (deps: SchluesselDeps): AccessSchluessel => {
       if (geladenAm !== undefined && deps.jetzt() - geladenAm < NEU_LADEN_MS) return undefined;
       geladenAm = deps.jetzt();
       laufend = laden(deps).then((neu) => {
-        if (neu) bekannt = neu;
+        // an answer without a usable key is a broken answer, not a rotation: the known keys stay
+        if (neu && neu.size > 0) bekannt = neu;
       });
       await laufend;
       laufend = undefined;
