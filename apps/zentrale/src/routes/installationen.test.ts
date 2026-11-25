@@ -293,6 +293,55 @@ describe("an installation over the API", () => {
   });
 });
 
+// BAULISTE.md Z-1206: there is no Betriebsart any more. Customers always exist; the internal
+// customer serves the operator's own installations, also as the only customer, and no endpoint
+// answers `409 betriebsart`.
+describe("without a Betriebsart", () => {
+  it("installs for the internal customer without any other customer", async () => {
+    const eigen = await server.weitererBetreiber("Eigen GmbH", "eva@eigen.test");
+    const intern = await kundeAnlegen(json, eigen, "Eigen GmbH");
+    expect(
+      (
+        await json(eigen, `/api/v1/kunden/${intern}/intern`, {
+          method: "PUT",
+          body: { intern: true, grund: "unsere eigenen Apps" },
+        })
+      ).status,
+    ).toBe(200);
+    const sid = await serverMitAgent(eigen, []);
+    lizenzSetzen(eigen.betreiberId);
+    const { daten: kunden } = await json(eigen, "/api/v1/kunden");
+    expect((kunden.kunden as unknown[]).length).toBe(1);
+    const a = await json(eigen, "/api/v1/installationen", {
+      body: neu("eigen.example", { kundeId: intern, serverId: sid }),
+    });
+    expect(a.status, JSON.stringify(a.daten)).toBe(201);
+  });
+
+  it("answers no endpoint `409 betriebsart`", async () => {
+    const zweiter = await kundeAnlegen(json, teufel, "Zweiter Kunde");
+    const anfragen: [string, string, Record<string, unknown>][] = [
+      ["PUT", `/api/v1/kunden/${zweiter}/intern`, { intern: true, grund: "g" }],
+      ["PUT", `/api/v1/kunden/${zweiter}/intern`, { intern: false, grund: "g" }],
+      [
+        "PUT",
+        `/api/v1/kunden/${zweiter}/kuendigung`,
+        { ende: BEGINN + 400 * 86_400_000, grund: "g" },
+      ],
+      ["DELETE", `/api/v1/kunden/${zweiter}/kuendigung`, { grund: "g" }],
+    ];
+    for (const [method, pfad, body] of anfragen) {
+      const r = await json(teufel, pfad, { method, body });
+      expect(r.daten, `${method} ${pfad}`).not.toEqual({ fehler: "betriebsart" });
+      expect(r.status, `${method} ${pfad}`).toBeLessThan(300);
+    }
+    const i = await json(teufel, "/api/v1/installationen", {
+      body: neu("zweiter.kanzlei.example", { kundeId: zweiter }),
+    });
+    expect(i.status, JSON.stringify(i.daten)).toBe(201);
+  });
+});
+
 describe("no operator reaches another's installations", () => {
   let fremd: { installationId: string };
 

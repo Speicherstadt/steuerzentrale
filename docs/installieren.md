@@ -102,7 +102,7 @@ Den Knopf **App installieren** zeigen die Seite **Apps**, die Seite eines Kunden
 nicht gekündigt ist, und im **Katalog** jede App mit einem importierten Manifest („Installieren“ auf
 ihrer Kachel und auf ihrer Seite), nur dem Inhaber. Der Dialog fragt:
 
-- **Kunde** (von der Kundenseite aus schon gewählt; in der Betriebsart „Nur für mich“ gar nicht) und
+- **Kunde** (von der Kundenseite aus schon gewählt) und
   **Server**; gesperrte Server und Kunden nach Vertragsende stehen nicht zur Wahl;
 - **App** und **Version** aus den importierten, signierten Manifesten (aus dem Katalog schon
   gewählt); eine Vorabversion nur für einen internen Kunden;
@@ -146,7 +146,6 @@ Eine Tabelle mit jeder App, die nicht entfernt ist: **App** (Symbol und Name), *
 - Filter: **Alle**, **Braucht dich** (rot, gelb, unbekannt) und **Update möglich**; **Gruppieren**
   nicht, nach Kunde oder nach Server (eine graue Zeile je Gruppe); die Suche findet App, Kunde,
   Adresse und Server.
-- In der Betriebsart „Nur für mich“ fehlen die Spalte „Kunde“ und „nach Kunde“.
 
 Darunter die **beobachteten Dienste**: was die Zentrale nicht installiert hat und nur von außen
 prüft, mit der Marke „beobachtet“, Kunde, Zustand und Verfügbarkeit des Monats; der Inhaber legt sie

@@ -119,5 +119,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0029_ohne_serverart",
     "sql": "ALTER TABLE `server` DROP COLUMN `art`;--> statement-breakpoint\nALTER TABLE `server` DROP COLUMN `kunde_id`;"
+  },
+  {
+    "tag": "0030_ohne_betriebsart",
+    "sql": "ALTER TABLE `betreiber` DROP COLUMN `betriebsart`;--> statement-breakpoint\nALTER TABLE `betreiber` DROP COLUMN `eigener_kunde_id`;"
   }
 ];

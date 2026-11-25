@@ -25,7 +25,7 @@ Die Seitenleiste hat acht Einträge in zwei Gruppen:
 | Betrieb | Updates | neue Versionen je App, darunter die Sperrzeiten der Apps; der Zähler nennt die Apps mit einer neueren Version |
 | Verwaltung | Katalog | die Apps der Speicherstadt, wie ihre Manifeste sie beschreiben: woher die Apps kommen; Manifest importieren, nach neuen Versionen suchen ([Katalog, Manifeste und Versionen](manifeste.md)) |
 | Verwaltung | Protokoll | Reiter „Ereignisse“, „Aufträge“ und „Änderungen“ (das Audit-Log) |
-| Verwaltung | Einstellungen | Abschnitte Betriebsart, Werte für Apps, Backup-Ziel, Adressen und DNS, Benachrichtigungen, Konten, Steuerzentrale, Darstellung ([Einstellungen](einstellungen.md#die-seite-einstellungen)) |
+| Verwaltung | Einstellungen | Abschnitte Werte für Apps, Backup-Ziel, Adressen und DNS, Benachrichtigungen, Konten, Steuerzentrale, Darstellung ([Einstellungen](einstellungen.md#die-seite-einstellungen)) |
 
 Unten in der Seitenleiste stehen das eigene Konto mit Rolle (ein Klick führt zu Einstellungen →
 Konten) und die Version der Zentrale. Die Kopfzeile nennt den Bereich und auf einer Seite darunter
@@ -34,7 +34,7 @@ Backups, Ereignisse, Aufträge oder das Audit-Log gibt es nicht mehr.
 
 Der Reiter des Protokolls steht in der Adresse (`/protokoll?tab=auftraege`); unter den Reitern
 stehen gleich die Filter (Ereignisse nach Schwere, Aufträge nach Zustand) und die Liste.
-„Änderungen“ sehen beide Rollen. Bei „Nur für mich“ fehlt „Kunden“.
+„Änderungen“ sehen beide Rollen.
 Alte Adressen führen weiter: `/installationen` und `/installationen/<id>` zu `/apps`,
 `/ereignisse`, `/auftraege` und `/audit` zum passenden Reiter des Protokolls.
 
@@ -53,9 +53,6 @@ Darunter vier Kacheln:
 | Update | die laufende Welle („Update: Belegt 0.0.7“, „1/3“ mit Ring): Apps auf ihrer Version unter denen, die ein Plan hält oder deren Update läuft; läuft keine, wie viele Updates möglich sind | wie viele fertig, wie viele Updates außerdem möglich sind ([Updates](updates.md)) |
 | Backups heute Nacht | Apps mit gelungenem Lauf seit gestern 18 Uhr unter denen mit Teilen zum Sichern; ein Feld je App, rot bei gescheitertem Lauf, gelb, wenn der letzte gelungene älter ist | die gescheiterten mit Namen, gescheiterte Prüf-Restores ([Backups](backups.md)) |
 
-Bei „Nur für mich“ nennt keine Kachel einen Kunden: statt der
-gekündigten Apps die Zahl der verschiedenen Apps, die gescheiterten Backups nur mit dem Namen der
-App.
 
 Links **Zu tun**: was die Zentrale nicht selbst lösen kann, das Dringendste zuerst. Jede Zeile ist ein
 Ding, eine App oder ein Server, mit Symbol (Störung oder Warnung), einem Titel in Worten („Schreibzeug
@@ -90,7 +87,7 @@ steht nicht da.
 | Neustart eines Servers im Wartungsfenster (neuer Kernel oder wartende Pakete) | Plan des Neustarts, `GET /api/v1/server`; nur einer, der nur auf seine Zeit wartet | 7 Tage |
 | Sperrzeit einer App, die läuft, beginnt („7.–12.12.“) | `sperrzeiten` des Manifests | 7 Tage |
 | Zertifikat läuft ab, gelb unter 14 Tagen | Zertifikate der Pforte in den Fakten des Servers | 30 Tage |
-| Vertrag eines Kunden endet, die Löschung 90 Tage danach | Vertragsende der Kunden ([Kündigung](kunden.md#kundigung)); nicht bei „Nur für mich“ | 30 Tage |
+| Vertrag eines Kunden endet, die Löschung 90 Tage danach | Vertragsende der Kunden ([Kündigung](kunden.md#kundigung)) | 30 Tage |
 
 Darunter **Von selbst erledigt** seit gestern 18 Uhr (Berliner Zeit): gelungene Backups und
 Prüf-Restores, durch eine Welle eingespielte Updates, Neustarts der Server nach Plan und die
@@ -180,7 +177,7 @@ Die Seite **Server** ist eine Tabelle: Name, Zustand in Worten mit Symbol („Pl
 Platte, Apps („4 Apps · 2 Kunden“) und System; eine volle Platte, ein stiller Agent und ein nötiger
 Neustart zuerst. Die Spalten CPU und RAM zeigen, was der Agent zuletzt mit den Fakten gemeldet hat
 (CPU als Anteil der Maschine seit der vorigen Meldung, RAM als belegter Anteil ohne Puffer und Cache);
-es gibt sie, sobald ein Server sie meldet. In „Nur für mich“ nennt die Tabelle keine Kunden. Eine Art hat ein Server seit Z-1205 nicht mehr:
+es gibt sie, sobald ein Server sie meldet. Eine Art hat ein Server seit Z-1205 nicht mehr:
 jeder ist ein eigener Server des Betreibers für mehrere Kunden.
 
 Die Seite eines Servers hat im Kopf den Namen, den Zustand in einem Satz, die erste IPv4 und das
