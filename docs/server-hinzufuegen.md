@@ -53,6 +53,36 @@ Der Befehl läuft als root auf **Debian 13** oder **Ubuntu 24.04** (amd64 oder a
 Ein zweiter Lauf auf einem Server, der schon beigetreten ist, tauscht kein Token mehr; er
 aktualisiert Pakete, Agent und Unit.
 
+### Server nur beobachten
+
+Auf einem Server, auf dem schon etwas läuft (ein eigener Caddy auf 80 und 443, ein Cloudflare
+Tunnel, Dienste von Hand), bringt `--nur-beobachten` nur den Agenten dazu:
+
+```sh
+curl -fsSL https://agent.<domain>/install.sh | sudo sh -s -- --token <token> --nur-beobachten
+```
+
+Dann installiert `install.sh` **kein Paket** (kein Podman, kein unattended-upgrades, keine Änderung
+an dessen Einstellungen), setzt kein `sysctl`, delegiert keine cgroup-Controller, legt keinen
+Nutzer `sz-pforte` an und prüft cgroup v2 nicht. `minisign`, `curl` und `sha256sum` müssen schon da
+sein; fehlt eines, bricht es ab, ohne etwas zu ändern. Es prüft und installiert den Agenten wie
+oben, legt `/etc/steuerzentrale/nur-beobachten` an und richtet den Dienst ein.
+
+Den Modus hält der Agent: steht die Datei da, nimmt er keinen Auftrag an außer seinem eigenen
+Update. Einrichten, Pforte, Neustart einer App, Log-Auszug, Backup, Prüf-Restore, Wiederherstellen,
+Update, Abwicklung, Neustart des Servers und jeder Befehl eines Manifests enden mit „abgelehnt: der
+Server wird nur beobachtet“, auch wenn die Zentrale sie schickt. Die Zentrale kann den Modus nicht
+aufheben; sie erfährt ihn aus den Fakten (`nurBeobachten`), stellt für den Server keinen solchen
+Auftrag aus (`409 nur_beobachten`), plant keinen Neustart, und die Platzierung lehnt ihn ab
+(`nur_beobachten`). Die Prüfung „offene Ports, die kein Manifest nennt“ meldet auf ihm nichts: was
+dort lauscht, ist nicht ihres. Heartbeat, Fakten, die übrigen Prüfungen und SSH-Anmeldungen kommen
+wie von jedem Server. Die Seite des Servers zeigt „nur beobachtet“ und bietet keinen Neustart an.
+
+Ein zweiter Lauf behält den Modus, mit oder ohne Schalter. Einen Server, der als verwalteter
+beigetreten ist, stellt `--nur-beobachten` nicht um (Abbruch, nichts geändert). Wer einen
+beobachteten Server später verwalten will, löscht die Datei auf dem Server selbst und lässt
+`install.sh` ohne den Schalter laufen.
+
 ## Token-Tausch
 
 Der Agent erzeugt seinen Schlüssel (ECDSA P-256) selbst; er verlässt den Server nie

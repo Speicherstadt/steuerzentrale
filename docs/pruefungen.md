@@ -48,6 +48,8 @@ Erlaubt sind die Ports, die die Manifeste der Installationen auf dem Server ver�
 vergebene, ein Bereich Port für Port, nur mit den gewählten Optionen), und die des Systems: 22/tcp
 (SSH), 80/tcp, 443/tcp und 443/udp (Pforte) sowie 68/udp und 546/udp (DHCP). Der HTTP-Port einer
 Installation liegt nur auf `127.0.0.1` und ist darum nie erlaubt, wenn er von außen erreichbar ist.
+Auf einem Server, der [nur beobachtet](server-hinzufuegen.md#server-nur-beobachten) wird, ist die
+Prüfung grün ohne Befund: was dort lauscht, hat die Zentrale nicht eingerichtet.
 
 **Uhrzeit.** Die Abweichung misst der Agent beim Verbinden gegen die Uhr der Zentrale; dazu meldet er
 `NTPSynchronized` aus `timedatectl show`.

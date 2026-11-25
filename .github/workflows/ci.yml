@@ -319,6 +319,56 @@ jobs:
           # the version of this build, as package.json names it (packages/protokoll, VERSION)
           for i in $(seq 1 30); do test "$(agent | jq -r .version)" = "$(jq -r .version package.json)" && break; sleep 2; done
           test "$(agent | jq -r .version)" = "$(jq -r .version package.json)"
+      # Z-1102: a second VM where something runs already: 80 and 443 taken, minisign, curl and
+      # ca-certificates installed by its owner beforehand. install.sh --nur-beobachten adds the
+      # agent and nothing else: packages, sysctl, Linux users and listening ports are the same as
+      # before, the agent runs and reports the mode with its facts, no reboot is planned for it
+      - name: install.sh --nur-beobachten leaves the server as it was
+        env:
+          VM2: sz-test-beobachtet
+        run: |
+          sudo incus launch "images:${{ matrix.system }}" "$VM2" --vm -c limits.cpu=1 -c limits.memory=1GiB
+          for i in $(seq 1 120); do sudo incus exec "$VM2" -- true 2>/dev/null && break; sleep 2; done
+          sudo incus exec "$VM2" -- sh -c 'for i in $(seq 1 60); do getent hosts deb.debian.org >/dev/null && exit 0; sleep 2; done; exit 1'
+          sudo incus exec "$VM2" -- sh -c 'apt-get update -q && apt-get install -y -q curl ca-certificates minisign iproute2'
+          # what runs there already: a service on 80 and 443 (socket activation, no extra package)
+          sudo incus exec "$VM2" -- systemd-run --unit sz-test-belegt systemd-socket-activate -l 80 -l 443 --accept /bin/cat
+          for i in $(seq 1 30); do sudo incus exec "$VM2" -- sh -c 'ss -Hltn | grep -q ":443 "' && break; sleep 1; done
+          cat > "$RUNNER_TEMP/stand.sh" <<'SKRIPT'
+          dpkg-query -W -f '${Package} ${Version}\n' | sort
+          echo --- sysctl
+          sysctl -n net.ipv4.ip_unprivileged_port_start
+          ls /etc/sysctl.d
+          ls /etc/systemd/system/user@.service.d 2>/dev/null || true
+          cat /etc/apt/apt.conf.d/20auto-upgrades 2>/dev/null || true
+          echo --- users
+          cut -d: -f1 /etc/passwd | sort
+          echo --- ports
+          ss -Hltn | awk '{print $4}' | sort -u
+          SKRIPT
+          sudo incus file push "$RUNNER_TEMP/stand.sh" "$VM2/root/stand.sh"
+          sudo incus exec "$VM2" -- sh /root/stand.sh > "$RUNNER_TEMP/vorher.txt"
+          grep -q ':80$' "$RUNNER_TEMP/vorher.txt" && grep -q ':443$' "$RUNNER_TEMP/vorher.txt"
+          neu="$(bun apps/zentrale/src/testhilfen/testserver.ts anlegen "beobachtet-${{ matrix.system }}")"
+          id="$(jq -r .serverId <<< "$neu")"
+          crt=/usr/local/share/ca-certificates/sz-test-pforte.crt
+          sudo incus file push "$RUNNER_TEMP/pforte-ca.pem" "$VM2$crt"
+          sudo incus exec "$VM2" -- update-ca-certificates
+          sudo incus file push --create-dirs "$RUNNER_TEMP/sz-test-pforte.conf" "$VM2/etc/systemd/system/steuerzentrale-agent.service.d/sz-test-pforte.conf"
+          sudo incus exec "$VM2" --env NODE_EXTRA_CA_CERTS="$crt" -- sh -c "$(jq -r .befehl <<< "$neu") --nur-beobachten"
+          sudo incus exec "$VM2" -- systemctl is-active steuerzentrale-agent
+          sudo incus exec "$VM2" -- test -f /etc/steuerzentrale/nur-beobachten
+          # the CA's certificate came in for this test only; nothing else changed
+          sudo incus exec "$VM2" -- sh /root/stand.sh > "$RUNNER_TEMP/nachher.txt"
+          diff -u "$RUNNER_TEMP/vorher.txt" "$RUNNER_TEMP/nachher.txt"
+          sudo incus exec "$VM2" -- sh -c '! command -v podman'
+          sudo incus exec "$VM2" -- sh -c '! id sz-pforte 2>/dev/null'
+          stand="$RUNNER_TEMP/beobachtet.json"
+          for i in $(seq 1 30); do bun apps/zentrale/src/testhilfen/testserver.ts neustart "$id" > "$stand"; test "$(jq -r .fakten.nurBeobachten "$stand")" = true && break; sleep 2; done
+          jq . "$stand"
+          test "$(jq -r .fakten.nurBeobachten "$stand")" = true
+          test "$(jq -r .neustart "$stand")" = null
+          sudo incus delete --force "$VM2"
       # Z-701: the VM needs a reboot (/run is a tmpfs, so the mark is gone after it, as after a real
       # kernel update); the agent, restarted, sends fresh facts; in the window opened for the whole
       # day the planning (every minute) reboots the server, which has no installation to back up.

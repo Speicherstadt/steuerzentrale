@@ -17,6 +17,8 @@ export type PlatzServer = {
   /** The customer a server of its own or at the customer belongs to */
   kundeId: string | null;
   agentVerbunden: boolean;
+  /** Only observed (Z-1102): its agent takes no job that changes it, so nothing is placed there */
+  nurBeobachten: boolean;
   architektur: Architektur;
   ramMb: number;
   /** Free space on the volume the installations live on */
@@ -221,6 +223,8 @@ const betreiberWerte: Regel = (a) =>
 
 const agent: Regel = (a) => nur(a.server.agentVerbunden ? [] : [befund("agent_getrennt")]);
 
+const beobachtet: Regel = (a) => nur(a.server.nurBeobachten ? [befund("nur_beobachten")] : []);
+
 const image: Regel = (a) =>
   nur(
     containerMitArchitektur(a)
@@ -239,6 +243,7 @@ export const REGELN: readonly Regel[] = [
   unbekannteOptionen,
   besitz,
   agent,
+  beobachtet,
   image,
   architektur,
   ram,

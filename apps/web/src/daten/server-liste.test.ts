@@ -23,9 +23,17 @@ describe("the table of the page Server", () => {
       ["kraft", "agent"],
       ["shared-2", "neustart"],
       ["holm", "pruefen"],
+      ["bestand", "ok"],
       ["shared-1", "ok"],
     ]);
-    expect(zeilen.map((z) => brauchtJemanden(z.stand))).toEqual([true, true, true, true, false]);
+    expect(zeilen.map((z) => brauchtJemanden(z.stand))).toEqual([
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+    ]);
   });
 
   it("counts the apps not removed and their customers", () => {

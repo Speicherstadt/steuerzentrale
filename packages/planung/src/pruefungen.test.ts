@@ -267,6 +267,26 @@ describe("serverPruefen", () => {
     ]);
   });
 
+  it("reports no foreign port on a server that is only observed (Z-1102)", () => {
+    const fakten = {
+      ...eingabe().fakten,
+      portsOffen: [
+        { port: 80, proto: "tcp" },
+        { port: 5432, proto: "tcp" },
+      ],
+      nurBeobachten: true,
+    } as PruefEingabe["fakten"];
+    expect(serverPruefen(eingabe({ fakten })).find((p) => p.pruefung === "ports")).toEqual({
+      pruefung: "ports",
+      ergebnis: "gruen",
+      fremd: [],
+    });
+    const verwaltet = { ...fakten, nurBeobachten: false } as PruefEingabe["fakten"];
+    expect(
+      serverPruefen(eingabe({ fakten: verwaltet })).find((p) => p.pruefung === "ports"),
+    ).toMatchObject({ ergebnis: "gelb" });
+  });
+
   it("does not judge facts older than 45 minutes; the backups are the Zentrale's own", () => {
     const fakten = { ...eingabe().fakten, am: JETZT - FAKTEN_FRIST_MS } as PruefEingabe["fakten"];
     expect(serverPruefen(eingabe({ fakten })).every((p) => p.ergebnis === "gruen")).toBe(true);

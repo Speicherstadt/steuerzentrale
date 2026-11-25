@@ -108,6 +108,26 @@ describe("recipients", () => {
     expect(root.textContent).not.toContain("/zentrale/geheim");
   });
 
+  it("get a ntfy topic without a reason, its token never shown after (Z-1105)", async () => {
+    const root = await tab();
+    expect(karte(root, "Empfänger").textContent).toContain("ntfy (Handy)");
+    knopf(root, "Empfänger hinzufügen")?.click();
+    await warten();
+    const art = feld<HTMLSelectElement>("Art");
+    art.value = "ntfy";
+    art.dispatchEvent(new Event("change", { bubbles: true }));
+    await warten();
+    expect(dialog().textContent).not.toContain("Grund");
+    eintragen("Adresse des Themas", "https://ntfy.sh/sz-geheimes-thema");
+    eintragen("Zugriffstoken", "tk_geheim0123");
+    flush();
+    dialog().querySelector("form")?.requestSubmit();
+    await warten();
+    expect(document.querySelector("dialog[open]")).toBeNull();
+    expect(root.textContent).not.toContain("sz-geheimes-thema");
+    expect(root.textContent).not.toContain("tk_geheim0123");
+  });
+
   it("get a test message and are removed with a reason", async () => {
     const root = await tab();
     const test = root.querySelector<HTMLButtonElement>(

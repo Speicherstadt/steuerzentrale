@@ -7,7 +7,7 @@ import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlit
  */
 
 export const SMTP_SICHERHEIT = ["tls", "starttls", "keine"] as const;
-export const EMPFAENGER_ARTEN = ["mail", "webhook"] as const;
+export const EMPFAENGER_ARTEN = ["mail", "webhook", "ntfy"] as const;
 export const SCHWEREN = ["info", "warn", "fehler"] as const;
 export const ZUSTELLUNG_ZUSTAENDE = ["wartet", "zugestellt", "aufgegeben"] as const;
 

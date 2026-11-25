@@ -91,6 +91,8 @@ export type Server = {
   zertifikatTage: number;
   uhrAbweichungMs: number;
   laufzeitTage: number;
+  /** Only observed (Z-1102): the agent alone, no Podman and no Pforte */
+  nurBeobachten?: true;
 };
 
 export type Health = "gruen" | "gelb" | "rot" | "unbekannt";

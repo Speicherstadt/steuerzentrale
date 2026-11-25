@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pforteGrundkonfiguration, schluesselLesen } from "@steuerzentrale/manifest";
+import {
+  AGENT_UPDATE_AKTION,
+  AUFTRAGS_ARTEN,
+  pforteGrundkonfiguration,
+  schluesselLesen,
+} from "@steuerzentrale/manifest";
 import { PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { speicher, TEST_PUB } from "../beitritt/testhilfen.ts";
@@ -347,5 +352,44 @@ describe("after a restart of the agent", () => {
     nachher.laeufe[0]?.ende(0);
     await fertig;
     expect(nachher.gesendet.at(-1)).toMatchObject({ ergebnis: { ok: true } });
+  });
+});
+
+// BAULISTE.md Z-1102: on a server that is only observed the agent refuses every job that changes
+// anything, also when the Zentrale sends one: every built-in kind and a command of the manifest,
+// before it checks or runs anything; only its own update goes on to its checks
+describe("a server that is only observed", () => {
+  const AENDERND = [...AUFTRAGS_ARTEN.filter((a) => a !== AGENT_UPDATE_AKTION), "migrieren"];
+
+  it.each(AENDERND)("refuses %s and runs nothing", async (aktion) => {
+    const a = aufgebaut({ nurBeobachten: true });
+    await a.empfangen(auftrag({ aktion }));
+    await weiter();
+    expect(a.laeufe).toEqual([]);
+    expect(a.gesendet).toEqual([
+      expect.objectContaining({ typ: "bestaetigt", auftragId: "a1" }),
+      expect.objectContaining({
+        typ: "ergebnis",
+        auftragId: "a1",
+        ergebnis: { ok: false, fehler: "abgelehnt: der Server wird nur beobachtet" },
+      }),
+    ]);
+  });
+
+  it("takes its own update to its checks", async () => {
+    const a = aufgebaut({ nurBeobachten: true });
+    await a.empfangen(auftrag({ aktion: AGENT_UPDATE_AKTION, installationId: null }));
+    await weiter();
+    const ergebnis = a.gesendet.find((n) => n.typ === "ergebnis") as
+      | { ergebnis: { fehler?: string } }
+      | undefined;
+    expect(ergebnis?.ergebnis.fehler).not.toBe("abgelehnt: der Server wird nur beobachtet");
+  });
+
+  it("runs the manifest's command on a managed server, as before", async () => {
+    const a = aufgebaut({ nurBeobachten: false });
+    void a.empfangen();
+    await weiter();
+    expect(a.laeufe).toHaveLength(1);
   });
 });

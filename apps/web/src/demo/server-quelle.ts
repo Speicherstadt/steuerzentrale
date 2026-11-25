@@ -58,7 +58,7 @@ export const demoFakten = (sv: Server, jetzt: number): ServerFakten => {
     kernel: sv.kernel,
     neustartNoetig: sv.neustart !== undefined || sv.kernel.laeuft !== sv.kernel.installiert,
     updatesAusstehend: sv.sicherheitsupdates,
-    podman: sv.podman,
+    podman: sv.podman || null,
     ipv4: sv.ipv4 ? [sv.ipv4] : [],
     ipv6: sv.ipv6 ? [sv.ipv6] : [],
     ptr: sv.ipv4 ? { [sv.ipv4]: sv.host } : {},
@@ -77,6 +77,7 @@ export const demoFakten = (sv: Server, jetzt: number): ServerFakten => {
     zertifikate: demo.installationen
       .filter((i) => i.server === sv.id)
       .map((i) => ({ host: i.adresse, gueltigBis: jetzt + sv.zertifikatTage * TAG_MS })),
+    ...(sv.nurBeobachten ? { nurBeobachten: true } : {}),
   };
 };
 

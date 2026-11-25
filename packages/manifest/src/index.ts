@@ -125,6 +125,7 @@ export {
   backupRepository,
   type OrtGeprueft,
 } from "./backup-zugang.ts";
+export { AUFTRAGS_ARTEN, imBeobachtenErlaubt, NUR_BEOBACHTEN_AKTIONEN } from "./beobachten.ts";
 export {
   EINRICHTUNG_AKTIONEN,
   EINRICHTUNG_ZEITLIMIT_S,

@@ -29,8 +29,15 @@ describe("the agent's service", () => {
           schluessel: expect.objectContaining({ id: TEST_SCHLUESSEL_ID }),
           zweck: "test",
         },
+        nurBeobachten: false,
       },
     });
+  });
+
+  it("starts only observing when install.sh left the mode's file (Z-1102)", async () => {
+    const fs = speicher({ ...beigetreten(), "/k/nur-beobachten": "nur-beobachten\n" });
+    const r = await dienstPruefen(fs.dateien, pfade);
+    expect(r.ok && r.wert.nurBeobachten).toBe(true);
   });
 
   it("refuses to start without its certificate", async () => {

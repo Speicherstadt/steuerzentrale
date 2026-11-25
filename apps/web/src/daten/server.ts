@@ -44,6 +44,8 @@ export type ServerFakten = {
   portsOffen?: { port: number; proto: "tcp" | "udp" }[] | null;
   zertifikate?: { host: string; gueltigBis: number }[] | null;
   uhrSynchron?: boolean | null;
+  /** Z-1102: the server is only observed; an agent before it does not send it */
+  nurBeobachten?: boolean;
 };
 
 /**

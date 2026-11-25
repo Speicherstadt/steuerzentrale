@@ -12,6 +12,13 @@
 # It makes the Linux user of the Pforte (sz-pforte, lingering); its unit comes from the agent.
 # Running it again on a joined server changes nothing but the binary, the packages and the unit.
 #
+# With --nur-beobachten (BAULISTE.md Z-1102) it only adds the agent to a server where something runs
+# already: no package, no Podman, no Pforte and its user, no sysctl, no delegation of cgroup
+# controllers, no change to unattended-upgrades. minisign, curl and sha256sum must be there. It
+# leaves /etc/steuerzentrale/nur-beobachten, by which the agent takes no job but its own update; a
+# second run keeps the mode with or without the switch, and a server that joined as a managed one
+# is not switched.
+#
 # With SZ_INSTALL_NUR_LADEN=1 sourcing it only defines the functions (scripts/install-sh.test.ts).
 set -eu
 
@@ -41,8 +48,13 @@ abbruch() {
 argumente_lesen() {
 	TOKEN=''
 	TESTMODUS=0
+	NUR_BEOBACHTEN=0
 	while [ $# -gt 0 ]; do
 		case "$1" in
+		--nur-beobachten)
+			NUR_BEOBACHTEN=1
+			shift
+			;;
 		--token)
 			[ $# -ge 2 ] || abbruch "--token needs a value"
 			TOKEN=$2
@@ -87,6 +99,30 @@ schluessel_pruefen() {
 
 os_feld() { sed -n "s/^$1=//p" /etc/os-release | tr -d '"'; }
 
+# The mode of a server that is only observed stays once set; a managed server is not switched.
+# The file is present for that mode (Z-1102); only this script writes it, the agent reads it
+modus_pruefen() {
+	if [ -f "$KONFIG/nur-beobachten" ]; then
+		[ "$NUR_BEOBACHTEN" = 1 ] || meldung "the server is only observed and stays so ($KONFIG/nur-beobachten)"
+		NUR_BEOBACHTEN=1
+		return
+	fi
+	[ "$NUR_BEOBACHTEN" = 1 ] || return 0
+	if [ -f "$ZUSTAND/agent.pem" ] && [ -f "$KONFIG/agent.json" ]; then
+		abbruch "the server joined as a managed one; --nur-beobachten does not switch it, nothing changed"
+	fi
+}
+
+# What an observed server must bring: this script installs no package there
+werkzeuge_pruefen() {
+	fehlt=''
+	for werkzeug in minisign curl sha256sum; do
+		command -v "$werkzeug" >/dev/null 2>&1 || fehlt="$fehlt $werkzeug"
+	done
+	[ -z "$fehlt" ] ||
+		abbruch "--nur-beobachten installs no package; install first:$fehlt"
+}
+
 system_pruefen() {
 	[ "$(id -u)" = 0 ] || abbruch "run as root (sudo sh)"
 	[ -r /etc/os-release ] || abbruch "/etc/os-release is missing"
@@ -100,6 +136,8 @@ system_pruefen() {
 	aarch64 | arm64) ARCH=arm64 ;;
 	*) abbruch "amd64 or arm64 needed, this is $(uname -m)" ;;
 	esac
+	# an observed server runs no installation: Podman's needs are not its own
+	[ "$NUR_BEOBACHTEN" != 1 ] || return 0
 	# Rootless Podman limits memory and processes only on the unified hierarchy (cgroup v2)
 	[ -f /sys/fs/cgroup/cgroup.controllers ] || abbruch "cgroup v2 (unified hierarchy) needed"
 	for controller in cpu memory pids; do
@@ -232,22 +270,35 @@ EOF
 		abbruch "the agent's service does not run: journalctl -u steuerzentrale-agent"
 }
 
+# Packages, the delegation of cgroup controllers, sysctl and the Pforte: only on a managed server
+verwaltet_einrichten() {
+	pakete_installieren
+	delegation_einrichten
+}
+
 main() {
 	argumente_lesen "$@"
+	modus_pruefen
 	schluessel_pruefen
 	system_pruefen
+	# before the first write and the first curl: a missing tool leaves the server as it was
+	[ "$NUR_BEOBACHTEN" != 1 ] || werkzeuge_pruefen
 	install -d -m 0755 "$KONFIG"
 	manifest_schluessel_ablegen "$KONFIG/manifest.pub"
 	uhrzeit_pruefen
-	pakete_installieren
-	delegation_einrichten
+	[ "$NUR_BEOBACHTEN" = 1 ] || verwaltet_einrichten
 	ordner=$(mktemp -d)
 	trap 'rm -rf "$ordner"' EXIT
 	agent_laden "$ordner"
 	agent_pruefen "$ordner" "$ARCH"
 	install -m 0755 "$ordner/steuerzentrale-agent-linux-$ARCH" "$BINARY"
-	server_einrichten
-	pforte_einrichten
+	if [ "$NUR_BEOBACHTEN" = 1 ]; then
+		install -d -m 0700 "$ZUSTAND"
+		printf 'nur-beobachten\n' >"$KONFIG/nur-beobachten"
+	else
+		server_einrichten
+		pforte_einrichten
+	fi
 	beitreten
 	dienst_einrichten
 	meldung "done: the agent runs and has its certificate"
