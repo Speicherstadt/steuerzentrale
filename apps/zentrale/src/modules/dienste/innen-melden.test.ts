@@ -1,4 +1,5 @@
 import { STOERUNG_NACH_MS } from "@steuerzentrale/planung";
+import { BEOBACHTET_MAX } from "@steuerzentrale/protokoll";
 import { describe, expect, it } from "vitest";
 import { dienstInnen, ereignisse } from "../../db/schema.ts";
 import { testDatenbank } from "../../db/test-db.ts";
@@ -7,7 +8,7 @@ import { FAKTEN } from "../../testhilfen/installationen.ts";
 import { schreiben } from "../audit/index.ts";
 import { zustandAnnehmen } from "../bewertung/index.ts";
 import { beobachtenNachricht } from "./beobachten.ts";
-import { dienstAnlegen, dienstLesen } from "./dienste.ts";
+import { dienstAendern, dienstAnlegen, dienstLesen } from "./dienste.ts";
 import type { Innen } from "./innen.ts";
 import { dienstZeileLesen } from "./lesen.ts";
 import { dienstErgebnisAnnehmen } from "./pruefen.ts";
@@ -137,6 +138,51 @@ describe("reports about observed units", () => {
     expect(dienstLesen(u.db, "b1", id, T + MIN)?.innenStand?.bewertung).toBe("unbekannt");
   });
 
+  it("never rate green a report that leaves out a unit the service names", () => {
+    const u = umgebung();
+    const id = u.anlegen("b1", {
+      ...KONTEXT,
+      units: ["kontext.service", "fehlt.service"],
+      health: { art: "keine" },
+    });
+    // a report made from the list before the change, or by an agent that leaves a unit out
+    u.melden("s1", [{ dienstId: id, health: "unbekannt" }], T);
+    expect(dienstLesen(u.db, "b1", id, T)?.innenStand).toMatchObject({
+      bewertung: "unbekannt",
+      grund: { code: "unit", werte: { unit: "fehlt.service", aktiv: "unknown" } },
+    });
+  });
+
+  it("forget the rating once the operator changes what is read", () => {
+    const u = umgebung();
+    const id = u.anlegen("b1", { ...KONTEXT, health: { art: "keine" } });
+    u.melden("s1", [{ dienstId: id, health: "unbekannt" }], T);
+    expect(dienstLesen(u.db, "b1", id, T)?.innenStand?.bewertung).toBe("gruen");
+    const kontext = { betreiberId: "b1", akteur: "n", jetzt: T + 1000, grund: "Dienst geändert" };
+    const daten = { name: "Kontext", host: "kontext.teufel-it.de", pfad: "/", kundeId: null };
+    // other units, then another server: the green of what was read before says nothing of them
+    const innen: Innen = { ...KONTEXT, units: ["fehlt.service"], health: { art: "keine" } };
+    expect(dienstAendern(u.db, u.schreibDb, kontext, id, { ...daten, innen }).ok).toBe(true);
+    expect(dienstLesen(u.db, "b1", id, T + 1000)?.innenStand).toMatchObject({
+      bewertung: "unbekannt",
+      grund: { code: "noch_keine_meldung" },
+    });
+    const zurueck: Innen = { ...innen, units: ["kontext.service"] };
+    expect(dienstAendern(u.db, u.schreibDb, kontext, id, { ...daten, innen: zurueck }).ok).toBe(
+      true,
+    );
+    u.melden("s1", [{ dienstId: id, health: "unbekannt" }], T + 2000);
+    expect(dienstLesen(u.db, "b1", id, T + 2000)?.innenStand?.bewertung).toBe("gruen");
+    const umzug: Innen = { ...zurueck, serverId: "s2" };
+    expect(dienstAendern(u.db, u.schreibDb, kontext, id, { ...daten, innen: umzug }).ok).toBe(true);
+    expect(dienstLesen(u.db, "b1", id, T + 3000)?.innenStand?.bewertung).toBe("unbekannt");
+    // a change of the name alone keeps the rating
+    u.melden("s2", [{ dienstId: id, health: "unbekannt" }], T + 4000);
+    const name = { ...daten, name: "Kontext 2", innen: umzug };
+    expect(dienstAendern(u.db, u.schreibDb, kontext, id, name).ok).toBe(true);
+    expect(dienstLesen(u.db, "b1", id, T + 5000)?.innenStand?.bewertung).toBe("gruen");
+  });
+
   it("reach only services of this server and operator; any other is dropped and logged", () => {
     const u = umgebung();
     const hier = u.anlegen("b1", KONTEXT);
@@ -212,5 +258,23 @@ describe("the list for an agent", () => {
       ],
     });
     expect(JSON.parse(beobachtenNachricht(u.db, "b2", "s1")).dienste).toEqual([]);
+  });
+
+  it("stays a message the agent takes: a server takes no more services than the protocol", () => {
+    const u = umgebung();
+    for (let i = 0; i < BEOBACHTET_MAX; i++) u.anlegen("b1", KONTEXT, `Dienst ${i}`);
+    const kontext = { betreiberId: "b1", akteur: "n", jetzt: T, grund: "Dienst angelegt" };
+    const daten = { name: "zu viel", host: "kontext.teufel-it.de", pfad: "/", kundeId: null };
+    expect(dienstAnlegen(u.db, u.schreibDb, kontext, { ...daten, innen: KONTEXT })).toEqual({
+      ok: false,
+      grund: "server_voll",
+    });
+    expect(JSON.parse(beobachtenNachricht(u.db, "b1", "s1")).dienste).toHaveLength(BEOBACHTET_MAX);
+    // one of them may still be changed, and another server takes the next
+    const woanders = { ...daten, innen: { ...KONTEXT, serverId: "s2" } };
+    expect(dienstAnlegen(u.db, u.schreibDb, kontext, woanders).ok).toBe(true);
+    const einer = JSON.parse(beobachtenNachricht(u.db, "b1", "s1")).dienste[0].dienstId;
+    const anders = { ...daten, innen: { ...KONTEXT, nutzer: null } };
+    expect(dienstAendern(u.db, u.schreibDb, kontext, einer, anders).ok).toBe(true);
   });
 });
