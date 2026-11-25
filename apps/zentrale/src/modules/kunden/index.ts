@@ -6,7 +6,6 @@ export {
   kundeAnlegen,
   kundeLesen,
   kundenListe,
-  type Sla,
   type Stammdaten,
   vertragsendeSetzen,
 } from "./kunden.ts";

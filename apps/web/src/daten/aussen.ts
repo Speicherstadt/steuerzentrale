@@ -75,7 +75,7 @@ export const aussenGrundText = (g: AussenGrund): string => {
 export const prozentVon = (v: MonatsVerfuegbarkeit): number | undefined =>
   v.anteil === null ? undefined : v.anteil * 100;
 
-/** The SLA's mark: 99.9 % (docs/plan.md, "SLA") */
+/** The mark of availability: 99.9 % (docs/plan.md, "Prüfung von außen (Z-704)") */
 export const ZIEL_PROZENT = 99.9;
 
 /** The month as "2026-11", the form the pages name months in */

@@ -139,7 +139,7 @@ describe("the page of a customer", () => {
     const { root } = await oeffne("/kunden/atelier-nord");
     expect(root.querySelector("main h1")?.textContent).toBe("Atelier Nord");
     expect(root.textContent).toMatch(/\d+ Apps, (alle laufen|wird eingerichtet|davon)/);
-    expect(root.textContent).toMatch(/Basis-Vertrag seit \d\d\.\d\d\.\d{4}/);
+    expect(root.textContent).toMatch(/· Vertrag seit \d\d\.\d\d\.\d{4}/);
     expect(reiter(root)).toEqual(["Überblick", "Support", "Verlauf"]);
     expect(root.querySelector('main [aria-haspopup="menu"]')?.textContent).toBe("Mehr …");
   });
@@ -151,7 +151,8 @@ describe("the page of a customer", () => {
     expect(apps[0]?.textContent).toContain("atelier-nord");
     expect(apps[0]?.querySelector("a")?.getAttribute("href")).toMatch(/^\/apps\//);
     expect(root.textContent).not.toContain("Dieser Monat");
-    expect(root.textContent).toContain("StufeBasis");
+    expect(root.textContent).toMatch(/Vertragsbeginn\d\d\.\d\d\.\d{4}/);
+    expect(root.textContent).not.toContain("Stufe");
     expect(root.textContent).toContain("Ansprechperson");
   });
 

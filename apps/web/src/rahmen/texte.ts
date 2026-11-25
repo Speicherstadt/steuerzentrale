@@ -1,5 +1,5 @@
 import { m } from "@steuerzentrale/ui";
-import type { Manifest, Rolle, Sla } from "../daten/typen.ts";
+import type { Manifest, Rolle } from "../daten/typen.ts";
 import type { Welle } from "../daten/wellen.ts";
 
 /** Names of the values the data carries as codes, in the interface language */
@@ -33,13 +33,3 @@ const WELLEN: Record<Welle, () => string> = {
 };
 
 export const welleName = (welle: Welle): string => WELLEN[welle]();
-
-const SLAS: Record<Sla, { name: () => string; text: () => string }> = {
-  basis: { name: () => m.sla_basis(), text: () => m.sla_basis_text() },
-  plus: { name: () => m.sla_plus(), text: () => m.sla_plus_text() },
-  ruhe: { name: () => m.sla_ruhe(), text: () => m.sla_ruhe_text() },
-};
-
-/** The SLA of a contract and what it means for updates (docs/plan.md, "SLA") */
-export const slaName = (sla: Sla): string => SLAS[sla].name();
-export const slaText = (sla: Sla): string => SLAS[sla].text();

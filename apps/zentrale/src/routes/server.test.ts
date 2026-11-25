@@ -13,7 +13,7 @@ const kundeAnlegen = async (person: { json: (pfad: string, init?: never) => Prom
     body: {
       name: "Kanzlei Berger",
       kontakt: { name: "Bea Berger", email: "bea@berger.test" },
-      vertrag: { sla: "basis", beginn: tagesbeginn(1_800_000_000_000) },
+      vertrag: { beginn: tagesbeginn(1_800_000_000_000) },
       grund: "Vertrag",
     },
   } as never)) as { status: number; daten: { id: string } };

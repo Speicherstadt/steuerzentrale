@@ -87,7 +87,6 @@ const eigenenKundenAnlegen = (db: Db, s: Schreiber, kontext: Kontext): string =>
     betreiberId,
     vertragId: randomUUID(),
     kundeId,
-    sla: "basis",
     beginn: tagesbeginn(jetzt),
     ende: null,
     angelegtAm: jetzt,

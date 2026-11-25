@@ -81,7 +81,16 @@ describe("the customer pages", () => {
     expect(router.state.location.pathname).toMatch(/^\/kunden\/[\w-]+$/);
     expect(ueberschrift(root)).toBe("Muster Design");
     expect(root.textContent).toContain("noch keine App");
-    expect(root.textContent).toContain("Basis-Vertrag seit 01.12.2026");
+    expect(root.textContent).toContain("Vertrag seit 01.12.2026");
+    expect(root.textContent).not.toContain("Basis");
+  });
+
+  it("list customers without an SLA (Z-1202)", async () => {
+    const { root } = await oeffne("/kunden");
+    const kopf = [...root.querySelectorAll("main thead th")].map((th) => th.textContent);
+    expect(kopf).toContain("Kunde");
+    expect(kopf).not.toContain("SLA");
+    expect(root.textContent).not.toContain("Basis");
   });
 
   it("change a customer's details", async () => {

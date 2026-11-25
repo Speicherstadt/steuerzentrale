@@ -108,7 +108,7 @@ describe("the page of an app", () => {
     );
     expect(text("server")).toContain("Server: Gemeinsamer Server 1");
     expect(text("server")).toContain("verbunden");
-    expect(root.textContent).toContain("Basis, seit");
+    expect(root.textContent).toMatch(/Vertragseit \d\d\.\d\d\.\d{4}/);
     expect(root.querySelector("[data-testid=zuletzt]")?.textContent).toContain("Einrichten");
   });
 

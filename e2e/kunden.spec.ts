@@ -28,7 +28,7 @@ test.describe("customers", { tag: "@phone" }, () => {
     await anlegen.getByRole("button", { name: "Anlegen" }).click();
     await expect(page).toHaveURL(/\/kunden\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
-    await expect(page.getByText("· Basis-Vertrag seit 01.12.2026")).toBeVisible();
+    await expect(page.getByText("· Vertrag seit 01.12.2026")).toBeVisible();
     await expect(page.getByTestId("kunde-apps")).toContainText("noch keine App");
     await expect(page.getByText("mia@muster-design.test")).toBeVisible();
 
@@ -69,7 +69,7 @@ test.describe("customers", { tag: "@phone" }, () => {
       data: {
         name,
         kontakt: { name: "Clara", email: "cafe@cafe.test" },
-        vertrag: { sla: "basis", beginn: Date.UTC(2026, 0, 10, 23) },
+        vertrag: { beginn: Date.UTC(2026, 0, 10, 23) },
         grund: "Test",
       },
     });

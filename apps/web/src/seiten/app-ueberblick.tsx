@@ -8,7 +8,6 @@ import { laufBytes } from "../daten/backups.ts";
 import type { Einzelansicht } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
 import { datum } from "../format/zeit.ts";
-import { slaName } from "../rahmen/texte.ts";
 import { Angaben, Karte } from "../teile/karte.tsx";
 import { Gut, Punkt, Urteil } from "../teile/punkte.tsx";
 import { ZuKunde, ZuServer } from "../teile/verweise.tsx";
@@ -167,10 +166,7 @@ const KundeKarte = (props: { a: Einzelansicht }) => (
                   name: m.app_kunde_vertrag(),
                   wert: props.a.kunde.vertrag.ende
                     ? m.apps_gekuendigt({ datum: datum(props.a.kunde.vertrag.ende) })
-                    : m.app_vertrag_seit({
-                        sla: slaName(props.a.kunde.vertrag.sla),
-                        datum: datum(props.a.kunde.vertrag.beginn),
-                      }),
+                    : m.app_vertrag_seit({ datum: datum(props.a.kunde.vertrag.beginn) }),
                 },
                 { name: m.app_kunde_kontakt(), wert: props.a.kunde.kontakt.email },
               ]

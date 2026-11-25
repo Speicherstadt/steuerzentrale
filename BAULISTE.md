@@ -595,7 +595,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   (Z-804). Die Verfügbarkeit je App und Monat bleibt an der App (Z-704).
   Fertig, wenn: die Routen der Leistungen `404` antworten (Test), kein Menüpunkt dorthin führt und
   die Verfügbarkeit an der App weiter steht (Playwright).
-- [ ] **Z-1202 SLA entfernen** – ein Vertrag hat Beginn und Ende, keine SLA: Spalte, Dialog,
+- [x] **Z-1202 SLA entfernen** – ein Vertrag hat Beginn und Ende, keine SLA: Spalte, Dialog,
   Kundenseite, API.
   Fertig, wenn: ein Vertrag ohne SLA angelegt wird (Test, Playwright), die Migration vorhandene
   Verträge behält (Test auf einer Datenbank mit Verträgen) und `sla` in keinem Schema der API mehr

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
-import { kunden, type SLAS, vertraege } from "../../db/schema.ts";
+import { kunden, vertraege } from "../../db/schema.ts";
 import { abwicklungenDesKunden } from "../abwicklung/lesen.ts";
 import { type Kontext, schreiben } from "../audit/index.ts";
 import { kuerzelFuerNeu, kuerzelVergeben, kundenMitFestemKuerzel } from "./kuerzel.ts";
@@ -12,8 +12,6 @@ import { kuerzelFuerNeu, kuerzelVergeben, kundenMitFestemKuerzel } from "./kuerz
  * and its one contract are made together; the notice date is the contract's end. Its short name
  * (Z-407) is unique within the operator and fixed while an installation of it runs (kuerzel.ts).
  */
-
-export type Sla = (typeof SLAS)[number];
 
 export type Kunde = {
   id: string;
@@ -26,7 +24,7 @@ export type Kunde = {
   /** Our own customer: its installations are the wave "intern", offered pre-releases (Z-501) */
   intern: boolean;
   angelegtAm: number;
-  vertrag: { sla: Sla; beginn: number; ende: number | null };
+  vertrag: { beginn: number; ende: number | null };
 };
 
 /** What a person enters about a customer; an optional field left out is empty */
@@ -61,7 +59,6 @@ const SPALTEN = {
   intern: kunden.intern,
   angelegtAm: kunden.angelegtAm,
   vertragId: vertraege.vertragId,
-  sla: vertraege.sla,
   beginn: vertraege.beginn,
   ende: vertraege.ende,
 };
@@ -88,7 +85,7 @@ const alsKunde =
     kuerzelAenderbar: !fest.has(z.id),
     intern: z.intern,
     angelegtAm: z.angelegtAm,
-    vertrag: { sla: z.sla, beginn: z.beginn, ende: z.ende },
+    vertrag: { beginn: z.beginn, ende: z.ende },
   });
 
 const zeileVon = (db: Db, betreiberId: string, kundeId: string): Zeile | undefined =>
@@ -133,7 +130,7 @@ export const kundeAnlegen = (
   db: Db,
   schreibDb: SchreibDb,
   kontext: Kontext,
-  daten: Stammdaten & { vertrag: { sla: Sla; beginn: number } },
+  daten: Stammdaten & { vertrag: { beginn: number } },
 ): Ergebnis => {
   const kundeId = randomUUID();
   const { betreiberId, jetzt } = kontext;
@@ -152,7 +149,6 @@ export const kundeAnlegen = (
       betreiberId,
       vertragId: randomUUID(),
       kundeId,
-      sla: daten.vertrag.sla,
       beginn: daten.vertrag.beginn,
       ende: null,
       angelegtAm: jetzt,

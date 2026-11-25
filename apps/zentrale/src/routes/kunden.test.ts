@@ -3,7 +3,7 @@ import { auditLog, kunden, vertraege } from "../db/schema.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
- * BAULISTE.md Z-801: customers with contact and a contract with SLA and notice date; every write
+ * BAULISTE.md Z-801: customers with contact and a contract with beginning and notice date (no SLA since Z-1202); every write
  * with a reason, through `schreiben`, so each change stands in the audit log.
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
@@ -16,7 +16,7 @@ const neuerKunde = (name = "Atelier Nord") => ({
   name,
   kontakt: { name: "Anna Nord", email: "buero@atelier-nord.test", telefon: "+49 40 123456" },
   notiz: "Zahlt per Rechnung",
-  vertrag: { sla: "basis", beginn: BEGINN },
+  vertrag: { beginn: BEGINN },
   grund: "Vertrag vom 20.11.",
 });
 
@@ -28,7 +28,7 @@ type KundeAntwort = {
   kuerzel: string;
   kuerzelAenderbar: boolean;
   angelegtAm: number;
-  vertrag: { sla: string; beginn: number; ende: number | null };
+  vertrag: { beginn: number; ende: number | null };
 };
 
 let server: TestServer;
@@ -48,7 +48,7 @@ const anlegen = async (person: Pick<Person, "json"> = inhaber, name?: string) =>
 const letzterEintrag = () => server.db.select().from(auditLog).all().at(-1);
 
 describe("a customer", () => {
-  it("is created with contact, note and an SLA Basis contract, and listed", async () => {
+  it("is created with contact, note and a contract without SLA, and listed", async () => {
     const kunde = await anlegen(inhaber, "Liste GmbH");
     expect(kunde).toEqual({
       id: expect.any(String),
@@ -59,7 +59,7 @@ describe("a customer", () => {
       kuerzelAenderbar: true,
       intern: false,
       angelegtAm: server.jetzt(),
-      vertrag: { sla: "basis", beginn: BEGINN, ende: null },
+      vertrag: { beginn: BEGINN, ende: null },
     });
     const { daten } = await inhaber.json("/api/v1/kunden");
     expect((daten as { kunden: KundeAntwort[] }).kunden).toContainEqual(kunde);
@@ -85,11 +85,18 @@ describe("a customer", () => {
     expect(neu[0]?.ziel).toBe(`kunden:${kunde.id}`);
   });
 
-  it("takes only SLA Basis in stage 1", async () => {
-    for (const sla of ["plus", "ruhe", "gold"]) {
+  it("knows no SLA any more (Z-1202): neither takes nor answers one", async () => {
+    for (const sla of ["basis", "plus", "ruhe"]) {
       const body = { ...neuerKunde(), vertrag: { sla, beginn: BEGINN } };
       expect((await inhaber.json("/api/v1/kunden", { body })).status, sla).toBe(400);
     }
+    const kunde = await anlegen();
+    const antworten = [
+      kunde,
+      (await inhaber.json("/api/v1/kunden")).daten,
+      (await inhaber.json(`/api/v1/kunden/${kunde.id}`)).daten,
+    ];
+    for (const daten of antworten) expect(JSON.stringify(daten)).not.toMatch(/"sla"/);
   });
 
   it("needs a reason and valid fields for every write", async () => {
@@ -100,7 +107,7 @@ describe("a customer", () => {
       { ...neuerKunde(), name: "" },
       { ...neuerKunde(), kontakt: { name: "A", email: "keine-adresse" } },
       { ...neuerKunde(), unbekannt: 1 },
-      { ...neuerKunde(), vertrag: { sla: "basis", beginn: -1 } },
+      { ...neuerKunde(), vertrag: { beginn: -1 } },
     ];
     const vorher = server.db.select().from(kunden).all().length;
     for (const body of falsch)
@@ -136,7 +143,7 @@ describe("a customer", () => {
       name: "Atelier Nord GmbH",
       kontakt: { name: "Anna Nord", email: "anna@atelier-nord.test", telefon: null },
       notiz: null,
-      vertrag: { sla: "basis", beginn: BEGINN + TAG, ende: null },
+      vertrag: { beginn: BEGINN + TAG, ende: null },
     });
     const eintraege = server.db
       .select()
@@ -225,7 +232,7 @@ describe("a customer", () => {
     const mittag = BEGINN + 12 * 3_600_000;
     const vorher = server.db.select().from(kunden).all().length;
     const versuch = await inhaber.json("/api/v1/kunden", {
-      body: { ...neuerKunde(), vertrag: { sla: "basis", beginn: mittag } },
+      body: { ...neuerKunde(), vertrag: { beginn: mittag } },
     });
     expect(versuch).toEqual({ status: 400, daten: { fehler: "ungueltig" } });
     expect(server.db.select().from(kunden).all()).toHaveLength(vorher);
