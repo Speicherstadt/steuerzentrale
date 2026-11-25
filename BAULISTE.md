@@ -494,7 +494,7 @@ Kontext mit Mail und Single Sign-on Z-409 und Z-408, API und Webhooks für das P
 Z-904, Wellen nach SLA Z-505, Umzug und Ausfall Z-605 und Z-606) sind gestrichen; was davon
 wiederkommen kann, steht unter „Später, bei Bedarf“.
 
-- [ ] **Stufe 2 freigegeben** – hakt ein Mensch ab; bis dahin beginnt der Loop keinen Punkt dieser
+- [x] **Stufe 2 freigegeben** – hakt ein Mensch ab; bis dahin beginnt der Loop keinen Punkt dieser
   Stufe.
 
 Für jeden Punkt dieser Stufe gilt:
