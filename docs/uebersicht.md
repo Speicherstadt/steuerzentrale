@@ -177,8 +177,8 @@ Die Seite **Server** ist eine Tabelle: Name, Zustand in Worten mit Symbol („Pl
 Platte, Apps („4 Apps · 2 Kunden“) und System; eine volle Platte, ein stiller Agent und ein nötiger
 Neustart zuerst. Die Spalten CPU und RAM zeigen, was der Agent zuletzt mit den Fakten gemeldet hat
 (CPU als Anteil der Maschine seit der vorigen Meldung, RAM als belegter Anteil ohne Puffer und Cache);
-es gibt sie, sobald ein Server sie meldet. Eine Art hat ein Server seit Z-1205 nicht mehr:
-jeder ist ein eigener Server des Betreibers für mehrere Kunden.
+es gibt sie, sobald ein Server sie meldet. Jeder Server ist ein eigener Server des Betreibers für
+mehrere Kunden.
 
 Die Seite eines Servers hat im Kopf den Namen, den Zustand in einem Satz, die erste IPv4 und das
 System, daneben **Neu starten** ([Betriebssystem und Neustarts](betriebssystem.md)). Die Reiter

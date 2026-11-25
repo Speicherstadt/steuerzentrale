@@ -29,7 +29,7 @@ sich oder ihre Kunden betreiben, auf eigenen Servern für mehrere Kunden.
 [Dokumentation](https://speicherstadt.org/steuerzentrale/) •
 [Entwicklung](#entwicklung)
 
-<sub>English: self-hosted operations for the open-source apps of Speicherstadt. One control plane with a web UI, one agent per server that connects out by itself and only runs what an app's signed manifest describes: installs, update waves with rollback, restic backups with test restores, health and external checks, customers, contracts and usage reports. The interface comes in German and English; the documentation is in German.</sub>
+<sub>English: self-hosted operations for the open-source apps of Speicherstadt. One control plane with a web UI, one agent per server that connects out by itself and only runs what an app's signed manifest describes: installs, update waves with rollback, restic backups with test restores, health and external checks, customers and contracts. The interface comes in German and English; the documentation is in German.</sub>
 
 </div>
 
@@ -49,7 +49,7 @@ Verträgen. Die Steuerzentrale macht das an einer Stelle, ohne dass ein Server e
 - **Nur was das Manifest beschreibt:** der Agent führt keine Shell und keinen freien Befehl aus, nur die Aktionen
   aus dem signierten Manifest einer App; ein Image nur per Digest
 - **Der Agent verbindet sich selbst:** ausgehende WSS-Verbindung mit Client-Zertifikat, kein offener Port am Server,
-  auch beim Kunden hinter dessen Firewall
+  auch hinter einer Firewall
 - **Updates in Wellen, mit Rückweg:** erst die eigenen Installationen, dann alle; vor jedem Update ein Backup,
   nie in einer Sperrzeit der App, bei roter Health zurück auf die alte Version
 - **Backups, die geprüft sind:** restic je Installation auf dein S3-Ziel, mit regelmäßigem Prüf-Restore auf einer Kopie
@@ -66,7 +66,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
 | 🧭 [Übersicht](https://speicherstadt.org/steuerzentrale/uebersicht.html) | Beantwortet „Brauche ich gerade etwas zu tun?“: das Urteil als Überschrift, vier Kacheln, „Zu tun“ mit einer Zeile je App oder Server und ihren Knöpfen (Log ansehen, Neustart, App oder Server öffnen), „Als Nächstes“ (Updates, Neustarts, Sperrzeiten, Zertifikate, Vertragsenden) und „Von selbst erledigt“ seit gestern Abend |
 | 🗂️ [Navigation](https://speicherstadt.org/steuerzentrale/uebersicht.html#navigation) | Acht Einträge in zwei Gruppen: Betrieb (Übersicht, Apps, Server, Kunden, Updates) und Verwaltung (Katalog, Protokoll, Einstellungen); laufende Apps heißen Apps, die Manifeste Katalog, Ereignisse, Aufträge und Änderungen stehen im Protokoll; die Einstellungen in Abschnitten mit je einer Zeile, die Werte einer App unter Titeln in Worten |
 | 🔌 [Server hinzufügen](https://speicherstadt.org/steuerzentrale/server-hinzufuegen.html) | Ein Befehl mit Einmal-Token; `install.sh` richtet auf Debian 13 oder Ubuntu 24.04 Podman, unattended-upgrades und den signierten Agenten ein; mit `--nur-beobachten` nur den Agenten, der dann nichts ändert; Zertifikat rotiert selbst, sofort sperrbar |
-| 📦 [Apps installieren](https://speicherstadt.org/steuerzentrale/installieren.html) | Dialog mit Kunde, Server, App und Version aus dem Katalog und Adresse; Platzierung nach Platz und Art des Servers; Einstellungen als Formular aus dem Manifest, Geheimnisse als Podman-Secrets |
+| 📦 [Apps installieren](https://speicherstadt.org/steuerzentrale/installieren.html) | Dialog mit Kunde, Server, App und Version aus dem Katalog und Adresse; Platzierung nach Architektur, Arbeitsspeicher, Platte und Ports des Servers; Einstellungen als Formular aus dem Manifest, Geheimnisse als Podman-Secrets |
 | 🧩 [Apps](https://speicherstadt.org/steuerzentrale/installieren.html#die-seite-apps) | Eine Tabelle mit Zustand in Worten, Version, letztem Backup und Server, was dich braucht zuerst; je App Überblick, Messwerte, Backups, Einstellungen, Verlauf und Technik |
 | 📜 [Katalog, Manifeste und Versionen](https://speicherstadt.org/steuerzentrale/manifeste.html) | Der Katalog zeigt die Apps, wie ihre Manifeste sie beschreiben, mit neuen Versionen aus den Registries; signierte Manifeste je App und Version, geprüft mit minisign; was ein Manifest nicht nennt, läuft nicht |
 | 🖥️ [Server](https://speicherstadt.org/steuerzentrale/uebersicht.html#server-und-kundenseite) | Eine Tabelle mit Zustand in Worten, Platte, Apps und System, was dich braucht zuerst; je Server Überblick, Auslastung (Platte, CPU, Arbeitsspeicher und Last über 30 Tage), Apps, Verlauf und Technik |
@@ -90,7 +90,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/app-dunkel.webp"><img src="docs/assets/screenshots/app-hell.webp" alt="Seite einer App mit Zustand und Adresse im Kopf, „Öffnen“, „Neustart“ und „Mehr …“, den Reitern Überblick bis Technik und den Zeilen Erreichbar, Version, Backup, Verfügbarkeit und Server"></picture><br><sub><b>App</b>: Erreichbarkeit, Version, Backup, Verfügbarkeit und Server im Überblick, alles Weitere in Reitern</sub></td>
   </tr>
   <tr>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-dunkel.webp"><img src="docs/assets/screenshots/server-hell.webp" alt="Tabelle der Server mit Zustand in Worten, CPU, RAM, Platte, Apps und System"></picture><br><sub><b>Server</b>: gemeinsam, eigen oder beim Kunden, mit Zustand in Worten und voller Platte zuerst</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-dunkel.webp"><img src="docs/assets/screenshots/server-hell.webp" alt="Tabelle der Server mit Zustand in Worten, CPU, RAM, Platte, Apps und System"></picture><br><sub><b>Server</b>: jeder Server mit Zustand in Worten, volle Platte zuerst</sub></td>
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-detail-dunkel.webp"><img src="docs/assets/screenshots/server-detail-hell.webp" alt="Seite eines Servers mit den Reitern Überblick, Auslastung, Apps, Verlauf und Technik und den Zeilen Auslastung, Betriebssystem, Wartungsfenster, Prüfungen und Agent"></picture><br><sub><b>Ein Server</b>: Auslastung, Betriebssystem, Wartungsfenster, Prüfungen und Agent</sub></td>
   </tr>
   <tr>
@@ -145,9 +145,8 @@ Zentrale kann auch auf einem Server laufen, der selbst Apps betreibt.
 <summary><b>Für wen ist das?</b></summary>
 
 Für alle, die mehr als eine Installation der Speicherstadt-Apps betreuen: IT-Dienstleister und Hoster mit Kunden,
-aber auch eine Firma mit mehreren Standorten. Wer die Apps nur für sich betreibt, wählt nach der Einrichtung „Nur für
-mich“: dann gibt es keine Kunden und Verträge. Für eine einzelne App auf einem Server reicht deren
-eigene Anleitung.
+aber auch eine Firma mit mehreren Standorten. Wer die Apps nur für sich betreibt, führt sie unter einem als intern
+markierten Kunden. Für eine einzelne App auf einem Server reicht deren eigene Anleitung.
 </details>
 
 <details>
@@ -158,7 +157,7 @@ Manifest muss aber mit dem Schlüssel des Betreibers signiert sein, und die Wert
 </details>
 
 <details>
-<summary><b>Muss ich beim Kunden einen Port öffnen?</b></summary>
+<summary><b>Muss ich am Server einen Port für die Zentrale öffnen?</b></summary>
 
 Nein. Der Agent verbindet sich von sich aus zur Zentrale (`agent.<domain>`, mTLS). Am Server sind nur 80 und 443
 für die Apps selbst offen.

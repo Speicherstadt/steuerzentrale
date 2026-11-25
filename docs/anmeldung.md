@@ -25,8 +25,9 @@ Datenbank steht nur sein SHA-256. Auf der Seite **Zentrale einrichten** (`/erste
 damit den Betreiber und seinen ersten Inhaber an: Name des Betreibers, Name, E-Mail-Adresse und
 wahlweise ein Passwort. Danach geht es direkt zur Einrichtung des zweiten Faktors.
 
-Eine Frage „Nur für mich oder für Kunden“ gibt es seit Z-1206 nicht mehr: Kunden gibt es immer,
-eigene Installationen gehören einem internen Kunden ([Kunden und Verträge](kunden.md)).
+Die Zentrale hat genau einen Betreiber; einen zweiten lehnt sie mit `409 betreiber_vorhanden` ab.
+Weitere Fragen kommen nicht: Kunden gibt es immer, eigene Installationen gehören einem internen
+Kunden ([Kunden und Verträge](kunden.md)).
 
 Ist der Code abgelaufen, erzeugt ein Neustart der Zentrale einen neuen; ältere Codes gelten dann
 nicht mehr. Sobald es einen Inhaber gibt, schreibt die Zentrale keinen Code mehr und nimmt auch keinen
@@ -75,13 +76,10 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 | S3-Ziel setzen, „Backup jetzt“, Prüf-Restore, Wiederherstellen | ja | – |
 | DNS, Benachrichtigungen, Werte des Betreibers ändern | ja | – |
 
-Die Rollen sind die Zugriffssteuerung des Organization-Plugins von Better Auth; jeder Betreiber ist
+Die Rollen sind die Zugriffssteuerung des Organization-Plugins von Better Auth; der Betreiber ist
 dort eine Organisation mit derselben ID. Ein Betreiber behält immer einen Inhaber: der letzte kann
 seine Rolle nicht abgeben und nicht entfernt werden. Wer entfernt wird, verliert den Zugang sofort.
-Seit Z-1204 gibt es zwei Rollen: Ein gekapertes Konto eines Mitglieds löscht keine Kundendaten und
-tauscht kein Geheimnis. Eine Migration hat Mitglieder der früheren Rolle Technik zu Inhabern
-gemacht, die der Rolle Support zu Mitgliedern; eine noch offene Einladung beider alten Rollen lädt
-seitdem als Mitglied ein.
+Ein gekapertes Konto eines Mitglieds löscht keine Kundendaten und tauscht kein Geheimnis.
 
 Jede Mitgliedschaft, jede Rolle und jede Einladung steht im Audit-Log, mit dem, der sie angelegt
 oder geändert hat.

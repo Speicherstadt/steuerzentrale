@@ -16,8 +16,7 @@ Unter **Server → Server hinzufügen** (nur der Inhaber):
 
 - **Name** des Servers;
 - **Wartungsfenster**: täglich von–bis, Uhrzeit in Berlin; Neustarts nur dort und nie in einer
-  Sperrzeit der Apps auf dem Server;
-- **Grund**, der im Audit-Log steht.
+  Sperrzeit der Apps auf dem Server.
 
 Danach zeigt die Zentrale **einmal** den Befehl mit dem Einmal-Token:
 
@@ -149,7 +148,7 @@ agent.example.de {
 	tls {
 		client_auth {
 			mode verify_if_given
-			trust_pool file /var/lib/steuerzentrale/agent-cas.pem
+			trust_pool file /var/lib/steuerzentrale/agent-ca.pem
 		}
 	}
 	reverse_proxy 127.0.0.1:8300 {
@@ -172,8 +171,8 @@ hat, gelten altes und neues; danach nur das neue. Beides steht im Audit-Log.
 
 ### Zertifikat sperren
 
-Ist ein Server verloren oder sein Zertifikat in fremden Händen, sperrt der Inhaber es mit
-Grund (`POST /api/v1/server/<id>/sperren`). Die Zentrale trennt eine laufende Verbindung sofort und
+Ist ein Server verloren oder sein Zertifikat in fremden Händen, sperrt der Inhaber es über
+die API (`POST /api/v1/server/<id>/sperren`). Die Zentrale trennt eine laufende Verbindung sofort und
 weist den Agenten ab da bei jedem Versuch ab. Eine Sperre lässt sich nicht aufheben: der Server
 kommt nur zurück, indem er neu hinzugefügt wird.
 

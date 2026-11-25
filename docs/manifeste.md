@@ -42,7 +42,7 @@ auf die Kachel öffnet die Seite der App im Katalog (`/katalog/<app>`) mit den A
 Anmeldung, Health, Backup), Sperrzeiten, Aktionen, Einstellungen (Anzahl je Ebene) und
 Installationen.
 
-Im **Katalog** öffnet „Manifest importieren“ einen Dialog mit beiden Dateien und dem Grund.
+Im **Katalog** öffnet „Manifest importieren“ einen Dialog mit beiden Dateien.
 Importieren darf der Inhaber; der Import steht im Audit-Log des Betreibers
 (`manifest.importieren`, Text und Signatur nur als „[ausgelassen]“).
 

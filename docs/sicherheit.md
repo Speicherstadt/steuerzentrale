@@ -35,7 +35,7 @@ seines Servers.** Wie eine Lücke gemeldet wird, steht in `SECURITY.md`.
 | Angreifer mit übernommener Zentrale | Datenbank, `STEUERZENTRALE_SECRET_KEY`, CA der Agenten, Verbindungen aller Agenten; **nicht** den Signierschlüssel |
 | Angreifer mit einem gestohlenen Server oder Agent-Zertifikat | Schlüssel und Zertifikat eines Agenten, die Podman-Secrets dieses Servers |
 | ein Mitglied mit zu wenig Rechten | ein gültiges Konto mit der Rolle Mitglied |
-| eine kompromittierte App auf einem gemeinsamen Server | Code in den Containern einer Installation |
+| eine kompromittierte App auf einem Server mit mehreren Installationen | Code in den Containern einer Installation |
 | Cloudflare, S3-Anbieter, Registry | ihre eigene Infrastruktur |
 
 ## Vertrauensgrenzen
@@ -97,7 +97,7 @@ Disclosure, **D**enial of Service, **E**levation of Privilege. Tests ohne Pfad z
 | B-23 | Ein Mitglied tut mehr, als seine Rolle erlaubt | E | Rechte je Rolle (`auth/rollen.ts`), geprüft in jeder Route | `routes/zugang.test.ts` › <Route> › as inhaber/mitglied answers by the list (jede Route mit Recht in jeder Rolle, sonst `403 keine_berechtigung`); › gives every route that needs a right at least one role; › a member › is refused <Route> (jede schreibende Route außer Neustart und Log-Auszug); `auth/rollen.test.ts` › darf |
 | B-24 | Ein zweiter Betreiber entsteht oder sieht und ändert Daten eines anderen | I, T | die Zentrale legt keinen zweiten Betreiber an (Z-1208); `betreiber_id` bleibt in jeder Tabelle und Abfrage; `schreiben` lehnt fremde Zeilen ab | `routes/mandanten.test.ts` › no operator reaches another's data; `routes/kunden-mandanten.test.ts`; `routes/betrieb-mandanten.test.ts`; `modules/audit/schreiben.test.ts` › refuses a row of another operator; `routes/erster-inhaber.test.ts` › refuses a second operator, even when the setup is open again |
 | B-25 | Der Einrichtungscode des ersten Inhabers wird erraten oder wiederverwendet | S | Einmal, 24 h, nie im Log | `routes/erster-inhaber.test.ts` › refuses the code a second time; › refuses the code after 24 hours; › never writes the code into the request log |
-| B-26 | Ein Mitglied (früher Support über einen Support-Zugang) ändert mehr als Neustart und Log-Auszug | E | Support-Zugänge gibt es seit Z-1203 nicht mehr, die Wache kennt keinen Ersatz für ein fehlendes Recht; die Rolle Mitglied hat außer Lesen nur `installationen:neustart` und `installationen:log_auszug` (Z-1204) | `routes/zugang.test.ts` › a member › is refused <Route>; `routes/aktionen.test.ts` › lets a member restart and take a log excerpt, never „nur lesen“; `auth/rollen.test.ts` › lets a member change nothing else |
+| B-26 | Ein Mitglied ändert mehr als Neustart und Log-Auszug | E | die Wache kennt keinen Ersatz für ein fehlendes Recht; die Rolle Mitglied hat außer Lesen nur `installationen:neustart` und `installationen:log_auszug` (Z-1204) | `routes/zugang.test.ts` › a member › is refused <Route>; `routes/aktionen.test.ts` › lets a member restart and take a log excerpt, never „nur lesen“; `auth/rollen.test.ts` › lets a member change nothing else |
 | B-27 | Ein Angreifer auf `api.<domain>` probiert Tokens durch | S | Annahme: `api.<domain>` hat keine Route, die API für das Portal ist gestrichen (Bauliste, „Später, bei Bedarf“); käme sie, dann mit Tokens als Hash und einem Rate-Limit mit eigenem Test | – |
 | B-28 | Eine fremde Seite im Browser eines Mitglieds (etwa eine App unter derselben Domain) schreibt mit dessen Sitzung (CSRF) | S, E | Jede schreibende Anfrage mit Sitzung braucht den Origin der Oberfläche, sonst `403 fremder_ursprung` (Entscheidung „Schreiben nur vom eigenen Origin“); Better Auth prüft seine Pfade selbst gegen `STEUERZENTRALE_URL` | `routes/zugang.test.ts` › a write from a page of another origin › … is refused, with the member's session (jede schreibende Route) |
 
@@ -139,8 +139,7 @@ die Platte ist voll), braucht ein Mensch eine Shell. Dafür gilt (Entscheidung �
 - **Nur über WireGuard**: `sshd` ist nur im WireGuard-Netz des Betreibers erreichbar; die Firewall
   des Servers lässt Port 22 von außen nicht durch. Annahme: Das richtet der Inhaber beim Aufsetzen
   des Servers ein, `install.sh` ändert weder `sshd` noch die Firewall. Die Prüfungen der Server
-  dulden Port 22 als Systemport ([Prüfungen](pruefungen.md)), weil ein Server beim Kunden ihn für
-  dessen eigene Verwaltung brauchen kann.
+  dulden Port 22 als Systemport ([Prüfungen](pruefungen.md)), weil der Notzugang ihn braucht.
 - **Jede Anmeldung ist ein Ereignis**: Der Agent liest jede erfolgreiche Anmeldung aus dem Journal
   von `sshd` und meldet sie; die Zentrale legt das Ereignis `ssh_anmeldung` (Schwere `warn`) mit
   Nutzer, Adresse und Verfahren über das Audit-Log an ([Server hinzufügen](server-hinzufuegen.md#ssh-anmeldungen)).
@@ -163,7 +162,7 @@ eine Maßnahme technisch umgesetzt ist, verweist sie auf die Bedrohung oben und 
 
 ### Vertraulichkeit (Art. 32 Abs. 1 lit. b)
 
-**Zutrittskontrolle**: Die Server stehen in Rechenzentren der Hoster (netcup bzw. beim Kunden) mit
+**Zutrittskontrolle**: Die Server stehen in Rechenzentren der Hoster (netcup) mit
 deren Zutrittskontrolle; der Betreiber hat keinen physischen Zugang.
 
 **Zugangskontrolle**
@@ -178,7 +177,7 @@ deren Zutrittskontrolle; der Betreiber hat keinen physischen Zugang.
 **Zugriffskontrolle**
 
 - Rollen Inhaber und Mitglied mit festen Rechten je Route, Schreiben nur von der Oberfläche
-  selbst (B-22, B-23, B-28); kein Support-Zugang, der ein fehlendes Recht ersetzt (B-26).
+  selbst (B-22, B-23, B-28); nichts, was ein fehlendes Recht ersetzt (B-26).
 - Trennung der Betreiber durch `betreiber_id` in jeder Abfrage (B-24).
 - Auf den Servern läuft jede Installation unter einem eigenen Linux-Nutzer ohne Login-Shell, in
   einem eigenen Netz (B-34); der Agent führt nur signierte Manifeste aus (B-01 bis B-05).
