@@ -96,8 +96,6 @@ export type AgentVerbindung =
 export type ServerDerZentrale = {
   serverId: string;
   name: string;
-  art: "gemeinsam" | "eigen" | "beim_kunden";
-  kundeId: string | null;
   wartungsfenster: { tage: number[]; von: string; bis: string };
   angelegtAm: number;
   beigetretenAm: number | null;

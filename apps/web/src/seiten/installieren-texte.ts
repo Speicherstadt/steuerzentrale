@@ -47,7 +47,6 @@ const w = (werte: Werte, name: string) => String(werte[name] ?? "");
 const GRUENDE: Record<string, (werte: Werte) => string> = {
   unbekannte_option: (x) => m.platz_unbekannte_option({ option: w(x, "option") }),
   server_anderer_betreiber: () => m.platz_server_anderer_betreiber(),
-  server_anderer_kunde: () => m.platz_server_anderer_kunde(),
   agent_getrennt: () => m.platz_agent_getrennt(),
   kein_image: (x) => m.platz_kein_image({ container: w(x, "container") }),
   architektur: (x) =>

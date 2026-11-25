@@ -7,7 +7,6 @@ import {
   TriangleAlert,
 } from "@steuerzentrale/ui/icons";
 import type { ServerStand } from "../daten/server-liste.ts";
-import type { Art } from "../daten/typen.ts";
 import { vor, zeitpunkt } from "../format/zeit.ts";
 import { anzahl } from "../rahmen/texte.ts";
 
@@ -68,15 +67,6 @@ export const StandWorte = (props: { stand: ServerStand; jetzt: number; satz?: bo
     </span>
   </span>
 );
-
-const ARTEN: Record<Art, () => string> = {
-  gemeinsam: () => m.server_art_gemeinsam_lang(),
-  eigen: () => m.server_art_eigen_lang(),
-  kunde: () => m.server_art_kunde_lang(),
-};
-
-/** What kind of server it is, in words: "für mehrere Kunden" */
-export const artText = (art: Art): string => ARTEN[art]();
 
 /** "4 Apps · 2 Kunden"; the customers only where they are counted */
 export const appsText = (apps: number, kunden: number | null): string =>

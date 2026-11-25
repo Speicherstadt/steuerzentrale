@@ -52,7 +52,6 @@ if (befehl === "anlegen") {
     );
   const neu = serverAnlegen(schreibDb, kontext, {
     name: wert,
-    art: "gemeinsam",
     wartungsfenster: { tage: [0, 1, 2, 3, 4, 5, 6], von: "03:30", bis: "04:30" },
   });
   const install = `curl -fsSL ${env.agentUrl}/install.sh | sh -s -- --token ${neu.token} --testmodus`;

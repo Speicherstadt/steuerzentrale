@@ -31,8 +31,6 @@ export const demoPlatzServer = (
     ok: true,
     server: {
       betreiberId: DEMO_BETREIBER,
-      art: sv.art,
-      kundeId: sv.kundeId,
       agentVerbunden: sv.agent.zustand === "verbunden",
       nurBeobachten: f.nurBeobachten === true,
       architektur,

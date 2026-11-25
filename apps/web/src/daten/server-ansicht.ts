@@ -5,7 +5,7 @@ import {
   type ServerDerZentrale,
   type ServerPruefung,
 } from "./server.ts";
-import type { AgentZustand, Art, Bestand, Server } from "./typen.ts";
+import type { AgentZustand, Bestand, Server } from "./typen.ts";
 import { PLATTE_STOERUNG, type ServerZustand, serverZustand } from "./zustand.ts";
 
 /*
@@ -21,8 +21,6 @@ export type PlattenAnsicht = { mount: string; prozent: number; gesamtGb: number 
 export type ServerAnsicht = {
   id: string;
   name: string;
-  art: Art;
-  kunde: string | null;
   /** The PTR name of its first IPv4 address */
   host: string | null;
   os: string | null;
@@ -65,8 +63,6 @@ export type ServerAnsicht = {
   demo: Server | undefined;
 };
 
-const ARTEN = { gemeinsam: "gemeinsam", eigen: "eigen", beim_kunden: "kunde" } as const;
-
 const prozent = (p: { gesamtMb: number; freiMb: number }) =>
   p.gesamtMb > 0 ? Math.round(((p.gesamtMb - p.freiMb) / p.gesamtMb) * 100) : 0;
 
@@ -85,8 +81,6 @@ export const serverAnsicht = (sv: ServerDerZentrale, demo: Server | undefined): 
   return {
     id: sv.serverId,
     name: sv.name,
-    art: ARTEN[sv.art],
-    kunde: sv.kundeId,
     host: (ersteIpv4 && f?.ptr[ersteIpv4]) || null,
     os: f?.os ? `${f.os.name} ${f.os.version}`.trim() : null,
     arch: f?.architektur ?? sv.architektur,

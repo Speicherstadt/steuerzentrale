@@ -20,7 +20,7 @@ Die Seitenleiste hat acht Einträge in zwei Gruppen:
 | --- | --- | --- |
 | Betrieb | Übersicht | ob dich etwas braucht: was zu tun ist, was die Zentrale als Nächstes tut und was sie erledigt hat; der Zähler nennt die Zeilen von „Zu tun“ |
 | Betrieb | Apps | jede laufende App (eine Installation) mit Kunde, Zustand, Version, letztem Backup und Server; je App eine Seite mit Reitern ([Apps installieren](installieren.md#die-seite-einer-app)); die Seite **Backups** aller Apps über „Alle Backups“ im Reiter „Backups“ einer App |
-| Betrieb | Server | die Server mit Art, Zustand, Platte, Apps und System; je Server eine Seite mit Reitern ([unten](#server-und-kundenseite)) |
+| Betrieb | Server | die Server mit Zustand, Platte, Apps und System; je Server eine Seite mit Reitern ([unten](#server-und-kundenseite)) |
 | Betrieb | Kunden | Kunden und Verträge, je Kunde eine Seite mit den Reitern Überblick und Verlauf |
 | Betrieb | Updates | neue Versionen je App, darunter die Sperrzeiten der Apps; der Zähler nennt die Apps mit einer neueren Version |
 | Verwaltung | Katalog | die Apps der Speicherstadt, wie ihre Manifeste sie beschreiben: woher die Apps kommen; Manifest importieren, nach neuen Versionen suchen ([Katalog, Manifeste und Versionen](manifeste.md)) |
@@ -48,12 +48,12 @@ Darunter vier Kacheln:
 
 | Kachel | Zahl | Zeilen |
 | --- | --- | --- |
-| Server | wie viele; ein Feld je Server, gelb oder rot, wenn sein Agent still oder getrennt ist; „4/5 verbunden“ | nach Art („2 gemeinsam, 2 eigen, 1 beim Kunden“), wie viele sich nicht melden |
+| Server | wie viele; ein Feld je Server, gelb oder rot, wenn sein Agent still oder getrennt ist; „4/5 verbunden“ | wie viele sich nicht melden |
 | Apps | wie viele; ein Balken mit den Anteilen grün, gelb, rot, ohne Zustand; „12 grün“ | „1 gelb, 2 rot, 1 ohne Zustand“, wie viele davon gekündigt sind |
 | Update | die laufende Welle („Update: Belegt 0.0.7“, „1/3“ mit Ring): Apps auf ihrer Version unter denen, die ein Plan hält oder deren Update läuft; läuft keine, wie viele Updates möglich sind | wie viele fertig, wie viele Updates außerdem möglich sind ([Updates](updates.md)) |
 | Backups heute Nacht | Apps mit gelungenem Lauf seit gestern 18 Uhr unter denen mit Teilen zum Sichern; ein Feld je App, rot bei gescheitertem Lauf, gelb, wenn der letzte gelungene älter ist | die gescheiterten mit Namen, gescheiterte Prüf-Restores ([Backups](backups.md)) |
 
-Bei „Nur für mich“ nennt keine Kachel einen Kunden: Server nach „gemeinsam“ und „eigen“, statt der
+Bei „Nur für mich“ nennt keine Kachel einen Kunden: statt der
 gekündigten Apps die Zahl der verschiedenen Apps, die gescheiterten Backups nur mit dem Namen der
 App.
 
@@ -175,15 +175,15 @@ unbekannt, auch als Filter.
 
 ## Server- und Kundenseite
 
-Die Seite **Server** ist eine Tabelle: Name mit der Art in Worten („für mehrere Kunden“, „eigener
-Server eines Kunden“, „steht beim Kunden“), Zustand in Worten mit Symbol („Platte fast voll“,
+Die Seite **Server** ist eine Tabelle: Name, Zustand in Worten mit Symbol („Platte fast voll“,
 „meldet sich nicht, zuletzt vor 6 Min.“, „Neustart nötig, geplant morgen 03:30“, „verbunden“),
 Platte, Apps („4 Apps · 2 Kunden“) und System; eine volle Platte, ein stiller Agent und ein nötiger
 Neustart zuerst. Die Spalten CPU und RAM zeigen, was der Agent zuletzt mit den Fakten gemeldet hat
 (CPU als Anteil der Maschine seit der vorigen Meldung, RAM als belegter Anteil ohne Puffer und Cache);
-es gibt sie, sobald ein Server sie meldet. In „Nur für mich“ nennt die Tabelle weder Art noch Kunden.
+es gibt sie, sobald ein Server sie meldet. In „Nur für mich“ nennt die Tabelle keine Kunden. Eine Art hat ein Server seit Z-1205 nicht mehr:
+jeder ist ein eigener Server des Betreibers für mehrere Kunden.
 
-Die Seite eines Servers hat im Kopf Name und Art, den Zustand in einem Satz, die erste IPv4 und das
+Die Seite eines Servers hat im Kopf den Namen, den Zustand in einem Satz, die erste IPv4 und das
 System, daneben **Neu starten** ([Betriebssystem und Neustarts](betriebssystem.md)). Die Reiter
 stehen in der Adresse (`?tab=`):
 

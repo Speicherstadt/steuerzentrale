@@ -15,8 +15,6 @@ sich aus; einen offenen Port für ihn gibt es nicht.
 Unter **Server → Server hinzufügen** (nur der Inhaber):
 
 - **Name** des Servers;
-- **Art**: gemeinsam (mehrere Kunden), eigen (ein Kunde, unser Server) oder beim Kunden; bei den
-  letzten beiden der **Kunde** (einer des eigenen Betreibers mit laufendem Vertrag, aus [Kunden und Verträge](kunden.md));
 - **Wartungsfenster**: täglich von–bis, Uhrzeit in Berlin; Neustarts nur dort und nie in einer
   Sperrzeit der Apps auf dem Server;
 - **Grund**, der im Audit-Log steht.

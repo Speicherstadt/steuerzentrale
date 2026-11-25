@@ -239,8 +239,8 @@ export const vertraege = sqliteTable(
 );
 
 /**
- * A managed server (BAULISTE.md Z-302): shared by several customers, of one customer, or at the
- * customer (`kunde_id` for the last two). Its agent joins once with a one-time token (a row in
+ * A managed server (BAULISTE.md Z-302): the operator's own server for several customers (no kind
+ * and no customer since Z-1205). Its agent joins once with a one-time token (a row in
  * `tokens` with the server's id, only the hash) and from then on is known by the SHA-256 fingerprint
  * of its client certificate; the certificate itself stays on the server. A revoked server is refused
  * whatever certificate it shows, and comes back only when added anew. `wartungsfenster` is JSON
@@ -252,8 +252,6 @@ export const server = sqliteTable(
     betreiberId: text("betreiber_id").notNull(),
     serverId: text("server_id").notNull(),
     name: text("name").notNull(),
-    art: text("art").notNull(),
-    kundeId: text("kunde_id"),
     wartungsfenster: text("wartungsfenster").notNull(),
     fingerabdruck: text("fingerabdruck").unique(),
     zertifikatGueltigBis: integer("zertifikat_gueltig_bis"),

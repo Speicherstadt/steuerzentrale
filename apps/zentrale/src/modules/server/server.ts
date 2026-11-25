@@ -13,16 +13,11 @@ import { tokenAnlegen, tokenFinden } from "../geheim/index.ts";
 export const BEITRITT_ZWECK = "server-beitritt";
 export const BEITRITT_GUELTIG_MS = 24 * 60 * 60 * 1000;
 
-export const ARTEN = ["gemeinsam", "eigen", "beim_kunden"] as const;
-export type ServerArt = (typeof ARTEN)[number];
-
 /** Weekdays (0 Sunday) and Berlin times "HH:MM", as packages/planung reads them */
 export type Wartungsfenster = { tage: number[]; von: string; bis: string };
 
 export type NeuerServer = {
   name: string;
-  art: ServerArt;
-  kundeId?: string | undefined;
   wartungsfenster: Wartungsfenster;
 };
 
@@ -41,8 +36,6 @@ export const serverAnlegen = (
       betreiberId: kontext.betreiberId,
       serverId,
       name: neu.name,
-      art: neu.art,
-      kundeId: neu.art === "gemeinsam" ? null : (neu.kundeId ?? null),
       wartungsfenster: JSON.stringify(neu.wartungsfenster),
       angelegtVon: kontext.akteur,
       angelegtAm: kontext.jetzt,

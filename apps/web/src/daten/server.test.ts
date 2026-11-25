@@ -8,8 +8,6 @@ const JETZT = Date.UTC(2026, 10, 20, 12, 0, 0);
 const beispiel: ServerDerZentrale = {
   serverId: "s1",
   name: "Gemeinsamer Server 3",
-  art: "gemeinsam",
-  kundeId: null,
   wartungsfenster: { tage: [1], von: "03:30", bis: "04:30" },
   angelegtAm: JETZT - 1000,
   beigetretenAm: JETZT - 500,

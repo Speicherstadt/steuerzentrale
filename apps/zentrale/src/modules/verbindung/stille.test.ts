@@ -26,7 +26,6 @@ const mitServern = () => {
           betreiberId,
           serverId,
           name: `Server ${serverId}`,
-          art: "gemeinsam",
           wartungsfenster: "{}",
           angelegtVon: "test",
           angelegtAm: START,

@@ -5,7 +5,6 @@ import type { Antwort } from "../anmeldung/api.ts";
 import type { AppVersion } from "../daten/apps.ts";
 import type { ServerDerZentrale } from "../daten/server.ts";
 import type { Kunde } from "../daten/typen.ts";
-import { ART } from "../teile/zeichen.tsx";
 import type { Auswahl } from "./installieren-auswahl.ts";
 
 /**
@@ -59,14 +58,10 @@ const kundenWahl = (k: Antwort<Kunde[]>, jetzt: number): Wahl[] =>
         .map((x) => ({ wert: x.id, text: x.name }))
     : [];
 
-const ARTEN = { gemeinsam: "gemeinsam", eigen: "eigen", beim_kunden: "kunde" } as const;
-
-/** Servers that are not revoked, with their kind */
+/** Servers that are not revoked */
 const serverWahl = (s: Antwort<ServerDerZentrale[]>): Wahl[] =>
   s.ok
-    ? s.daten
-        .filter((x) => x.gesperrtAm === null)
-        .map((x) => ({ wert: x.serverId, text: `${x.name} · ${ART[ARTEN[x.art]].text()}` }))
+    ? s.daten.filter((x) => x.gesperrtAm === null).map((x) => ({ wert: x.serverId, text: x.name }))
     : [];
 
 /** Customer and server; in "Nur für mich" (Z-805) only the server, the customer is the internal one */

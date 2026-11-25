@@ -168,7 +168,6 @@ describe("the token exchange", () => {
     const { server, inhaber, token } = await vorbereitet();
     const zweiter = await serverHinzufuegen(inhaber, {
       name: "Zweiter",
-      art: "gemeinsam",
       wartungsfenster: { tage: [1], von: "02:00", bis: "03:00" },
       grund: "noch einer",
     });

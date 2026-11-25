@@ -10,8 +10,6 @@ import { mountFuer, platzServer, type ServerFakten, serverFakten } from "./fakte
 const FAKTEN = VOM_AGENTEN_V1.find((n) => n.typ === "fakten") as ServerFakten;
 const ZEILE = {
   betreiberId: "b1",
-  art: "gemeinsam",
-  kundeId: null,
   architektur: "amd64",
   fakten: JSON.stringify(FAKTEN),
 };
@@ -57,8 +55,6 @@ describe("facts → PlatzServer", () => {
   it("takes the agent's values as they are", () => {
     expect(platz(serverFakten(ZEILE))).toEqual({
       betreiberId: "b1",
-      art: "gemeinsam",
-      kundeId: null,
       agentVerbunden: true,
       nurBeobachten: false,
       architektur: "amd64",

@@ -222,7 +222,6 @@ describe("the versions each installation is offered", () => {
           betreiberId,
           serverId: `s-${installationId}`,
           name: "S",
-          art: "gemeinsam",
           wartungsfenster: "{}",
           angelegtVon: "test",
           angelegtAm: 1,

@@ -172,7 +172,6 @@ const zweiterServer = (u: U) => {
       betreiberId: "b1",
       serverId: "s2",
       name: "s2",
-      art: "gemeinsam",
       wartungsfenster: JSON.stringify({ tage: [0], von: "03:00", bis: "04:00" }),
       angelegtVon: "nutzer-1",
       angelegtAm: u.uhr.ms,

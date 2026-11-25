@@ -73,7 +73,6 @@ export const kundeUndServer = (
         betreiberId,
         serverId,
         name: serverId,
-        art: "gemeinsam",
         wartungsfenster: "{}",
         angelegtVon: "test",
         angelegtAm: jetzt,

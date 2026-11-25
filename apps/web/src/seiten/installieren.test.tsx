@@ -108,9 +108,10 @@ describe("the dialog Installieren", () => {
 
   it("names every reason when the app does not fit, and keeps the dialog open", async () => {
     const { root } = await oeffne("/apps");
-    await auswaehlen(root, "atelier-nord", "holm");
+    // Z-1205: a server belongs to no customer; the silent agent of "kraft" is the reason here
+    await auswaehlen(root, "atelier-nord", "kraft");
     expect(platzierung()).toContain("Passt nicht");
-    expect(platzierung()).toContain("Der Server gehört einem anderen Kunden.");
+    expect(platzierung()).toContain("Der Agent des Servers ist nicht verbunden.");
     eintragen("PROBE_KENNWORT", "geheim-7");
     eintragen("Adresse", "probe.atelier-nord.example");
     eintragen("Grund", "Test");
@@ -120,7 +121,7 @@ describe("the dialog Installieren", () => {
     expect(dialog().querySelector("[role=alert]")?.textContent).toBe(
       "Die App passt nicht auf diesen Server.",
     );
-    expect(dialog().textContent).toContain("Der Server gehört einem anderen Kunden.");
+    expect(dialog().textContent).toContain("Der Agent des Servers ist nicht verbunden.");
   });
 
   // Z-501: a pre-release only for an internal customer

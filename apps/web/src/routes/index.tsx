@@ -65,7 +65,7 @@ const Inhalt = (props: {
     <>
       <Urteil n={props.zuTun.zeilen.length} jetzt={jetzt()} />
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <ServerZahl server={props.daten.server} fuerKunden={props.fuerKunden} />
+        <ServerZahl server={props.daten.server} />
         <InstallationenZahl
           installationen={props.daten.installationen}
           fuerKunden={props.fuerKunden}

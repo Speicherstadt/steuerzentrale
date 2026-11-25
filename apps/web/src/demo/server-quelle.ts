@@ -21,8 +21,6 @@ import { demo } from "./index.ts";
  * server's own page with its checks (Z-702) as packages/planung rates the demo's values; a
  * revocation lasts until the page reloads
  */
-const ARTEN = { gemeinsam: "gemeinsam", eigen: "eigen", kunde: "beim_kunden" } as const;
-
 const STILL_AB_MS = 75_000;
 const MIB_200_GB = 200 * 1024;
 const TAG_MS = 24 * 3600_000;
@@ -164,8 +162,6 @@ const ohneNeustart = (sv: Server, jetzt: number): Omit<ServerDerZentrale, "neust
   return {
     serverId: sv.id,
     name: sv.name,
-    art: ARTEN[sv.art],
-    kundeId: sv.kunde ?? null,
     wartungsfenster: { tage: [0, 1, 2, 3, 4, 5, 6], ...sv.wartung },
     angelegtAm: jetzt - sv.laufzeitTage * 24 * 3600_000,
     beigetretenAm: jetzt - sv.laufzeitTage * 24 * 3600_000,

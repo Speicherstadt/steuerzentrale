@@ -365,7 +365,6 @@ describe("the compiled Zentrale and its agents (BAULISTE.md Z-302)", () => {
       const kontext = { betreiberId: "b", akteur: "test", jetzt: Date.now(), grund: "Test" };
       const { token } = serverAnlegen(offen.schreibDb, kontext, {
         name: "s",
-        art: "gemeinsam",
         wartungsfenster: { tage: [1], von: "03:30", bis: "04:30" },
       });
       offen.schliessen();
