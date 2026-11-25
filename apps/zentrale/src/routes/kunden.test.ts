@@ -323,13 +323,13 @@ describe("a customer's short name", () => {
 });
 
 describe("the roles", () => {
-  it("let technik write and support only read", async () => {
-    const technik = await server.eingeladen(inhaber, "technik");
-    const support = await server.eingeladen(inhaber, "support");
-    const kunde = await anlegen(technik, "Von Technik");
-    expect(letzterEintrag()).toMatchObject({ akteur: technik.nutzerId });
-    expect((await support.json(`/api/v1/kunden/${kunde.id}`)).daten).toEqual(kunde);
-    const versuch = await support.json("/api/v1/kunden", { body: neuerKunde() });
+  it("let inhaber2 write and mitglied only read", async () => {
+    const inhaber2 = await server.eingeladen(inhaber, "inhaber");
+    const mitglied = await server.eingeladen(inhaber, "mitglied");
+    const kunde = await anlegen(inhaber2, "Von Technik");
+    expect(letzterEintrag()).toMatchObject({ akteur: inhaber2.nutzerId });
+    expect((await mitglied.json(`/api/v1/kunden/${kunde.id}`)).daten).toEqual(kunde);
+    const versuch = await mitglied.json("/api/v1/kunden", { body: neuerKunde() });
     expect(versuch).toEqual({ status: 403, daten: { fehler: "keine_berechtigung" } });
   });
 });

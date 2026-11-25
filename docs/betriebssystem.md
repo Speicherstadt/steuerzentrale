@@ -84,12 +84,12 @@ Server nie ein zweites Mal. Läuft gerade ein anderer Auftrag bei ihm, lehnt er 
 
 ## Neustart von Hand
 
-Inhaber und Technik starten einen Server auf seiner Seite mit **Neu starten** und Grund neu (Recht
+Der Inhaber startet einen Server auf seiner Seite mit **Neu starten** und Grund neu (Recht
 `server:neustart`, `POST /api/v1/server/:serverId/neustart`). Das geht auch außerhalb des
 Wartungsfensters und wenn kein Neustart nötig ist, mit denselben Backups davor, aber nie in einer
 Sperrzeit einer App auf dem Server, auch nicht für den Inhaber: ein Neustart des Servers trifft jede
 App darauf. Abgelehnt wird er auch, solange auf dem Server ein Auftrag offen ist, eine laufende
-Installation keine eingerichteten Backups hat oder die Fakten noch keine Boot-ID nennen. Support
+Installation keine eingerichteten Backups hat oder die Fakten noch keine Boot-ID nennen. Ein Mitglied
 sieht den Stand, startet aber nichts neu.
 
 ## Geprüft

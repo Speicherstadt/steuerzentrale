@@ -16,7 +16,7 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 /*
  * Updates (BAULISTE.md Z-503; docs/plan.md, "Update in der Zentrale (Z-503)"): every role reads,
  * for each installation of its operator, the versions it is offered (Z-501), where the plan stands
- * for it (its wave and next slot, or why it waits) and its last update; owner and technik update
+ * for it (its wave and next slot, or why it waits) and its last update; the owner updates
  * one by hand to a version it is offered, with a reason. In a freeze window of the app only the
  * owner may, and the update keeps that it passed over it. An installation of another operator is
  * unknown.

@@ -6,8 +6,7 @@ import type { Welle } from "../daten/wellen.ts";
 
 const ROLLEN: Record<Rolle, () => string> = {
   inhaber: () => m.rolle_inhaber(),
-  technik: () => m.rolle_technik(),
-  support: () => m.rolle_support(),
+  mitglied: () => m.rolle_mitglied(),
 };
 
 export const rolleName = (rolle: Rolle): string => ROLLEN[rolle]();

@@ -35,7 +35,7 @@ import { installationsRecht } from "./recht.tsx";
  * "Backup jetzt"): the parts of its manifest, where its own S3 access stands and the runs its agent
  * reported, newest first, each part with its snapshot, and its newest test restore (Z-602) with the
  * snapshot each part was restored from, and its newest restore (Z-603); "Backup jetzt" with a reason
- * for owner and technik once its backups are set up, "Prüf-Restore jetzt" once a run succeeded, and
+ * for the owner once its backups are set up, "Prüf-Restore jetzt" once a run succeeded, and
  * beside each successful run its restore (installation-wiederherstellen.tsx). Read anew whenever
  * the page is (`a` changes) and once a restore is asked for.
  */

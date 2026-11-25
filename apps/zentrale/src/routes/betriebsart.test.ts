@@ -21,8 +21,8 @@ type Antwort = { status: number; daten: Record<string, unknown> };
 
 let server: TestServer;
 let inhaber: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 let serverId: string;
 
@@ -56,8 +56,8 @@ const installieren = (kundeId: string, host: string) =>
 beforeAll(async () => {
   server = testServer(afterAll);
   inhaber = await server.inhaber();
-  technik = await server.eingeladen(inhaber, "technik");
-  support = await server.eingeladen(inhaber, "support");
+  inhaber2 = await server.eingeladen(inhaber, "inhaber");
+  mitglied = await server.eingeladen(inhaber, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   serverId = await serverMitAgent(server, json, inhaber, []);
   await manifestHochladen(json, inhaber);
@@ -81,10 +81,9 @@ describe("the Betriebsart", () => {
   });
 
   it("is switched only by the owner (a test per role)", async () => {
-    expect(await setzen(technik, "selbst", "Grund")).toMatchObject({ status: 403 });
-    expect(await setzen(support, "selbst", "Grund")).toMatchObject({ status: 403 });
-    expect(await ich(technik)).toMatchObject({ betriebsart: "kunden" });
-    expect(await ich(support)).toMatchObject({ betriebsart: "kunden" });
+    expect(await setzen(mitglied, "selbst", "Grund")).toMatchObject({ status: 403 });
+    expect(await ich(inhaber2)).toMatchObject({ betriebsart: "kunden" });
+    expect(await ich(mitglied)).toMatchObject({ betriebsart: "kunden" });
   });
 
   it("refuses `selbst` while an installation belongs to another customer", async () => {
@@ -163,8 +162,8 @@ describe("the Betriebsart", () => {
       daten: { fehler: "betriebsart" },
     });
     // reads the remaining interface needs keep working
-    expect((await json(support, "/api/v1/kunden")).status).toBe(200);
-    expect((await json(support, "/api/v1/installationen")).status).toBe(200);
+    expect((await json(mitglied, "/api/v1/kunden")).status).toBe(200);
+    expect((await json(mitglied, "/api/v1/installationen")).status).toBe(200);
   });
 
   it("leaves another operator untouched", async () => {

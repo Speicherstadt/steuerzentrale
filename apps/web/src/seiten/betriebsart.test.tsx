@@ -73,7 +73,7 @@ describe("the Betriebsart", () => {
     expect(danach).toContain("Apps");
   });
 
-  it.each(["technik", "support"] as const)("is read-only for %s", async (r) => {
+  it.each(["mitglied"] as const)("is read-only for %s", async (r) => {
     rolle(r);
     const { root } = await oeffne("/einstellungen?tab=betriebsart");
     await reiter(root);

@@ -56,8 +56,8 @@ Umschalten, daneben, für wie viele Installationen die Werte gelten und wie viel
 („Gilt für alle 9 Installationen von Haben · 3 von 4 Werten gesetzt“). Jeder Wert steht unter seinem
 Titel in Worten (`titel` aus dem Manifest, sonst der Name), mit „Pflicht“, dem Namen klein daneben
 und der Beschreibung darunter. Ein Geheimnis erscheint nur als „gesetzt“ mit „Ändern“, das ein leeres
-Feld öffnet (leer behält den Wert), oder als leeres Feld, solange es nicht gesetzt ist. Inhaber und
-Technik speichern alle Werte einer App mit einem Grund, Support sieht die Werte nur. Ein geänderter Wert kommt **nicht von
+Feld öffnet (leer behält den Wert), oder als leeres Feld, solange es nicht gesetzt ist. Der Inhaber
+speichert alle Werte einer App mit einem Grund, ein Mitglied sieht die Werte nur. Ein geänderter Wert kommt **nicht von
 selbst** an laufende Installationen: jede hält fest, womit sie eingerichtet wurde, und bekommt neue
 Werte des Betreibers erst mit „Einstellungen ändern“.
 
@@ -73,7 +73,7 @@ Installation wie bisher mit `passt_nicht` und dem Namen ab.
 
 ## Neu konfigurieren
 
-Auf der Seite einer laufenden App öffnet **Einstellungen ändern** unter „Mehr …“ (nur Inhaber und Technik)
+Auf der Seite einer laufenden App öffnet **Einstellungen ändern** unter „Mehr …“ (nur der Inhaber)
 das Formular der Ebene `installation` mit den Optionen der Installation und ihren aktuellen Werten;
 dazu ein Grund. Die Zentrale
 
@@ -114,8 +114,8 @@ ohne Angabe „Werte für Apps“; auf dem Handy sind die Abschnitte eine Zeile 
 
 Der Abschnitt **Betriebsart** zeigt, ob die Zentrale „Nur für mich“ oder „Für Kunden“ arbeitet (die
 Frage nach dem ersten Inhaber, siehe [Anmeldung](anmeldung.md#nur-fur-mich-oder-fur-kunden)). Nur
-der Inhaber ändert sie, mit Grund; der Wechsel steht mit dem Grund im Audit-Log. Technik und Support
-sehen sie nur.
+der Inhaber ändert sie, mit Grund; der Wechsel steht mit dem Grund im Audit-Log. Ein Mitglied
+sieht sie nur.
 
 - **Zu „Nur für mich“**: Die Zentrale legt den festen internen Kunden an oder nimmt den von früher
   wieder. Das geht nur, solange keine Installation (außer entfernten) einem anderen Kunden gehört;
@@ -134,9 +134,9 @@ beginnt mit „Für Kunden“ und lehnt „Nur für mich“ trotz der Beispielku
 | Route | Recht | Körper | Antwort |
 | --- | --- | --- | --- |
 | `GET /api/v1/apps/:app/einstellungen` | alle Rollen | – | `{ app, version, felder, werte, gesetzt }`: das Formular, die Werte, die nicht geheim sind, und die Namen der gesetzten Geheimnisse |
-| `PUT /api/v1/apps/:app/einstellungen` | Inhaber, Technik | `werte`, `grund` | wie `GET` |
-| `POST /api/v1/installationen` | Inhaber, Technik | wie bisher, dazu `betreiberWerte` | `201` mit der Installation |
-| `PUT /api/v1/installationen/:installationId/einstellungen` | Inhaber, Technik | `einstellungen`, `grund` | die Seite der Installation mit dem neuen Auftrag |
+| `PUT /api/v1/apps/:app/einstellungen` | Inhaber | `werte`, `grund` | wie `GET` |
+| `POST /api/v1/installationen` | Inhaber | wie bisher, dazu `betreiberWerte` | `201` mit der Installation |
+| `PUT /api/v1/installationen/:installationId/einstellungen` | Inhaber | `einstellungen`, `grund` | die Seite der Installation mit dem neuen Auftrag |
 | `PUT /api/v1/betriebsart` | Inhaber | `betriebsart` (`selbst` oder `kunden`), `grund` (nur bei der ersten Antwort entbehrlich) | `{ betriebsart, eigenerKundeId }`; `409 fremde_installationen` |
 
 `GET /api/v1/ich` nennt unter `betreiber` dazu `betriebsart` (`selbst`, `kunden` oder `null`, solange

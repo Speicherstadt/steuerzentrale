@@ -86,12 +86,13 @@ export const ROUTEN = {
   "POST /api/v1/installationen": recht("installationen:schreiben"),
   "DELETE /api/v1/installationen/:installationId": recht("installationen:schreiben"),
   "PUT /api/v1/installationen/:installationId/einstellungen": recht("installationen:schreiben"),
-  // the actions of an installation (Z-405): owner and technik; support takes none (Z-1203)
-  "POST /api/v1/installationen/:installationId/neustart": recht("installationen:schreiben"),
+  // the actions of an installation (Z-405): restart and log excerpt for both roles (Z-1204), "nur
+  // lesen" only for the owner
+  "POST /api/v1/installationen/:installationId/neustart": recht("installationen:neustart"),
   "POST /api/v1/installationen/:installationId/nur-lesen": recht("installationen:schreiben"),
   "POST /api/v1/installationen/:installationId/log-auszug": recht("installationen:log_auszug"),
   // after the contract's end (Z-604): every role sees where it stands; the link to the archive
-  // for the customer only owner and technik, with a reason
+  // for the customer only the owner, with a reason
   "GET /api/v1/installationen/:installationId/abwicklung": recht("installationen:lesen"),
   "POST /api/v1/installationen/:installationId/archiv-link": recht("installationen:schreiben"),
   "GET /api/v1/installationen/:installationId/log-auszuege/:auftragId": recht(
@@ -110,8 +111,8 @@ export const ROUTEN = {
   // the operator's values of an app (Z-404): rights as for installations, which they serve
   "GET /api/v1/apps/:app/einstellungen": recht("installationen:lesen"),
   "PUT /api/v1/apps/:app/einstellungen": recht("installationen:schreiben"),
-  // reading the operations (Z-406): every role sees overview, jobs and events; the audit log only
-  // owner and technik
+  // reading the operations (Z-406): every role sees overview, jobs, events and the audit log
+  // (Z-1204)
   "GET /api/v1/uebersicht": recht("betreiber:lesen"),
   "GET /api/v1/auftraege": recht("betreiber:lesen"),
   "GET /api/v1/ereignisse": recht("betreiber:lesen"),
@@ -120,7 +121,7 @@ export const ROUTEN = {
   "GET /api/v1/dns": recht("dns:lesen"),
   "PUT /api/v1/dns": recht("dns:schreiben"),
   // backups (Z-601): every role sees the runs and the S3 target without its admin access; owner
-  // and technik set the target and start "Backup jetzt"
+  // sets the target and starts "Backup jetzt"
   "GET /api/v1/backups": recht("backups:lesen"),
   "GET /api/v1/backup-ziel": recht("backups:lesen"),
   "PUT /api/v1/backup-ziel": recht("backups:schreiben"),
@@ -131,16 +132,16 @@ export const ROUTEN = {
   // Z-603: restoring a run, with the backup of the current state before it
   "POST /api/v1/installationen/:installationId/wiederherstellen": recht("backups:schreiben"),
   // manifests and versions (Z-501): every role reads them and what each installation is offered;
-  // owner and technik import a signed manifest and ask the registries now
+  // the owner imports a signed manifest and asks the registries now
   "GET /api/v1/apps": recht("manifeste:lesen"),
   "GET /api/v1/manifeste/:app/:version": recht("manifeste:lesen"),
   "POST /api/v1/manifeste": recht("manifeste:importieren"),
   "POST /api/v1/versionen/abfragen": recht("manifeste:abfragen"),
-  // Z-503: every role sees offers, plan and the last update of each installation; owner and
-  // technik update by hand with a reason, in a freeze window only the owner
+  // Z-503: every role sees offers, plan and the last update of each installation; the owner
+  // updates by hand with a reason, also in a freeze window
   "GET /api/v1/updates": recht("installationen:lesen"),
   "POST /api/v1/installationen/:installationId/update": recht("installationen:schreiben"),
-  // notifications (Z-703): every role sees them; owner and technik change them and send a test
+  // notifications (Z-703): every role sees them; the owner changes them and send a test
   "GET /api/v1/benachrichtigungen": recht("benachrichtigungen:lesen"),
   "PUT /api/v1/benachrichtigungen": recht("benachrichtigungen:schreiben"),
   "POST /api/v1/benachrichtigungen/empfaenger": recht("benachrichtigungen:schreiben"),

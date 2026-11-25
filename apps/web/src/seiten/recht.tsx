@@ -1,12 +1,7 @@
 import type { JSX } from "@solidjs/web";
 import { createMemo, Loading, Show } from "solid-js";
 import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
-import {
-  darfAuditLesen,
-  darfInstallieren,
-  darfInternMarkieren,
-  rolleLesen,
-} from "../daten/rolle.ts";
+import { darfInstallieren, darfInternMarkieren, rolleLesen } from "../daten/rolle.ts";
 import type { Rolle } from "../daten/typen.ts";
 
 /** Whether the signed-in role passes `pruefen`, as an accessor to read under a `<Loading>` */
@@ -26,9 +21,6 @@ export const installationsRecht = (): (() => boolean) => recht(darfInstallieren)
 
 /** Whether the signed-in role is the owner: marks a customer as internal (Z-501) */
 export const inhaberRecht = (): (() => boolean) => recht(darfInternMarkieren);
-
-/** Whether the signed-in role reads the audit log (the tab "Änderungen" of the Protokoll) */
-export const auditRecht = (): (() => boolean) => recht(darfAuditLesen);
 
 /**
  * Shows its children only to a role that may make and remove installations; a button without the

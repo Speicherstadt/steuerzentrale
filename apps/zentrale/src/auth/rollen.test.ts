@@ -1,77 +1,69 @@
 import { describe, expect, it } from "vitest";
-import { darf, ROLLEN, ROLLEN_ZUGRIFF, rollenVon } from "./rollen.ts";
+import { darf, type Recht, ROLLEN, ROLLEN_ZUGRIFF, rollenVon } from "./rollen.ts";
+
+/*
+ * BAULISTE.md Z-1204: two roles. The owner may do everything; a member sees everything and may
+ * restart an installation and take its log excerpt, nothing else.
+ */
+const LESEN: Recht[] = [
+  "betreiber:lesen",
+  "mitglieder:lesen",
+  "kunden:lesen",
+  "server:lesen",
+  "installationen:lesen",
+  "audit:lesen",
+  "dns:lesen",
+  "backups:lesen",
+  "manifeste:lesen",
+  "benachrichtigungen:lesen",
+];
+const MITGLIED: Recht[] = [...LESEN, "installationen:neustart", "installationen:log_auszug"];
+const SCHREIBEN: Recht[] = [
+  "betreiber:betriebsart",
+  "mitglieder:einladen",
+  "mitglieder:rolle",
+  "mitglieder:entfernen",
+  "kunden:schreiben",
+  "kunden:intern",
+  "server:anlegen",
+  "server:sperren",
+  "server:neustart",
+  "installationen:schreiben",
+  "installationen:sperrzeit",
+  "dns:schreiben",
+  "backups:schreiben",
+  "manifeste:importieren",
+  "manifeste:abfragen",
+  "benachrichtigungen:schreiben",
+];
 
 describe("darf", () => {
-  it("lets every role read its operator and its members", () => {
-    for (const rolle of ROLLEN) {
-      expect(darf(rolle, "betreiber:lesen"), rolle).toBe(true);
-      expect(darf(rolle, "mitglieder:lesen"), rolle).toBe(true);
-    }
+  it("knows exactly two roles: owner and member", () => {
+    expect([...ROLLEN]).toEqual(["inhaber", "mitglied"]);
   });
 
-  it("lets only the owner invite, change roles and remove members", () => {
-    for (const recht of [
-      "mitglieder:einladen",
-      "mitglieder:rolle",
-      "mitglieder:entfernen",
-    ] as const) {
+  it("lets the owner do everything", () => {
+    for (const recht of [...MITGLIED, ...SCHREIBEN])
       expect(darf("inhaber", recht), recht).toBe(true);
-      expect(darf("technik", recht), recht).toBe(false);
-      expect(darf("support", recht), recht).toBe(false);
-    }
   });
 
-  it("lets every role read customers, and only owner and technik write them (Z-801)", () => {
-    for (const rolle of ROLLEN) expect(darf(rolle, "kunden:lesen"), rolle).toBe(true);
-    expect(darf("inhaber", "kunden:schreiben")).toBe(true);
-    expect(darf("technik", "kunden:schreiben")).toBe(true);
-    expect(darf("support", "kunden:schreiben")).toBe(false);
+  it("lets a member see everything, restart and take a log excerpt", () => {
+    for (const recht of MITGLIED) expect(darf("mitglied", recht), recht).toBe(true);
   });
 
-  it("lets owner and technik add servers, not support (BAULISTE.md Z-302)", () => {
-    expect(darf("inhaber", "server:anlegen")).toBe(true);
-    expect(darf("technik", "server:anlegen")).toBe(true);
-    expect(darf("support", "server:anlegen")).toBe(false);
+  it("lets a member change nothing else: no install, removal, notice, restore, setting, secret or invitation", () => {
+    for (const recht of SCHREIBEN) expect(darf("mitglied", recht), recht).toBe(false);
   });
 
-  it("lets owner and technik take a log excerpt and restart; support not at all (Z-405, Z-1203)", () => {
-    for (const recht of ["installationen:log_auszug", "installationen:schreiben"] as const) {
-      expect(darf("inhaber", recht), recht).toBe(true);
-      expect(darf("technik", recht), recht).toBe(true);
-      expect(darf("support", recht), recht).toBe(false);
-    }
-  });
-
-  it("lets only the owner update in a freeze window, with a reason (Z-503)", () => {
-    expect(darf("inhaber", "installationen:sperrzeit")).toBe(true);
-    expect(darf("technik", "installationen:sperrzeit")).toBe(false);
-    expect(darf("support", "installationen:sperrzeit")).toBe(false);
-  });
-
-  it("lets owner and technik read the audit log, not support (Z-406)", () => {
-    expect(darf("inhaber", "audit:lesen")).toBe(true);
-    expect(darf("technik", "audit:lesen")).toBe(true);
-    expect(darf("support", "audit:lesen")).toBe(false);
-  });
-
-  it("lets every role read manifests, owner and technik import and ask (Z-501)", () => {
-    for (const rolle of ROLLEN) expect(darf(rolle, "manifeste:lesen"), rolle).toBe(true);
-    for (const recht of ["manifeste:importieren", "manifeste:abfragen"] as const) {
-      expect(darf("inhaber", recht), recht).toBe(true);
-      expect(darf("technik", recht), recht).toBe(true);
-      expect(darf("support", recht), recht).toBe(false);
-    }
-  });
-
-  it("lets only the owner mark a customer as internal (Z-501)", () => {
-    expect(darf("inhaber", "kunden:intern")).toBe(true);
-    expect(darf("technik", "kunden:intern")).toBe(false);
-    expect(darf("support", "kunden:intern")).toBe(false);
+  it("knows the old roles technik and support no more", () => {
+    for (const rolle of ["technik", "support"])
+      for (const recht of [...MITGLIED, ...SCHREIBEN])
+        expect(darf(rolle, recht), rolle).toBe(false);
   });
 
   it("gives a member with several roles the rights of each", () => {
-    expect(rollenVon("support, inhaber")).toEqual(["support", "inhaber"]);
-    expect(darf("support,inhaber", "mitglieder:einladen")).toBe(true);
+    expect(rollenVon("mitglied, inhaber")).toEqual(["mitglied", "inhaber"]);
+    expect(darf("mitglied,inhaber", "mitglieder:einladen")).toBe(true);
   });
 
   it("refuses Better Auth's own roles and unknown ones", () => {

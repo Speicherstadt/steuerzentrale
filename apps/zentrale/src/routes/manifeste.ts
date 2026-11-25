@@ -13,8 +13,8 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 /*
  * Manifests and versions (BAULISTE.md Z-501; docs/plan.md, "Manifeste in der Zentrale (Z-501)",
  * "Versionen aus den Registries (Z-501)"): every role reads the apps with their versions, a
- * manifest's text and what each of its operator's installations is offered; owner and technik
- * import a signed manifest with a reason and ask the registries now. Manifests hold for every
+ * manifest's text and what each of its operator's installations is offered; the owner
+ * imports a signed manifest with a reason and asks the registries now. Manifests hold for every
  * operator; who imported one is named only to its own operator: a person of another one shows as
  * "anderer Betreiber".
  */

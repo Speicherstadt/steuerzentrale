@@ -632,7 +632,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   Fertig, wenn: die Routen der Support-Zugänge `404` antworten (Test) und Log-Auszug und Neustart
   ohne Zugang laufen (Playwright).
   Sicherheitsrelevant: Rechte.
-- [ ] **Z-1204 Zwei Rollen** – Inhaber und Mitglied statt Inhaber, Technik und Support. Der Inhaber
+- [x] **Z-1204 Zwei Rollen** – Inhaber und Mitglied statt Inhaber, Technik und Support. Der Inhaber
   darf alles. Ein Mitglied sieht alles und darf Neustart und Log-Auszug; es installiert, entfernt,
   kündigt und stellt nichts wieder her, ändert keine Einstellung und kein Geheimnis (DNS, S3,
   Benachrichtigungen, Werte des Betreibers) und lädt niemanden ein. Vorhandene Mitglieder der Rolle
@@ -642,7 +642,9 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   Fertig, wenn: jede Route ohne Anmeldung weiter `401` antwortet und jede Route in beiden Rollen
   ihr Recht prüft (Test je Route und Rolle), ein Mitglied an jeder schreibenden Route außer
   Neustart und Log-Auszug `403` bekommt (Test), die Migration die Rollen wie beschrieben umsetzt
-  (Test) und eine Einladung nur diese zwei Rollen anbietet (Playwright).
+  (Test) und eine Einladung nur diese zwei Rollen anbietet (Playwright: `POST /api/v1/einladungen`
+  lehnt jede andere Rolle mit `400` ab, die Seite der Einladung nennt „Inhaber“ oder „Mitglied“; eine
+  Oberfläche zum Einladen gibt es nicht).
   Sicherheitsrelevant: Anmeldung, Rollen und Rechte.
 - [ ] **Z-1205 Server-Art entfernen** – jeder Server ist ein eigener Server des Betreibers für
   mehrere Kunden. „Eigen“ (ein Kunde) und „beim Kunden“ entfallen, mit dem Kunden am Server und der

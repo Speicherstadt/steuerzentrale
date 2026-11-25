@@ -11,7 +11,7 @@ import { Fehler, felder } from "./anmeldung-teile.tsx";
 
 /*
  * The mail server and the quiet hours of the settings' tab "Benachrichtigungen" (BAULISTE.md
- * Z-703): owner and technik set them with a reason, support reads them. The password never comes
+ * Z-703): the owner sets them with a reason, a member reads them. The password never comes
  * back: it shows only as set, and an empty field keeps it. An empty server means webhooks only;
  * both times empty mean no quiet hours.
  */

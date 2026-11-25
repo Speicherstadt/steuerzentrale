@@ -7,7 +7,7 @@ import { registryNachbau } from "../testhilfen/registry.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
- * BAULISTE.md Z-501 over HTTP: importing a manifest through the interface (owner and technik, with
+ * BAULISTE.md Z-501 over HTTP: importing a manifest through the interface (owner and inhaber2, with
  * a reason), the apps with their versions, a manifest's text, asking the registries now, and the
  * versions each installation is offered. A test per route for the roles; the manifests hold for
  * every operator, but who imported one only its own operator learns.
@@ -19,8 +19,8 @@ type Antwort = { status: number; daten: Record<string, unknown> };
 const registry = registryNachbau({ repos: { probe: ["1.0.0", "1.1.0", "v1.2.0", "latest"] } });
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 
 const json = async (p: Pick<Person, "json">, pfad: string, init?: Parameters<Person["json"]>[1]) =>
@@ -40,15 +40,15 @@ const apps = async (p: Pick<Person, "json">) => (await json(p, "/api/v1/apps")).
 beforeAll(async () => {
   server = testServer(afterAll, { fetch, umleitung: registry.url });
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
 }, 60_000);
 afterAll(() => registry.stoppen());
 
 describe("importing a manifest through the interface", () => {
-  it("stores it with a reason in the audit log, by technik", async () => {
-    const a = await importieren(technik, signiert("probe"), "Release 1.0.0");
+  it("stores it with a reason in the audit log, by inhaber2", async () => {
+    const a = await importieren(inhaber2, signiert("probe"), "Release 1.0.0");
     expect(a).toEqual({
       status: 201,
       daten: {
@@ -58,7 +58,7 @@ describe("importing a manifest through the interface", () => {
         dringend: false,
         vorabversion: false,
         sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
-        importiert: { am: server.jetzt(), durch: "mitglied", nutzerId: technik.nutzerId },
+        importiert: { am: server.jetzt(), durch: "mitglied", nutzerId: inhaber2.nutzerId },
       },
     });
     const eintrag = server.db
@@ -68,7 +68,7 @@ describe("importing a manifest through the interface", () => {
       .find((e) => e.aktion === "manifest.importieren");
     expect(eintrag).toMatchObject({
       betreiberId: teufel.betreiberId,
-      akteur: technik.nutzerId,
+      akteur: inhaber2.nutzerId,
       grund: "Release 1.0.0",
       ziel: "manifeste:probe:1.0.0",
     });
@@ -99,8 +99,8 @@ describe("importing a manifest through the interface", () => {
     });
   });
 
-  it("is not for support", async () => {
-    expect(await importieren(support, probeVersion("1.1.0"), "Support")).toEqual({
+  it("is not for mitglied", async () => {
+    expect(await importieren(mitglied, probeVersion("1.1.0"), "Support")).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
@@ -112,7 +112,7 @@ describe("the apps and their versions", () => {
   it("show the imported versions to every role, with dringend and pre-release", async () => {
     await importieren(teufel, probeVersion("1.2.0"), "dringend");
     await importieren(teufel, probeVersion("2.0.0-rc.1"), "Vorabversion");
-    const [probe] = await apps(support);
+    const [probe] = await apps(mitglied);
     expect(probe?.versionen.map((v) => [v.version, v.zustand, v.dringend, v.vorabversion])).toEqual(
       [
         ["2.0.0-rc.1", "verfuegbar", false, true],
@@ -128,17 +128,17 @@ describe("the apps and their versions", () => {
     const [fremd] = await apps(partner);
     expect(eigen?.versionen.at(-1)?.importiert).toMatchObject({
       durch: "mitglied",
-      nutzerId: technik.nutzerId,
+      nutzerId: inhaber2.nutzerId,
     });
     expect(fremd?.versionen.at(-1)?.importiert).toEqual({
       am: server.jetzt(),
       durch: "anderer_betreiber",
     });
-    expect(JSON.stringify(fremd)).not.toContain(technik.nutzerId);
+    expect(JSON.stringify(fremd)).not.toContain(inhaber2.nutzerId);
   });
 
   it("give a manifest's text to every role", async () => {
-    const a = await json(support, "/api/v1/manifeste/probe/1.2.0");
+    const a = await json(mitglied, "/api/v1/manifeste/probe/1.2.0");
     expect(a).toMatchObject({
       status: 200,
       daten: {
@@ -148,14 +148,14 @@ describe("the apps and their versions", () => {
         text: probeVersion("1.2.0").manifest,
       },
     });
-    expect(await json(support, "/api/v1/manifeste/probe/9.9.9")).toEqual({
+    expect(await json(mitglied, "/api/v1/manifeste/probe/9.9.9")).toEqual({
       status: 404,
       daten: { fehler: "kein_manifest" },
     });
   });
 
-  it("show a newer version of the registry as manifest missing, asked by technik", async () => {
-    const a = await json(technik, "/api/v1/versionen/abfragen", { method: "POST" });
+  it("show a newer version of the registry as manifest missing, asked by inhaber2", async () => {
+    const a = await json(inhaber2, "/api/v1/versionen/abfragen", { method: "POST" });
     expect(a.status).toBe(200);
     const [probe] = a.daten.apps as App[];
     expect(probe?.registry).toMatchObject({ image: "registry.example.org/probe", fehler: null });
@@ -168,7 +168,7 @@ describe("the apps and their versions", () => {
     // a release newer than the newest release is new, whatever pre-release came before it
     registry.tags("probe", ["1.0.0", "1.2.0", "1.3.0", "2.0.0-rc.0"]);
     await json(teufel, "/api/v1/versionen/abfragen", { method: "POST" });
-    expect((await apps(support))[0]?.versionen.map((v) => [v.version, v.zustand])).toEqual([
+    expect((await apps(mitglied))[0]?.versionen.map((v) => [v.version, v.zustand])).toEqual([
       ["2.0.0-rc.1", "verfuegbar"],
       ["1.3.0", "manifest_fehlt"],
       ["1.2.0", "verfuegbar"],
@@ -176,8 +176,8 @@ describe("the apps and their versions", () => {
     ]);
   });
 
-  it("are not asked again by support", async () => {
-    expect(await json(support, "/api/v1/versionen/abfragen", { method: "POST" })).toEqual({
+  it("are not asked again by mitglied", async () => {
+    expect(await json(mitglied, "/api/v1/versionen/abfragen", { method: "POST" })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
@@ -261,7 +261,7 @@ describe("the versions each installation is offered", () => {
       method: "PUT",
       body: { intern: true, grund: "unsere eigene" },
     });
-    const { status, daten } = await json(support, "/api/v1/updates");
+    const { status, daten } = await json(mitglied, "/api/v1/updates");
     expect(status).toBe(200);
     const nach = Object.fromEntries(
       (daten.installationen as { installationId: string; angeboten: Version[] }[]).map((i) => [
@@ -285,11 +285,7 @@ describe("marking a customer as internal", () => {
     json(p, `/api/v1/kunden/${kundeId}/intern`, { method: "PUT", body });
 
   it("is for the owner only, with a reason in the audit log", async () => {
-    expect(await intern(technik, "kunde-extern", { intern: true, grund: "x" })).toEqual({
-      status: 403,
-      daten: { fehler: "keine_berechtigung" },
-    });
-    expect(await intern(support, "kunde-extern", { intern: true, grund: "x" })).toEqual({
+    expect(await intern(mitglied, "kunde-extern", { intern: true, grund: "x" })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
@@ -304,7 +300,7 @@ describe("marking a customer as internal", () => {
       akteur: teufel.nutzerId,
     });
     await intern(teufel, "kunde-extern", { intern: false, grund: "doch nicht" });
-    expect((await json(support, "/api/v1/kunden/kunde-extern")).daten.intern).toBe(false);
+    expect((await json(mitglied, "/api/v1/kunden/kunde-extern")).daten.intern).toBe(false);
   });
 
   it("does not reach another operator's customer", async () => {

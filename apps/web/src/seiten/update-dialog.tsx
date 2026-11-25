@@ -6,8 +6,8 @@ import { type Angebot, appsQuelle, type InstallationsAngebot } from "../daten/ap
 import { Fehler, fehlerText, felder } from "./anmeldung-teile.tsx";
 
 /*
- * An update by hand (BAULISTE.md Z-503; docs/plan.md, "Update in der Zentrale (Z-503)"): for owner
- * and technik, one dialog for the installation chosen on the page "Updates" that asks for the
+ * An update by hand (BAULISTE.md Z-503; docs/plan.md, "Update in der Zentrale (Z-503)"): for the
+ * owner, one dialog for the installation chosen on the page "Updates" that asks for the
  * version among those it is offered (the newest first) and a reason, and says plainly that the
  * current state is backed up first and a version that does not turn healthy is rolled back. In a
  * freeze window of the app only the owner may; the Zentrale refuses everyone else, the dialog says

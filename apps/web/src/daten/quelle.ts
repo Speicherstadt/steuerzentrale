@@ -23,7 +23,7 @@ export const ohneDemo: Bestand = {
     geheimGesetzt: [],
     s3: "",
   },
-  konto: { name: "", rolle: "support", faktor: "passkey", zuletzt: 0 },
+  konto: { name: "", rolle: "mitglied", faktor: "passkey", zuletzt: 0 },
   apps,
   server: [],
   kunden: [],

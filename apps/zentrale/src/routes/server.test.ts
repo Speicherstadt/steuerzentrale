@@ -67,9 +67,9 @@ describe("adding a server", () => {
 
   it("takes the customer of a server of its own or at the customer", async () => {
     const server = testServer();
-    const technik = await server.eingeladen(await server.inhaber(), "technik");
-    const kundeId = await kundeAnlegen(technik);
-    await serverHinzufuegen(technik, { ...NEUER_SERVER, art: "beim_kunden", kundeId } as never);
+    const inhaber2 = await server.eingeladen(await server.inhaber(), "inhaber");
+    const kundeId = await kundeAnlegen(inhaber2);
+    await serverHinzufuegen(inhaber2, { ...NEUER_SERVER, art: "beim_kunden", kundeId } as never);
     expect(server.db.select().from(serverTabelle).all()).toEqual([
       expect.objectContaining({ art: "beim_kunden", kundeId }),
     ]);
@@ -239,16 +239,16 @@ describe("the servers of the operator", () => {
     expect(beitritt.status).toBe(401);
   });
 
-  it("are revoked by owner and technician, not by support", async () => {
+  it("are revoked by owner and technician, not by mitglied", async () => {
     const server = testServer();
     const inhaber = await server.inhaber();
-    const technik = await server.eingeladen(inhaber, "technik");
-    const support = await server.eingeladen(inhaber, "support");
+    const inhaber2 = await server.eingeladen(inhaber, "inhaber");
+    const mitglied = await server.eingeladen(inhaber, "mitglied");
     const { serverId } = await serverHinzufuegen(inhaber);
     const pfad = `/api/v1/server/${serverId}/sperren`;
-    expect((await support.json(pfad, { body: { grund: "x" } })).status).toBe(403);
-    expect((await support.json("/api/v1/server")).status).toBe(200);
-    expect((await technik.json(pfad, { body: { grund: "x" } })).status).toBe(200);
+    expect((await mitglied.json(pfad, { body: { grund: "x" } })).status).toBe(403);
+    expect((await mitglied.json("/api/v1/server")).status).toBe(200);
+    expect((await inhaber2.json(pfad, { body: { grund: "x" } })).status).toBe(200);
   });
 });
 
@@ -321,8 +321,8 @@ describe("GET /api/v1/server/:serverId/platten", () => {
   it("is read by every role that reads the servers", async () => {
     const server = testServer();
     const inhaber = await server.inhaber();
-    const support = await server.eingeladen(inhaber, "support");
+    const mitglied = await server.eingeladen(inhaber, "mitglied");
     const { serverId } = await serverHinzufuegen(inhaber);
-    expect((await support.json(`/api/v1/server/${serverId}/platten`)).status).toBe(200);
+    expect((await mitglied.json(`/api/v1/server/${serverId}/platten`)).status).toBe(200);
   });
 });

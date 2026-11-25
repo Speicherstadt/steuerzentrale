@@ -13,15 +13,13 @@ type Dienst = { id: string; name: string; adresse: string; pfad: string; kundeId
 
 let server: TestServer;
 let teufel: Person;
-let technik: Pick<Person, "json">;
-let support: Pick<Person, "json">;
+let mitglied: Pick<Person, "json">;
 let partner: Person;
 
 beforeAll(async () => {
   server = testServer(afterAll);
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
 }, 60_000);
 
@@ -115,7 +113,7 @@ describe("observed services", () => {
       name: "Status",
       adresse: "https://status.teufel-it.de",
     });
-    for (const wer of [technik, support]) {
+    for (const wer of [mitglied]) {
       const liste = (await wer.json("/api/v1/dienste")).daten as { dienste: Dienst[] };
       expect(liste.dienste.map((d) => d.id)).toContain(dienst.id);
       expect((await anlegen(wer, { name: "X", adresse: "https://x.teufel-it.de" })).status).toBe(

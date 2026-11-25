@@ -110,7 +110,7 @@ describe("observed services on the page Apps", () => {
   });
 
   it("offers adding, changing and removing to the owner only", async () => {
-    rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: "technik" }));
+    rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: "mitglied" }));
     const { root } = await oeffne("/apps");
     expect(knopf(root, "Dienst beobachten")).toBeUndefined();
     expect(koepfe(tabelle(root))).not.toContain("Verwalten");

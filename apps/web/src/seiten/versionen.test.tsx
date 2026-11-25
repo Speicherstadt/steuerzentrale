@@ -25,7 +25,7 @@ beforeEach(() => {
   setLocale("de", { reload: false });
   appsQuelleEinsetzen(demoAppsQuelle(() => demo.jetzt));
   kundenQuelleEinsetzen(demoKunden(kunden, () => demo.jetzt));
-  rolle("technik");
+  rolle("inhaber");
 });
 afterEach(() => {
   aufraeumen();
@@ -124,8 +124,8 @@ describe("the page Apps", () => {
     );
   });
 
-  it("offers import, the registry query and installing to owner and technik, not to support", async () => {
-    rolle("support");
+  it("offers import, the registry query and installing to the owner, not to a member", async () => {
+    rolle("mitglied");
     const { root } = await appsSeite();
     expect(knopf(root, "Manifest importieren")).toBeUndefined();
     expect(knopf(root, "Nach neuen Versionen suchen")).toBeUndefined();
@@ -211,7 +211,8 @@ describe("an internal customer", () => {
     expect(knopf(root, "Nicht mehr intern")).toBeDefined();
   });
 
-  it("is not marked by technik", async () => {
+  it("is not marked by a member", async () => {
+    rolle("mitglied");
     const { root } = await oeffne("/kunden/atelier-nord");
     expect(knopf(root, "Als intern markieren")).toBeUndefined();
   });

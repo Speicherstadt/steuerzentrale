@@ -14,7 +14,7 @@ import { demoServerQuelle } from "../demo/server-quelle.ts";
 import { aufraeumen, dialog, eintragen, knopf, oeffne, warten } from "./test-dom.tsx";
 
 // BAULISTE.md Z-405: the actions of an installation against the demo sources, which answer as the
-// Zentrale does: only the offered ones, each with a reason, none for support (Z-1203); a log excerpt
+// Zentrale does: only the offered ones, each with a reason, for both roles restart and log excerpt (Z-1204); a log excerpt
 // shows its lines once they came
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
@@ -42,7 +42,7 @@ beforeEach(() => {
       betreiberWerte: [],
     }),
   );
-  rolle("technik");
+  rolle("inhaber");
 });
 afterEach(aufraeumen);
 
@@ -84,17 +84,18 @@ describe("the actions of an installation", () => {
     expect(dialog().textContent).toContain("4 Zeilen");
   });
 
-  it("offers support no action and no support access any more (Z-1203)", async () => {
-    rolle("support");
+  it("offers a member restart and log excerpt, and nothing else of an owner (Z-1204)", async () => {
+    rolle("mitglied");
     const { root } = await oeffne(`/apps/${ohneSperrzeit()}?tab=technik`);
-    expect(knopf(root, "Log-Auszug")).toBeUndefined();
-    expect(knopf(root, "Neustart")).toBeUndefined();
-    expect(knopf(root, "Zugang starten")).toBeUndefined();
+    expect(knopf(root, "Neustart")).toBeDefined();
+    expect(knopf(root, "Log-Auszug")).toBeDefined();
+    for (const nein of ["Einstellungen ändern", "Backup jetzt", "Prüf-Restore jetzt", "Nur lesen"])
+      expect(knopf(root, nein), nein).toBeUndefined();
     expect(root.textContent).not.toContain("Support-Zugang");
   });
 
-  it("offers owner and technik log excerpt and restart without any access (Z-1203)", async () => {
-    for (const r of ["inhaber", "technik"] as const) {
+  it("offers both roles log excerpt and restart without any access (Z-1203, Z-1204)", async () => {
+    for (const r of ["inhaber", "mitglied"] as const) {
       rolle(r);
       const { root } = await oeffne(`/apps/${ohneSperrzeit()}?tab=technik`);
       expect(knopf(root, "Log-Auszug"), r).toBeDefined();

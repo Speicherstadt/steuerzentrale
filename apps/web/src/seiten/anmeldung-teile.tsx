@@ -48,8 +48,7 @@ export const fehlerText = (antwort: { status: number; fehler: string }): string 
 
 export const ROLLEN_TEXT: Record<string, () => string> = {
   inhaber: m.rolle_inhaber,
-  technik: m.rolle_technik,
-  support: m.rolle_support,
+  mitglied: m.rolle_mitglied,
 };
 
 /** A form's fields as text, trimmed; an empty optional field is left out */

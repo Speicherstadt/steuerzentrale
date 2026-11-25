@@ -34,7 +34,7 @@ Backups, Ereignisse, Aufträge oder das Audit-Log gibt es nicht mehr.
 
 Der Reiter des Protokolls steht in der Adresse (`/protokoll?tab=auftraege`); unter den Reitern
 stehen gleich die Filter (Ereignisse nach Schwere, Aufträge nach Zustand) und die Liste.
-„Änderungen“ sehen nur Inhaber und Technik. Bei „Nur für mich“ fehlt „Kunden“.
+„Änderungen“ sehen beide Rollen. Bei „Nur für mich“ fehlt „Kunden“.
 Alte Adressen führen weiter: `/installationen` und `/installationen/<id>` zu `/apps`,
 `/ereignisse`, `/auftraege` und `/audit` zum passenden Reiter des Protokolls.
 
@@ -69,7 +69,7 @@ Die Zahl neben „Übersicht“ in der Seitenleiste ist die Zahl dieser Zeilen.
 
 | Zeile | Knöpfe |
 | --- | --- |
-| App gestört oder rot | „Log ansehen“ und „Neustart“, je mit Grund, für Inhaber und Technik ([Aktionen](aktionen.md)); sonst „App öffnen“ |
+| App gestört oder rot | „Log ansehen“ und „Neustart“, je mit Grund, für beide Rollen ([Aktionen](aktionen.md)); sonst „App öffnen“ |
 | andere Zeile einer App (gelb, Prüf-Restore, gescheiterte Einrichtung, gescheiterter Auftrag) | „App öffnen“ |
 | Server (Agent, Prüfung, Auftrag ohne App) | „Server öffnen“ |
 | beobachteter Dienst ([Prüfung von außen](aussen.md#beobachtete-dienste)) | „Dienste öffnen“, zur Seite Apps |
@@ -165,10 +165,10 @@ Text über 1000 Zeichen als „[ausgelassen]“.
 
 ## Wer was liest
 
-| Route | Inhaber | Technik | Support |
-| --- | --- | --- | --- |
-| Übersicht, Aufträge, Ereignisse | ja | ja | ja |
-| Audit-Log | ja | ja | nein |
+| Route | Inhaber | Mitglied |
+| --- | --- | --- |
+| Übersicht, Aufträge, Ereignisse | ja | ja |
+| Audit-Log | ja | ja |
 
 Jede Route liest nur die Daten des eigenen Betreibers; eine ID eines anderen Betreibers ist
 unbekannt, auch als Filter.

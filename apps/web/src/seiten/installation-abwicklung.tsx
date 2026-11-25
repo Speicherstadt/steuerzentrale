@@ -18,7 +18,7 @@ import { installationsRecht } from "./recht.tsx";
 /*
  * What follows the contract's end of an installation (BAULISTE.md Z-604; docs/kunden.md,
  * "Kündigung"): the deadlines, where it stands, the archive for the customer and, once deleted,
- * the deletion log; for owner and technik within the 30 days the link to the archive, made with a
+ * the deletion log; for the owner within the 30 days the link to the archive, made with a
  * reason and shown only here, once. Nothing while the contract has no end.
  */
 

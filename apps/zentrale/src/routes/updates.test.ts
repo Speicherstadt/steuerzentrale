@@ -24,7 +24,7 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 import { backupDaten } from "../testhilfen/updates.ts";
 
 /*
- * BAULISTE.md Z-503 over HTTP: an update by hand with a version and a reason, by owner and technik;
+ * BAULISTE.md Z-503 over HTTP: an update by hand with a version and a reason, by owner and inhaber2;
  * in a freeze window of the app only the owner; the backup of the current state goes first, the
  * update waits for it; offers, plan and the last update of each installation on the page
  * "Updates". No operator reaches another's installations or updates (a test per endpoint).
@@ -41,8 +41,8 @@ type Zeile = {
 const minio = minioNachbau();
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 const agent: Record<string, unknown>[] = [];
 let installationId = "";
@@ -77,7 +77,7 @@ const auftragVon = (aktion: string) =>
 const update = (p: Pick<Person, "json">, body: Record<string, unknown>) =>
   json(p, `/api/v1/installationen/${installationId}/update`, { body });
 
-const zeile = async (p: Pick<Person, "json"> = support) =>
+const zeile = async (p: Pick<Person, "json"> = mitglied) =>
   ((await json(p, "/api/v1/updates")).daten.installationen as Zeile[]).find(
     (i) => i.installationId === installationId,
   );
@@ -92,8 +92,8 @@ beforeAll(async () => {
   server = testServer(afterAll);
   afterAll(() => minio.stoppen());
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   const kontext = { betreiberId: teufel.betreiberId, akteur: "t", jetzt: 1, grund: "t" };
   schreiben(server.schreibDb, kontext, "test", (w) =>
@@ -143,24 +143,24 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("an update by hand", () => {
-  it("is refused to support, without a reason or a version", async () => {
-    expect(await update(support, { version: "1.3.0", grund: "x" })).toEqual({
+  it("is refused to mitglied, without a reason or a version", async () => {
+    expect(await update(mitglied, { version: "1.3.0", grund: "x" })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
-    expect((await update(technik, { version: "1.3.0", grund: " " })).status).toBe(400);
-    expect((await update(technik, { grund: "x" })).status).toBe(400);
-    expect(await update(technik, { version: "1.0.4", grund: "x" })).toEqual({
+    expect((await update(inhaber2, { version: "1.3.0", grund: " " })).status).toBe(400);
+    expect((await update(inhaber2, { grund: "x" })).status).toBe(400);
+    expect(await update(inhaber2, { version: "1.0.4", grund: "x" })).toEqual({
       status: 422,
       daten: { fehler: "nicht_angeboten" },
     });
   });
 
-  it("is in a freeze window the owner's only, who passes over it", async () => {
+  it("is in a freeze window the owner's only, who passes over it; a member updates never", async () => {
     server.uhr.ms = IN_SPERRZEIT;
-    expect(await update(technik, { version: "1.3.0", grund: "x" })).toEqual({
-      status: 409,
-      daten: { fehler: "sperrzeit", detail: "Umsatzsteuer-Voranmeldung" },
+    expect(await update(mitglied, { version: "1.3.0", grund: "x" })).toEqual({
+      status: 403,
+      daten: { fehler: "keine_berechtigung" },
     });
     const r = await update(teufel, {
       version: "1.3.0",
@@ -193,15 +193,15 @@ describe("an update by hand", () => {
       art: "wartet",
       grund: "angehalten",
     });
-    const ereignisse = await json(support, "/api/v1/ereignisse?art=update_zurueckgenommen");
+    const ereignisse = await json(mitglied, "/api/v1/ereignisse?art=update_zurueckgenommen");
     expect(ereignisse.daten.eintraege).toEqual([
       expect.objectContaining({ schwere: "fehler", ziel: `installation:${installationId}` }),
     ]);
   });
 
-  it("backs up first and updates after it, by technik, with the reason in the audit log", async () => {
+  it("backs up first and updates after it, by inhaber2, with the reason in the audit log", async () => {
     server.uhr.ms = DANACH;
-    const r = await update(technik, { version: "1.3.0", grund: "Wunsch des Kunden" });
+    const r = await update(inhaber2, { version: "1.3.0", grund: "Wunsch des Kunden" });
     expect(r).toMatchObject({
       status: 201,
       daten: {
@@ -224,7 +224,7 @@ describe("an update by hand", () => {
       "installationKonfigurationen",
       "updates",
     ]);
-    for (const e of audit) expect(e.akteur).toBe(technik.nutzerId);
+    for (const e of audit) expect(e.akteur).toBe(inhaber2.nutzerId);
   });
 
   it("sends the update with the backup's snapshots and raises the version once it holds", async () => {
@@ -244,7 +244,7 @@ describe("an update by hand", () => {
         dauerMs: 41_000,
       },
     });
-    const i = await json(support, `/api/v1/installationen/${installationId}`);
+    const i = await json(mitglied, `/api/v1/installationen/${installationId}`);
     expect(i.daten).toMatchObject({ version: "1.3.0" });
   });
 });

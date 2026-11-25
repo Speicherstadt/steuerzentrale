@@ -23,7 +23,7 @@ import { SNAPSHOT } from "../testhilfen/pruef-restore.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
- * BAULISTE.md Z-603 over HTTP: restoring a successful run with a reason, by owner and technik, for a
+ * BAULISTE.md Z-603 over HTTP: restoring a successful run with a reason, by owner and inhaber2, for a
  * running installation whose backups are set up and that has no open job; the backup of the current
  * state goes first, the restore waits for it; the restore's state in the installation's backups.
  * No operator reaches another's restores (a test per endpoint).
@@ -35,8 +35,8 @@ type Lauf = { id: string; ok: boolean };
 const minio = minioNachbau();
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 const agent: Record<string, unknown>[] = [];
 let installationId = "";
@@ -83,7 +83,7 @@ const lauf = (name: string, ok: boolean) =>
   );
 
 const pfad = () => `/api/v1/installationen/${installationId}`;
-const backups = async () => (await json(support, `${pfad()}/backups`)).daten;
+const backups = async () => (await json(mitglied, `${pfad()}/backups`)).daten;
 const laeufe = async () => (await backups()).laeufe as Lauf[];
 const wiederherstellen = (p: Pick<Person, "json">, body: Record<string, unknown>) =>
   json(p, `${pfad()}/wiederherstellen`, { body });
@@ -92,8 +92,8 @@ beforeAll(async () => {
   server = testServer(afterAll);
   afterAll(() => minio.stoppen());
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   const kontext = { betreiberId: teufel.betreiberId, akteur: "t", jetzt: 1, grund: "t" };
   schreiben(server.schreibDb, kontext, "test", (w) =>
@@ -151,31 +151,31 @@ describe("restoring a run", () => {
     expect((await backups()).wiederherstellen).toEqual({ letzter: null, laeuft: false });
   });
 
-  it("is refused to support, without a reason and without a run", async () => {
+  it("is refused to mitglied, without a reason and without a run", async () => {
     const gut = (await laeufe()).find((x) => x.ok)?.id;
-    expect(await wiederherstellen(support, { lauf: gut, grund: "x" })).toEqual({
+    expect(await wiederherstellen(mitglied, { lauf: gut, grund: "x" })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
-    expect((await wiederherstellen(technik, { lauf: gut, grund: " " })).status).toBe(400);
-    expect((await wiederherstellen(technik, { grund: "x" })).status).toBe(400);
+    expect((await wiederherstellen(inhaber2, { lauf: gut, grund: " " })).status).toBe(400);
+    expect((await wiederherstellen(inhaber2, { grund: "x" })).status).toBe(400);
   });
 
   it("refuses a failed run and one it does not know", async () => {
     const kaputt = (await laeufe()).find((x) => !x.ok)?.id;
-    expect(await wiederherstellen(technik, { lauf: kaputt, grund: "x" })).toEqual({
+    expect(await wiederherstellen(inhaber2, { lauf: kaputt, grund: "x" })).toEqual({
       status: 422,
       daten: { fehler: "lauf_gescheitert" },
     });
-    expect(await wiederherstellen(technik, { lauf: "backup-fremd", grund: "x" })).toEqual({
+    expect(await wiederherstellen(inhaber2, { lauf: "backup-fremd", grund: "x" })).toEqual({
       status: 422,
       daten: { fehler: "lauf_unbekannt" },
     });
   });
 
-  it("backs up first and restores after it, by technik, with the reason in the audit log", async () => {
+  it("backs up first and restores after it, by inhaber2, with the reason in the audit log", async () => {
     const gut = (await laeufe()).find((x) => x.ok)?.id;
-    const r = await wiederherstellen(technik, { lauf: gut, grund: "Auftrag des Kunden" });
+    const r = await wiederherstellen(inhaber2, { lauf: gut, grund: "Auftrag des Kunden" });
     expect(r).toMatchObject({
       status: 201,
       daten: {
@@ -203,7 +203,7 @@ describe("restoring a run", () => {
       "wiederherstellungen",
     ]);
     for (const e of audit)
-      expect(e).toMatchObject({ akteur: technik.nutzerId, grund: "Auftrag des Kunden" });
+      expect(e).toMatchObject({ akteur: inhaber2.nutzerId, grund: "Auftrag des Kunden" });
   });
 
   it("shows the restore under way, then done, and its event", async () => {
@@ -220,7 +220,7 @@ describe("restoring a run", () => {
       letzter: { phase: "gelungen", teile: [{ ...teile[0], grund: null }], dauerMs: 61_000 },
     });
     const ziel = `installation:${installationId}`;
-    const { daten } = await json(support, `/api/v1/ereignisse?ziel=${encodeURIComponent(ziel)}`);
+    const { daten } = await json(mitglied, `/api/v1/ereignisse?ziel=${encodeURIComponent(ziel)}`);
     expect(daten.eintraege).toEqual(
       expect.arrayContaining([expect.objectContaining({ art: "wiederherstellen_gelungen" })]),
     );

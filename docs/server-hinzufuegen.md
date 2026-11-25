@@ -12,7 +12,7 @@ sich aus; einen offenen Port für ihn gibt es nicht.
 
 ## In der Oberfläche
 
-Unter **Server → Server hinzufügen** (Rollen Inhaber und Technik):
+Unter **Server → Server hinzufügen** (nur der Inhaber):
 
 - **Name** des Servers;
 - **Art**: gemeinsam (mehrere Kunden), eigen (ein Kunde, unser Server) oder beim Kunden; bei den
@@ -174,7 +174,7 @@ hat, gelten altes und neues; danach nur das neue. Beides steht im Audit-Log.
 
 ### Zertifikat sperren
 
-Ist ein Server verloren oder sein Zertifikat in fremden Händen, sperren Inhaber oder Technik es mit
+Ist ein Server verloren oder sein Zertifikat in fremden Händen, sperrt der Inhaber es mit
 Grund (`POST /api/v1/server/<id>/sperren`). Die Zentrale trennt eine laufende Verbindung sofort und
 weist den Agenten ab da bei jedem Versuch ab. Eine Sperre lässt sich nicht aufheben: der Server
 kommt nur zurück, indem er neu hinzugefügt wird.

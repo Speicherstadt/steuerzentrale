@@ -5,12 +5,11 @@ import type { UebersichtEintrag } from "../daten/betrieb.ts";
 import { einzelansichtLaden } from "../daten/installationen-laden.ts";
 import { ZuInstallation, ZuServer } from "../teile/verweise.tsx";
 import { type Angaben, GrundDialog, LogDialog } from "./installation-aktionen.tsx";
-import { installationsRecht } from "./recht.tsx";
 
 /*
  * The direct actions of a row of "Zu tun" (docs/plan.md, "Übersicht (Oberfläche 2026-11)"): a broken
- * app offers "Log ansehen" and "Neustart" with the rights and dialogs they have on its page (Z-405:
- * owner and technik); everything else leads to the app or
+ * app offers "Log ansehen" and "Neustart" with the rights and dialogs they have on its page (Z-405, both
+ * roles since Z-1204); everything else leads to the app or
  * the server, where its other actions are. Nothing here acts without its dialog and reason.
  */
 
@@ -78,13 +77,12 @@ const Oeffnen = (props: { eintrag: UebersichtEintrag }) => (
   </Switch>
 );
 
-/** Log and restart of a broken app, once its page's data are there; without the right, "App öffnen" */
+/** Log and restart of a broken app, once its page's data are there; without either, "App öffnen" */
 const LogUndNeustart = (props: { a: Angaben; neu: () => void }) => {
-  const darf = installationsRecht();
   const [offen, setOffen] = createSignal<"log" | "neustart">();
   return (
     <Show
-      when={darf() && (props.a.aktionen.log_auszug || props.a.aktionen.neustart)}
+      when={props.a.aktionen.log_auszug || props.a.aktionen.neustart}
       fallback={
         <ZuInstallation id={props.a.id} class={AUSSEN}>
           {m.zutun_app_oeffnen()}
