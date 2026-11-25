@@ -9,6 +9,7 @@ import {
 import type { AussenDerInstallation, AussenDerZentrale, AussenQuelle } from "../daten/aussen.ts";
 import type { Bestand, Installation } from "../daten/typen.ts";
 import { demo } from "./index.ts";
+import { demoLast } from "./server-quelle.ts";
 
 /*
  * The checks from outside of the demo operator, answering as the Zentrale's API does (apps/zentrale,
@@ -114,5 +115,21 @@ export const demoAussen = (b: Bestand = demo): AussenQuelle => ({
     return t
       ? { ok: true, status: 200, daten: t }
       : { ok: false, status: 404, fehler: "keine_installation" };
+  },
+  // Z-1106: its user's share of its demo server's load, hour by hour
+  last: async (id, tage) => {
+    const i = b.installationen.find((x) => x.id === id);
+    const sv = i && b.server.find((s) => s.id === i.server);
+    if (!i || !sv) return { ok: false, status: 404, fehler: "keine_installation" };
+    const ram = 180 + ((b.installationen.indexOf(i) * 137) % 600);
+    return {
+      ok: true,
+      status: 200,
+      daten: demoLast(sv, tage, b.jetzt).map((s) => ({
+        stunde: s.stunde,
+        cpuProzent: s.cpuProzent === null ? null : Math.round(s.cpuProzent / 3),
+        ramMb: Math.round(ram * (0.9 + ((s.stunde / 3_600_000) % 5) / 50)),
+      })),
+    };
   },
 });

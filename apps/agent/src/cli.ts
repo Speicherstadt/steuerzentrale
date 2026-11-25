@@ -21,6 +21,7 @@ import { type Gedaechtnis, gedaechtnisOeffnen } from "./einrichtung/gedaechtnis.
 import { type NutzerLesen, nutzerAusPasswd } from "./einrichtung/nutzer.ts";
 import { bootIdLesen } from "./fakten/betriebssystem.ts";
 import { type FaktenNachricht, faktenLesen } from "./fakten/lesen.ts";
+import { faktenMitLast } from "./fakten/mit-last.ts";
 import { echteQuellen } from "./fakten/quellen.ts";
 import { type Pfade, pfadeIn } from "./pfade.ts";
 import { adminUeberSocket, PFORTE_ADMIN_SOCKET } from "./pforte/admin.ts";
@@ -179,6 +180,8 @@ const dienstStarten: CliDeps["dienstStarten"] = (
       warten: (ms) => Bun.sleep(ms),
     },
   });
+  // CPU, load and memory with the facts (Z-1106): one reader, so CPU covers the time between them
+  const mitLast = faktenMitLast(echteQuellen(), gedaechtnis, nutzer);
   // a copy of a Prüf-Restore (Z-602) or a restore (Z-603) the agent did not finish before it stopped
   void auftraege.aufraeumen();
   verbindungsSchleife(
@@ -193,7 +196,7 @@ const dienstStarten: CliDeps["dienstStarten"] = (
       architektur,
       meldungen: {
         fakten: async (uhrzeitAbweichungMs) => ({
-          ...(await faktenLesen(echteQuellen(), { jetzt: Date.now(), uhrzeitAbweichungMs })),
+          ...(await mitLast(uhrzeitAbweichungMs, Date.now())),
           ...(nurBeobachten ? { nurBeobachten } : {}),
         }),
         anmeldungen: (melden) =>

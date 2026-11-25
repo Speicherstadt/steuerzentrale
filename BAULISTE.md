@@ -595,7 +595,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   Warnung, 3 für Hinweis und Behebung (Test); die Adresse des Themas nur `https://`, an eine
   öffentliche Adresse wie ein Webhook (Test); das Token ist freiwillig (öffentliches Thema); das
   Anlegen fragt keinen Grund.
-- [ ] **Z-1106 CPU und Arbeitsspeicher** – der Agent meldet mit den Fakten, was bisher nur die Demo
+- [x] **Z-1106 CPU und Arbeitsspeicher** – der Agent meldet mit den Fakten, was bisher nur die Demo
   zeigt: je Server CPU-Auslastung (aus `/proc/stat`, über die Zeit zwischen zwei Meldungen), Last
   (`/proc/loadavg`) und belegten Arbeitsspeicher (`MemTotal` minus `MemAvailable` aus
   `/proc/meminfo`); je Installation und je beobachtetem Dienst mit Linux-Nutzer dasselbe aus der
@@ -610,6 +610,11 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   unbekannt gemeldet wird, nie als 0 (Test); in der CI eine Installation, die Speicher belegt, mit
   einem höheren Wert erscheint als davor (Test); die Verläufe in Playwright stehen (Desktop und
   `@phone`) und die Demo dieselben Felder nutzt wie die API.
+  Geschärft: die Werte kommen als Feld `last` mit den Fakten (alle 15 Minuten; CPU über die Zeit
+  seit der vorigen Meldung, je Nutzer ebenso aus `usage_usec`, als Anteil der ganzen Maschine);
+  je Stunde zählt der höchste Wert wie bei der Platte; die Liste der Nutzer ist die der
+  Installationen des Agenten, ein beobachteter Dienst mit Linux-Nutzer kommt mit Z-1103 dazu; die
+  Prüfung heißt `arbeitsspeicher` (Test der Schwellen 90 und 95 %).
 
 ## Phase 9 – Ausbau
 

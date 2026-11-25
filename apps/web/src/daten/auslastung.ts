@@ -66,3 +66,33 @@ export const plattenReihen = (
     };
   });
 };
+
+/** An hour of a series of Z-1106: of a server or of an installation's Linux user */
+type Stunde = { stunde: number };
+
+/**
+ * One value's series in the range up to `jetzt` (Z-1106): the highest reading of each step, as
+ * for the disks, and the newest hour's value; hours without the value add nothing
+ */
+export const lastReihe = <S extends Stunde>(
+  stunden: readonly S[],
+  wert: (s: S) => number | null,
+  bereich: Bereich,
+  jetzt: number,
+): { punkte: Punkt[]; aktuell: number | null } => {
+  const von = jetzt - BEREICH_MS[bereich];
+  const schritt = SCHRITT_MS[bereich];
+  const fach = new Map<number, number>();
+  let aktuell: number | null = null;
+  for (const s of stunden) {
+    const w = wert(s);
+    if (w === null || s.stunde + STUNDE_MS <= von || s.stunde > jetzt) continue;
+    const n = Math.max(0, Math.floor((s.stunde - von) / schritt));
+    fach.set(n, Math.max(fach.get(n) ?? 0, w));
+    aktuell = w;
+  }
+  const punkte = [...fach.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([n, w]) => ({ zeitpunkt: Math.min(von + (n + 0.5) * schritt, jetzt), wert: w }));
+  return { punkte, aktuell };
+};

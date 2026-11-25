@@ -12,6 +12,7 @@ const NAMEN: Record<PruefungName, string> = {
   backups: "Backups",
   ports: "Offene Ports",
   uhrzeit: "Uhrzeit",
+  arbeitsspeicher: "Arbeitsspeicher",
 };
 
 const zahl = (n: number) => n.toLocaleString("de-DE", { maximumFractionDigits: 1 });
@@ -47,6 +48,8 @@ export const befundText = (server: string, p: Serverpruefung, jetzt: number): st
       ]
         .filter(Boolean)
         .join(", ")}`;
+    case "arbeitsspeicher":
+      return `Arbeitsspeicher auf ${server} zu ${zahl(p.prozent ?? 0)} % belegt`;
   }
 };
 

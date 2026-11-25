@@ -1,4 +1,5 @@
 import type { Bewertung } from "./bewertung.ts";
+import { arbeitsspeicherPruefen } from "./last.ts";
 
 /*
  * The checks of a server (BAULISTE.md Z-702; docs/plan.md, "Prüfungen eines Servers"): disk over
@@ -32,7 +33,14 @@ export const SYSTEM_PORTS: readonly Port[] = [
   { port: 546, proto: "udp" },
 ];
 
-export const PRUEFUNGEN = ["platte", "zertifikate", "backups", "ports", "uhrzeit"] as const;
+export const PRUEFUNGEN = [
+  "platte",
+  "zertifikate",
+  "backups",
+  "ports",
+  "uhrzeit",
+  "arbeitsspeicher",
+] as const;
 export type PruefungName = (typeof PRUEFUNGEN)[number];
 
 /** One check's result with what it measured; null where the agent could not read it */
@@ -42,6 +50,7 @@ export type Serverpruefung = { ergebnis: Bewertung } & (
   | { pruefung: "backups"; alt: { installationId: string; name: string; seit: number }[] }
   | { pruefung: "ports"; fremd: Port[] | null }
   | { pruefung: "uhrzeit"; abweichungMs: number | null; synchron: boolean | null }
+  | { pruefung: "arbeitsspeicher"; prozent: number | null }
 );
 
 type Platte = { mount: string; gesamtMb: number; freiMb: number };
@@ -168,6 +177,9 @@ export type PruefFakten = {
   uhrSynchron?: boolean | null;
   /** Only observed (Z-1102): what listens there is not the Zentrale's, so no port is foreign */
   nurBeobachten?: boolean;
+  /** Z-1106: the RAM and the memory in use of the newest facts; an older agent sends no reading */
+  ramMb?: number | null;
+  ramBelegtMb?: number | null;
 };
 
 export type PruefEingabe = {
@@ -191,6 +203,7 @@ export const serverPruefen = (e: PruefEingabe): Serverpruefung[] => {
     backupsPruefen(e.backups, e.jetzt),
     f?.nurBeobachten ? portsPruefen([], []) : portsPruefen(f?.portsOffen ?? null, e.erlaubtePorts),
     uhrzeitPruefen(f?.uhrzeitAbweichungMs ?? null, f?.uhrSynchron ?? null),
+    arbeitsspeicherPruefen(f?.ramMb ?? null, f?.ramBelegtMb ?? null),
   ];
 };
 

@@ -8,6 +8,7 @@ import {
   HardDrive,
   type IconNode,
   Lock,
+  MemoryStick,
   Plug,
   Power,
   ShieldCheck,
@@ -76,6 +77,7 @@ export const PRUEFUNG_ICONS: Record<PruefungName, IconNode> = {
   backups: Archive,
   ports: Plug,
   uhrzeit: Clock,
+  arbeitsspeicher: MemoryStick,
 };
 
 /** The name of a check of Z-702 in the interface's language */
@@ -86,6 +88,7 @@ export const pruefungName = (p: PruefungName): string =>
     backups: m.pruefung_backups,
     ports: m.pruefung_ports,
     uhrzeit: m.pruefung_uhrzeit,
+    arbeitsspeicher: m.pruefung_arbeitsspeicher,
   })[p]();
 
 type Ergebnis<P extends PruefungName> = Extract<Serverpruefung, { pruefung: P }>;
@@ -149,6 +152,10 @@ export const pruefungDetail = (p: Serverpruefung, jetzt: number): string => {
       return portsDetail(p);
     case "uhrzeit":
       return uhrDetail(p);
+    case "arbeitsspeicher":
+      return p.prozent === null
+        ? m.pruefung_unbekannt()
+        : m.pruefung_arbeitsspeicher_detail({ prozent: prozent(p.prozent, 1) });
   }
 };
 

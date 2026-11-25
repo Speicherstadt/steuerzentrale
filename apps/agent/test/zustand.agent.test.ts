@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { EINRICHTUNG_AKTIONEN, type Einrichtung } from "@steuerzentrale/manifest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AUSGABE } from "../../../scripts/beispiel-images.ts";
+import { lastMesser } from "../src/fakten/last.ts";
+import { echteQuellen } from "../src/fakten/quellen.ts";
 import type { ZustandNachricht } from "../src/zustand/runde.ts";
 import {
   type EchterAgent,
@@ -12,7 +14,7 @@ import {
   signiert,
   wegraeumen,
 } from "./einrichtung-hilfen.ts";
-import { alsNutzer, lauf } from "./pforte-hilfen.ts";
+import { alsNutzer, lauf, muss } from "./pforte-hilfen.ts";
 import { requirePodman } from "./podman.ts";
 
 /*
@@ -115,6 +117,23 @@ describe.skipIf(!bereit)("the state of installations set up by jobs (Z-403)", ()
       units: [{ name: `${G}-app.service`, aktiv: "active" }],
       health: { zustand: "gruen", grund: "HTTP 200" },
     });
+  }, 900_000);
+
+  // BAULISTE.md Z-1106: the memory of an installation's user, from its cgroup, higher while its
+  // container runs than while it is stopped
+  it("reads more memory of the example app's user while it runs than while it is stopped", async () => {
+    const nutzer = [{ name: `sz-${G}`, uid: Number(muss(["id", "-u", `sz-${G}`])) }];
+    const messen = lastMesser(echteQuellen());
+    const app = `${G}-app.service`;
+    expect(lauf(alsNutzer(`sz-${G}`)("systemctl", "--user", "stop", app)).code).toBe(0);
+    await Bun.sleep(3000);
+    const gestoppt = (await messen(nutzer, 2, Date.now())).nutzer[0]?.ramMb;
+    expect(lauf(alsNutzer(`sz-${G}`)("systemctl", "--user", "start", app)).code).toBe(0);
+    await bis(agent, G, (g) => g.health.zustand === "gruen");
+    const laeuft = (await messen(nutzer, 2, Date.now())).nutzer[0]?.ramMb;
+    console.log(`memory of sz-${G}: stopped ${gestoppt} MiB, running ${laeuft} MiB`);
+    expect(gestoppt).toEqual(expect.any(Number));
+    expect(laeuft).toBeGreaterThan(gestoppt ?? Number.POSITIVE_INFINITY);
   }, 900_000);
 
   it("reports the broken build 2.1.0 with health red, its unit running", async () => {

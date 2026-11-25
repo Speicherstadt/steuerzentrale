@@ -94,6 +94,28 @@ export const Fakten = z.object({
    * holds it; the Zentrale only learns of it and cannot lift it
    */
   nurBeobachten: z.boolean().optional(),
+  // Z-1106, still in protocol 1: optional, an agent before it sends none
+  /**
+   * CPU in percent of the machine since the previous facts (null on the first and after a reboot),
+   * the load of the last minute, memory in use (MemTotal minus MemAvailable) in MiB, and the same
+   * from the cgroup of each installation's Linux user; null where unreadable
+   */
+  last: z
+    .object({
+      cpuProzent: z.number().min(0).max(100).nullable(),
+      last1: z.number().nonnegative().nullable(),
+      ramBelegtMb: z.number().int().nonnegative().nullable(),
+      nutzer: z
+        .array(
+          z.object({
+            name: z.string().min(1).max(64),
+            cpuProzent: z.number().min(0).max(100).nullable(),
+            ramMb: z.number().int().nonnegative().nullable(),
+          }),
+        )
+        .max(1000),
+    })
+    .optional(),
 });
 
 // The ActiveState values of systemd (`systemctl --state=help`; "refreshing" since systemd 257),
