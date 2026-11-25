@@ -1,4 +1,4 @@
-import type { Context, Handler, Hono, MiddlewareHandler } from "hono";
+import type { Handler, Hono, MiddlewareHandler } from "hono";
 import type { Auth } from "../auth/auth.ts";
 import { darf, type Recht, ROLLEN, type Rolle } from "../auth/rollen.ts";
 import type { Db } from "../db/oeffnen.ts";

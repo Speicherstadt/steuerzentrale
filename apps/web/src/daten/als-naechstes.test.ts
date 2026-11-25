@@ -44,7 +44,6 @@ const LEER: VorschauEingabe = {
   server: [],
   angebote: [],
   apps: [],
-  fuerKunden: true,
 };
 
 const termin = (ab: number) => ({
@@ -232,7 +231,7 @@ describe("alsNaechstes", () => {
     ]);
   });
 
-  it("names a contract's end within 30 days and the deletion after it, for customers only", () => {
+  it("names a contract's end within 30 days and the deletion after it", () => {
     const ende = berlin("2026-11-30");
     const eingabe: VorschauEingabe = {
       ...LEER,
@@ -259,7 +258,6 @@ describe("alsNaechstes", () => {
         loeschenAb: berlin("2027-02-28"),
       },
     ]);
-    expect(alsNaechstes({ ...eingabe, fuerKunden: false }, JETZT)).toEqual([]);
   });
 
   it("orders everything by time, soonest first", () => {

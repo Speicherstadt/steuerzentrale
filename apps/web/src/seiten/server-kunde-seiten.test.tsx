@@ -1,7 +1,5 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { betriebsartQuelleEinsetzen } from "../daten/betriebsart.ts";
-import { demoBetriebsart } from "../demo/betriebsart.ts";
 import { aufraeumen, knopf, oeffne, reiterWaehlen, warten } from "./test-dom.tsx";
 
 // docs/plan.md, "Server und Kunden (Oberfläche 2026-11)": the page "Server" as one table, the page
@@ -9,7 +7,6 @@ import { aufraeumen, knopf, oeffne, reiterWaehlen, warten } from "./test-dom.tsx
 // Zentrale's API does
 beforeEach(() => {
   setLocale("de", { reload: false });
-  betriebsartQuelleEinsetzen(demoBetriebsart());
 });
 afterEach(aufraeumen);
 
@@ -53,17 +50,6 @@ describe("the page Server", () => {
     expect(zeilen[4]?.textContent).toContain("verbunden");
     expect(zeilen[4]?.textContent).toMatch(/\d+ Apps · \d+ Kunden/);
     expect(zeilen[4]?.textContent).toContain("Debian 13");
-  });
-
-  it('names no kind and counts no customers in "Nur für mich"', async () => {
-    betriebsartQuelleEinsetzen(
-      demoBetriebsart({ betriebsart: "selbst", eigenerKundeId: "intern" }),
-    );
-    const { root } = await oeffne("/server");
-    await warten();
-    const tabelle = root.querySelector("main tbody")?.textContent ?? "";
-    expect(tabelle).not.toContain("für mehrere Kunden");
-    expect(tabelle).not.toContain("Kunden");
   });
 });
 

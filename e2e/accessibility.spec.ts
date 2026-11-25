@@ -33,8 +33,6 @@ const pages = [
   "/einrichtung",
   "/einladung",
   "/erster-inhaber",
-  // the question after the first owner (Z-805); answered, it points to the settings
-  "/betriebsart",
 ];
 
 /** Old addresses and where they lead now; the catalog's old /apps has none, /apps means the apps */

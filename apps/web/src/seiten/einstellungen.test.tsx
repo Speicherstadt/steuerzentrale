@@ -116,7 +116,7 @@ describe("the sections of the settings", () => {
     expect(
       [...(nav?.querySelectorAll("a") ?? [])].map((a) => a.querySelector("span")?.textContent),
     ).toEqual([
-      "Betriebsart",
+      // no section Betriebsart since Z-1206
       "Werte für Apps",
       "Backup-Ziel",
       "Adressen und DNS",

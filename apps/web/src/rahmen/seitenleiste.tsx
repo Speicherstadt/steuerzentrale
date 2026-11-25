@@ -3,12 +3,11 @@ import { Radar } from "@steuerzentrale/ui/icons";
 import { Link, useLocation } from "@tanstack/solid-router";
 import { createMemo, For, Loading, Show } from "solid-js";
 import { betriebQuelle } from "../daten/betrieb.ts";
-import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { type Ich, ichLesen } from "../daten/ich.ts";
 import { bestand } from "../daten/quelle.ts";
 import { brauchtAufmerksamkeit } from "../daten/zu-tun.ts";
 import { zaehler } from "../daten/zustand.ts";
-import { GRUPPEN, heimat, sichtbareGruppen, type Zaehler } from "./navigation.ts";
+import { GRUPPEN, heimat, type Zaehler } from "./navigation.ts";
 import { rolleName } from "./texte.ts";
 import { VERSION } from "./version.ts";
 
@@ -54,12 +53,10 @@ const zahlen = (): ((art: Zaehler) => number) => {
 const Bereiche = () => {
   const zahl = zahlen();
   const ort = useLocation();
-  // "Nur für mich" hides the customers (Z-805)
-  const art = createMemo(() => betriebsartLesen());
   return (
     <nav aria-label={m.nav_bereiche()} class="flex flex-col">
       <Loading fallback="">
-        <For each={sichtbareGruppen(GRUPPEN, nurFuerMich(art()))}>
+        <For each={GRUPPEN}>
           {(gruppe) => (
             <div class="flex flex-col p-2 pt-1">
               <h2 class="flex h-7 items-center px-2 text-xs font-medium text-muted-foreground">

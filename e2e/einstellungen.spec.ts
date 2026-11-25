@@ -39,7 +39,7 @@ test.describe("settings", { tag: "@phone" }, () => {
   test("go from section to section, the chosen one in the URL and marked", async ({ page }) => {
     await page.goto("/einstellungen");
     const abschnitte = page.getByRole("navigation", { name: "Abschnitte der Einstellungen" });
-    await expect(abschnitte.getByRole("link")).toHaveCount(8);
+    await expect(abschnitte.getByRole("link")).toHaveCount(7);
     await expect(abschnitte.locator('[aria-current="page"]')).toContainText("Werte für Apps");
     await expect(page.getByRole("heading", { level: 2, name: "Werte für Apps" })).toBeVisible();
     await ohneBefund(page);
@@ -49,9 +49,8 @@ test.describe("settings", { tag: "@phone" }, () => {
     await expect(page.getByRole("heading", { level: 2, name: "DNS", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Werte für Apps" })).toHaveCount(0);
     await ohneBefund(page);
-    await page.goto("/einstellungen?tab=betriebsart");
-    await expect(abschnitte.locator('[aria-current="page"]')).toContainText("Betriebsart");
-    await expect(page.getByRole("radio", { name: /Für Kunden/ })).toBeChecked();
+    // Z-1206: no section Betriebsart any more
+    await expect(abschnitte.getByRole("link", { name: /Betriebsart/ })).toHaveCount(0);
   });
 
   test("asks for the operator's missing value in the dialog and keeps it", async ({ page }) => {

@@ -6,7 +6,6 @@ import { createMemo, Loading, refresh, Show } from "solid-js";
 import { alsNaechstes } from "../daten/als-naechstes.ts";
 import { appsQuelle } from "../daten/apps.ts";
 import { betriebQuelle } from "../daten/betrieb.ts";
-import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { type AppsListe, appsListeLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
 import { vonSelbst } from "../daten/von-selbst.ts";
@@ -56,7 +55,6 @@ const Inhalt = (props: {
   daten: AppsListe;
   zuTun: ZuTun;
   neu: ReturnType<typeof ohneManifest>;
-  fuerKunden: boolean;
   aktualisieren: () => void;
 }) => {
   const jetzt = () => bestand().jetzt;
@@ -66,30 +64,22 @@ const Inhalt = (props: {
       <Urteil n={props.zuTun.zeilen.length} jetzt={jetzt()} />
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ServerZahl server={props.daten.server} />
-        <InstallationenZahl
-          installationen={props.daten.installationen}
-          fuerKunden={props.fuerKunden}
-        />
+        <InstallationenZahl installationen={props.daten.installationen} />
         <UpdateZahl angebote={props.daten.angebote} />
-        <BackupZahl backups={props.daten.backups} seit={seit()} fuerKunden={props.fuerKunden} />
+        <BackupZahl backups={props.daten.backups} seit={seit()} />
       </div>
       <div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <ZuTunKarte
           zuTun={props.zuTun}
           neu={props.neu}
-          fuerKunden={props.fuerKunden}
           aktualisieren={() => props.aktualisieren()}
         />
         <div class="grid min-w-0 gap-4">
           <AlsNaechstes
-            termine={alsNaechstes(
-              { ...props.daten, apps: bestand().apps, fuerKunden: props.fuerKunden },
-              jetzt(),
-            )}
+            termine={alsNaechstes({ ...props.daten, apps: bestand().apps }, jetzt())}
             jetzt={jetzt()}
-            fuerKunden={props.fuerKunden}
           />
-          <VonSelbst erledigt={vonSelbst(props.daten, seit())} fuerKunden={props.fuerKunden} />
+          <VonSelbst erledigt={vonSelbst(props.daten, seit())} />
         </div>
       </div>
     </>
@@ -100,7 +90,6 @@ const Uebersicht = () => {
   const eintraege = createMemo(() => betriebQuelle().uebersicht());
   const daten = createMemo(() => appsListeLaden());
   const katalog = createMemo(() => appsQuelle().liste());
-  const art = createMemo(() => betriebsartLesen());
   const fehler = () =>
     [eintraege(), daten()].map((a) => (a.ok ? "" : fehlerText(a))).find(Boolean) ?? "";
   const liste = () => {
@@ -125,7 +114,6 @@ const Uebersicht = () => {
           daten={liste()}
           zuTun={zeilen()}
           neu={neu()}
-          fuerKunden={!nurFuerMich(art())}
           aktualisieren={() => {
             refresh(eintraege);
             refresh(daten);

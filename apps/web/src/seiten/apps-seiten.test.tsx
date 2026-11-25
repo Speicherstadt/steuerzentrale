@@ -1,7 +1,5 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { betriebsartQuelleEinsetzen } from "../daten/betriebsart.ts";
-import { demoBetriebsart } from "../demo/betriebsart.ts";
 import { mehrEintraege } from "./app-mehr.tsx";
 import { aufraeumen, dialog, knopf, oeffne, reiterWaehlen, warten } from "./test-dom.tsx";
 
@@ -9,7 +7,6 @@ import { aufraeumen, dialog, knopf, oeffne, reiterWaehlen, warten } from "./test
 // app with its tabs, against the demo's sources, which answer as the Zentrale's API does
 beforeEach(() => {
   setLocale("de", { reload: false });
-  betriebsartQuelleEinsetzen(demoBetriebsart());
 });
 afterEach(aufraeumen);
 
@@ -79,23 +76,6 @@ describe("the page Apps", () => {
     await schalter(root, "nach Kunde");
     expect(root.querySelector("main tbody tr.bg-muted a")?.textContent).toBe("IT Berger");
     expect(zeilen(root)).toHaveLength(17);
-  });
-
-  it('has no column Kunde in "Nur für mich"', async () => {
-    betriebsartQuelleEinsetzen(
-      demoBetriebsart({ betriebsart: "selbst", eigenerKundeId: "intern" }),
-    );
-    const { root } = await oeffne("/apps");
-    expect(spalten(root)).toEqual([
-      "App",
-      "Zustand",
-      "Version",
-      "Letztes Backup",
-      "CPU",
-      "RAM",
-      "Server",
-    ]);
-    expect(root.textContent).not.toContain("nach Kunde");
   });
 });
 

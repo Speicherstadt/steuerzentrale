@@ -1,7 +1,7 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { beforeEach, describe, expect, it } from "vitest";
 import { demo } from "../demo/index.ts";
-import { GRUPPEN, heimat, pfadStufen, sichtbareGruppen } from "./navigation.ts";
+import { GRUPPEN, heimat, pfadStufen } from "./navigation.ts";
 
 const namen = (gruppen = GRUPPEN) =>
   gruppen.map((g) => [g.name(), g.bereiche.map((b) => b.name())]);
@@ -36,12 +36,8 @@ describe("navigation", () => {
     expect(Object.values(zaehler).filter(Boolean)).toHaveLength(2);
   });
 
-  it('hides Kunden in "Nur für mich" (Z-805)', () => {
-    expect(namen(sichtbareGruppen(GRUPPEN, true))).toEqual([
-      ["Betrieb", ["Übersicht", "Apps", "Server", "Updates"]],
-      ["Verwaltung", ["Katalog", "Protokoll", "Einstellungen"]],
-    ]);
-    expect(namen(sichtbareGruppen(GRUPPEN, false))).toEqual(namen());
+  it("always has Kunden: there is no Betriebsart any more (Z-1206)", () => {
+    expect(namen()[0]?.[1]).toContain("Kunden");
   });
 
   it("finds the area of every page, also of a page without an entry", () => {

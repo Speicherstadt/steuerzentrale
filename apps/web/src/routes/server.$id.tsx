@@ -3,7 +3,6 @@ import { createFileRoute, useNavigate } from "@tanstack/solid-router";
 import { createMemo, Loading, Match, refresh, Switch } from "solid-js";
 import { suche } from "../daten/ableitungen.ts";
 import { appZeilen } from "../daten/apps-liste.ts";
-import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { appsListeLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
 import { serverQuelle } from "../daten/server.ts";
@@ -34,8 +33,6 @@ const Detail = (props: { a: ServerAnsicht; neu: () => void }) => {
   const navigate = useNavigate();
   const b = bestand();
   const antwort = createMemo(() => appsListeLaden());
-  const art = createMemo(() => betriebsartLesen());
-  const fuerKunden = () => !nurFuerMich(art());
   const zeilen = createMemo(() => {
     const a = antwort();
     return a.ok
@@ -61,9 +58,7 @@ const Detail = (props: { a: ServerAnsicht; neu: () => void }) => {
     {
       id: "ueberblick",
       label: m.app_ueberblick(),
-      content: () => (
-        <ServerUeberblick b={b} a={props.a} zeilen={zeilen()} fuerKunden={fuerKunden()} />
-      ),
+      content: () => <ServerUeberblick b={b} a={props.a} zeilen={zeilen()} />,
     },
     {
       id: "auslastung",
@@ -73,9 +68,7 @@ const Detail = (props: { a: ServerAnsicht; neu: () => void }) => {
     {
       id: "apps",
       label: m.server_reiter_apps({ n: zeilen().length }),
-      content: () => (
-        <AppsTabelle zeilen={zeilen()} gruppen={null} mitKunde={fuerKunden()} jetzt={b.jetzt} />
-      ),
+      content: () => <AppsTabelle zeilen={zeilen()} gruppen={null} jetzt={b.jetzt} />,
     },
     {
       id: "verlauf",

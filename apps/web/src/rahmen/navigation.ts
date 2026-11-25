@@ -67,20 +67,6 @@ const UNTERSEITEN: Record<string, { name: () => string; heimat: Pfad }> = {
   "/backups": { name: () => m.nav_backups(), heimat: "/apps" },
 };
 
-/** What "Nur für mich" hides (Z-805): customers */
-export const NUR_FUER_KUNDEN: readonly Pfad[] = ["/kunden"];
-
-/** The groups of the sidebar for the Betriebsart; a group left empty goes too */
-export const sichtbareGruppen = (gruppen: Gruppe[], nurFuerMich: boolean): Gruppe[] =>
-  nurFuerMich
-    ? gruppen
-        .map((g) => ({
-          ...g,
-          bereiche: g.bereiche.filter((b) => !NUR_FUER_KUNDEN.includes(b.pfad)),
-        }))
-        .filter((g) => g.bereiche.length > 0)
-    : gruppen;
-
 const BEREICHE = GRUPPEN.flatMap((g) => g.bereiche);
 
 const bereichVon = (pfad: string): Bereich | undefined => BEREICHE.find((b) => b.pfad === pfad);

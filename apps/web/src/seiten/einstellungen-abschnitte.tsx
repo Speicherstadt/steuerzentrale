@@ -5,7 +5,6 @@ import { For, Show } from "solid-js";
 import { bestand } from "../daten/quelle.ts";
 import { AppWerte } from "./einstellungen-apps.tsx";
 import { BackupZielReiter } from "./einstellungen-backup.tsx";
-import { BetriebsartReiter } from "./einstellungen-betriebsart.tsx";
 import { Dns } from "./einstellungen-dns.tsx";
 import { Benachrichtigungen } from "./einstellungen-melden.tsx";
 import { Darstellung, Konten, Zentrale } from "./einstellungen-teile.tsx";
@@ -17,7 +16,6 @@ import { Darstellung, Konten, Zentrale } from "./einstellungen-teile.tsx";
  */
 
 export const ABSCHNITTE = [
-  "betriebsart",
   "werte",
   "backup",
   "dns",
@@ -31,11 +29,6 @@ export type Abschnitt = (typeof ABSCHNITTE)[number];
 type Eintrag = { titel: () => string; text: () => string; inhalt: () => JSX.Element };
 
 const EINTRAEGE: Record<Abschnitt, Eintrag> = {
-  betriebsart: {
-    titel: m.betriebsart_titel,
-    text: m.einst_nav_betriebsart_text,
-    inhalt: () => <BetriebsartReiter />,
-  },
   werte: { titel: m.einst_nav_werte, text: m.einst_nav_werte_text, inhalt: () => <AppWerte /> },
   backup: {
     titel: m.einst_nav_backup,

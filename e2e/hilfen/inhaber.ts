@@ -15,13 +15,11 @@ export const PASSWORT = "lang-genug-und-geheim-1";
 export const INHABER_EMAIL = "ines@betreiber.test";
 
 export const sitzungsDatei = () => join(daten(), "inhaber.json");
-/** The second Zentrale, "Nur für mich" (Z-805, playwright.config.ts): its log and session */
-export const selbstOrdner = () => join(daten(), "selbst");
 export const zugangsDatei = () => join(daten(), "inhaber-totp.json");
 
 /** The setup code from the Zentrale's log, written once at its start */
-export const einrichtungscode = (ordner = daten()): string => {
-  const zeile = readFileSync(join(ordner, "zentrale.log"), "utf8")
+export const einrichtungscode = (): string => {
+  const zeile = readFileSync(join(daten(), "zentrale.log"), "utf8")
     .split("\n")
     .find((z) => z.includes("setup code for the first owner"));
   if (!zeile) throw new Error("no setup code in the Zentrale's log");

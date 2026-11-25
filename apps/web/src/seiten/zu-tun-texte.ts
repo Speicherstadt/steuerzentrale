@@ -12,7 +12,7 @@ import { pruefungDetail, pruefungName } from "./server-texte.ts";
 /*
  * The words of a row of "Zu tun" (docs/plan.md, "Übersicht (Oberfläche 2026-11)"): the title says
  * what is wrong in a sentence, the line under it why and since when, and what else stands in the
- * row. "Nur für mich" (Z-805) names no customer.
+ * row.
  */
 
 /** The job that sets an installation up: failed, the installation was not set up */
@@ -20,16 +20,15 @@ const EINRICHTEN = "installation_einrichten";
 
 const appName = (app: string) => suche(bestand().apps, app)?.name ?? app;
 
-/** One of two sentences: with the customer, or without one in "Nur für mich" */
+/** A sentence with app and customer */
 type Satz = (w: { app: string; kunde: string }) => string;
 
-const satz = (i: InstallationsVerweis, fuerKunden: boolean, mit: Satz, ohne: Satz) =>
-  (fuerKunden ? mit : ohne)({ app: appName(i.app), kunde: i.kunde });
+const satz = (i: InstallationsVerweis, mit: Satz) => mit({ app: appName(i.app), kunde: i.kunde });
 
-const SATZ_DER_BEWERTUNG: Record<"rot" | "gelb" | "unbekannt", [Satz, Satz]> = {
-  rot: [m.zutun_gestoert, m.zutun_gestoert_selbst],
-  gelb: [m.zutun_eingeschraenkt, m.zutun_eingeschraenkt_selbst],
-  unbekannt: [m.zutun_ohne_zustand, m.zutun_ohne_zustand_selbst],
+const SATZ_DER_BEWERTUNG: Record<"rot" | "gelb" | "unbekannt", Satz> = {
+  rot: m.zutun_gestoert,
+  gelb: m.zutun_eingeschraenkt,
+  unbekannt: m.zutun_ohne_zustand,
 };
 
 const SATZ_DES_DIENSTES: Record<"stoerung" | "rot" | "unbekannt", (w: { name: string }) => string> =
@@ -40,12 +39,12 @@ const SATZ_DES_DIENSTES: Record<"stoerung" | "rot" | "unbekannt", (w: { name: st
   };
 
 /** The title of a row named by this entry */
-export const zuTunTitel = (e: UebersichtEintrag, fuerKunden: boolean): string => {
+export const zuTunTitel = (e: UebersichtEintrag): string => {
   switch (e.art) {
     case "stoerung":
-      return satz(e.installation, fuerKunden, m.zutun_gestoert, m.zutun_gestoert_selbst);
+      return satz(e.installation, m.zutun_gestoert);
     case "installation":
-      return satz(e.installation, fuerKunden, ...SATZ_DER_BEWERTUNG[e.zustand]);
+      return satz(e.installation, SATZ_DER_BEWERTUNG[e.zustand]);
     case "dienst":
       return SATZ_DES_DIENSTES[e.zustand]({ name: e.dienst.name });
     case "agent":
@@ -60,32 +59,20 @@ export const zuTunTitel = (e: UebersichtEintrag, fuerKunden: boolean): string =>
     }
     case "pruef_restore":
       return e.gescheitert
-        ? satz(
-            e.installation,
-            fuerKunden,
-            m.zutun_pruef_gescheitert,
-            m.zutun_pruef_gescheitert_selbst,
-          )
-        : satz(e.installation, fuerKunden, m.zutun_pruef_alt, m.zutun_pruef_alt_selbst);
+        ? satz(e.installation, m.zutun_pruef_gescheitert)
+        : satz(e.installation, m.zutun_pruef_alt);
     case "auftrag":
       if (e.aktion === EINRICHTEN && e.installation)
-        return satz(
-          e.installation,
-          fuerKunden,
-          m.zutun_nicht_eingerichtet,
-          m.zutun_nicht_eingerichtet_selbst,
-        );
-      return m.zutun_auftrag({ aktion: aktionsText(e.aktion), ziel: zielName(e, fuerKunden) });
+        return satz(e.installation, m.zutun_nicht_eingerichtet);
+      return m.zutun_auftrag({ aktion: aktionsText(e.aktion), ziel: zielName(e) });
     case "ereignis":
       return e.text;
   }
 };
 
 /** What a job was about: its installation, or its server */
-const zielName = (e: Extract<UebersichtEintrag, { art: "auftrag" }>, fuerKunden: boolean) =>
-  e.installation
-    ? satz(e.installation, fuerKunden, m.zutun_app_bei, ({ app }) => app)
-    : e.server.name;
+const zielName = (e: Extract<UebersichtEintrag, { art: "auftrag" }>) =>
+  e.installation ? satz(e.installation, m.zutun_app_bei) : e.server.name;
 
 const seit = (t: number | null) =>
   t === null ? [] : [m.zutun_seit({ zeit: zeitpunkt(t, bestand().jetzt) })];
@@ -124,15 +111,15 @@ const gruende = (e: UebersichtEintrag): string[] => {
 const DAZU_HOECHSTENS = 2;
 
 /** What else stands in the row: the titles of the first two, then how many more */
-const dazuText = (z: ZuTunZeile, fuerKunden: boolean): string[] => {
+const dazuText = (z: ZuTunZeile): string[] => {
   const weitere = dazu(z);
   if (weitere.length === 0) return [];
-  const genannt = weitere.slice(0, DAZU_HOECHSTENS).map((e) => zuTunTitel(e, fuerKunden));
+  const genannt = weitere.slice(0, DAZU_HOECHSTENS).map((e) => zuTunTitel(e));
   const rest = weitere.length - genannt.length;
   const liste = genannt.join("; ");
   return [rest > 0 ? m.zutun_dazu_mehr({ liste, n: rest }) : m.zutun_dazu({ liste })];
 };
 
 /** The line under the title: why and since when, and what else stands in the row */
-export const zuTunGrund = (z: ZuTunZeile, fuerKunden: boolean): string =>
-  [...gruende(z.haupt), ...dazuText(z, fuerKunden)].join(" · ");
+export const zuTunGrund = (z: ZuTunZeile): string =>
+  [...gruende(z.haupt), ...dazuText(z)].join(" · ");

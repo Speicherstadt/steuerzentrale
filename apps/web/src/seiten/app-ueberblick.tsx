@@ -201,11 +201,7 @@ const AppZuletzt = (props: { a: Einzelansicht }) => (
   />
 );
 
-export const AppUeberblick = (props: {
-  a: Einzelansicht;
-  fuerKunden: boolean;
-  neu: () => void;
-}) => {
+export const AppUeberblick = (props: { a: Einzelansicht; neu: () => void }) => {
   const [gewaehlt, setGewaehlt] = createSignal(false);
   const [hinweis, setHinweis] = createSignal("");
   const angebote = createMemo(() => appsQuelle().angebote());
@@ -234,9 +230,7 @@ export const AppUeberblick = (props: {
         </p>
       </div>
       <div class="grid gap-4">
-        <Show when={props.fuerKunden}>
-          <KundeKarte a={props.a} />
-        </Show>
+        <KundeKarte a={props.a} />
         <AppZuletzt a={props.a} />
       </div>
       <UpdateDialog

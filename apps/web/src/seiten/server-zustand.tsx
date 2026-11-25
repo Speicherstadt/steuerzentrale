@@ -69,8 +69,8 @@ export const StandWorte = (props: { stand: ServerStand; jetzt: number; satz?: bo
 );
 
 /** "4 Apps · 2 Kunden"; the customers only where they are counted */
-export const appsText = (apps: number, kunden: number | null): string =>
+export const appsText = (apps: number, kunden: number): string =>
   [
     anzahl(apps, m.server_eine_app, m.server_apps),
-    ...(kunden === null ? [] : [anzahl(kunden, m.server_ein_kunde, m.server_kunden)]),
+    anzahl(kunden, m.server_ein_kunde, m.server_kunden),
   ].join(" · ");

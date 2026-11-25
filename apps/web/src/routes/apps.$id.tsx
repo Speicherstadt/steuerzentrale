@@ -2,7 +2,6 @@ import { m, Tabs } from "@steuerzentrale/ui";
 import { createFileRoute, useNavigate } from "@tanstack/solid-router";
 import { createMemo, Loading, Match, refresh, Show, Switch } from "solid-js";
 import type { Antwort } from "../anmeldung/api.ts";
-import { betriebsartLesen, nurFuerMich } from "../daten/betriebsart.ts";
 import { type Einzelansicht, einzelansichtLaden } from "../daten/installationen-laden.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { AppKopf } from "../seiten/app-kopf.tsx";
@@ -37,8 +36,6 @@ type Reiter = (typeof REITER)[number];
 const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
   const suche = Route.useSearch();
   const navigate = useNavigate();
-  const art = createMemo(() => betriebsartLesen());
-  const fuerKunden = () => !nurFuerMich(art());
   const waehlen = (tab: string) => {
     const neu = REITER.find((r) => r === tab);
     if (neu)
@@ -53,9 +50,7 @@ const Detail = (props: { a: Einzelansicht; neu: () => void }) => {
     {
       id: "ueberblick",
       label: m.app_ueberblick(),
-      content: () => (
-        <AppUeberblick a={props.a} fuerKunden={fuerKunden()} neu={() => props.neu()} />
-      ),
+      content: () => <AppUeberblick a={props.a} neu={() => props.neu()} />,
     },
     { id: "messwerte", label: m.app_messwerte(), content: () => <AppMesswerte a={props.a} /> },
     { id: "backups", label: m.nav_backups(), content: () => <BackupsReiter a={props.a} /> },

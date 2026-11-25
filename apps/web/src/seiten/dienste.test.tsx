@@ -1,10 +1,8 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { betriebsartQuelleEinsetzen } from "../daten/betriebsart.ts";
 import { diensteQuelleEinsetzen } from "../daten/dienste.ts";
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
 import { serverQuelle, serverQuelleEinsetzen } from "../daten/server.ts";
-import { demoBetriebsart } from "../demo/betriebsart.ts";
 import { demoDienste } from "../demo/dienste-quelle.ts";
 import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
 
@@ -12,7 +10,6 @@ import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./te
 // answers as the Zentrale's API does; marked "beobachtet", without version, backup or update
 beforeEach(() => {
   setLocale("de", { reload: false });
-  betriebsartQuelleEinsetzen(demoBetriebsart());
   diensteQuelleEinsetzen(demoDienste());
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: "inhaber" }));
 });
@@ -127,18 +124,5 @@ describe("observed services on the page Apps", () => {
     const neu = zeilen(tabelle(root)).find((z) => z?.includes("Nextcloud"));
     expect(neu).toContain("cloud.beispiel-hosting.de");
     expect(neu).toContain("Noch nicht geprüft");
-  });
-
-  it('has no column Kunde in "Nur für mich"', async () => {
-    betriebsartQuelleEinsetzen(
-      demoBetriebsart({ betriebsart: "selbst", eigenerKundeId: "intern" }),
-    );
-    const { root } = await oeffne("/apps");
-    expect(koepfe(tabelle(root))).toEqual([
-      "Dienst",
-      "Zustand",
-      "Verfügbarkeit im Monat",
-      "Verwalten",
-    ]);
   });
 });

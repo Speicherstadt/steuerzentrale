@@ -20,8 +20,7 @@ import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
 /**
  * One customer (BAULISTE.md Z-801; docs/plan.md, "Server und Kunden (Oberfläche 2026-11)"): its
  * head with its apps in one sentence, its contract and actions, the note of a notice, and its tabs
- * in the URL (`?tab=`): Überblick (apps, contract, contact) and Verlauf (the events of its apps, Z-406). In "Nur für mich" the menu has no customers
- * (Z-805).
+ * in the URL (`?tab=`): Überblick (apps, contract, contact) and Verlauf (the events of its apps, Z-406).
  */
 
 const REITER = ["ueberblick", "verlauf"] as const;

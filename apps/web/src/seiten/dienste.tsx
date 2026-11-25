@@ -85,7 +85,6 @@ const Verfuegbarkeit = (props: { d: Dienst }) => {
 
 const Zeile = (props: {
   d: Dienst;
-  mitKunde: boolean;
   kundeName: (id: string) => string | undefined;
   darf: boolean;
   aendern: (d: Dienst) => void;
@@ -107,13 +106,11 @@ const Zeile = (props: {
         <Units d={props.d} />
       </div>
     </td>
-    <Show when={props.mitKunde}>
-      <td>
-        <Show when={props.d.kundeId} fallback={<span class="text-muted-foreground">–</span>}>
-          {(id) => <ZuKunde id={id()}>{props.kundeName(id()) ?? id()}</ZuKunde>}
-        </Show>
-      </td>
-    </Show>
+    <td>
+      <Show when={props.d.kundeId} fallback={<span class="text-muted-foreground">–</span>}>
+        {(id) => <ZuKunde id={id()}>{props.kundeName(id()) ?? id()}</ZuKunde>}
+      </Show>
+    </td>
     <td>
       <Zustand d={props.d} />
     </td>
@@ -162,7 +159,7 @@ const Kopf = (props: { darf: boolean; neu: () => void }) => (
 );
 
 /** The section "Beobachtete Dienste" with its table and the owner's dialogs */
-export const Dienste = (props: { mitKunde: boolean }) => {
+export const Dienste = () => {
   const antwort = createMemo(() => diensteQuelle().liste());
   const kundenAntwort = createMemo(() => kundenQuelle().liste());
   const darf = inhaberRecht();
@@ -189,7 +186,7 @@ export const Dienste = (props: { mitKunde: boolean }) => {
   };
   const spalten = () => [
     { name: m.dienst_spalte_dienst() },
-    ...(props.mitKunde ? [{ name: m.inst_spalte_kunde() }] : []),
+    { name: m.inst_spalte_kunde() },
     { name: m.server_spalte_zustand() },
     { name: m.dienst_spalte_verfuegbarkeit() },
     ...(darf() ? [{ name: m.dienst_spalte_aktionen(), class: "text-right" }] : []),
@@ -212,7 +209,6 @@ export const Dienste = (props: { mitKunde: boolean }) => {
             {(d) => (
               <Zeile
                 d={d}
-                mitKunde={props.mitKunde}
                 kundeName={kundeName}
                 darf={darf()}
                 aendern={setBearbeitet}
@@ -225,7 +221,6 @@ export const Dienste = (props: { mitKunde: boolean }) => {
       <DienstDialog
         open={neu() || bearbeitet() !== undefined}
         dienst={bearbeitet()}
-        mitKunde={props.mitKunde}
         onClose={() => {
           setNeu(false);
           setBearbeitet(undefined);
