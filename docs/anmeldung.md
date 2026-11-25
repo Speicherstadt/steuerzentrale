@@ -94,7 +94,8 @@ dort eine Organisation mit derselben ID. Ein Betreiber behält immer einen Inhab
 seine Rolle nicht abgeben und nicht entfernt werden. Wer entfernt wird, verliert den Zugang sofort.
 Seit Z-1204 gibt es zwei Rollen: Ein gekapertes Konto eines Mitglieds löscht keine Kundendaten und
 tauscht kein Geheimnis. Eine Migration hat Mitglieder der früheren Rolle Technik zu Inhabern
-gemacht, die der Rolle Support zu Mitgliedern, auch in offenen Einladungen.
+gemacht, die der Rolle Support zu Mitgliedern; eine noch offene Einladung beider alten Rollen lädt
+seitdem als Mitglied ein.
 
 Jede Mitgliedschaft, jede Rolle und jede Einladung steht im Audit-Log, mit dem, der sie angelegt
 oder geändert hat.

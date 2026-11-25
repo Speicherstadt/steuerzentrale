@@ -5,8 +5,9 @@ import { migrieren } from "./migrieren.ts";
 
 /*
  * Z-1204: two roles. The migration makes every member of the role technik an owner and every one of
- * the role support a member, in the Zentrale's mirror (`mitglieder`), in Better Auth's `member` and
- * in open invitations of both; an owner stays an owner.
+ * the role support a member, in the Zentrale's mirror (`mitglieder`) and in Better Auth's `member`;
+ * an owner stays an owner. An invitation not yet accepted gets the least rights: technik and support
+ * both become member, so a link sent before the update grants no owner's rights.
  */
 const TAG = "0026_zwei_rollen";
 
@@ -22,7 +23,7 @@ const ROLLEN = [
 ] as const;
 
 describe("the migration to two roles", () => {
-  it("turns technik into owners and support into members, everywhere a role is stored", () => {
+  it("turns technik into owners and support into members, open invitations of both into members", () => {
     expect(migrationen.some((m) => m.tag === TAG)).toBe(true);
     const sqlite = new Database(":memory:");
     migrieren(sqlite, vorher, 1);
@@ -51,6 +52,7 @@ describe("the migration to two roles", () => {
     }
     migrieren(sqlite, migrationen, 2);
     const erwartet = ROLLEN.map(([, , neu]) => neu);
+    const eingeladen = ["inhaber", "mitglied", "mitglied"];
     const rollen = (sql: string) =>
       sqlite
         .query<{ r: string }, []>(sql)
@@ -58,7 +60,7 @@ describe("the migration to two roles", () => {
         .map((z) => z.r);
     expect(rollen("SELECT rolle AS r FROM mitglieder ORDER BY nutzer_id")).toEqual(erwartet);
     expect(rollen("SELECT role AS r FROM member ORDER BY user_id")).toEqual(erwartet);
-    expect(rollen("SELECT rolle AS r FROM einladungen ORDER BY einladung_id")).toEqual(erwartet);
-    expect(rollen("SELECT role AS r FROM invitation ORDER BY id")).toEqual(erwartet);
+    expect(rollen("SELECT rolle AS r FROM einladungen ORDER BY einladung_id")).toEqual(eingeladen);
+    expect(rollen("SELECT role AS r FROM invitation ORDER BY id")).toEqual(eingeladen);
   });
 });
