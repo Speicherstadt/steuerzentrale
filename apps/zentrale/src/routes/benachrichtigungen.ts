@@ -144,7 +144,7 @@ export const benachrichtigungRouten = (
     const angaben = await eingabe(c, empfaengerSchema);
     if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
     const { grund, ...neu } = angaben;
-    const k = kontext(c, grund ?? "Empfänger angelegt");
+    const k = kontext(c, grund);
     return c.json(empfaengerAnlegen(deps, k, neu), 201);
   });
 

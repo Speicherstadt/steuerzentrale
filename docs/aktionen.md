@@ -17,7 +17,7 @@ Agent prüfen es mit derselben Funktion (`aktionAngeboten` in `packages/manifest
 ## In der Zentrale
 
 Die Seite einer laufenden App zeigt im Kopf **Neustart** und unter **Mehr …** Log-Auszug und „nur
-lesen“, soweit ihr Manifest sie anbietet. Jede Aktion verlangt einen **Grund**; die Zentrale legt einen Auftrag an
+lesen“, soweit ihr Manifest sie anbietet. Für jede Aktion legt die Zentrale einen Auftrag an
 und schreibt ihn mit Person ins Audit-Log ([Aufträge](auftraege.md)).
 
 | Aktion | Auftrag | Wer | Wann nicht |

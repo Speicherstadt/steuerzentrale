@@ -25,7 +25,7 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
  * Installations (BAULISTE.md Z-402): every role reads, the owner makes and removes
- * (src/auth/rollen.ts); every write names its reason in `grund`. The dialog asks for the placement
+ * (src/auth/rollen.ts); a write may name its reason in `grund` (Z-1207). The dialog asks for the placement
  * first (a preview that writes nothing), then makes the installation with the same input: app and
  * version of an imported manifest (Z-501). No
  * answer carries a secret: the encrypted column stays in the Zentrale. Each installation comes with
