@@ -12,7 +12,7 @@
 Für IT-Dienstleister und Hoster, die Haben, Belegt, Kontext, Schreibzeug, Stellwerk, Fixpunkt, Kennwort und Soll für
 sich oder ihre Kunden betreiben: auf gemeinsamen Servern, auf einem Server je Kunde oder beim Kunden im Haus.
 
-![Status: Release-Kandidat](https://img.shields.io/badge/Status-Release--Kandidat-orange)
+![Status: In Entwicklung](https://img.shields.io/badge/Status-In%20Entwicklung-red)
 [![CI](https://github.com/Speicherstadt/steuerzentrale/actions/workflows/ci.yml/badge.svg)](https://github.com/Speicherstadt/steuerzentrale/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Speicherstadt/steuerzentrale?logo=github&label=release&include_prereleases)](https://github.com/Speicherstadt/steuerzentrale/releases)
 [![Lizenz: AGPL-3.0](https://img.shields.io/badge/Lizenz-AGPL--3.0-blue)](LICENSE)
@@ -34,8 +34,8 @@ sich oder ihre Kunden betreiben: auf gemeinsamen Servern, auf einem Server je Ku
 </div>
 
 > [!WARNING]
-> **Release-Kandidat:** Stufe 1 (eigener Betrieb) ist fertig gebaut und läuft in der CI auf echten VMs durch, im
-> Echtbetrieb ist die Steuerzentrale noch neu. Vor jedem Update der Zentrale ein Backup machen
+> **In Entwicklung:** zum Ausprobieren, noch nicht für den Echtbetrieb. Stufe 1 (eigener Betrieb) ist fertig gebaut und
+> läuft in der CI auf echten VMs durch. Vor jedem Update der Zentrale ein Backup machen
 > ([Zentrale sichern](https://speicherstadt.org/steuerzentrale/zentrale-sichern.html)); Apps aktualisiert sie ohnehin nur mit Backup davor.
 
 ## Warum die Steuerzentrale?
