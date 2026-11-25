@@ -46,7 +46,7 @@ Browser ──WireGuard──▶ Oberfläche ┐
                                   ├─ Zentrale (Hono, SQLite, verschlüsselte Spalten)
 Agent ──WSS + mTLS──▶ agent.<domain> (Pforte der Zentrale, prüft das Zertifikat,
                                   │   reicht den Fingerabdruck an 127.0.0.1 weiter)
-Portal ──Token──▶ api.<domain>    ┘   (ab Z-901)
+                                  ┘
 Zentrale ──HTTPS──▶ Cloudflare-API (DNS), MinIO-Admin-API (S3-Zugänge), Registries (Digests)
 Agent ──HTTPS──▶ S3-Ziel (restic, nur der Zugang seiner Installation), Registry (Images per Digest)
 Internet ──▶ Pforte des Servers (Caddy, :80/:443) ──▶ 127.0.0.1:<Port> der Installation
@@ -97,7 +97,7 @@ Disclosure, **D**enial of Service, **E**levation of Privilege. Tests ohne Pfad z
 | B-24 | Ein Betreiber (Partner) sieht oder ändert Daten eines anderen | I, T | `betreiber_id` in jeder Tabelle und Abfrage; `schreiben` lehnt fremde Zeilen ab | `routes/mandanten.test.ts` › no operator reaches another's data; `routes/kunden-mandanten.test.ts`; `routes/betrieb-mandanten.test.ts`; `modules/audit/schreiben.test.ts` › refuses a row of another operator |
 | B-25 | Der Einrichtungscode des ersten Inhabers wird erraten oder wiederverwendet | S | Einmal, 24 h, nie im Log | `routes/erster-inhaber.test.ts` › refuses the code a second time; › refuses the code after 24 hours; › never writes the code into the request log |
 | B-26 | Ein Support-Zugang bleibt länger offen als vereinbart | E | Zugang mit Grund und Ende, Anfragen danach abgewiesen | `routes/support.test.ts` › after an access ran out › refuses every request it allowed, also at the very millisecond of its end |
-| B-27 | Ein Angreifer auf `api.<domain>` probiert Tokens durch | S | Annahme bis Z-901: `api.<domain>` hat noch keine Route; mit Z-901 kommen Tokens als Hash und ein Rate-Limit mit eigenem Test | – |
+| B-27 | Ein Angreifer auf `api.<domain>` probiert Tokens durch | S | Annahme: `api.<domain>` hat keine Route, die API für das Portal ist gestrichen (Bauliste, „Später, bei Bedarf“); käme sie, dann mit Tokens als Hash und einem Rate-Limit mit eigenem Test | – |
 | B-28 | Eine fremde Seite im Browser eines Mitglieds (etwa eine App unter derselben Domain) schreibt mit dessen Sitzung (CSRF) | S, E | Jede schreibende Anfrage mit Sitzung braucht den Origin der Oberfläche, sonst `403 fremder_ursprung` (Entscheidung „Schreiben nur vom eigenen Origin“); Better Auth prüft seine Pfade selbst gegen `STEUERZENTRALE_URL` | `routes/zugang.test.ts` › a write from a page of another origin › … is refused, with the member's session (jede schreibende Route) |
 
 ### Geheimnisse, Nachvollziehbarkeit, Netz

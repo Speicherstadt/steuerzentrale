@@ -6,9 +6,11 @@ Die Liste, die der Agenten-Loop abarbeitet, in der Reihenfolge der Bauphasen aus
 - **Stufe 1 – eigener Betrieb** (Phasen 1 bis 7): genug, um die ersten zehn Kunden mit Haben,
   Belegt, Schreibzeug und Fixpunkt auf unseren Servern zu betreiben. Mit dem letzten Punkt der
   Stufe 1 erscheint die Steuerzentrale 1.0.
-- **Stufe 2 – wachsen** (Phasen 8 bis 12): Partner, Kontext mit Mail und Single Sign-on, Wellen nach
-  SLA, Umzug und Ausfall automatisiert, API für das Portal. Der Loop beginnt Stufe 2 erst, wenn ein
-  Mensch die Zeile „Stufe 2 freigegeben“ unten abhakt; bis dahin endet er nach Stufe 1.
+- **Stufe 2 – Zuschnitt auf den eigenen Betrieb** (Phasen 8 und 9): anbinden und überwachen, was
+  schon läuft, und ausbauen, was ein einzelner Betreiber nicht braucht (Leistungen, SLA,
+  Support-Zugänge, Rollen, Server-Art, Betriebsart, Grund, weitere Betreiber). Der Loop beginnt
+  Stufe 2 erst, wenn ein Mensch die Zeile „Stufe 2 freigegeben“ unten abhakt; bis dahin endet er
+  nach Stufe 1.
 
 ## So arbeitet der Loop
 
@@ -483,80 +485,158 @@ hakt nur in ihrer Phase ab und rebased vor jedem Merge auf `origin/main`.
   (Test je Rolle); ein Betreiber mit Installationen fremder Kunden kann nicht auf „Nur für mich“
   wechseln (`409`, Test); die Demo zeigt beide Arten (Umschalter in den Einstellungen).
 
-# Stufe 2 – wachsen
+# Stufe 2 – Zuschnitt auf den eigenen Betrieb
 
-- [ ] **Stufe 2 freigegeben** – hakt ein Mensch ab, wenn die ersten Kunden auf Stufe 1 laufen; bis
-  dahin beginnt der Loop keinen Punkt dieser Stufe.
+Die Steuerzentrale ist unser eigenes Werkzeug: ein Betreiber, eigene Server, vor allem überwachen.
+Stufe 2 bindet an, was schon läuft, und baut aus, was nur ein Hoster mit Team, Partnern und SLA
+braucht ([Projektplan](docs/plan.md), „Zuschnitt“). Die früheren Punkte der Stufe 2 (Partner Z-803,
+Kontext mit Mail und Single Sign-on Z-409 und Z-408, API und Webhooks für das Portal Z-901 bis
+Z-904, Wellen nach SLA Z-505, Umzug und Ausfall Z-605 und Z-606) sind gestrichen; was davon
+wiederkommen kann, steht unter „Später, bei Bedarf“.
 
-## Phase 8 – Weitere Betreiber (Partner)
+- [ ] **Stufe 2 freigegeben** – hakt ein Mensch ab; bis dahin beginnt der Loop keinen Punkt dieser
+  Stufe.
 
-- [ ] **Z-803 Weitere Betreiber (Partner)** – ein Partner ist ein eigener Betreiber in derselben
-  Zentrale: eigene Konten, Kunden, Server, S3-Ziel, Werte je App und Marke im Hinweis der
-  Installation.
-  Fertig, wenn: kein Endpunkt einem Betreiber Daten eines anderen liefert (Test je Endpunkt), eine
-  Installation die Hersteller-ID ihres Betreibers bekommt (Test) und Backups beider Betreiber in
-  getrennten Repositorys landen.
+Für jeden Punkt dieser Stufe gilt:
 
-## Phase 9 – Kontext, Mail und Single Sign-on
+- **Neues fragt keinen Grund und kennt keine Rollen**: beides fällt in Phase 9 weg, Phase 8 baut es
+  nicht erst ein.
+- **Ein Ausbau nimmt alles mit**: Code, Routen, Tabellen und Spalten (mit einer neuen Migration, nie
+  einer geänderten), Texte in `messages/`, die Seite in `docs/`, die Zeile im README, die Demodaten.
+  Die Tests des entfernten Verhaltens gehen mit ihm; jeder andere Test bleibt und bleibt grün.
+- **Die Demo bleibt** und zeigt nach jedem Punkt den neuen Stand.
+- **Sicherheitsrelevant** (unabhängiges Review vor dem Merge, Schritt 5 oben) ist, wo es am Punkt
+  steht.
 
-- [ ] **Z-409 Kontext, eigene Domains und Mail** – eigene Domain des Kunden, aktiv erst nach
-  erfolgreicher CNAME-Prüfung; DNS-Einträge aus dem Manifest (MX, SPF, DKIM, DMARC) anzeigen, prüfen
-  und setzen, wenn die Domain bei uns liegt; Prüfungen für Mail: PTR (IPv4 und IPv6), Port 25
-  ausgehend, Blacklists, Rate-Limit für ausgehende Mail; `rootful` für Kontext auf einem Server für
-  sich.
-  Fertig, wenn: eine eigene Domain ohne CNAME nicht aktiv wird, fehlende Mail-Einträge als Hinweis
-  erscheinen, jede Mail-Prüfung einen Test mit Grenzfall hat und Kontext in der CI auf einem Server
-  für sich startet.
-- [ ] **Z-408 Single Sign-on über Kontext** – `aus: oidc-anbieter` erzeugt einen vorgeschalteten
-  Auftrag beim Anbieter des Kunden (Kontext), der den OIDC-Client anlegt; die App startet erst danach.
-  nach: Z-409
-  Fertig, wenn: der OIDC-Client beim Anbieter vor dem Start der App angelegt ist (Test mit der
-  Beispiel-App als Anbieter) und das Entfernen der App den Client wieder löscht.
+Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
 
-## Phase 10 – API für das Portal
+## Phase 8 – Bestehendes überwachen
 
-- [ ] **Z-901 API-Tokens und OpenAPI** – `api.<domain>`; Tokens mit Rechten (lesen, Kunden anlegen,
-  buchen, kündigen), Rate-Limit, OpenAPI aus den Zod-Schemas, `docs/api.md`.
-  nach: Z-801
-  Fertig, wenn: jede Route ihr Recht prüft (Test) und die OpenAPI-Datei in der CI neu erzeugt und
-  verglichen wird.
-- [ ] **Z-902 Buchen über die API** – Kunde anlegen, App buchen mit automatischer Platzierung auf
-  einem gemeinsamen Server oder „Server nötig“, kündigen.
-  Fertig, wenn: eine Buchung die Beispiel-App in der CI installiert und eine nicht platzierbare
-  Buchung mit Grund abgelehnt wird.
-- [ ] **Z-903 Webhooks für das Portal** – Ereignisse installiert, Wartung geplant, Störung, behoben,
-  gekündigt, gelöscht (mit Löschprotokoll) an das Portal, über die signierte Zustellung mit
-  Wiederholung aus Z-703.
-  Fertig, wenn: jedes dieser Ereignisse beim Test-Empfänger ankommt und ein Portal nur die
-  Ereignisse seiner Kunden bekommt (Test).
-- [ ] **Z-904 Lesen für das Portal** – lesende Endpunkte je Kunde: Installationen mit Zustand,
-  Verfügbarkeit, letztes Backup und Prüf-Restore, Wartungstermine, Support-Zugänge, Ereignisse,
-  Export zum Herunterladen (wenn angeboten); ein Token des Portals sieht nur den Kunden, für den es
-  fragt.
-  Fertig, wenn: kein Endpunkt Daten eines anderen Kunden liefert (Test je Endpunkt) und keine
-  Antwort ein Geheimnis, einen Linux-Nutzer oder einen Log-Auszug enthält (Test).
+- [ ] **Z-1101 Beobachtete Dienste** – ein Dienst, den die Zentrale nicht installiert hat: Name,
+  Adresse (`https://…`), Pfad der Health-Prüfung (Vorgabe `/`), auf Wunsch ein Kunde. Die Zentrale
+  prüft ihn jede Minute von außen wie eine Installation (DNS, Zertifikat, Verbindung, Health;
+  Z-704), mit denselben Ereignissen, derselben Störung nach 5 Minuten und derselben Verfügbarkeit.
+  Mit den Adressen eines Servers vergleicht sie seine Einträge nicht: der Dienst darf hinter
+  Cloudflare liegen. Er steht in der Übersicht und auf der Seite Apps als „beobachtet“, ohne Version,
+  Backup, Update und Aktionen. Kein Agent, kein Manifest.
+  nach: Z-704
+  Fertig, wenn: ein beobachteter Dienst gegen den Test-Server grün wird, nach zwei roten Prüfungen
+  `aussen_rot` und nach 5 Minuten `stoerung` schreibt (Test); ein Name, der auf eine nicht
+  öffentliche Adresse auflöst, nie angefragt wird (Test); Anlegen, Ändern und Entfernen in Playwright
+  laufen (Desktop und `@phone`); für ihn nie ein Auftrag an einen Agenten entsteht (Test).
+- [ ] **Z-1102 Server nur beobachten** – `install.sh --nur-beobachten` für einen Server, auf dem
+  schon etwas läuft: nur der Agent kommt dazu. Kein Podman, keine Pforte, kein Nutzer `sz-pforte`,
+  kein `ip_unprivileged_port_start`, keine Delegation der cgroup-Controller, keine Änderung an
+  unattended-upgrades. Der Agent meldet Heartbeat, Fakten, Prüfungen (Z-702) und SSH-Anmeldungen. Den
+  Modus hält der Agent lokal, von `install.sh` gesetzt; die Zentrale kann ihn nicht aufheben. Die
+  Zentrale stellt für einen solchen Server keinen Auftrag aus, der etwas ändert (einrichten, Update,
+  Backup, Wiederherstellen, Neustart, Betriebssystem, Update des Agenten ausgenommen), der Agent
+  lehnt jeden solchen ab, und die Platzierung lehnt den Server ab (`nur_beobachten`).
+  nach: Z-304, Z-702
+  Fertig, wenn: in der CI ein Server mit belegten Ports 80 und 443 beitritt und danach Pakete,
+  sysctl, Linux-Nutzer und lauschende Ports dieselben sind wie davor (Test); der Agent im Modus
+  jeden ändernden Auftrag ablehnt, auch wenn die Zentrale ihn schickt (Test je Auftragsart); die
+  Platzierung ihn mit Grund ablehnt (Test); die Prüfung „offene Ports, die kein Manifest nennt“ auf
+  ihm nichts meldet (Test).
+  Sicherheitsrelevant: `install.sh`, was der Agent ausführt.
+- [ ] **Z-1103 Vorhandene Units beobachten** – zu einem beobachteten Dienst auf einem beobachteten
+  Server nennt der Betreiber den Linux-Nutzer (oder das System), die systemd-Units und auf Wunsch
+  Port und Pfad der Health-Prüfung auf `127.0.0.1`. Der Agent liest den Zustand der Units mit
+  `systemctl show` und prüft Health wie bei einer Installation (Z-403); grün, gelb, rot oder
+  unbekannt mit Grund nach denselben Regeln, innen und außen zusammen ergeben die Störung. Die Namen
+  von Nutzer und Units prüfen Zentrale und Agent gegen ein Muster, sie stehen nie in einer
+  Shell-Zeile; der Agent liest nur, er startet und stoppt nichts.
+  nach: Z-1101, Z-1102
+  Fertig, wenn: in der CI eine von Hand angelegte Quadlet-Unit unter einem fremden Linux-Nutzer grün
+  erscheint, gestoppt rot mit Grund, und eine Unit, die es nicht gibt, unbekannt und nie grün
+  (Test); ein Name mit Leerzeichen, `;`, `/` oder führendem `-` von Zentrale und Agent abgelehnt wird
+  (Test); dafür kein Befehl außer `systemctl show` und der HTTP- oder TCP-Prüfung läuft (Test über
+  die aufgezeichneten argv).
+  Sicherheitsrelevant: was der Agent ausführt.
+- [ ] **Z-1104 Oberfläche über Cloudflare Tunnel** – ein zweiter Weg neben WireGuard: Mit
+  `STEUERZENTRALE_ACCESS_TEAM` und `STEUERZENTRALE_ACCESS_AUD` nimmt die Zentrale Oberfläche und API
+  nur mit gültigem `Cf-Access-Jwt-Assertion` an (Signatur gegen die Schlüssel des Teams, Audience,
+  Ablauf; Cloudflare-Doku „Validate JWTs“); die eigene Anmeldung mit zweitem Faktor bleibt dahinter.
+  `steuerzentrale pforte --tunnel` setzt die Route der Oberfläche nur für Loopback (cloudflared auf
+  demselben Server). `agent.<domain>` bleibt öffentlich und direkt: mTLS endet an der Pforte, ein
+  Tunnel würde es bei Cloudflare beenden. Ohne die beiden Variablen gilt WireGuard wie bisher.
+  Fertig, wenn: ein Aufruf ohne Token, mit falscher Signatur, mit falscher Audience oder nach Ablauf
+  `403` bekommt (Test mit eigenem Schlüsselpaar); ein Aufruf mit gültigem Token und gefälschtem
+  `X-SZ-Client-Fingerabdruck` keine Rechte eines Agenten bekommt (Test); die Schlüssel nur von
+  `https://<team>.cloudflareaccess.com` kommen und bei unbekannter Schlüssel-ID einmal neu geladen
+  werden (Test); `docs/installation.md` beide Wege beschreibt.
+  Sicherheitsrelevant: Anmeldung, Pforte.
+- [ ] **Z-1105 Meldung aufs Handy** – Empfänger-Art `ntfy` neben Mail und Webhook: `POST` an die
+  Adresse des Themas mit dem Text des Ereignisses, Titel und Priorität nach Schwere (ntfy-Doku,
+  „Publishing“), das Zugriffstoken verschlüsselt; Ruhezeit und Wiederholung wie in Z-703.
+  nach: Z-703
+  Fertig, wenn: Störung und Behebung beim Test-Empfänger mit Titel und Priorität ankommen (Test), das
+  Token in keiner Antwort und keinem Log steht (Test) und eine gescheiterte Zustellung wiederholt
+  wird (Test).
 
-## Phase 11 – Wellen nach SLA
+## Phase 9 – Ausbau
 
-- [ ] **Z-505 Wellen nach SLA und Ankündigung** – Wellen intern, früh (Plus), standard (Basis),
-  spät (Ruhe), jede nach 24 h ohne Störung; Termin je Kunde mindestens 72 h vorher, als Webhook an
-  das Portal.
-  nach: Z-903
-  Fertig, wenn: die SLA die Welle bestimmt (Test), die 72-h-Ankündigung für jede Installation vor
-  ihrem Update als Webhook ausgeht (Test) und „spät“ nie vor „standard“ läuft.
+- [ ] **Z-1201 Leistungen entfernen** – Seite, Reiter am Kunden, CSV-Export, Modul und Routen
+  (Z-804). Die Verfügbarkeit je App und Monat bleibt an der App (Z-704).
+  Fertig, wenn: die Routen der Leistungen `404` antworten (Test), kein Menüpunkt dorthin führt und
+  die Verfügbarkeit an der App weiter steht (Playwright).
+- [ ] **Z-1202 SLA entfernen** – ein Vertrag hat Beginn und Ende, keine SLA: Spalte, Dialog,
+  Kundenseite, API.
+  Fertig, wenn: ein Vertrag ohne SLA angelegt wird (Test, Playwright), die Migration vorhandene
+  Verträge behält (Test auf einer Datenbank mit Verträgen) und `sla` in keinem Schema der API mehr
+  vorkommt (Test).
+- [ ] **Z-1203 Support-Zugänge entfernen** – Tabelle, Modul, Routen, Seiten und Ereignisse (Z-802).
+  Log-Auszug und Neustart bleiben Aktionen der App.
+  Fertig, wenn: die Routen der Support-Zugänge `404` antworten (Test) und Log-Auszug und Neustart
+  ohne Zugang laufen (Playwright).
+  Sicherheitsrelevant: Rechte.
+- [ ] **Z-1204 Rollen entfernen** – jedes Konto darf, was bisher der Inhaber durfte; Technik und
+  Support entfallen, vorhandene Mitglieder werden Inhaber (Migration), eine Einladung fragt keine
+  Rolle. Der letzte Inhaber lässt sich weiter nicht entfernen.
+  nach: Z-1203
+  Fertig, wenn: jede Route ohne Anmeldung weiter `401` antwortet (Test je Route), ein eingeladenes
+  Konto jede Route nutzen kann (Test) und die Oberfläche keine Rolle mehr zeigt (Playwright).
+  Sicherheitsrelevant: Anmeldung, Rollen und Rechte.
+- [ ] **Z-1205 Server-Art entfernen** – jeder Server ist ein eigener Server des Betreibers für
+  mehrere Kunden. „Eigen“ (ein Kunde) und „beim Kunden“ entfallen, mit dem Kunden am Server und der
+  Platzierungsregel dazu.
+  Fertig, wenn: „Server hinzufügen“ keine Art fragt (Playwright), Installationen zweier Kunden auf
+  einen Server passen (Test) und die Migration vorhandene Server behält (Test).
+- [ ] **Z-1206 Betriebsart entfernen** – die Frage „Nur für mich oder für Kunden“ (Z-805) entfällt.
+  Kunden gibt es immer; der interne Kunde bleibt für eigene Installationen und die Welle „intern“.
+  nach: Z-1201, Z-1203
+  Fertig, wenn: nach dem ersten Inhaber keine Frage kommt (Playwright), kein Endpunkt mehr
+  `409 betriebsart` antwortet (Test) und eine Installation für den internen Kunden ohne einen
+  weiteren Kunden angelegt wird (Test).
+- [ ] **Z-1207 Grund nicht mehr fragen** – kein Dialog fragt einen Grund. Die API nimmt `grund`
+  weiter an, verlangt ihn aber nicht; das Audit-Log schreibt jede Änderung wie bisher, dann mit
+  leerem Grund. Wiederherstellen, Kündigen, Entfernen und Zertifikat sperren behalten ihre
+  Bestätigung.
+  nach: Z-1203
+  Fertig, wenn: jede schreibende Route ohne `grund` angenommen wird und ihren Eintrag im Audit-Log
+  schreibt (Test je Route), kein Dialog das Feld zeigt (Playwright) und die vier genannten Aktionen
+  ohne Bestätigung nichts tun (Playwright).
+  Sicherheitsrelevant: Audit-Log.
+- [ ] **Z-1208 Ein Betreiber** – die Zentrale hat genau einen Betreiber: ein zweiter lässt sich nicht
+  anlegen, „von einem anderen Betreiber“ und die Marke je Betreiber entfallen, es gibt eine
+  Agent-CA. `betreiber_id` bleibt in Tabellen und Abfragen (docs/plan.md, „Entscheidungen“).
+  `CLAUDE.md`, README und Doku nennen keinen Partner mehr.
+  nach: Z-1204
+  Fertig, wenn: ein zweiter Betreiber abgelehnt wird (Test), die Tests der Trennung nach
+  `betreiber_id` grün bleiben und `steuerzentrale pforte` genau eine CA lädt (Test).
+  Sicherheitsrelevant: Trennung der Betreiber, Zertifikate der Agenten.
 
-## Phase 12 – Umzug und Ausfall
+## Später, bei Bedarf
 
-- [ ] **Z-605 Umzug einer Installation** – von Server A nach B (z. B. gemeinsam nach eigen): Backup,
-  Restore auf B, DNS umschalten, A erst nach grünem Health entfernen; nie in einer Sperrzeit.
-  nach: Z-603, Z-407
-  Fertig, wenn: in der CI die Beispiel-App umzieht, die Daten gleich sind und die Quelle bei rotem
-  Health auf B stehen bleibt.
-- [ ] **Z-606 Server wiederherstellen** – einen Server als verloren markieren; alle seine
-  Installationen aus den letzten Backups auf einen oder mehrere neue Server bringen.
-  nach: Z-605
-  Fertig, wenn: in der CI zwei Installationen eines gelöschten Servers auf einem neuen wieder laufen
-  und die Dauer als Ereignis gemessen wird.
+Keine Punkte des Loops; ein Mensch macht daraus einen Punkt, wenn der Betrieb es verlangt.
+
+- **Buchen über einen Endpunkt**: Kunde anlegen und App installieren mit einem Token, für die
+  Buchung auf der Webseite (früher Z-901 und Z-902).
+- **Server wiederherstellen und Umzug** (früher Z-606 und Z-605).
+- **Verwalten, was schon läuft**: Installationen auf einem Server mit eigenem Caddy oder hinter einem
+  Cloudflare Tunnel; aus einem beobachteten Dienst eine verwaltete Installation machen.
+- **Kontext mit eigenen Domains, Mail und Single Sign-on** (früher Z-409 und Z-408).
+- **Englisch**: behalten oder `messages/en.json` streichen (Paraglide bleibt).
 
 ## Übergabe
 
@@ -570,7 +650,7 @@ hier gestrichen.
 Nicht auf dem Weg des Loops.
 
 - Name und Domain der Steuerzentrale; Zone bei Cloudflare, API-Token nur für die Zentrale.
-- Server für die Zentrale (netcup), WireGuard, S3-Ziel für Backups, Mail-Versand, externer Prüfdienst
+- Server für die Zentrale (netcup), WireGuard oder Cloudflare Tunnel (Z-1104), S3-Ziel für Backups, Mail-Versand, externer Prüfdienst
   für `/health` der Zentrale.
 - Vor dem Start des Loops: `main` aus `claude/startdateien` anlegen und als Standard-Branch setzen;
   Repo öffentlich; Ruleset auf `main` (nur per Pull Request, Checks `check` und `pr-regeln` Pflicht,
@@ -593,8 +673,14 @@ Nicht auf dem Weg des Loops.
   Belegt (app, worker, ftp; noch kein veröffentlichtes Image, Stand Z-203) und ein Release-Image
   von Fixpunkt (bisher nur `edge`): ohne sie sind diese Apps nicht installierbar (Z-1003, Stufe 1).
 - OIDC in Stellwerk (stellwerk#36) und Fixpunkt (fixpunkt#5).
-- Auftragsverarbeitungsvertrag mit TOMs aus `docs/sicherheit.md`, SLA-Texte, Preise, Ticket-System.
+- Auftragsverarbeitungsvertrag mit TOMs aus `docs/sicherheit.md`, Preise.
 - Erster eigener Server mit unseren Installationen, dann Pilotkunden.
-- Repo für das Portal, sobald Phase 9 fertig ist.
+- Für gehostetes Haben, in `Speicherstadt/haben`: der Einrichtungscode des ersten Kontos kommt
+  über das Manifest zum Kunden (`HABEN_SETUP_CODE`); das Release erzeugt das Manifest mit Digest, es
+  bleiben Signieren und Importieren; `ram_mb` nach gemessenem Verbrauch statt 2048; Export für die
+  Kündigung (Haben#945–#948).
+- Den eigenen Server anbinden, sobald Z-1101 bis Z-1103 gemergt sind: Zentrale auf einem zweiten
+  Server, `install.sh --nur-beobachten` auf dem bestehenden, die laufenden Dienste als beobachtet
+  eintragen.
 - Später: Server bei netcup und Hetzner über deren API bestellen; eigener Relay-Tunnel für Server
   beim Kunden ohne Portweiterleitung; Archivbetrieb nach Kündigung.

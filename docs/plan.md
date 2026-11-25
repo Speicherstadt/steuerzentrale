@@ -29,6 +29,21 @@ gebaut wird und in welcher Reihenfolge, steht in der
 - **Keine App ist fest eingebaut**: Jede App beschreibt sich in einem Manifest; die Steuerzentrale
   kennt nur das Manifest.
 
+### Zuschnitt
+
+Die Steuerzentrale ist das Werkzeug eines einzelnen Betreibers für seine eigenen Server, kein
+Produkt für Hoster mit Team und Partnern. Zuerst soll sie überwachen, auch was sie nicht selbst
+installiert hat; verwaltete Installationen kommen dazu, wo ein Server frei dafür ist. Stufe 2 der
+Bauliste baut dafür um:
+
+- **dazu**: beobachtete Dienste (Prüfung von außen ohne Agent und Manifest), Server nur beobachten
+  (Agent ohne Pforte und Podman), vorhandene systemd-Units lesen, Oberfläche über Cloudflare Tunnel
+  als zweiter Weg neben WireGuard, Meldung aufs Handy;
+- **weg**: Leistungen, SLA, Support-Zugänge, Rollen, Server-Art, Betriebsart, der Grund in jedem
+  Dialog, weitere Betreiber.
+
+Bis ein Punkt gemergt ist, beschreibt diese Seite noch den alten Stand; der Punkt zieht sie nach.
+
 **Bewusst nicht in der Steuerzentrale**: Buchung, Bezahlung, Rechnungen, Tickets und alles, was der
 Kunde selbst sieht (das Portal, ein eigenes Projekt); Server bei Anbietern bestellen (später, über
 deren API); Fernwartung von Geräten beim Kunden (Kontext-Box, Stellwerk-Agenten, Desktop-Apps).
@@ -86,9 +101,8 @@ deren API); Fernwartung von Geräten beim Kunden (Kontext-Box, Stellwerk-Agenten
 ### Ablauf: Update
 
 1. Eine neue Version erscheint in der Registry mit signiertem Manifest.
-2. Die Zentrale plant Wellen: in Stufe 1 „intern“ und „alle“, ab Stufe 2 intern → früh (SLA Plus) →
-   standard (Basis) → spät (Ruhe); jede erst nach 24 h ohne Störung, nie in einer Sperrzeit; ab
-   Stufe 2 bekommt jeder Kunde den Termin 72 h vorher (Webhook an das Portal). Ein als **dringend** markiertes Update (Sicherheitslücke,
+2. Die Zentrale plant die Wellen „intern“ und „alle“; die zweite erst nach 24 h ohne Störung, nie
+   in einer Sperrzeit. Ein als **dringend** markiertes Update (Sicherheitslücke,
    Mindestversion von ERiC) läuft sofort durch alle Wellen; eine Sperrzeit übergeht nur der Inhaber
    mit Grund.
 3. Je Installation: Backup, Image ziehen, Schritte nach dem Update, Neustart, Health; bei Rot zurück
@@ -187,6 +201,14 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Frage | Entscheidung | Warum |
 | --- | --- | --- |
 | Wo die Zentrale läuft | genau einmal, auf einem eigenen Server (netcup); im Ein-Server-Betrieb neben dem Agenten. Oberfläche nur über WireGuard; `agent.<domain>` und `api.<domain>` öffentlich, nur mit Client-Zertifikat bzw. Token und Rate-Limit | Server beim Kunden haben wechselnde IPs; install.sh muss erreichbar sein; die Oberfläche bleibt privat |
+| Für wen (Zuschnitt, Stufe 2) | ein Betreiber, eigene Server; die frühere Stufe 2 (Partner, Kontext mit Mail und Single Sign-on, API und Webhooks für das Portal, Wellen nach SLA, Umzug und Ausfall) ist gestrichen, einzelnes davon steht in der Bauliste unter „Später, bei Bedarf“ | im eigenen Betrieb gibt es weder Team noch Partner noch SLA; jeder dieser Teile kostet bei jeder Änderung Tests, Texte und Demodaten |
+| Bestehendes anbinden (Z-1101 bis Z-1103) | beobachten, nicht übernehmen: ein beobachteter Dienst wird von außen geprüft, ein beobachteter Server bekommt nur den Agenten, vorhandene Units werden gelesen | die Pforte braucht die Ports 80 und 443 für sich und Einträge ohne Proxy; ein Server, auf dem schon ein Caddy und ein Cloudflare Tunnel laufen, bliebe sonst außen vor |
+| Modus „nur beobachten“ (Z-1102) | liegt lokal beim Agenten, von `install.sh` gesetzt; die Zentrale kann ihn nicht aufheben, der Agent lehnt jeden ändernden Auftrag ab | eine übernommene Zentrale macht aus einem beobachteten Server keinen verwalteten |
+| Vorhandene Units lesen (Z-1103) | der Agent liest Units, die kein Manifest beschreibt, nur mit `systemctl show` und der Health-Prüfung auf `127.0.0.1`; Namen gegen ein Muster geprüft, argv fest, nichts wird gestartet oder gestoppt | „nur was das Manifest beschreibt“ gilt für alles, was etwas ändert; Lesen mit festen Argumenten führt keinen fremden Code aus |
+| Oberfläche: WireGuard oder Cloudflare Tunnel (Z-1104) | beides; mit Tunnel prüft die Zentrale das Token von Cloudflare Access selbst, die eigene Anmeldung mit zweitem Faktor bleibt. `agent.<domain>` bleibt direkt | ein Tunnel ist schneller eingerichtet; Cloudflare beendet dabei TLS und sieht den Verkehr der Oberfläche, wer das nicht will, bleibt bei WireGuard. mTLS der Agenten ginge durch einen Tunnel verloren |
+| `betreiber_id` bleibt (Z-1208) | genau ein Betreiber, die Spalte und ihre Filter bleiben in jeder Tabelle und Abfrage | sie zu entfernen ändert jede Tabelle und nichts, was man sieht; die Trennung bleibt getestet, falls ein zweiter Betreiber je wiederkommt |
+| Grund (Z-1207) | kein Dialog fragt ihn, die API nimmt ihn weiter an; das Audit-Log bleibt vollständig | ein einzelner Betreiber schreibt den Grund nur für sich selbst; was geändert wurde, wann und von wem, steht ohnehin im Audit-Log |
+| Demo | bleibt und zeigt nach jedem Punkt der Stufe 2 den neuen Stand | sie ist die schnellste Art, die Oberfläche ohne Server anzusehen |
 | Wer die Verbindung aufbaut | immer der Agent, ausgehend per WSS mit Client-Zertifikat je Server (mTLS), rotierbar, sofort sperrbar | kein offener Port für den Agenten; ein Zertifikat gilt nur für einen Server |
 | Was der Agent ausführt | nur Manifeste mit gültiger Signatur des Betreibers; der öffentliche Schlüssel wird bei der Installation hinterlegt, der private liegt offline beim Inhaber, nie auf der Zentrale. Images nur per Digest; Schritte nur als benannte Befehle mit argv, nie als Shell-Text | eine übernommene Zentrale darf keinen Code auf den Servern ausführen können |
 | Protokoll und Versionen | jede Nachricht trägt `typ` und die Protokollversion ihres Absenders; Versionen fügen nur hinzu; die Zentrale liest die eigene und die vorige Version und wertet eine ältere Nachricht schrittweise auf (`AUFWERTUNGEN`); der Agent liest nur die Version seiner Zentrale; je Version liegt ein eingefrorenes Beispiel jeder Nachricht im Code, das spätere Versionen weiter lesen müssen; eine Nachricht hat höchstens 4 MiB (`MAX_NACHRICHT_BYTES`), größere werden weder gesendet noch gelesen | ein Agent ist nach einem Update der Zentrale bis zu seinem eigenen Update eine Version zurück (Z-504); ohne Grenze könnte ein Feld (Logzeile, Fehlertext, Daten) Speicher und Datenbank der Gegenseite füllen |
@@ -248,7 +270,7 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Überwachung von außen | die Zentrale prüft jede öffentliche Adresse (DNS, Zertifikat, Pforte, Health) unabhängig vom Agenten; die Zentrale selbst prüft ein externer Dienst | „Agent grün, außen rot“ muss auffallen |
 | Geräte beim Kunden | nicht verwaltet | eigenes Thema |
 | Was sich in der CI nicht echt testen lässt | Registry, S3, Mail und DNS-API durch lokale Ersatzdienste (Registry-Container, MinIO, Mailpit, nachgebaute Cloudflare-API); verwaltete Server sind Incus-VMs auf dem Runner (KVM ist auf den Linux-Runnern verfügbar), in denen `install.sh`, systemd, rootless Podman und Neustarts echt laufen; `sudo` ist in den Workflows erlaubt | rootless Podman mit systemd in einem Docker-Container läuft nicht verlässlich |
-| Stufen | Stufe 1 betreibt Haben, Belegt, Schreibzeug und Fixpunkt für einen Betreiber; Kontext, Stellwerk, Kennwort, Soll, Partner, Portal-API, SLA-Wellen, Umzug und Ausfall folgen in Stufe 2, die ein Mensch freigibt | null gehostete Kunden heute; die ersten zehn brauchen keinen Partner und kein Portal, und Mail-Hosting ist ein eigenes Geschäft |
+| Stufen | Stufe 1 betreibt Haben, Belegt, Schreibzeug und Fixpunkt für einen Betreiber; Stufe 2 schneidet die Zentrale auf den eigenen Betrieb zu („Für wen“ oben) und beginnt erst, wenn ein Mensch sie freigibt; Partner, Portal-API, SLA-Wellen, Umzug und Ausfall sind gestrichen | null gehostete Kunden heute; die ersten zehn brauchen keinen Partner und kein Portal, und Mail-Hosting ist ein eigenes Geschäft |
 | Merge | der Loop merged selbst, wenn CI grün ist und das unabhängige Review keine Befunde mehr hat | er wartet nie auf einen Menschen |
 | TLS und Zertifikate | die Zentrale läuft hinter der Pforte ihres Servers; Caddy beendet TLS für Oberfläche, `agent.` und `api.` und prüft auf `agent.` die Client-Zertifikate (`client_auth require_and_verify`) gegen die CA der Zentrale; den Fingerabdruck gibt Caddy per Header an `127.0.0.1`, und die Zentrale glaubt ihn nur von dort; Zertifikate stellt die Zentrale mit `@peculiar/x509` aus | Bun stellt keine X.509-Zertifikate aus; im Ein-Server-Betrieb hält die Pforte 443 |
 | Server hinzufügen | ein Einmal-Token je Server (32 Zufallsbytes, 24 h, einmal), nur als SHA-256 in `tokens` unter der ID des Servers; der Agent erzeugt seinen Schlüssel (ECDSA P-256) und die Zertifikatsanfrage (PKCS#10) selbst, ohne X.509-Bibliothek auf dem Server; die Zentrale prüft die Signatur der Anfrage, stellt ein Zertifikat für die Client-Authentifizierung auf die ID des Servers aus (ein Jahr, Rotieren mit Z-303) und speichert nur den SHA-256 des Zertifikats; Token prüfen und löschen und Fingerabdruck schreiben in einer Transaktion; Rate-Limit 10 Versuche je 10 Minuten und Adresse im Speicher, eine IPv6-Adresse zählt mit ihrem /64, höchstens 10 000 Adressen im Speicher (ist die Liste voll, wird eine neue Adresse abgewiesen, bis Fenster ablaufen; Z-303) | der Schlüssel verlässt den Server nie; von zwei Anfragen mit demselben Token gewinnt genau eine; ein Token aus 32 Zufallsbytes ist nicht zu erraten, das Limit bremst nur das Hämmern; ein Anschluss hat ein ganzes /64, und viele Adressen dürfen den Speicher nicht füllen |
@@ -558,18 +580,19 @@ ist. Er wartet nie auf einen Menschen.
 5. **Echt testen**: der Agent läuft in der CI gegen Podman mit systemd, mit einer Beispiel-App aus
    diesem Repo; eine echte App (Schreibzeug) in der Härtung.
 
-Zwei Stufen, damit die ersten Kunden früh laufen und Stufe 2 aus echtem Betrieb lernt:
+Zwei Stufen:
 
 - **Stufe 1 – eigener Betrieb** (41 Punkte): 1 Fundament · 2 Manifest und Platzierung · 3 Agent ·
   4 Installationen mit DNS · 5 Updates (Wellen „intern“ und „alle“) · 6 Backups und Kündigung ·
   7 Server-Pflege, Prüfung von außen, Kunden, Support-Zugang, Leistungen, Härtung, Release 1.0.
   Betrieben werden Haben, Belegt, Schreibzeug und Fixpunkt auf unseren Servern, ein Betreiber.
-- **Stufe 2 – wachsen** (10 Punkte), erst nach Freigabe durch einen Menschen: 8 weitere Betreiber
-  (Partner) · 9 Kontext mit eigenen Domains, Mail und Single Sign-on · 10 API für das Portal ·
-  11 Wellen nach SLA mit Ankündigung · 12 Umzug und Ausfall automatisiert.
+- **Stufe 2 – Zuschnitt auf den eigenen Betrieb** (13 Punkte), erst nach Freigabe durch einen
+  Menschen: 8 Bestehendes überwachen (beobachtete Dienste und Server, Cloudflare Tunnel, Meldung
+  aufs Handy) · 9 Ausbau (Leistungen, SLA, Support-Zugänge, Rollen, Server-Art, Betriebsart, Grund,
+  weitere Betreiber). Warum, steht unter „Zuschnitt“ und in den Entscheidungen.
 
-Das Schema trägt Stufe 2 schon (`betreiber_id`, SLA, `braucht`/`bietet`, `dns`), damit später keine
-Migration alter Daten nötig ist; gebaut wird es erst mit seinem Punkt.
+Das Schema trägt aus der früheren Planung `betreiber_id`, `braucht`/`bietet` und `dns`; sie
+bleiben. Die Spalte der SLA entfernt Z-1202.
 
 ## Tests
 
