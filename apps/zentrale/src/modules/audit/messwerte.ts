@@ -235,3 +235,18 @@ export const dienstInnenSetzen = (schreibDb: SchreibDb, z: DienstInnenZeile): vo
     })
     .run();
 };
+
+/**
+ * Forgets the rating inside of a service: what the agent reads has changed (Z-1103), and the
+ * rating of what it read before says nothing about it
+ */
+export const dienstInnenVergessen = (
+  schreibDb: SchreibDb,
+  betreiberId: string,
+  dienstId: string,
+): void => {
+  schreibDb.verbindung
+    .delete(dienstInnen)
+    .where(and(eq(dienstInnen.betreiberId, betreiberId), eq(dienstInnen.dienstId, dienstId)))
+    .run();
+};

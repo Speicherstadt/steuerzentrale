@@ -7,6 +7,7 @@ export {
   type DienstInnenZeile,
   dienstAussenSetzen,
   dienstInnenSetzen,
+  dienstInnenVergessen,
   type FaktenZeile,
   type FortschrittZeile,
   faktenAnfuegen,

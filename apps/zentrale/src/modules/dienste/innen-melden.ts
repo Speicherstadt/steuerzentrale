@@ -2,6 +2,7 @@ import { bewertungFortschreiben, installationBewerten, nachFrist } from "@steuer
 import type { NachrichtVomAgenten } from "@steuerzentrale/protokoll";
 import { dienstInnenSetzen } from "../audit/index.ts";
 import type { DienstDeps } from "./ereignis.ts";
+import { innenVon } from "./innen.ts";
 import { type DienstZeile, diensteAufServer, dienstInnenLesen } from "./lesen.ts";
 import { dienstStoerungFortschreiben } from "./stoerung.ts";
 
@@ -10,14 +11,25 @@ import { dienstStoerungFortschreiben } from "./stoerung.ts";
  * rated by the same rules as an installation (packages/planung, installationBewerten; without a
  * check the units alone decide), the rating kept as a measurement (dienst_innen), and a fault
  * checked with the side outside. Only services of this server and its operator, not removed, are
- * reached; a report of any other is dropped and logged.
+ * reached; a report of any other is dropped and logged. The units rated are those the service names:
+ * one the report leaves out is unknown, so a report made from an older list is never green for a
+ * unit nobody read, and one it adds is not looked at.
  */
 
 type Eintrag = NonNullable<Extract<NachrichtVomAgenten, { typ: "zustand" }>["dienste"]>[number];
 
 export type InnenMeldenDeps = DienstDeps & { log: (zeile: string) => void };
 
-const annehmen = (deps: InnenMeldenDeps, d: DienstZeile, e: Eintrag, jetzt: number) => {
+/** The report with the units the service names, each as reported or unknown */
+const mitUnitsVon = (d: DienstZeile, e: Eintrag): Eintrag => ({
+  ...e,
+  units: (innenVon(d)?.units ?? []).map(
+    (name) => e.units.find((u) => u.name === name) ?? { name, aktiv: "unknown" },
+  ),
+});
+
+const annehmen = (deps: InnenMeldenDeps, d: DienstZeile, gemeldet: Eintrag, jetzt: number) => {
+  const e = mitUnitsVon(d, gemeldet);
   const gespeichert = dienstInnenLesen(deps.db, d.betreiberId, d.dienstId);
   // an overdue report ends the old rating first, as for an installation
   const alt = gespeichert && nachFrist(gespeichert, jetzt);

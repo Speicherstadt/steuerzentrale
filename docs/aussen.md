@@ -164,7 +164,7 @@ ihrer Aufbewahrung.
 | Methode und Pfad | Wer | Was |
 | --- | --- | --- |
 | `GET /api/v1/dienste` | jede Rolle | die Dienste des Betreibers mit Zustand von außen (`aussen`, `null` vor der ersten Prüfung), Verfügbarkeit des laufenden Monats und, wo der Agent liest, `innen` und `innenStand` |
-| `POST /api/v1/dienste` | Inhaber | `{ name, adresse, pfad?, kundeId?, innen? }`; `201` mit dem Dienst, `400` bei einer anderen Adresse als `https://<host>` oder einem Namen außerhalb des Musters, `404 kein_kunde`, `404 kein_server`, `409 server_verwaltet` |
+| `POST /api/v1/dienste` | Inhaber | `{ name, adresse, pfad?, kundeId?, innen? }`; `201` mit dem Dienst, `400` bei einer anderen Adresse als `https://<host>` oder einem Namen außerhalb des Musters, `404 kein_kunde`, `404 kein_server`, `409 server_verwaltet`, `409 server_voll` |
 | `PUT /api/v1/dienste/:dienstId` | Inhaber | dieselben Felder; `404 kein_dienst` für einen fremden oder entfernten |
 | `DELETE /api/v1/dienste/:dienstId` | Inhaber | `204`; `404 kein_dienst` |
 
@@ -177,7 +177,8 @@ wird, kann der Agent dort auch seine systemd-Units lesen. Dazu nennt der Inhaber
 - den **Server**: einer des Betreibers, der nur beobachtet wird; ein verwalteter wird abgelehnt
   (`409 server_verwaltet`), dort liest der Agent nur, was ein Manifest beschreibt;
 - den **Linux-Nutzer**, dem die Units gehören, oder keinen für Units des Systems (`nutzer: null`);
-- die **Units**, eine bis 20, etwa `kontext.service`;
+- die **Units**, eine bis 20, etwa `kontext.service`; auf einem Server liest der Agent höchstens
+  100 Dienste, der nächste wird abgelehnt (`409 server_voll`);
 - auf Wunsch **Port** und **Pfad** einer Prüfung auf `127.0.0.1`: mit Pfad ein `GET` (200 bis 399
   ist gesund), ohne Pfad eine TCP-Verbindung, ohne Port keine Prüfung.
 

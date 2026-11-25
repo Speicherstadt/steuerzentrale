@@ -1315,6 +1315,7 @@
   "dienst_system": "system",
   "dienst_fehler_kein_server": "This server does not exist or is revoked.",
   "dienst_fehler_server_verwaltet": "The agent reads units only on a server that is only observed.",
+  "dienst_fehler_server_voll": "The agent already reads 100 services on this server and takes no more.",
   "dienst_feld_nutzer": "Linux user",
   "dienst_nutzer_hinweis": "Empty for units of the system.",
   "dienst_feld_units": "systemd units",

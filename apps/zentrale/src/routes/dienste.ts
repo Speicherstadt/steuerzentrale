@@ -27,7 +27,7 @@ import type { Anfrage, Registrar } from "./zugang.ts";
  * the health path `/` unless given; nobody is asked for a reason (BAULISTE.md, Stufe 2). Only a
  * service of the session's operator; any other is 404. On a server that is only observed the
  * agent may read its units inside (Z-1103): names off the protocol's patterns are 400, a server not
- * the operator's 404, a managed one 409; the agents of the servers before and after get the new list.
+ * the operator's 404, a managed one 409, as is one that already reads as many services as `beobachten` carries; the agents of the servers before and after get the new list.
  */
 
 const innenSchema = z
@@ -81,6 +81,7 @@ const STATUS = {
   kein_kunde: 404,
   kein_server: 404,
   server_verwaltet: 409,
+  server_voll: 409,
   ungueltig: 400,
 } as const;
 

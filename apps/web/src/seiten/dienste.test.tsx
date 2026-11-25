@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { betriebsartQuelleEinsetzen } from "../daten/betriebsart.ts";
 import { diensteQuelleEinsetzen } from "../daten/dienste.ts";
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
+import { serverQuelle, serverQuelleEinsetzen } from "../daten/server.ts";
 import { demoBetriebsart } from "../demo/betriebsart.ts";
 import { demoDienste } from "../demo/dienste-quelle.ts";
 import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
@@ -80,6 +81,32 @@ describe("observed services on the page Apps", () => {
     const neu = zeilen(tabelle(root)).find((z) => z?.includes("Grafana"));
     expect(neu).toContain("grafana: grafana.service, grafana-db.service");
     expect(neu).toContain("innen: Noch keine Meldung");
+  });
+
+  it("keeps the units of a service when the servers cannot be listed", async () => {
+    const vorher = serverQuelle();
+    serverQuelleEinsetzen({
+      ...vorher,
+      liste: async () => ({ ok: false, status: 0, fehler: "netz" }),
+    });
+    try {
+      const { root } = await oeffne("/apps");
+      const zeile = [...tabelle(root).querySelectorAll("tbody tr")].find((tr) =>
+        tr.textContent?.includes("Kontext"),
+      );
+      if (!zeile) throw new Error("no row Kontext");
+      knopf(zeile, "Ändern")?.click();
+      await warten();
+      // no server to choose: the dialog must not take that for "only from outside"
+      expect(dialog().querySelector('select[name="innenServer"]')).toBeNull();
+      eintragen("Name", "Kontext neu");
+      dialog().querySelector("form")?.requestSubmit();
+      await warten();
+      const neu = zeilen(tabelle(root)).find((z) => z?.includes("Kontext neu"));
+      expect(neu).toContain("kontext: kontext.service, kontext-redis.service");
+    } finally {
+      serverQuelleEinsetzen(vorher);
+    }
   });
 
   it("offers adding, changing and removing to the owner only", async () => {

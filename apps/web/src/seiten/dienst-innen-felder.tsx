@@ -1,20 +1,29 @@
 import { Input, m } from "@steuerzentrale/ui";
 import { createMemo, createSignal, createUniqueId, For, Loading, Show } from "solid-js";
-import { type DienstInnen, type InnenAngaben, unitsAus } from "../daten/dienste.ts";
+import { type DienstInnen, type InnenAngaben, innenAngaben, unitsAus } from "../daten/dienste.ts";
 import { serverQuelle } from "../daten/server.ts";
 
 /*
  * The inside of an observed service in its dialog (BAULISTE.md Z-1103): on a server that is only
  * observed (Z-1102), the Linux user (empty for units of the system), the units and, if wanted, the
  * port and path of a check on 127.0.0.1. Without such a server the dialog says why there is nothing
- * to choose. The patterns are those the Zentrale and the agent check (packages/protokoll).
+ * to choose. The patterns are those the Zentrale and the agent check (packages/protokoll). While
+ * the servers are not listed (loading, an error, none observed) there is no choice, and a service
+ * keeps the inside it had: only the choice "from outside only" takes it away.
  */
 
 const feldKlasse =
   "h-8 w-full rounded-lg border border-border bg-background px-2.5 text-[13px] disabled:opacity-50";
 
-/** The inside from the form's values, or null without a server */
-export const innenAusFeldern = (w: Record<string, string | undefined>): InnenAngaben | null => {
+/** The hidden field that says the server could be chosen */
+const WAHL = "innenWahl";
+
+/** The inside from the form's values, null without a server; what it was where none could be chosen */
+export const innenAusFeldern = (
+  w: Record<string, string | undefined>,
+  vorher: DienstInnen | null,
+): InnenAngaben | null => {
+  if (!w[WAHL]) return vorher && innenAngaben(vorher);
   if (!w.innenServer) return null;
   const port = w.innenPort ? Number(w.innenPort) : null;
   return {
@@ -89,6 +98,7 @@ export const InnenFelder = (props: { innen: DienstInnen | null }) => {
           when={beobachtet().length > 0}
           fallback={<p class="text-xs text-muted-foreground">{m.dienst_innen_kein_server()}</p>}
         >
+          <input type="hidden" name={WAHL} value="1" />
           <div class="grid gap-1.5">
             <label for={id} class="text-xs font-medium">
               {m.dienst_feld_server()}

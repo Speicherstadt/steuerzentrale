@@ -18,6 +18,7 @@ const FEHLER: Record<string, () => string> = {
   kein_kunde: m.dienst_fehler_kein_kunde,
   kein_server: m.dienst_fehler_kein_server,
   server_verwaltet: m.dienst_fehler_server_verwaltet,
+  server_voll: m.dienst_fehler_server_voll,
   keine_berechtigung: m.fehler_keine_berechtigung,
   netz: m.fehler_netz,
 };
@@ -76,7 +77,7 @@ const Formular = (props: FormularProps) => {
       pfad: w.pfad ?? "/",
       // without customers ("Nur für mich") a service keeps what it had
       kundeId: props.mitKunde ? (w.kundeId ?? null) : (props.dienst?.kundeId ?? null),
-      innen: innenAusFeldern(w),
+      innen: innenAusFeldern(w, props.dienst?.innen ?? null),
     };
     setLaeuft(true);
     const antwort = props.dienst

@@ -1315,6 +1315,7 @@
   "dienst_system": "System",
   "dienst_fehler_kein_server": "Diesen Server gibt es nicht oder er ist gesperrt.",
   "dienst_fehler_server_verwaltet": "Units liest der Agent nur auf einem Server, der nur beobachtet wird.",
+  "dienst_fehler_server_voll": "Auf diesem Server liest der Agent schon 100 Dienste, mehr nimmt er nicht.",
   "dienst_feld_nutzer": "Linux-Nutzer",
   "dienst_nutzer_hinweis": "Leer für Units des Systems.",
   "dienst_feld_units": "systemd-Units",

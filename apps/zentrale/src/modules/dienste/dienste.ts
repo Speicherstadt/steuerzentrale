@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { BEOBACHTET_MAX } from "@steuerzentrale/protokoll";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
-import { type Kontext, schreiben } from "../audit/index.ts";
+import { dienstInnenVergessen, type Kontext, schreiben } from "../audit/index.ts";
 import { kundeLesen } from "../kunden/index.ts";
 import { type Innen, type InnenFehler, innenPruefen, innenSpalten } from "./innen.ts";
-import { type Dienst, dienstLesen, dienstZeileLesen } from "./lesen.ts";
+import { type Dienst, diensteAufServer, dienstLesen, dienstZeileLesen } from "./lesen.ts";
 
 export { type Dienst, diensteListe, dienstLesen } from "./lesen.ts";
 
@@ -12,7 +13,9 @@ export { type Dienst, diensteListe, dienstLesen } from "./lesen.ts";
  * its entry in the audit log; the reason is the action's own, nobody is asked for one (BAULISTE.md,
  * Stufe 2). A customer must be one of the operator's. Removing keeps the row with `entfernt_am`, so
  * events and measurements still name the service until the retention ends them. Its inside
- * (Z-1103) only on one of the operator's servers that is only observed (innen.ts).
+ * (Z-1103) only on one of the operator's servers that is only observed (innen.ts), which takes no more
+ * services than the message `beobachten` carries; a change of what is read there forgets the rating
+ * of what was read before.
  */
 
 /** What the operator enters about a service; host and path already checked (adresse.ts) */
@@ -27,16 +30,26 @@ export type DienstDaten = {
 
 export type Ergebnis =
   | { ok: true; dienst: Dienst }
-  | { ok: false; grund: "kein_dienst" | "kein_kunde" | InnenFehler };
+  | { ok: false; grund: "kein_dienst" | "kein_kunde" | "server_voll" | InnenFehler };
 
 /** The columns of the service as stored */
 const spalten = ({ innen, ...rest }: DienstDaten) => ({ ...rest, ...innenSpalten(innen) });
 
-/** Why the data cannot be taken, or undefined */
-const fehler = (db: Db, betreiberId: string, daten: DienstDaten) =>
-  kundeFehlt(db, betreiberId, daten.kundeId)
-    ? ("kein_kunde" as const)
-    : innenPruefen(db, betreiberId, daten.innen);
+/** Whether the server reads as many services as one `beobachten` carries, this one not counted */
+const serverVoll = (db: Db, betreiberId: string, innen: Innen | null, dienstId?: string) =>
+  innen !== null &&
+  diensteAufServer(db, betreiberId, innen.serverId).filter((d) => d.dienstId !== dienstId).length >=
+    BEOBACHTET_MAX;
+
+/** Why the data cannot be taken, or undefined; `dienstId` of the service that is changed */
+const fehler = (db: Db, betreiberId: string, daten: DienstDaten, dienstId?: string) => {
+  if (kundeFehlt(db, betreiberId, daten.kundeId)) return "kein_kunde" as const;
+  const grund = innenPruefen(db, betreiberId, daten.innen);
+  if (grund) return grund;
+  return serverVoll(db, betreiberId, daten.innen, dienstId) ? ("server_voll" as const) : undefined;
+};
+
+const INNEN_SPALTEN: readonly string[] = Object.keys(innenSpalten(null));
 
 const kundeFehlt = (db: Db, betreiberId: string, kundeId: string | null) =>
   kundeId !== null && kundeLesen(db, betreiberId, kundeId) === undefined;
@@ -75,7 +88,7 @@ export const dienstAendern = (
 ): Ergebnis => {
   const alt = dienstZeileLesen(db, kontext.betreiberId, dienstId);
   if (!alt) return { ok: false, grund: "kein_dienst" };
-  const grund = fehler(db, kontext.betreiberId, daten);
+  const grund = fehler(db, kontext.betreiberId, daten, dienstId);
   if (grund) return { ok: false, grund };
   const geaendert = Object.fromEntries(
     Object.entries(spalten(daten)).filter(([feld, wert]) => alt[feld as keyof typeof alt] !== wert),
@@ -84,6 +97,9 @@ export const dienstAendern = (
     schreiben(schreibDb, kontext, "dienst.aendern", (s) =>
       s.aendern("dienste", { dienstId }, geaendert),
     );
+  // other units, another user, server or check: the rating of what was read before is not theirs
+  if (Object.keys(geaendert).some((feld) => INNEN_SPALTEN.includes(feld)))
+    dienstInnenVergessen(schreibDb, kontext.betreiberId, dienstId);
   return gelesen(db, kontext, dienstId);
 };
 
