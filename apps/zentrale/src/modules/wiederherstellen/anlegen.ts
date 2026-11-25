@@ -21,7 +21,7 @@ import {
 
 /*
  * Making a restore (BAULISTE.md Z-603; docs/plan.md, "Wiederherstellen (Z-603)"), with a reason,
- * by owner and technik: only for a running installation whose backups are set up and that has no
+ * by the owner: only for a running installation whose backups are set up and that has no
  * open job, from a successful run of this installation and operator. Two jobs in one change of the
  * audit log: `installation_backup` keeps the current state first, so a wrong choice can be undone;
  * `installation_wiederherstellen` with the run's snapshot of each part waits for it and is

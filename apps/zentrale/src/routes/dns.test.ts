@@ -14,7 +14,7 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
  * BAULISTE.md Z-407 over HTTP: the operator's domain, zone and Cloudflare token, set with a reason
- * by owner and technik, read by every role; the token only as `tokenGesetzt`, never in an answer,
+ * by owner and inhaber2, read by every role; the token only as `tokenGesetzt`, never in an answer,
  * only encrypted in the database. An installation made through the API gets its records at the
  * stand-in of Cloudflare's API, and its agent never sees the token. No operator reaches another's
  * DNS settings (a test per endpoint).
@@ -25,8 +25,8 @@ type Antwort = { status: number; daten: Record<string, unknown> };
 const cf = cloudflareNachbau();
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 const agent: Record<string, unknown>[] = [];
 const antworten: unknown[] = [];
@@ -54,14 +54,14 @@ beforeAll(async () => {
   server = testServer(afterAll);
   afterAll(() => cf.stoppen());
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
 }, 60_000);
 
 describe("the DNS settings", () => {
   it("start empty", async () => {
-    expect(await json(support, "/api/v1/dns")).toEqual({
+    expect(await json(mitglied, "/api/v1/dns")).toEqual({
       status: 200,
       daten: { domain: null, zoneId: null, tokenGesetzt: false },
     });
@@ -74,10 +74,10 @@ describe("the DNS settings", () => {
       daten: { domain: DOMAIN, zoneId: TEST_ZONE, tokenGesetzt: true },
     });
     const { token: _, ...ohneToken } = setzen({ grund: "nur gelesen" });
-    expect((await json(technik, "/api/v1/dns", { method: "PUT", body: ohneToken })).daten).toEqual(
+    expect((await json(inhaber2, "/api/v1/dns", { method: "PUT", body: ohneToken })).daten).toEqual(
       gesetzt.daten,
     );
-    expect((await json(support, "/api/v1/dns")).daten).toEqual(gesetzt.daten);
+    expect((await json(mitglied, "/api/v1/dns")).daten).toEqual(gesetzt.daten);
     const eintraege = server.db
       .select()
       .from(auditLog)
@@ -90,8 +90,8 @@ describe("the DNS settings", () => {
     expect(eintraege[1]?.inhalt).toContain("[verschlüsselt]");
   });
 
-  it("refuses support, an invalid field and a missing reason", async () => {
-    expect(await json(support, "/api/v1/dns", { method: "PUT", body: setzen() })).toEqual({
+  it("refuses mitglied, an invalid field and a missing reason", async () => {
+    expect(await json(mitglied, "/api/v1/dns", { method: "PUT", body: setzen() })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });

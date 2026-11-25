@@ -23,7 +23,7 @@ der Betreiber selbst.
 
 ## DNS-Einstellungen
 
-Unter **Einstellungen → Adressen und DNS** setzen Inhaber und Technik mit Grund:
+Unter **Einstellungen → Adressen und DNS** setzt der Inhaber mit Grund:
 
 | Angabe | Bedeutung |
 | --- | --- |
@@ -79,7 +79,7 @@ Token.
 | Route | Wer | Körper | Antwort |
 | --- | --- | --- | --- |
 | `GET /api/v1/dns` | alle Rollen | – | `{ domain, zoneId, tokenGesetzt }` |
-| `PUT /api/v1/dns` | Inhaber, Technik | `domain`, `zoneId`, `token`?, `grund` | wie `GET` |
+| `PUT /api/v1/dns` | Inhaber | `domain`, `zoneId`, `token`?, `grund` | wie `GET` |
 
 Ohne `token` bleibt der gesetzte. Fehler: `400 ungueltig` (Domain, Zone-ID oder Token in falscher
 Form, kein Grund), `409 dns_in_benutzung`. Jeder Betreiber sieht und setzt nur seine eigenen

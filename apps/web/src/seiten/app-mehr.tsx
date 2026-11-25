@@ -17,9 +17,9 @@ import { installationsRecht } from "./recht.tsx";
 /*
  * "Mehr …" of an app's page (docs/plan.md, "Navigation (Oberfläche 2026-11)"): the actions beside
  * "Neustart" in a menu, each with its dialog and the rights it had as a button (Z-405, Z-601,
- * Z-602, Z-404): log excerpt, "nur lesen", "Backup jetzt", "Prüf-Restore jetzt" and "Einstellungen
- * ändern" for owner and technik, each only where the manifest or the backups offer it (no support
- * access since Z-1203). `neu` once a job was made.
+ * Z-602, Z-404): log excerpt for both roles, "nur lesen", "Backup jetzt", "Prüf-Restore jetzt" and
+ * "Einstellungen ändern" for the owner (Z-1204), each only where the manifest or the backups offer
+ * it. `neu` once a job was made.
  */
 
 export type Wahl = "log" | "backup" | "pruef" | "einstellungen" | "nur_lesen";
@@ -35,7 +35,8 @@ export type MehrStand = {
 /** The entries of the menu, in their order, offered as the buttons were before */
 export const mehrEintraege = (s: MehrStand): Wahl[] => {
   const alle: [Wahl, boolean][] = [
-    ["log", s.recht && s.aktionen.log_auszug],
+    // both roles take a log excerpt (Z-1204), only the owner the rest
+    ["log", s.aktionen.log_auszug],
     ["backup", s.recht && s.backup],
     ["pruef", s.recht && s.pruef],
     ["einstellungen", s.recht],

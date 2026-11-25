@@ -8,8 +8,8 @@ import { MitInstallationsRecht } from "./recht.tsx";
 
 /*
  * The settings' tab "DNS" (BAULISTE.md Z-407; mockup viewEinstellungen, "dns"): the operator's
- * domain, the id of its zone at Cloudflare and the API token, set with a reason by owner and technik
- * (the roles that install, src/auth/rollen.ts of the Zentrale); support sees them read-only. The
+ * domain, the id of its zone at Cloudflare and the API token, set with a reason by the owner
+ * (the roles that install, src/auth/rollen.ts of the Zentrale); a member sees them read-only. The
  * token never comes back: it shows only as set, and an empty field keeps it.
  */
 

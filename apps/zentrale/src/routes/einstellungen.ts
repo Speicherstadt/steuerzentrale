@@ -10,7 +10,7 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
  * The operator's values of an app (BAULISTE.md Z-404; docs/plan.md, "Werte des Betreibers
- * schreiben"): every role reads them, owner and technik change them with a reason, like
+ * schreiben"): every role reads them, the owner changes them with a reason, like
  * installations. Read and checked with the form of the app's newest imported manifest (Z-501),
  * which every operator shares; without one there is no form (`kein_manifest`). The values stay the
  * operator's own. A secret value never comes back, only its name among `gesetzt`.

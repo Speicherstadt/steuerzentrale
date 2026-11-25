@@ -124,14 +124,14 @@ describe("the Protokoll", () => {
     expect(root.querySelector('[aria-label="Einträge des Audit-Logs"]')).not.toBeNull();
   });
 
-  it("shows Änderungen only to the roles that read the audit log", async () => {
-    rolle("support");
+  it("shows Änderungen to a member too: it sees everything (Z-1204)", async () => {
+    rolle("mitglied");
     const { root } = await oeffne("/protokoll?tab=aenderungen");
     expect(reiter(root)).toEqual([
-      ["Ereignisse", "true"],
+      ["Ereignisse", "false"],
       ["Aufträge", "false"],
+      ["Änderungen", "true"],
     ]);
-    expect(root.textContent).not.toContain("Änderungen");
   });
 });
 

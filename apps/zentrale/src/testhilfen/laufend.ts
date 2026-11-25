@@ -5,7 +5,7 @@ import { type Json, manifestHochladen } from "./installationen-api.ts";
 import type { TestServer } from "./server.ts";
 
 /*
- * For the HTTP tests of the actions (Z-405) and support accesses (Z-802): a running installation of
+ * For the HTTP tests of the actions (Z-405): a running installation of
  * one of the test manifests, made through the API by the operator's person, and its jobs marked
  * done as the agent would have reported them.
  */

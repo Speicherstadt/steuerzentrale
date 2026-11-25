@@ -8,8 +8,8 @@ import { NurInhaber } from "./recht.tsx";
 
 /*
  * The settings' tab "Betriebsart" (BAULISTE.md Z-805; docs/einstellungen.md): "Nur für mich" or
- * "Für Kunden". Only the owner changes it, with a reason that goes into the audit log; technik and
- * support see it read-only. In the demo the same form is the switch between both kinds.
+ * "Für Kunden". Only the owner changes it, with a reason that goes into the audit log; a member sees it
+ * read-only. In the demo the same form is the switch between both kinds.
  */
 
 const FEHLER: Record<string, () => string> = {

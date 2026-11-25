@@ -18,7 +18,7 @@ import { demoServerQuelle } from "../demo/server-quelle.ts";
 import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
 
 // BAULISTE.md Z-404: the operator's values per app as a form from the schema, and "Einstellungen
-// ändern" of an installation, only for owner and technik, against the demo sources
+// ändern" of an installation, only for the owner, against the demo sources
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
 
@@ -38,7 +38,7 @@ beforeEach(() => {
     }),
   );
   einstellungenQuelleEinsetzen(demoEinstellungenQuelle(demo));
-  rolle("technik");
+  rolle("inhaber");
 });
 afterEach(aufraeumen);
 
@@ -95,8 +95,8 @@ describe("the operator's values per app", () => {
     expect(werte.querySelector("form [role=alert]")?.textContent).toContain("ELSTER_HERSTELLER_ID");
   });
 
-  it("are only read by support", async () => {
-    rolle("support");
+  it("are only read by a member", async () => {
+    rolle("mitglied");
     const { root } = await oeffne("/einstellungen");
     const werte = karte(root, WERTE);
     expect(werte.querySelector("form")).toBeNull();
@@ -157,7 +157,7 @@ describe("the sections of the settings", () => {
 
 // Z-407: domain, zone and Cloudflare token; the token never comes back, only as set
 describe("the DNS settings", () => {
-  const dnsKarte = async (rolleName: Rolle = "technik") => {
+  const dnsKarte = async (rolleName: Rolle = "inhaber") => {
     rolle(rolleName);
     const { root } = await oeffne("/einstellungen?tab=dns");
     return { root, k: karte(root, "DNS") };
@@ -183,9 +183,9 @@ describe("the DNS settings", () => {
     expect(root.textContent).not.toContain("cf-token-aus-dem-dashboard");
   });
 
-  it("are only read by support", async () => {
+  it("are only read by a member", async () => {
     dnsQuelleEinsetzen(demoDns());
-    const { k } = await dnsKarte("support");
+    const { k } = await dnsKarte("mitglied");
     expect(k.querySelector("form")).toBeNull();
     expect(k.textContent).toContain("apps.beispiel-hosting.de");
     expect(k.textContent).toContain("<app>.<kürzel>.apps.beispiel-hosting.de");
@@ -208,8 +208,8 @@ describe("changing an installation's settings", () => {
     expect(root.textContent).toContain("Neu konfigurieren");
   });
 
-  it("is not offered to support", async () => {
-    rolle("support");
+  it("is not offered to a member", async () => {
+    rolle("mitglied");
     const { root } = await oeffne("/apps/atelier-haben");
     expect(knopf(root, "Einstellungen ändern")).toBeUndefined();
   });

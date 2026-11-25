@@ -17,7 +17,7 @@ import { SNAPSHOT } from "../testhilfen/pruef-restore.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
- * BAULISTE.md Z-602 over HTTP: "Prüf-Restore jetzt" with a reason by owner and technik, for a running
+ * BAULISTE.md Z-602 over HTTP: "Prüf-Restore jetzt" with a reason by owner and inhaber2, for a running
  * installation whose backups are set up and have a successful run; the newest test restore in the
  * backups of the installation and on the page "Backups", and in the overview once it failed. No
  * operator reaches another's test restores (a test per endpoint).
@@ -28,8 +28,8 @@ type Antwort = { status: number; daten: Record<string, unknown> };
 const minio = minioNachbau();
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 const agent: Record<string, unknown>[] = [];
 let installationId = "";
@@ -65,8 +65,8 @@ beforeAll(async () => {
   server = testServer(afterAll);
   afterAll(() => minio.stoppen());
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   const kontext = { betreiberId: teufel.betreiberId, akteur: "t", jetzt: 1, grund: "t" };
   schreiben(server.schreibDb, kontext, "test", (w) =>
@@ -116,7 +116,7 @@ beforeAll(async () => {
 
 describe("Prüf-Restore jetzt", () => {
   it("needs a successful backup run first", async () => {
-    expect(await jetzt(technik)).toEqual({ status: 409, daten: { fehler: "kein_backup" } });
+    expect(await jetzt(inhaber2)).toEqual({ status: 409, daten: { fehler: "kein_backup" } });
     backupStandAnnehmen(
       server.deps,
       { betreiberId: teufel.betreiberId, serverId } as Server,
@@ -134,13 +134,13 @@ describe("Prüf-Restore jetzt", () => {
     );
   });
 
-  it("is refused to support and without a reason", async () => {
-    expect(await jetzt(support)).toEqual({ status: 403, daten: { fehler: "keine_berechtigung" } });
-    expect((await jetzt(technik, " ")).status).toBe(400);
+  it("is refused to mitglied and without a reason", async () => {
+    expect(await jetzt(mitglied)).toEqual({ status: 403, daten: { fehler: "keine_berechtigung" } });
+    expect((await jetzt(inhaber2, " ")).status).toBe(400);
   });
 
-  it("makes the job with a reason, by technik, and only one at a time", async () => {
-    const r = await jetzt(technik);
+  it("makes the job with a reason, by inhaber2, and only one at a time", async () => {
+    const r = await jetzt(inhaber2);
     expect(r).toMatchObject({
       status: 201,
       daten: { auftrag: { aktion: "installation_pruef_restore", zustand: "zugestellt" } },
@@ -148,7 +148,7 @@ describe("Prüf-Restore jetzt", () => {
     const job = auftragVon("installation_pruef_restore");
     expect(job?.argumente).toEqual({ kopie: expect.stringMatching(/^restore-[a-z0-9]{6}$/) });
     expect(job && "backup" in job).toBe(false);
-    expect((await json(support, `${pfad()}/backups`)).daten.pruefRestore).toEqual({
+    expect((await json(mitglied, `${pfad()}/backups`)).daten.pruefRestore).toEqual({
       letzter: null,
       laeuft: true,
     });
@@ -165,7 +165,7 @@ describe("Prüf-Restore jetzt", () => {
       "installationsPorts",
     ]);
     for (const e of audit)
-      expect(e).toMatchObject({ akteur: technik.nutzerId, grund: "nach dem Umzug des Buckets" });
+      expect(e).toMatchObject({ akteur: inhaber2.nutzerId, grund: "nach dem Umzug des Buckets" });
   });
 
   it("shows the newest test restore, and a failed one in the overview", async () => {
@@ -181,15 +181,15 @@ describe("Prüf-Restore jetzt", () => {
       teile: [],
       dauerMs: null,
     };
-    expect((await json(support, `${pfad()}/backups`)).daten.pruefRestore).toEqual({
+    expect((await json(mitglied, `${pfad()}/backups`)).daten.pruefRestore).toEqual({
       letzter,
       laeuft: false,
     });
-    const { daten } = await json(support, "/api/v1/backups");
+    const { daten } = await json(mitglied, "/api/v1/backups");
     expect(daten.installationen).toEqual([
       expect.objectContaining({ installationId, pruefRestore: { letzter, laeuft: false } }),
     ]);
-    const uebersicht = await json(support, "/api/v1/uebersicht");
+    const uebersicht = await json(mitglied, "/api/v1/uebersicht");
     const eintraege = uebersicht.daten.eintraege as { art: string }[];
     expect(eintraege.filter((e) => e.art === "pruef_restore")).toEqual([
       expect.objectContaining({

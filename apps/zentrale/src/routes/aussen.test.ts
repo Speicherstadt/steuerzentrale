@@ -20,7 +20,7 @@ type Antwort = {
 
 let server: TestServer;
 let teufel: Person;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 
 const gut: Probe = {
@@ -55,7 +55,7 @@ const lesen = async (p: Pick<Person, "json">, id: string) => {
 beforeAll(async () => {
   server = testServer(afterAll);
   teufel = await server.inhaber();
-  support = await server.eingeladen(teufel, "support");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   kundeUndServer(server.schreibDb, teufel.betreiberId, ["s1"]);
   kundeUndServer(server.schreibDb, partner.betreiberId, ["s1"]);
@@ -65,7 +65,7 @@ beforeAll(async () => {
 
 describe("GET /api/v1/installationen/:id/aussen", () => {
   it("is null before the first check, with 13 months without a share", async () => {
-    const { status, daten } = await lesen(support, "probe-aussen");
+    const { status, daten } = await lesen(mitglied, "probe-aussen");
     expect(status).toBe(200);
     expect(daten.aussen).toBeNull();
     expect(daten.verfuegbarkeit).toHaveLength(13);
@@ -77,7 +77,7 @@ describe("GET /api/v1/installationen/:id/aussen", () => {
     if (!i) throw new Error("missing");
     pruefen(i, gut);
     pruefen(i, { ...gut, http: { ok: true, status: 503, ms: 9 } });
-    const { daten } = await lesen(support, "probe-aussen");
+    const { daten } = await lesen(mitglied, "probe-aussen");
     expect(daten.aussen).toMatchObject({
       zustand: "rot",
       grund: { code: "health", werte: { status: "503" } },
@@ -126,12 +126,12 @@ describe("GET /api/v1/installationen/:id/verfuegbarkeit", () => {
     if (!i) throw new Error("missing");
     pruefen(i, gut);
     pruefen(i, { ...gut, http: { ok: true, status: 503, ms: 9 } });
-    const { status, daten } = await tageHolen(support, "probe-tage");
+    const { status, daten } = await tageHolen(mitglied, "probe-tage");
     expect(status).toBe(200);
     expect(daten.tage).toHaveLength(90);
     expect(daten.tage.at(-1)).toMatchObject({ gemessen: 2, rot: 1, anteil: 0.5 });
     expect(daten.tage.slice(0, -1).every((t) => t.anteil === null)).toBe(true);
-    expect((await tageHolen(support, "probe-tage", "?tage=7")).daten.tage).toHaveLength(7);
+    expect((await tageHolen(mitglied, "probe-tage", "?tage=7")).daten.tage).toHaveLength(7);
   });
 
   it("refuses a number of days that is not 1 to 400", async () => {

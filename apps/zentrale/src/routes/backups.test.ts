@@ -16,9 +16,9 @@ import { minioNachbau, TEST_ADMIN, TEST_REGION } from "../testhilfen/minio.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
- * BAULISTE.md Z-601 over HTTP: the operator's S3 target, set with a reason by owner and technik and
+ * BAULISTE.md Z-601 over HTTP: the operator's S3 target, set with a reason by owner and inhaber2 and
  * read by every role, its admin access only as `zugangGesetzt`; the backups of an installation and
- * the overview of the page "Backups"; "Backup jetzt" with a reason by owner and technik, once the
+ * the overview of the page "Backups"; "Backup jetzt" with a reason by owner and inhaber2, once the
  * backups of a running installation are set up. No answer carries an access or a password, and no
  * operator reaches another's backups or S3 target (a test per endpoint).
  */
@@ -29,8 +29,8 @@ const minio = minioNachbau();
 const SNAPSHOT = "4f2a9c1e".repeat(8);
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 const agent: Record<string, unknown>[] = [];
 const antworten: unknown[] = [];
@@ -79,14 +79,14 @@ beforeAll(async () => {
   server = testServer(afterAll);
   afterAll(() => minio.stoppen());
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
 }, 60_000);
 
 describe("the S3 target", () => {
   it("starts empty and is not set without an admin access", async () => {
-    expect(await json(support, "/api/v1/backup-ziel")).toEqual({
+    expect(await json(mitglied, "/api/v1/backup-ziel")).toEqual({
       status: 200,
       daten: { endpunkt: null, region: null, bucket: null, zugangGesetzt: false },
     });
@@ -105,9 +105,9 @@ describe("the S3 target", () => {
     });
     const { accessKey: _a, secretKey: _s, ...ohne } = ziel({ grund: "Region geprüft" });
     expect(
-      (await json(technik, "/api/v1/backup-ziel", { method: "PUT", body: ohne })).daten,
+      (await json(inhaber2, "/api/v1/backup-ziel", { method: "PUT", body: ohne })).daten,
     ).toEqual(gesetzt.daten);
-    expect((await json(support, "/api/v1/backup-ziel")).daten).toEqual(gesetzt.daten);
+    expect((await json(mitglied, "/api/v1/backup-ziel")).daten).toEqual(gesetzt.daten);
     const eintraege = server.db
       .select()
       .from(auditLog)
@@ -120,8 +120,8 @@ describe("the S3 target", () => {
     expect(eintraege[1]?.inhalt).toContain("[verschlüsselt]");
   });
 
-  it("refuses support, an invalid field and a missing reason", async () => {
-    expect(await json(support, "/api/v1/backup-ziel", { method: "PUT", body: ziel() })).toEqual({
+  it("refuses mitglied, an invalid field and a missing reason", async () => {
+    expect(await json(mitglied, "/api/v1/backup-ziel", { method: "PUT", body: ziel() })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
@@ -180,7 +180,7 @@ describe("the backups of an installation", () => {
     });
     expect(angelegt.status).toBe(201);
     installationId = String(angelegt.daten.installationId);
-    expect(await json(support, `${backupPfad()}/backups`)).toEqual({
+    expect(await json(mitglied, `${backupPfad()}/backups`)).toEqual({
       status: 200,
       daten: {
         installationId,
@@ -202,21 +202,21 @@ describe("the backups of an installation", () => {
     expect(job?.backup).toMatchObject({
       repository: `s3:${minio.url}/backups/${teufel.betreiberId}/${installationId}`,
     });
-    expect((await json(support, `${backupPfad()}/backups`)).daten).toMatchObject({
+    expect((await json(mitglied, `${backupPfad()}/backups`)).daten).toMatchObject({
       zugang: "angelegt",
       eingerichtet: false,
     });
   });
 
-  it("are run now only once set up, with a reason, by owner and technik", async () => {
+  it("are run now only once set up, with a reason, by owner and inhaber2", async () => {
     const jetzt = (p: Pick<Person, "json">, grund = "vor dem Update") =>
       json(p, `${backupPfad()}/backup`, { body: { grund } });
-    expect(await jetzt(technik)).toEqual({ status: 409, daten: { fehler: "nicht_eingerichtet" } });
+    expect(await jetzt(inhaber2)).toEqual({ status: 409, daten: { fehler: "nicht_eingerichtet" } });
     erledigt(auftragVon(BACKUP_AKTIONEN.einrichten)?.auftragId ?? "");
-    expect((await json(support, `${backupPfad()}/backups`)).daten.eingerichtet).toBe(true);
-    expect((await jetzt(support)).status).toBe(403);
-    expect((await jetzt(technik, " ")).status).toBe(400);
-    const r = await jetzt(technik);
+    expect((await json(mitglied, `${backupPfad()}/backups`)).daten.eingerichtet).toBe(true);
+    expect((await jetzt(mitglied)).status).toBe(403);
+    expect((await jetzt(inhaber2, " ")).status).toBe(400);
+    const r = await jetzt(inhaber2);
     expect(r).toMatchObject({
       status: 201,
       daten: { auftrag: { aktion: BACKUP_AKTIONEN.jetzt, zustand: "zugestellt" } },
@@ -231,7 +231,7 @@ describe("the backups of an installation", () => {
       .all()
       .filter((e) => e.aktion === "installation.backup");
     expect(audit).toEqual([
-      expect.objectContaining({ akteur: technik.nutzerId, grund: "vor dem Update" }),
+      expect.objectContaining({ akteur: inhaber2.nutzerId, grund: "vor dem Update" }),
     ]);
   });
 
@@ -255,7 +255,7 @@ describe("the backups of an installation", () => {
     });
     backupStandAnnehmen(server.deps, s, lauf(server.jetzt() - 7_200_000, true), server.jetzt());
     backupStandAnnehmen(server.deps, s, lauf(server.jetzt() - 3_600_000, false), server.jetzt());
-    const seite = await json(support, `${backupPfad()}/backups`);
+    const seite = await json(mitglied, `${backupPfad()}/backups`);
     expect(seite.daten.laeufe).toEqual([
       {
         id: expect.stringMatching(/^backup-[0-9a-f]{32}$/),
@@ -272,7 +272,7 @@ describe("the backups of an installation", () => {
         teile: lauf(0, true).teile,
       },
     ]);
-    const { daten } = await json(support, "/api/v1/backups");
+    const { daten } = await json(mitglied, "/api/v1/backups");
     expect(daten.installationen).toEqual([
       expect.objectContaining({
         installationId,

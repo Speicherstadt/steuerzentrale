@@ -7,12 +7,11 @@ import { appIcon } from "../teile/app-icon.ts";
 import { Mehr } from "./app-mehr.tsx";
 import { ZustandWorte } from "./apps-tabelle.tsx";
 import { SchreibendeAktion } from "./installation-aktionen.tsx";
-import { MitInstallationsRecht } from "./recht.tsx";
 
 /*
  * The head of an app's page (docs/plan.md, "Navigation (Oberfläche 2026-11)"): its icon, "App ·
  * Customer", its state in one sentence and its address; "Öffnen" opens the address, "Neustart" for
- * owner and technik (Z-405), "Mehr …" the other actions. The actions only while it runs.
+ * both roles (Z-405, Z-1204), "Mehr …" the other actions. The actions only while it runs.
  */
 
 /** The state of the head: as in the list, but a well-running app says so in a whole sentence */
@@ -63,9 +62,7 @@ export const AppKopf = (props: { a: Einzelansicht; neu: () => void }) => (
         <Icon icon={ExternalLink} size={14} />
       </a>
       <Show when={props.a.zustand === "laeuft"}>
-        <MitInstallationsRecht>
-          <SchreibendeAktion a={props.a} aktion="neustart" neu={() => props.neu()} />
-        </MitInstallationsRecht>
+        <SchreibendeAktion a={props.a} aktion="neustart" neu={() => props.neu()} />
         <Mehr a={props.a} neu={() => props.neu()} />
       </Show>
     </div>

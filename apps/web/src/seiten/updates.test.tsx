@@ -11,7 +11,7 @@ import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./te
 
 /*
  * BAULISTE.md Z-503 in the interface, against the demo source: an update by hand on the page
- * "Updates" with a version and a reason, for owner and technik only, its state in the row after
+ * "Updates" with a version and a reason, for the owner only, its state in the row after
  * it; the plan and the end of an update in words.
  */
 
@@ -21,7 +21,7 @@ const rolle = (r: Rolle) =>
 beforeEach(() => {
   setLocale("de", { reload: false });
   appsQuelleEinsetzen(demoAppsQuelle(() => demo.jetzt));
-  rolle("technik");
+  rolle("inhaber");
 });
 afterEach(() => {
   aufraeumen();
@@ -62,8 +62,8 @@ describe("an update by hand", () => {
     expect(knopf(danach as HTMLElement, "Aktualisieren…")).toBeUndefined();
   });
 
-  it("is not offered to support", async () => {
-    rolle("support");
+  it("is not offered to a member", async () => {
+    rolle("mitglied");
     const { root } = await oeffne("/updates");
     expect(zeile(root, "roth-haben")?.textContent).toContain("Update verfügbar");
     expect(knopf(zeile(root, "roth-haben") as HTMLElement, "Aktualisieren…")).toBeUndefined();

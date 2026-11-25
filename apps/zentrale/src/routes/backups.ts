@@ -19,7 +19,7 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 /*
  * Backups (BAULISTE.md Z-601; docs/plan.md, "S3-Ziel und Zugang je Installation (Z-601)", "Backup
  * auf dem Server (Z-601)"): every role reads the runs of the installations and the S3 target, whose
- * admin access comes back only as `zugangGesetzt`; owner and technik set the target and start
+ * admin access comes back only as `zugangGesetzt`; the owner sets the target and starts
  * "Backup jetzt", each with a reason, and "Prüf-Restore jetzt" (Z-602), which the schedule's
  * weekly limit does not hold back, and restoring a successful run (Z-603), which backs up the
  * current state first. No answer carries an access, a password or a repository. An installation or

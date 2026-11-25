@@ -7,7 +7,7 @@ import { webhookEmpfaenger } from "../testhilfen/webhook.ts";
 
 /*
  * BAULISTE.md Z-703 over HTTP: mail server, quiet hours and recipients, set with a reason by owner
- * and technik, read by every role; the SMTP password and a webhook's URL and key never in an answer,
+ * and inhaber2, read by every role; the SMTP password and a webhook's URL and key never in an answer,
  * the log or the audit log, only encrypted in the database. A test message reaches the receiver
  * signed. No operator reaches another's notifications (a test per endpoint).
  */
@@ -22,8 +22,8 @@ const NTFY_THEMA = "sz-geheimes-thema-4711";
 const NTFY_TOKEN = "tk_ntfy-token-sehr-geheim-0815";
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 const antworten: unknown[] = [];
 
@@ -68,14 +68,14 @@ const webhook = {
 beforeAll(async () => {
   server = testServer(afterAll);
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
 }, 60_000);
 
 describe("the notification settings", () => {
   it("start empty", async () => {
-    expect(await json(support, "/api/v1/benachrichtigungen")).toEqual({
+    expect(await json(mitglied, "/api/v1/benachrichtigungen")).toEqual({
       status: 200,
       daten: { smtp: null, ruhezeit: null, empfaenger: [], zustellungen: [] },
     });
@@ -98,7 +98,7 @@ describe("the notification settings", () => {
     });
     const ohnePasswort = setzen({ smtp: ohne, grund: "Port bleibt" });
     expect(
-      (await json(technik, "/api/v1/benachrichtigungen", { method: "PUT", body: ohnePasswort }))
+      (await json(inhaber2, "/api/v1/benachrichtigungen", { method: "PUT", body: ohnePasswort }))
         .daten,
     ).toEqual(gesetzt.daten);
     const eintraege = server.db
@@ -109,14 +109,14 @@ describe("the notification settings", () => {
     expect(eintraege.map((e) => [e.akteur, e.ziel])).toEqual([
       [teufel.nutzerId, "benachrichtigungEinstellungen"],
       [teufel.nutzerId, "geheimnisse:smtp-passwort"],
-      [technik.nutzerId, "benachrichtigungEinstellungen"],
+      [inhaber2.nutzerId, "benachrichtigungEinstellungen"],
     ]);
     expect(eintraege[1]?.inhalt).toContain("[verschlüsselt]");
   });
 
-  it("refuses support, an invalid field, plain SMTP to another machine and a missing reason", async () => {
+  it("refuses mitglied, an invalid field, plain SMTP to another machine and a missing reason", async () => {
     expect(
-      await json(support, "/api/v1/benachrichtigungen", { method: "PUT", body: setzen() }),
+      await json(mitglied, "/api/v1/benachrichtigungen", { method: "PUT", body: setzen() }),
     ).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
@@ -144,7 +144,7 @@ describe("the notification settings", () => {
       (await json(teufel, "/api/v1/benachrichtigungen", { method: "PUT", body: lokal })).status,
     ).toBe(200);
     // without a user the password goes too
-    expect((await json(support, "/api/v1/benachrichtigungen")).daten).toMatchObject({
+    expect((await json(mitglied, "/api/v1/benachrichtigungen")).daten).toMatchObject({
       smtp: { host: "localhost", benutzer: null, passwortGesetzt: false },
     });
     await json(teufel, "/api/v1/benachrichtigungen", { method: "PUT", body: setzen() });
@@ -158,7 +158,7 @@ describe("recipients", () => {
       status: 201,
       daten: { art: "mail", anzeige: "betrieb@betreiber.test", abSchwere: "warn" },
     });
-    const w = await json(technik, "/api/v1/benachrichtigungen/empfaenger", { body: webhook });
+    const w = await json(inhaber2, "/api/v1/benachrichtigungen/empfaenger", { body: webhook });
     expect(w.status).toBe(201);
     expect(w.daten).toEqual({
       empfaengerId: expect.any(String),
@@ -168,7 +168,7 @@ describe("recipients", () => {
       angelegtAm: expect.any(Number),
     });
     expect(
-      ((await json(support, "/api/v1/benachrichtigungen")).daten.empfaenger as unknown[]).length,
+      ((await json(mitglied, "/api/v1/benachrichtigungen")).daten.empfaenger as unknown[]).length,
     ).toBe(2);
     const zeile = server.db
       .select()
@@ -178,9 +178,9 @@ describe("recipients", () => {
     expect(zeile?.geheim).toMatch(/^v1\.[0-9a-f]{8}\./);
   });
 
-  it("refuse support, an http or credentialed URL, a short key and a bad address", async () => {
+  it("refuse mitglied, an http or credentialed URL, a short key and a bad address", async () => {
     expect(
-      (await json(support, "/api/v1/benachrichtigungen/empfaenger", { body: mail })).status,
+      (await json(mitglied, "/api/v1/benachrichtigungen/empfaenger", { body: mail })).status,
     ).toBe(403);
     for (const falsch of [
       { ...webhook, url: "http://hooks.chat.example/x" },
@@ -216,7 +216,7 @@ describe("recipients", () => {
       ...versandImTest(),
       webhook: (ziel, n, jetzt) => versandImTest().webhook({ ...ziel, url: e.url() }, n, jetzt),
     };
-    expect(await json(technik, pfad, { body: {} })).toEqual({ status: 200, daten: { ok: true } });
+    expect(await json(inhaber2, pfad, { body: {} })).toEqual({ status: 200, daten: { ok: true } });
     expect(e.empfangen.map((x) => [x.status, x.signatur])).toEqual([[204, { ok: true }]]);
     expect(JSON.parse(e.empfangen[0]?.body ?? "{}").text).toBe(
       "[Hinweis] Testnachricht der Steuerzentrale",
@@ -226,7 +226,7 @@ describe("recipients", () => {
       status: 502,
       daten: { fehler: "nicht_zugestellt", detail: "webhook HTTP 503" },
     });
-    expect((await json(support, pfad, { body: {} })).status).toBe(403);
+    expect((await json(mitglied, pfad, { body: {} })).status).toBe(403);
     const weg = `/api/v1/benachrichtigungen/empfaenger/${id}`;
     expect((await json(teufel, weg, { method: "DELETE", body: {} })).status).toBe(400);
     expect(
@@ -272,7 +272,7 @@ describe("recipients", () => {
         JSON.stringify(falsch),
       ).toBe(400);
     expect(
-      (await json(support, "/api/v1/benachrichtigungen/empfaenger", { body: ntfy })).status,
+      (await json(mitglied, "/api/v1/benachrichtigungen/empfaenger", { body: ntfy })).status,
     ).toBe(403);
   });
 

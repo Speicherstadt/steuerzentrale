@@ -22,9 +22,9 @@ und schreibt ihn mit Grund und Person ins Audit-Log ([Aufträge](auftraege.md)).
 
 | Aktion | Auftrag | Wer | Wann nicht |
 | --- | --- | --- | --- |
-| Neustart | `installation_neustart` | Inhaber, Technik | in einer Sperrzeit des Manifests; solange ein anderer Auftrag der Installation offen ist |
-| Log-Auszug | `installation_log_auszug` | Inhaber, Technik | – |
-| Nur lesen | der Befehl aus `aktionen.nur_lesen.befehl` | Inhaber, Technik | solange ein anderer Auftrag der Installation offen ist |
+| Neustart | `installation_neustart` | Inhaber, Mitglied | in einer Sperrzeit des Manifests; solange ein anderer Auftrag der Installation offen ist |
+| Log-Auszug | `installation_log_auszug` | Inhaber, Mitglied | – |
+| Nur lesen | der Befehl aus `aktionen.nur_lesen.befehl` | Inhaber | solange ein anderer Auftrag der Installation offen ist |
 
 Alle drei gibt es nur für eine Installation im Zustand „läuft“. Neustart und Log-Auszug sind
 eingebaute Aufträge ohne Argumente; „nur lesen“ ist ein gewöhnlicher Befehl des Manifests.

@@ -150,7 +150,7 @@ export const tokens = sqliteTable(
 );
 
 /**
- * A person's membership of an operator with its role (inhaber, technik, support): the mirror of
+ * A person's membership of an operator with its role (inhaber, mitglied): the mirror of
  * Better Auth's `member`, written through `schreiben`, so every membership and role change stands in
  * the audit log; the routes read the role from here (src/routes/zugang.ts)
  */

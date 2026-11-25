@@ -35,7 +35,7 @@ seines Servers.** Wie eine Lücke gemeldet wird, steht in `SECURITY.md`.
 | Angreifer mit übernommener Zentrale | Datenbank, `STEUERZENTRALE_SECRET_KEY`, CA der Agenten, Verbindungen aller Agenten; **nicht** den Signierschlüssel |
 | Angreifer mit einem gestohlenen Server oder Agent-Zertifikat | Schlüssel und Zertifikat eines Agenten, die Podman-Secrets dieses Servers |
 | ein anderer Betreiber (Partner) in derselben Zentrale | ein gültiges Konto mit Rollen in seinem Betreiber |
-| ein Mitglied mit zu wenig Rechten | ein gültiges Konto mit einer Rolle (Technik, Support) |
+| ein Mitglied mit zu wenig Rechten | ein gültiges Konto mit der Rolle Mitglied |
 | eine kompromittierte App auf einem gemeinsamen Server | Code in den Containern einer Installation |
 | Cloudflare, S3-Anbieter, Registry | ihre eigene Infrastruktur |
 
@@ -95,10 +95,10 @@ Disclosure, **D**enial of Service, **E**levation of Privilege. Tests ohne Pfad z
 | B-20 | Passwort oder TOTP-Code wird durchprobiert | S | Rate-Limit von Better Auth: Passwort und TOTP je 5, Passkey 10 je Minute und Adresse; die Adresse ist die des Sockets bzw. der Pforte | `routes/anmeldung.test.ts` › the sign-in's rate limit › stops a sixth attempt within a minute from one address; › also limits the TOTP code; › is not escaped by an X-Forwarded-For or address header a client sends; › counts each address on its own: one client does not lock out another |
 | B-21 | Ein Konto ohne zweiten Faktor oder mit gestohlenem Passwort erreicht die Oberfläche | S, E | Passkey oder Passwort mit TOTP, sonst nur die Einrichtung; kein „Gerät merken“ | `routes/zweiter-faktor.test.ts` › reaches no route that needs a role; `routes/anmeldung.test.ts` › never trusts a device, which would skip TOTP next time |
 | B-22 | Eine Route ohne Prüfung der Sitzung oder des Rechts | E | Eine Liste aller Routen mit ihrem Recht (`routes/zugang.ts`); eine Route ohne Eintrag lässt den Test scheitern | `routes/zugang.test.ts` › holds exactly the routes the app registers; › refuses a request without a session; › needs a session where the list says so |
-| B-23 | Ein Mitglied tut mehr, als seine Rolle erlaubt | E | Rechte je Rolle (`auth/rollen.ts`), geprüft in jeder Route | `routes/zugang.test.ts` › <Route> › as inhaber/technik/support answers by the list (jede Route mit Recht in jeder Rolle, sonst `403 keine_berechtigung`); › gives every route that needs a right at least one role; `auth/rollen.test.ts` › darf |
+| B-23 | Ein Mitglied tut mehr, als seine Rolle erlaubt | E | Rechte je Rolle (`auth/rollen.ts`), geprüft in jeder Route | `routes/zugang.test.ts` › <Route> › as inhaber/mitglied answers by the list (jede Route mit Recht in jeder Rolle, sonst `403 keine_berechtigung`); › gives every route that needs a right at least one role; › a member › is refused <Route> (jede schreibende Route außer Neustart und Log-Auszug); `auth/rollen.test.ts` › darf |
 | B-24 | Ein Betreiber (Partner) sieht oder ändert Daten eines anderen | I, T | `betreiber_id` in jeder Tabelle und Abfrage; `schreiben` lehnt fremde Zeilen ab | `routes/mandanten.test.ts` › no operator reaches another's data; `routes/kunden-mandanten.test.ts`; `routes/betrieb-mandanten.test.ts`; `modules/audit/schreiben.test.ts` › refuses a row of another operator |
 | B-25 | Der Einrichtungscode des ersten Inhabers wird erraten oder wiederverwendet | S | Einmal, 24 h, nie im Log | `routes/erster-inhaber.test.ts` › refuses the code a second time; › refuses the code after 24 hours; › never writes the code into the request log |
-| B-26 | Support erreicht Log-Auszug oder Neustart (früher über einen Support-Zugang) | E | Support-Zugänge gibt es seit Z-1203 nicht mehr; die Rolle Support hat weder `installationen:log_auszug` noch `installationen:schreiben`, die Wache kennt keinen Ersatz für ein fehlendes Recht | `routes/aktionen.test.ts` › refuses support every action: no support access opens one any more; `routes/zugang.test.ts` › removed routes |
+| B-26 | Ein Mitglied (früher Support über einen Support-Zugang) ändert mehr als Neustart und Log-Auszug | E | Support-Zugänge gibt es seit Z-1203 nicht mehr, die Wache kennt keinen Ersatz für ein fehlendes Recht; die Rolle Mitglied hat außer Lesen nur `installationen:neustart` und `installationen:log_auszug` (Z-1204) | `routes/zugang.test.ts` › a member › is refused <Route>; `routes/aktionen.test.ts` › lets a member restart and take a log excerpt, never „nur lesen“; `auth/rollen.test.ts` › lets a member change nothing else |
 | B-27 | Ein Angreifer auf `api.<domain>` probiert Tokens durch | S | Annahme: `api.<domain>` hat keine Route, die API für das Portal ist gestrichen (Bauliste, „Später, bei Bedarf“); käme sie, dann mit Tokens als Hash und einem Rate-Limit mit eigenem Test | – |
 | B-28 | Eine fremde Seite im Browser eines Mitglieds (etwa eine App unter derselben Domain) schreibt mit dessen Sitzung (CSRF) | S, E | Jede schreibende Anfrage mit Sitzung braucht den Origin der Oberfläche, sonst `403 fremder_ursprung` (Entscheidung „Schreiben nur vom eigenen Origin“); Better Auth prüft seine Pfade selbst gegen `STEUERZENTRALE_URL` | `routes/zugang.test.ts` › a write from a page of another origin › … is refused, with the member's session (jede schreibende Route) |
 
@@ -178,7 +178,7 @@ deren Zutrittskontrolle; der Betreiber hat keinen physischen Zugang.
 
 **Zugriffskontrolle**
 
-- Rollen Inhaber, Technik und Support mit festen Rechten je Route, Schreiben nur von der Oberfläche
+- Rollen Inhaber und Mitglied mit festen Rechten je Route, Schreiben nur von der Oberfläche
   selbst (B-22, B-23, B-28); kein Support-Zugang, der ein fehlendes Recht ersetzt (B-26).
 - Trennung der Betreiber durch `betreiber_id` in jeder Abfrage (B-24).
 - Auf den Servern läuft jede Installation unter einem eigenen Linux-Nutzer ohne Login-Shell, in

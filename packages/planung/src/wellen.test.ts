@@ -190,7 +190,7 @@ describe("Haben", () => {
     const jetzt = berlin(2026, 11, 9);
     for (const freigabe of [
       { installationId: "haben", rolle: "inhaber", grund: "  " },
-      { installationId: "haben", rolle: "technik", grund: "eilig" },
+      { installationId: "haben", rolle: "mitglied", grund: "eilig" },
       { installationId: "andere", rolle: "inhaber", grund: "eilig" },
     ]) {
       const e = ergebnis(updatePlan([haben], dringend, {}, [freigabe], jetzt), "haben");

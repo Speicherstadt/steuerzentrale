@@ -9,8 +9,8 @@ import type { Anfrage, Registrar, RoutenName } from "./zugang.ts";
 
 /*
  * The actions of an installation (BAULISTE.md Z-405; docs/plan.md, "Aktionen einer Installation"):
- * restart and "nur lesen" for owner and technik (`installationen:schreiben`), the log excerpt for
- * every role (`installationen:log_auszug`), each with its reason in `grund`; the lines of a log
+ * restart (`installationen:neustart`) and log excerpt (`installationen:log_auszug`) for both roles,
+ * "nur lesen" for the owner (`installationen:schreiben`), each with its reason in `grund`; the lines of a log
  * excerpt only to the roles with that right. An installation or job of another operator is unknown.
  */
 

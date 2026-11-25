@@ -18,7 +18,7 @@ import { zugangLesen } from "./zugaenge.ts";
 /*
  * The backup jobs of an installation (BAULISTE.md Z-601; docs/plan.md, "Backup auf dem Server
  * (Z-601)"): `installation_backup_einrichten` once its access is made at MinIO (abgleich.ts), and
- * `installation_backup` for "Backup jetzt", with a reason, by owner and technik: only for a running
+ * `installation_backup` for "Backup jetzt", with a reason, by the owner: only for a running
  * installation whose backups are set up, and not while a backup job of it is open, nor while a
  * restore of it is (Z-603): a backup then would keep half-restored data. Both carry the
  * installation's signed manifest; the field `backup` goes in only when the job is sent.

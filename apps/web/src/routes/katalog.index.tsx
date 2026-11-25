@@ -16,7 +16,7 @@ import { Hinweisbox, Seitenkopf } from "../teile/karte.tsx";
  * The apps as their manifests describe them (BAULISTE.md, Z-201, Z-203, Z-501): one calm tile per
  * app with its version, its installations and at most one hint; facts, versions, actions and
  * values stand on the app's page (katalog.$app.tsx). The described apps first, then those only
- * imported. Owner and technik import a signed manifest and ask the registries here.
+ * imported. The owner import a signed manifest and ask the registries here.
  */
 
 const Katalog = () => {

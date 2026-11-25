@@ -75,7 +75,7 @@ HTTP-Dienst, richtet die Zentrale nach dem Update die Backups bzw. die Route der
 
 ## Update von Hand
 
-Inhaber und Technik aktualisieren eine Installation auf der Seite **Updates** mit **Aktualisieren…**
+Der Inhaber aktualisiert eine Installation auf der Seite **Updates** mit **Aktualisieren…**
 oder auf der Seite der App mit **Aktualisieren …** in der Zeile „Version“ des Überblicks: Version
 wählen (die neueste steht oben) und einen Grund angeben, der im Audit-Log steht. So auch Apps ohne
 Health, die keine Welle aktualisiert. In einer Sperrzeit der App darf nur der Inhaber; das Update

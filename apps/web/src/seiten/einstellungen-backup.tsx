@@ -9,8 +9,8 @@ import { MitInstallationsRecht } from "./recht.tsx";
 /*
  * The settings' tab "Backup" (BAULISTE.md Z-601; mockup viewEinstellungen, "backup"): the
  * operator's S3 target (endpoint, region, bucket) and the admin access the Zentrale makes each
- * installation's own access with, set with a reason by owner and technik (the roles that install,
- * src/auth/rollen.ts of the Zentrale); support sees them read-only. The admin access never comes
+ * installation's own access with, set with a reason by the owner (the roles that install,
+ * src/auth/rollen.ts of the Zentrale); a member sees them read-only. The admin access never comes
  * back: it shows only as set, and both fields left empty keep it.
  */
 

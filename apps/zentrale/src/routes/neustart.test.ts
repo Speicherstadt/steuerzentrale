@@ -12,9 +12,9 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
  * BAULISTE.md Z-701 over HTTP (docs/plan.md, "Neustart von Hand"): every server in the API says
- * whether it needs a reboot, what the plan decides and its last reboot; owner and technik reboot a
+ * whether it needs a reboot, what the plan decides and its last reboot; owner and inhaber2 reboot a
  * server by hand with a reason, at any time but never in a freeze window of an app on it and never
- * beside an open job; support only reads; no operator reaches another's server (a test per
+ * beside an open job; mitglied only reads; no operator reaches another's server (a test per
  * endpoint).
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
@@ -22,8 +22,8 @@ type Antwort = { status: number; daten: Record<string, unknown> };
 
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 let kundeId: string;
 let serverId: string;
@@ -63,8 +63,8 @@ const beigetreten = (p: Person, id: string) =>
 beforeAll(async () => {
   server = testServer(afterAll);
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   kundeId = await kundeAnlegen(json, teufel);
   serverId = await serverMitAgent(server, json, teufel, agent);
@@ -76,7 +76,7 @@ beforeAll(async () => {
 describe("the reboot of a server", () => {
   it("is shown at every server: needed, what the plan decides, the last one", async () => {
     allesErledigt(teufel);
-    const r = await json(support, `/api/v1/server/${serverId}`);
+    const r = await json(mitglied, `/api/v1/server/${serverId}`);
     expect(r.status).toBe(200);
     expect(r.daten.fakten).toMatchObject({
       bootId: FAKTEN.bootId,
@@ -90,7 +90,7 @@ describe("the reboot of a server", () => {
       plan: { art: "warten", grund: "fenster", ab: expect.any(Number) },
       letzter: null,
     });
-    const liste = await json(support, "/api/v1/server");
+    const liste = await json(mitglied, "/api/v1/server");
     expect((liste.daten.server as Record<string, unknown>[])[0]?.neustart).toEqual(
       r.daten.neustart,
     );
@@ -99,7 +99,7 @@ describe("the reboot of a server", () => {
   it("by hand: backups first, the reboot with the reason in the audit log", async () => {
     allesErledigt(teufel);
     const vorher = agent.length;
-    const r = await neustart(technik, serverId, "Kernel-Update, Kunde informiert");
+    const r = await neustart(inhaber2, serverId, "Kernel-Update, Kunde informiert");
     expect(r).toMatchObject({
       status: 201,
       daten: {
@@ -130,14 +130,14 @@ describe("the reboot of a server", () => {
     });
   });
 
-  it("is refused without a reason and for support", async () => {
+  it("is refused without a reason and for mitglied", async () => {
     allesErledigt(teufel);
     for (const grund of [undefined, "", "   "])
       expect(await neustart(teufel, serverId, grund)).toEqual({
         status: 400,
         daten: { fehler: "ungueltig" },
       });
-    expect((await neustart(support, serverId, "darf nicht")).status).toBe(403);
+    expect((await neustart(mitglied, serverId, "darf nicht")).status).toBe(403);
   });
 
   it("is refused in a freeze window of an app on the server, also for the owner", async () => {

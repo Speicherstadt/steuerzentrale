@@ -2,8 +2,7 @@
 title: Anmeldung und Rollen
 description: >-
   Wie Betreiber sich an der Steuerzentrale anmelden: erster Inhaber mit dem Einrichtungscode,
-  Passkey oder Passwort mit Authenticator-App, Einladungen per Link, Rollen Inhaber, Technik und
-  Support.
+  Passkey oder Passwort mit Authenticator-App, Einladungen per Link, Rollen Inhaber und Mitglied.
 ---
 
 # Anmeldung und Rollen
@@ -78,33 +77,25 @@ E-Mail-Adresse, wahlweise Passwort) und richtet danach den zweiten Faktor ein.
 
 ## Rollen
 
-| Recht | Inhaber | Technik | Support |
-| --- | --- | --- | --- |
-| Betreiber und eigenes Konto sehen | ja | ja | ja |
-| Mitglieder sehen | ja | ja | ja |
-| einladen, Rollen ändern, Mitglieder entfernen | ja | – | – |
-| Kunden und Verträge sehen | ja | ja | ja |
-| Kunden anlegen, ändern, kündigen | ja | ja | – |
-| Kunden als intern markieren | ja | – | – |
-| Apps, Versionen und Manifeste sehen | ja | ja | ja |
-| Manifest importieren, nach neuen Versionen suchen | ja | ja | – |
-| Server hinzufügen | ja | ja | – |
-| Installationen und Platzierung sehen | ja | ja | ja |
-| Installationen anlegen, gescheiterte entfernen | ja | ja | – |
-| „nur lesen“ einer Installation | ja | ja | – |
-| Neustart, Log-Auszug anfordern und lesen | ja | ja | – |
-| Übersicht, Aufträge und Ereignisse sehen | ja | ja | ja |
-| Audit-Log lesen | ja | ja | – |
-| Backups und S3-Ziel sehen | ja | ja | ja |
-| S3-Ziel setzen, „Backup jetzt“ | ja | ja | – |
+| Recht | Inhaber | Mitglied |
+| --- | --- | --- |
+| alles sehen: Betreiber, Mitglieder, Kunden, Server, Apps, Backups, Updates, Übersicht, Aufträge, Ereignisse, Audit-Log, Einstellungen (ohne Geheimnisse) | ja | ja |
+| Neustart einer App, Log-Auszug anfordern und lesen | ja | ja |
+| einladen, Rollen ändern, Mitglieder entfernen | ja | – |
+| Kunden anlegen, ändern, kündigen, intern markieren | ja | – |
+| Manifest importieren, nach neuen Versionen suchen | ja | – |
+| Server hinzufügen, sperren, neu starten | ja | – |
+| Installationen anlegen, entfernen, Einstellungen ändern, „nur lesen“, Update | ja | – |
+| S3-Ziel setzen, „Backup jetzt“, Prüf-Restore, Wiederherstellen | ja | – |
+| DNS, Benachrichtigungen, Werte des Betreibers ändern | ja | – |
 
 Die Rollen sind die Zugriffssteuerung des Organization-Plugins von Better Auth; jeder Betreiber ist
 dort eine Organisation mit derselben ID. Ein Betreiber behält immer einen Inhaber: der letzte kann
 seine Rolle nicht abgeben und nicht entfernt werden. Wer entfernt wird, verliert den Zugang sofort.
-Support-Zugänge gibt es seit Z-1203 nicht mehr: Support sieht, löst aber weder Neustart noch
-Log-Auszug aus.
-Technik legt Kunden an und pflegt ihre Verträge, weil eine Installation von ihnen ausgeht; Support
-sieht sie nur ([Kunden und Verträge](kunden.md)).
+Seit Z-1204 gibt es zwei Rollen: Ein gekapertes Konto eines Mitglieds löscht keine Kundendaten und
+tauscht kein Geheimnis. Eine Migration hat Mitglieder der früheren Rolle Technik zu Inhabern
+gemacht, die der Rolle Support zu Mitgliedern; eine noch offene Einladung beider alten Rollen lädt
+seitdem als Mitglied ein.
 
 Jede Mitgliedschaft, jede Rolle und jede Einladung steht im Audit-Log, mit dem, der sie angelegt
 oder geändert hat.
@@ -121,12 +112,13 @@ oder geändert hat.
 | `PATCH`, `DELETE /api/v1/mitglieder/:nutzerId` | Inhaber |
 | `GET`, `POST /api/v1/einladungen`, `DELETE …/:einladungId` | Inhaber |
 | `GET /api/v1/kunden`, `GET …/:kundeId` | alle Rollen ([Kunden und Verträge](kunden.md)) |
-| `POST /api/v1/kunden`, `PUT …/:kundeId`, `PUT`, `DELETE …/:kundeId/kuendigung` | Inhaber, Technik |
+| `POST /api/v1/kunden`, `PUT …/:kundeId`, `PUT`, `DELETE …/:kundeId/kuendigung` | Inhaber |
 | `PUT /api/v1/kunden/:kundeId/intern` | Inhaber |
 | `GET /api/v1/apps`, `GET /api/v1/manifeste/:app/:version`, `GET /api/v1/updates` | alle Rollen ([Katalog, Manifeste und Versionen](manifeste.md)) |
-| `POST /api/v1/manifeste`, `POST /api/v1/versionen/abfragen` | Inhaber, Technik |
+| `POST /api/v1/manifeste`, `POST /api/v1/versionen/abfragen` | Inhaber |
 | `GET /api/v1/installationen`, `GET …/:installationId`, `POST …/platzierung` | alle Rollen ([Apps installieren](installieren.md)) |
-| `POST /api/v1/installationen`, `DELETE …/:installationId` | Inhaber, Technik |
+| `POST /api/v1/installationen`, `DELETE …/:installationId` | Inhaber |
+| `POST /api/v1/installationen/:installationId/neustart`, `…/log-auszug`, `GET …/log-auszuege/:auftragId` | Inhaber, Mitglied |
 
 Von Better Auth unter `/api/auth` sind nur Anmeldung (`sign-in/email`, Passkey, TOTP, Ersatzcode),
 Abmelden, die Sitzung und das Einrichten von Passkey und TOTP erreichbar; Registrieren, die Routen der

@@ -9,7 +9,7 @@ import { testServer } from "../testhilfen/server.ts";
 
 /*
  * BAULISTE.md Z-406: jobs, events and the audit log page by page, every row exactly once, also when
- * new rows come between two pages; the audit log only for owner and technik; a manifest's text and
+ * new rows come between two pages; the audit log for both roles (Z-1204); a manifest's text and
  * signature stay "[ausgelassen]".
  */
 
@@ -150,17 +150,12 @@ describe("GET /api/v1/audit", () => {
     });
   });
 
-  it("is read by owner and technik, not by support", async () => {
+  it("is read by both roles: a member sees everything (Z-1204)", async () => {
     const { server, inhaber } = await mitInhaber();
-    const technik = await server.eingeladen(inhaber, "technik");
-    const support = await server.eingeladen(inhaber, "support");
+    const mitglied = await server.eingeladen(inhaber, "mitglied");
     expect((await inhaber.json("/api/v1/audit")).status).toBe(200);
-    expect((await technik.json("/api/v1/audit")).status).toBe(200);
-    expect(await support.json("/api/v1/audit")).toEqual({
-      status: 403,
-      daten: { fehler: "keine_berechtigung" },
-    });
+    expect((await mitglied.json("/api/v1/audit")).status).toBe(200);
     for (const pfad of ["/api/v1/uebersicht", "/api/v1/auftraege", "/api/v1/ereignisse"])
-      expect((await support.json(pfad)).status, pfad).toBe(200);
+      expect((await mitglied.json(pfad)).status, pfad).toBe(200);
   });
 });

@@ -56,7 +56,7 @@ beforeEach(() => {
     },
   };
   backupQuelleEinsetzen(mitProtokoll);
-  rolle("technik");
+  rolle("inhaber");
 });
 afterEach(aufraeumen);
 
@@ -115,8 +115,8 @@ describe("the S3 target", () => {
     expect(root.textContent).not.toContain("minio-geheim-123");
   });
 
-  it("is only read by support", async () => {
-    rolle("support");
+  it("is only read by a member", async () => {
+    rolle("mitglied");
     const { root } = await oeffne("/einstellungen?tab=backup");
     await warten();
     const k = karte(root, "Backup");
@@ -141,8 +141,8 @@ describe("Backup jetzt", () => {
     expect(root.textContent).toContain("Backup angefordert");
   });
 
-  it("is not offered to support", async () => {
-    rolle("support");
+  it("is not offered to a member", async () => {
+    rolle("mitglied");
     const { root } = await oeffne("/apps/atelier-haben");
     await warten();
     expect(knopf(root, "Backup jetzt")).toBeUndefined();
@@ -240,8 +240,8 @@ describe("restoring a run", () => {
     expect(wiederherstellenKnoepfe(root)).toHaveLength(4);
   });
 
-  it("is not offered to support", async () => {
-    rolle("support");
+  it("is not offered to a member", async () => {
+    rolle("mitglied");
     const root = await reiter("atelier-haben");
     expect(wiederherstellenKnoepfe(root)).toEqual([]);
     expect(root.textContent).not.toContain("Wiederherstellen");

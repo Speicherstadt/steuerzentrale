@@ -185,6 +185,6 @@ export const audit: AuditEintrag[] = [
 
 export const konten: Konto[] = [
   { name: "Jana Beispiel", rolle: "inhaber", faktor: "passkey", zuletzt: heute("08:12") },
-  { name: "Ole Kamp", rolle: "support", faktor: "passkey", zuletzt: heute("09:55") },
-  { name: "Lars Wendt", rolle: "technik", faktor: "totp", zuletzt: gestern("18:40") },
+  { name: "Ole Kamp", rolle: "mitglied", faktor: "passkey", zuletzt: heute("09:55") },
+  { name: "Lars Wendt", rolle: "inhaber", faktor: "totp", zuletzt: gestern("18:40") },
 ];

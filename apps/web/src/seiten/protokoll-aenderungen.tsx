@@ -9,8 +9,7 @@ import { ZielLink, ZuServer } from "../teile/verweise.tsx";
 
 /**
  * Every write with actor, time, target and reason; append-only (BAULISTE.md Z-102), newest first,
- * page by page from the Zentrale (Z-406); only owner and technik read it, the Zentrale refuses
- * support anyway
+ * page by page from the Zentrale (Z-406); both roles read it (Z-1204)
  */
 
 const Wer = (props: { akteur: Akteur }) => (
@@ -56,7 +55,7 @@ const Eintraege = (props: { eintraege: AuditEintragDerZentrale[] }) => (
   </Tabelle>
 );
 
-/** The tab "Änderungen" of the Protokoll (routes/protokoll.tsx); the page shows it only to owner and technik */
+/** The tab "Änderungen" of the Protokoll (routes/protokoll.tsx); both roles see it (Z-1204) */
 export const Aenderungen = () => (
   <Seitenweise
     laden={(weiter) => betriebQuelle().audit({}, weiter)}

@@ -24,7 +24,7 @@ import { installationsFehler } from "./installieren-texte.ts";
  * The versions of an app on its page below "Apps" (BAULISTE.md Z-501; design/mockup, viewApps): each
  * imported version, a newer one of the registry as "Manifest fehlt", "dringend" and
  * pre-releases marked, what the registry said last; the dialog that imports a signed manifest and
- * the button that asks the registries now, both for owner and technik.
+ * the button that asks the registries now, both for the owner.
  */
 
 const DURCH: Record<Importiert["durch"], () => string> = {

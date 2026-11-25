@@ -6,7 +6,7 @@ import type { Registrar } from "./zugang.ts";
 
 /*
  * The operator's DNS at Cloudflare (BAULISTE.md Z-407; docs/plan.md, "DNS über Cloudflare"): every
- * role reads domain, zone id and whether a token is set; owner and technik set them with a reason.
+ * role reads domain, zone id and whether a token is set; the owner sets them with a reason.
  * The token comes back only as `tokenGesetzt`; left out, the one set before stays. Domain and zone
  * stay as they are while an installation has records there (`dns_in_benutzung`): its records are
  * deleted where they were set.
