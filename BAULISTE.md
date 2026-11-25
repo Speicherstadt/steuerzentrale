@@ -563,6 +563,12 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   (Test); ein Name mit Leerzeichen, `;`, `/` oder führendem `-` von Zentrale und Agent abgelehnt wird
   (Test); dafür kein Befehl außer `systemctl show` und der HTTP- oder TCP-Prüfung läuft (Test über
   die aufgezeichneten argv).
+  Geschärft: die Zentrale schickt die Liste dem Agenten mit der Nachricht `beobachten` nach
+  `willkommen` und nach jeder Änderung eines Dienstes; der Agent behält sie nur auf einem Server,
+  der nur beobachtet wird, sonst protokolliert er sie und liest nichts (Test); die Zentrale nimmt
+  Units nur zu einem eigenen Server an, der nur beobachtet wird (Test je Fall); eine Unit, die
+  systemd nicht kennt (`LoadState=not-found`), ist unbekannt (Test); fünf Minuten rot innen ergeben
+  die Störung des Dienstes, behoben erst, wenn innen und außen grün sind (Test).
   Sicherheitsrelevant: was der Agent ausführt.
 - [ ] **Z-1104 Oberfläche über Cloudflare Tunnel** – ein zweiter Weg neben WireGuard: Mit
   `STEUERZENTRALE_ACCESS_TEAM` und `STEUERZENTRALE_ACCESS_AUD` nimmt die Zentrale Oberfläche und API
