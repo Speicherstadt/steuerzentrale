@@ -169,7 +169,7 @@ Die Reiter stehen in der Adresse (`?tab=`):
 | Reiter | Inhalt |
 | --- | --- |
 | Überblick | fünf Zeilen: **Erreichbar** (Antwortzeit von außen, Zertifikat), **Version** (ein angebotenes Update mit „Aktualisieren …“, sonst aktuell), **Backup** (letzter Lauf, Größe, jede Nacht, letzter Prüf-Restore; „Backup jetzt“), **Verfügbarkeit** (dieser und der letzte Monat), **Server** (Verbindung, RAM, Platte); daneben der Kunde (Vertrag, Ansprechperson) und die letzten drei Ereignisse und Aufträge mit „Ganzer Verlauf“ |
-| Messwerte | nur Gemessenes: die Verfügbarkeit der letzten 90 Tage als Balken je Tag ([Prüfung von außen](aussen.md)) und die Größe jedes nächtlichen Backups über 24 Stunden, 7 oder 30 Tage, die Skala von 0 bis zu einer runden Zahl; ein Zeitraum ohne Backup ist als solcher beschriftet. Antwortzeit, CPU und Arbeitsspeicher folgen, sobald der Agent sie meldet |
+| Messwerte | nur Gemessenes: die Verfügbarkeit der letzten 90 Tage als Balken je Tag ([Prüfung von außen](aussen.md)) und die Größe jedes nächtlichen Backups über 24 Stunden, 7 oder 30 Tage, die Skala von 0 bis zu einer runden Zahl; ein Zeitraum ohne Backup ist als solcher beschriftet; CPU und Arbeitsspeicher des Linux-Nutzers der App aus den Fakten des Agenten ([CPU und Arbeitsspeicher](uebersicht.md#cpu-und-arbeitsspeicher)). Die Antwortzeit folgt, sobald der Agent sie meldet |
 | Backups | Läufe, Prüf-Restore, Wiederherstellen und was nach einem Vertragsende folgt; „Alle Backups“ |
 | Einstellungen | die Werte dieser Installation (ohne Geheimnisse) |
 | Verlauf | jeder Wechsel des Zustands und die Ereignisse der App |

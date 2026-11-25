@@ -55,6 +55,9 @@ export const pruefungenDerDemo = (b: Bestand, sv: Server): Serverpruefung[] => {
       })),
       uhrzeitAbweichungMs: sv.uhrAbweichungMs,
       uhrSynchron: true,
+      // Z-1106: the demo's memory in percent of its RAM
+      ramMb: sv.ramGb * 1024,
+      ramBelegtMb: Math.round((sv.ramGb * 1024 * sv.ram) / 100),
     },
     hosts: installationen.map((i) => i.adresse),
     erlaubtePorts: [],

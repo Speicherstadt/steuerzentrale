@@ -74,6 +74,8 @@ export const ROUTEN = {
   "GET /api/v1/server/:serverId": recht("server:lesen"),
   // how full its disks were, from the history of its facts: read like the server
   "GET /api/v1/server/:serverId/platten": recht("server:lesen"),
+  // CPU, load and memory from the same history (Z-1106): read like the server
+  "GET /api/v1/server/:serverId/last": recht("server:lesen"),
   "POST /api/v1/server": recht("server:anlegen"),
   "POST /api/v1/server/:serverId/sperren": recht("server:sperren"),
   "POST /api/v1/server/:serverId/neustart": recht("server:neustart"),
@@ -99,6 +101,8 @@ export const ROUTEN = {
   // the check from outside and the availability (Z-704): read like the installation
   "GET /api/v1/installationen/:installationId/aussen": recht("installationen:lesen"),
   "GET /api/v1/installationen/:installationId/verfuegbarkeit": recht("installationen:lesen"),
+  // CPU and memory of its Linux user (Z-1106), read like the installation
+  "GET /api/v1/installationen/:installationId/last": recht("installationen:lesen"),
   // Z-1101: observed services; every role reads, only the owner writes
   "GET /api/v1/dienste": recht("dienste:lesen"),
   "POST /api/v1/dienste": recht("dienste:schreiben"),

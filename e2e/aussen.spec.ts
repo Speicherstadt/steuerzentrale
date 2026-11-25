@@ -49,7 +49,9 @@ test.describe("the check from outside", { tag: "@phone" }, () => {
       await expect(page.getByTestId("tagesbalken").locator('span[data-ton="leer"]')).toHaveCount(
         90,
       );
-      await expect(page.getByTestId("mess-hinweis")).toBeVisible();
+      // Z-1106: CPU and memory of the app's user; the stand-in reports no user, so no values yet
+      await expect(page.getByTestId("mess-cpu")).toContainText("CPU");
+      await expect(page.getByTestId("mess-ram")).toBeVisible();
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     } finally {
       i.agent.trennen();

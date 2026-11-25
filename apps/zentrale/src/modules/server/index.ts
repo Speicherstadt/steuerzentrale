@@ -16,6 +16,7 @@ export {
   type ServerFakten,
   serverFakten,
 } from "./fakten.ts";
+export { lastVerlauf, nutzerLast, serverLast } from "./last.ts";
 export { letzteHeartbeats, serverListe } from "./liste.ts";
 export { plattenVerlauf } from "./platten.ts";
 export {

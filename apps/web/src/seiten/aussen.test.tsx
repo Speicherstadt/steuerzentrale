@@ -71,6 +71,7 @@ describe("the check from outside on an installation's page", () => {
     aussenQuelleEinsetzen({
       derInstallation: async () => ({ ok: true, status: 200, daten: leer }),
       tage: async () => ({ ok: true, status: 200, daten: [] }),
+      last: async () => ({ ok: true, status: 200, daten: [] }),
     });
     const { root } = await oeffne("/apps/berger-schreibzeug?tab=technik");
     await warten();
@@ -97,6 +98,7 @@ describe("the check from outside on an installation's page", () => {
     aussenQuelleEinsetzen({
       derInstallation: async () => ({ ok: true, status: 200, daten: falsch }),
       tage: async () => ({ ok: true, status: 200, daten: [] }),
+      last: async () => ({ ok: true, status: 200, daten: [] }),
     });
     const { root } = await oeffne("/apps/berger-schreibzeug?tab=technik");
     await warten();

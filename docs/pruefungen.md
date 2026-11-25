@@ -21,6 +21,7 @@ Backups, immer innerhalb des Betreibers des Servers.
 | Backups | der letzte gelungene Lauf einer Installation ist älter als 26 Stunden | – | Läufe in der Zentrale |
 | Offene Ports | ein Port ist von außen erreichbar, den kein Manifest und nicht das System nennt | – | offene Ports des Agenten |
 | Uhrzeit | Abweichung von 500 ms oder mehr, oder der Zeitdienst ist nicht synchron | – | Messung an `willkommen`, `timedatectl` |
+| Arbeitsspeicher | über 90 % belegt (`MemTotal` minus `MemAvailable`) | über 95 % | `last` der Fakten ([CPU und Arbeitsspeicher](uebersicht.md#cpu-und-arbeitsspeicher)) |
 
 Die Grenzen selbst gehören zur besseren Seite: genau 80 % ist grün, genau 90 % gelb, ein Zertifikat,
 das in genau 14 Tagen abläuft, gelb, ein Backup von genau 26 Stunden grün, eine Abweichung von genau

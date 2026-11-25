@@ -46,6 +46,13 @@ export type ServerFakten = {
   uhrSynchron?: boolean | null;
   /** Z-1102: the server is only observed; an agent before it does not send it */
   nurBeobachten?: boolean;
+  /** Z-1106: CPU, load and memory, and per Linux user; an agent before it does not send it */
+  last?: {
+    cpuProzent: number | null;
+    last1: number | null;
+    ramBelegtMb: number | null;
+    nutzer: { name: string; cpuProzent: number | null; ramMb: number | null }[];
+  };
 };
 
 /**
@@ -64,6 +71,17 @@ export type NeustartStand = {
     fehler: string | null;
   } | null;
 };
+
+/** One hour of a server's CPU, load and memory (Z-1106): the highest reading of each */
+export type ServerLastStunde = {
+  stunde: number;
+  cpuProzent: number | null;
+  last1: number | null;
+  ramProzent: number | null;
+};
+
+/** One hour of an installation's Linux user (Z-1106) */
+export type NutzerLastStunde = { stunde: number; cpuProzent: number | null; ramMb: number | null };
 
 /** A check of the server (Z-702) as the Zentrale rated it, with the start of its open finding */
 export type ServerPruefung = Serverpruefung & { seit: number | null };
@@ -107,6 +125,8 @@ export type ServerQuelle = {
   server: (id: string) => Promise<Antwort<ServerDerZentrale>>;
   /** How full its disks were over the last `tage` days, per hour, oldest first */
   platten: (id: string, tage: number) => Promise<Antwort<PlattenStunde[]>>;
+  /** CPU, load and memory per hour, the highest reading (Z-1106, GET /api/v1/server/:id/last) */
+  last: (id: string, tage: number) => Promise<Antwort<ServerLastStunde[]>>;
   /** Revokes the server's certificate: its agent is refused from now on */
   sperren: (id: string, grund: string) => Promise<Antwort<ServerDerZentrale>>;
   /** Reboots the server by hand (Z-701): its installations are backed up first */
@@ -123,6 +143,10 @@ export const apiServer: ServerQuelle = {
   server: (id) => api<ServerDerZentrale>(pfad(id)),
   platten: async (id, tage) => {
     const antwort = await api<{ stunden: PlattenStunde[] }>(`${pfad(id)}/platten?tage=${tage}`);
+    return antwort.ok ? { ...antwort, daten: antwort.daten.stunden } : antwort;
+  },
+  last: async (id, tage) => {
+    const antwort = await api<{ stunden: ServerLastStunde[] }>(`${pfad(id)}/last?tage=${tage}`);
     return antwort.ok ? { ...antwort, daten: antwort.daten.stunden } : antwort;
   },
   sperren: (id, grund) => api<ServerDerZentrale>(`${pfad(id)}/sperren`, { body: { grund } }),
