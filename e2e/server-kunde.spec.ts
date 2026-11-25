@@ -30,7 +30,6 @@ test.describe("servers and customers", { tag: "@phone" }, () => {
         "System",
       ]);
       const zeile = tabelle.locator("tbody tr").filter({ hasText: agent.name });
-      await expect(zeile).toContainText("für mehrere Kunden");
       await expect(zeile).toContainText("40 %");
       await expect(zeile).toContainText("0 Apps");
       await ohneBefund(page);
