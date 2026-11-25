@@ -34,7 +34,7 @@ sich oder ihre Kunden betreiben: auf gemeinsamen Servern, auf einem Server je Ku
 </div>
 
 > [!WARNING]
-> **Release-Kandidat:** Stufe 1 (eigener Betrieb) ist bis auf die Betriebsart „Nur für mich“ (Z-805) fertig gebaut und läuft in der CI auf echten VMs durch, im
+> **Release-Kandidat:** Stufe 1 (eigener Betrieb) ist fertig gebaut und läuft in der CI auf echten VMs durch, im
 > Echtbetrieb ist die Steuerzentrale noch neu. Vor jedem Update der Zentrale ein Backup machen
 > ([Zentrale sichern](https://speicherstadt.org/steuerzentrale/zentrale-sichern.html)); Apps aktualisiert sie ohnehin nur mit Backup davor.
 
@@ -65,10 +65,10 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
 |---|---|
 | 🧭 [Übersicht](https://speicherstadt.org/steuerzentrale/uebersicht.html) | Beantwortet „Brauche ich gerade etwas zu tun?“: das Urteil als Überschrift, vier Kacheln, „Zu tun“ mit einer Zeile je App oder Server und ihren Knöpfen (Log ansehen, Neustart, App oder Server öffnen), „Als Nächstes“ (Updates, Neustarts, Sperrzeiten, Zertifikate, Vertragsenden) und „Von selbst erledigt“ seit gestern Abend |
 | 🗂️ [Navigation](https://speicherstadt.org/steuerzentrale/uebersicht.html#navigation) | Acht Einträge in zwei Gruppen: Betrieb (Übersicht, Apps, Server, Kunden, Updates) und Verwaltung (Katalog, Protokoll, Einstellungen); laufende Apps heißen Apps, die Manifeste Katalog, Ereignisse, Aufträge und Änderungen stehen im Protokoll; die Einstellungen in Abschnitten mit je einer Zeile, die Werte einer App unter Titeln in Worten |
-| 🖥️ [Server hinzufügen](https://speicherstadt.org/steuerzentrale/server-hinzufuegen.html) | Ein Befehl mit Einmal-Token; `install.sh` richtet auf Debian 13 oder Ubuntu 24.04 Podman, unattended-upgrades und den signierten Agenten ein; Zertifikat rotiert selbst, sofort sperrbar |
-| 📦 [Apps installieren](https://speicherstadt.org/steuerzentrale/installieren.html) | Dialog mit Kunde, Server und Adresse; Platzierung nach Platz und Art des Servers; Einstellungen als Formular aus dem Manifest, Geheimnisse als Podman-Secrets |
+| 🔌 [Server hinzufügen](https://speicherstadt.org/steuerzentrale/server-hinzufuegen.html) | Ein Befehl mit Einmal-Token; `install.sh` richtet auf Debian 13 oder Ubuntu 24.04 Podman, unattended-upgrades und den signierten Agenten ein; Zertifikat rotiert selbst, sofort sperrbar |
+| 📦 [Apps installieren](https://speicherstadt.org/steuerzentrale/installieren.html) | Dialog mit Kunde, Server, App und Version aus dem Katalog und Adresse; Platzierung nach Platz und Art des Servers; Einstellungen als Formular aus dem Manifest, Geheimnisse als Podman-Secrets |
 | 🧩 [Apps](https://speicherstadt.org/steuerzentrale/installieren.html#die-seite-apps) | Eine Tabelle mit Zustand in Worten, Version, letztem Backup und Server, was dich braucht zuerst; je App Überblick, Messwerte, Backups, Einstellungen, Verlauf und Technik |
-| 📜 [Manifeste und Versionen](https://speicherstadt.org/steuerzentrale/manifeste.html) | Signierte Manifeste je App und Version, geprüft mit minisign; was ein Manifest nicht nennt, läuft nicht |
+| 📜 [Katalog, Manifeste und Versionen](https://speicherstadt.org/steuerzentrale/manifeste.html) | Der Katalog zeigt die Apps, wie ihre Manifeste sie beschreiben, mit neuen Versionen aus den Registries; signierte Manifeste je App und Version, geprüft mit minisign; was ein Manifest nicht nennt, läuft nicht |
 | 🖥️ [Server](https://speicherstadt.org/steuerzentrale/uebersicht.html#server-und-kundenseite) | Eine Tabelle mit Zustand in Worten, Platte, Apps und System, was dich braucht zuerst; je Server Überblick, Auslastung (die Platte über 30 Tage), Apps, Verlauf und Technik |
 | 🔄 [Updates](https://speicherstadt.org/steuerzentrale/updates.html) | Wellen „intern“ und „alle“, Wartungsfenster je Server, Sperrzeiten je App, Backup davor, Rückkehr bei roter Health; [Agent](https://speicherstadt.org/steuerzentrale/agent-updates.html) und [Betriebssystem](https://speicherstadt.org/steuerzentrale/betriebssystem.html) mit Neustart im Fenster |
 | 💾 [Backups](https://speicherstadt.org/steuerzentrale/backups.html) | restic je Installation auf das S3-Ziel des Betreibers, Prüf-Restore, Wiederherstellen mit Grund; die [Zentrale selbst](https://speicherstadt.org/steuerzentrale/zentrale-sichern.html) getrennt von ihrem Schlüssel |
@@ -78,23 +78,31 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
 | 🔔 [Benachrichtigungen](https://speicherstadt.org/steuerzentrale/benachrichtigungen.html) | Mail über dein SMTP und signierte Webhooks, eine Nachricht je Störung und eine zur Behebung, Ruhezeit |
 | ⚙️ [Aktionen](https://speicherstadt.org/steuerzentrale/aktionen.html) · [Einstellungen](https://speicherstadt.org/steuerzentrale/einstellungen.html) | Neustart, Log-Auszug, nur lesen, Einstellungen ändern, jeweils mit Grund im Audit-Log und nie in einer Sperrzeit |
 | 👥 [Kunden und Verträge](https://speicherstadt.org/steuerzentrale/kunden.html) | Ansprechperson, SLA, Vertragsende; je Kunde Überblick, Support, Leistungen (Verfügbarkeit je App und Monat) und Verlauf; nach der Kündigung letztes Backup, Archiv-Link für den Kunden und Löschung mit Protokoll |
-| 🛟 [Support-Zugang](https://speicherstadt.org/steuerzentrale/support.html) | Zeitlich begrenzt, mit Grund, für den Kunden sichtbar |
-| 📈 [Leistungen](https://speicherstadt.org/steuerzentrale/leistungen.html) | Je Kunde und Monat: Installationen, Speicher, Support-Zeit, Verfügbarkeit; Export als CSV |
+| 🛟 [Support-Zugang](https://speicherstadt.org/steuerzentrale/support.html) | Wer die Rolle Support hat, darf bei einer App eines Kunden das Log lesen und neu starten, aber nur mit einem Zugang: für diese eine App, ein paar Stunden lang, mit einem Grund, den der Kunde sieht; gestartet auf der Seite der App oder im Reiter „Support“ des Kunden |
+| 📈 [Leistungen](https://speicherstadt.org/steuerzentrale/leistungen.html) | Je Kunde und Monat (unter Kunden → Leistungen): Installationen, Speicher, Support-Zeit, Verfügbarkeit; Export als CSV |
 | 🏠 [Nur für mich oder für Kunden](https://speicherstadt.org/steuerzentrale/anmeldung.html#nur-fur-mich-oder-fur-kunden) | Einmal nach der Einrichtung gewählt, später vom Inhaber mit Grund geändert; „Nur für mich“ blendet Kunden, Verträge, Support-Zugänge und Leistungen aus |
 | 🔐 [Anmeldung und Rollen](https://speicherstadt.org/steuerzentrale/anmeldung.html) | Passkey oder Passwort mit TOTP, Rollen Inhaber, Technik, Support; Oberfläche nur über WireGuard |
 | 🛡️ [Sicherheit](https://speicherstadt.org/steuerzentrale/sicherheit.html) | Bedrohungsmodell mit Test je Bedrohung, Notzugang per SSH, TOMs nach Art. 32 DSGVO |
-| 🧩 [Manifest für App-Entwickler](https://speicherstadt.org/steuerzentrale/manifest.html) | Ein Schema für Units, Volumes, Secrets, Health, Backup, Aktionen und Einstellungen einer App |
+| 📐 [Manifest für App-Entwickler](https://speicherstadt.org/steuerzentrale/manifest.html) | Ein Schema für Units, Volumes, Secrets, Health, Backup, Aktionen und Einstellungen einer App |
 
 ## Screenshots
 
 <table>
   <tr>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-dunkel.webp"><img src="docs/assets/screenshots/server-hell.webp" alt="Server mit Art, Agent, Zustand, Installationen, RAM und Platte"></picture><br><sub><b>Server</b>: gemeinsam, eigen oder beim Kunden, mit Agent und Zustand</sub></td>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/app-dunkel.webp"><img src="docs/assets/screenshots/app-hell.webp" alt="Seite einer App mit Zustand, Version, Backup, Verfügbarkeit, Server und Kunde"></picture><br><sub><b>App</b>: Erreichbarkeit, Version, Backup, Verfügbarkeit und Server auf einen Blick</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/apps-dunkel.webp"><img src="docs/assets/screenshots/apps-hell.webp" alt="Tabelle der Apps mit Kunde, Zustand in Worten, Version, letztem Backup und Server, Filter „Alle“, „Braucht dich“ und „Update möglich“"></picture><br><sub><b>Apps</b>: jede laufende App in einer Tabelle, was dich braucht zuerst</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/app-dunkel.webp"><img src="docs/assets/screenshots/app-hell.webp" alt="Seite einer App mit Zustand und Adresse im Kopf, „Öffnen“, „Neustart“ und „Mehr …“, den Reitern Überblick bis Technik und den Zeilen Erreichbar, Version, Backup, Verfügbarkeit und Server"></picture><br><sub><b>App</b>: Erreichbarkeit, Version, Backup, Verfügbarkeit und Server im Überblick, alles Weitere in Reitern</sub></td>
   </tr>
   <tr>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/updates-dunkel.webp"><img src="docs/assets/screenshots/updates-hell.webp" alt="Updates in Wellen mit Stand je Installation"></picture><br><sub><b>Updates</b>: in Wellen, mit Backup davor und Rückweg</sub></td>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/backups-dunkel.webp"><img src="docs/assets/screenshots/backups-hell.webp" alt="Backups mit letztem Lauf und Prüf-Restore je Installation"></picture><br><sub><b>Backups</b>: restic je Installation, mit Prüf-Restore</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-dunkel.webp"><img src="docs/assets/screenshots/server-hell.webp" alt="Tabelle der Server mit Art und Zustand in Worten, CPU, RAM, Platte, Apps und System"></picture><br><sub><b>Server</b>: gemeinsam, eigen oder beim Kunden, mit Zustand in Worten und voller Platte zuerst</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-detail-dunkel.webp"><img src="docs/assets/screenshots/server-detail-hell.webp" alt="Seite eines Servers mit den Reitern Überblick, Auslastung, Apps, Verlauf und Technik und den Zeilen Auslastung, Betriebssystem, Wartungsfenster, Prüfungen und Agent"></picture><br><sub><b>Ein Server</b>: Auslastung, Betriebssystem, Wartungsfenster, Prüfungen und Agent</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/kunden-dunkel.webp"><img src="docs/assets/screenshots/kunden-hell.webp" alt="Tabelle der Kunden mit SLA, Apps, Server und Vertrag, darüber die Reiter Kunden, Support-Zugänge und Leistungen"></picture><br><sub><b>Kunden</b>: Vertrag, Apps und Server je Kunde</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/katalog-dunkel.webp"><img src="docs/assets/screenshots/katalog-hell.webp" alt="Katalog mit einer Kachel je App: Version, wie oft sie läuft, neue Version oder fehlendes Manifest, „Installieren“"></picture><br><sub><b>Katalog</b>: die Apps, wie ihre Manifeste sie beschreiben, mit neuen Versionen</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/updates-dunkel.webp"><img src="docs/assets/screenshots/updates-hell.webp" alt="Updates als Tabelle je App mit installierter und neuer Version und dem Stand jeder Installation in der Welle"></picture><br><sub><b>Updates</b>: in Wellen, mit Backup davor und Rückweg</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/backups-dunkel.webp"><img src="docs/assets/screenshots/backups-hell.webp" alt="Backups mit letztem Lauf, Snapshots und Prüf-Restore je Installation"></picture><br><sub><b>Backups</b>: restic je Installation, mit Prüf-Restore</sub></td>
   </tr>
 </table>
 
@@ -118,7 +126,7 @@ Signatur prüfen, die Zentrale als Quadlet unter eigenem Nutzer starten, die Pfo
 mit dem Einrichtungscode aus dem Log anlegen und den Agenten desselben Servers beitreten lassen. Genau diese
 Schritte geht die CI mit jedem Release-Kandidaten in einer VM durch.
 
-Danach in der Oberfläche: [Server hinzufügen](https://speicherstadt.org/steuerzentrale/server-hinzufuegen.html), Manifest einer App importieren,
+Danach in der Oberfläche: [Server hinzufügen](https://speicherstadt.org/steuerzentrale/server-hinzufuegen.html), im Katalog das Manifest einer App importieren,
 [App installieren](https://speicherstadt.org/steuerzentrale/installieren.html).
 
 > [!IMPORTANT]

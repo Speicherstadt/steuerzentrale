@@ -11,6 +11,12 @@ Ein Kunde ist, wem eine Installation gehört. Er meldet sich nie an der Zentrale
 zeigt später das Portal. Unter **Kunden** legt der Betreiber Kunden an, die nicht über das Portal
 kommen, ändert ihre Angaben und trägt eine Kündigung ein.
 
+Die Seite **Kunden** ist eine Tabelle: Kunde mit E-Mail-Adresse, SLA, Apps, Server und Vertrag
+(„seit …“, „intern“ oder „Gekündigt zum …“), mit Suche und **Kunde anlegen**. Darüber führen
+**Support-Zugänge** ([Support-Zugang](support.md)) und **Leistungen** ([Leistungen](leistungen.md))
+zu den Seiten derselben Dinge für alle Kunden. Ein Klick auf einen Kunden öffnet
+[seine Seite](#die-seite-eines-kunden).
+
 ## Was zu einem Kunden gehört
 
 | Angabe | Bedeutung |
@@ -48,7 +54,7 @@ kuerzel_fest`); der Dialog zeigt das Feld dann gesperrt. Die Adresse einer beste
 
 Ein Kunde kann **intern** sein: das sind wir selbst, mit einer eigenen Installation jeder App. Seine
 Installationen bilden die Welle „intern“ ([Updates](updates.md)) und bekommen als einzige eine
-Vorabversion angeboten ([Manifeste und Versionen](manifeste.md)). Markieren oder die Markierung
+Vorabversion angeboten ([Katalog, Manifeste und Versionen](manifeste.md)). Markieren oder die Markierung
 aufheben darf nur der Inhaber, mit Grund, auf der Kundenseite unter „Mehr …“ („Als intern
 markieren“, „Nicht mehr intern“). Die Kundenseite bietet einem internen Kunden keine Kündigung an.
 
@@ -74,7 +80,7 @@ gekündigten Kunden:
    dem eigenen S3-Zugang der Installation neben ihr Repository (`<präfix>archiv/`). Ohne
    eingerichtetes Backup gibt es kein Archiv. Scheitert es, versucht die Zentrale es später wieder
    und meldet `archiv_gescheitert` (Schwere `fehler`).
-2. **30 Tage lang** erzeugen Inhaber und Technik auf der Seite der Installation (Reiter „Backups“,
+2. **30 Tage lang** erzeugen Inhaber und Technik auf der Seite der App (Reiter „Backups“,
    Karte „Vertragsende“) mit Grund einen **Link für den Kunden**: je Datei ein vorsignierter
    S3-Link, signiert mit dem Zugang der Installation, gültig höchstens 7 Tage und nie über die 30
    Tage hinaus. Er erscheint nur in dieser Antwort; die Zentrale speichert ihn nicht und schreibt ihn
@@ -184,6 +190,6 @@ Löschung und **Kündigung zurücknehmen**. Die Reiter stehen in der Adresse (`?
 | Verlauf | die Ereignisse seiner Apps | `GET /api/v1/ereignisse` |
 
 „Alle zusammen“ ist der Anteil aller gemessenen Minuten der Apps, so zählt eine App mit wenigen
-Minuten weniger. In der Betriebsart „Nur für mich“ gibt es keine Kundenseiten im Menü.
+Minuten weniger. In der Betriebsart „Nur für mich“ fehlt „Kunden“ in der Seitenleiste, und mit ihm Support-Zugänge und Leistungen.
 `bun run dev:demo` zeigt Kunden aus den Demodaten; was man dort anlegt oder ändert, bleibt bis zum
 Neuladen der Seite im Browser.

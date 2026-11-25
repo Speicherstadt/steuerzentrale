@@ -7,9 +7,13 @@ description: >-
 
 # Leistungen
 
-Die Seite **Leistungen** zeigt für einen Monat jeden Kunden mit seinen Installationen, ihrer
-Verfügbarkeit, der Größe ihrer Daten und der Support-Zeit. Rechnungen schreibt das Portal; die
-Zentrale liefert die Zahlen. Alle Rollen sehen die Seite, wie sie Kunden sehen.
+Die Seite **Leistungen** (unter **Kunden → Leistungen**, `/leistungen`) zeigt für einen Monat jeden
+Kunden mit seinen Installationen, ihrer Verfügbarkeit, der Größe ihrer Daten und der Support-Zeit.
+Rechnungen schreibt das Portal; die Zentrale liefert die Zahlen. Alle Rollen sehen die Seite, wie
+sie Kunden sehen. Für einen einzelnen Kunden zeigt der Reiter „Leistungen“ seiner Seite die
+Verfügbarkeit je App über sechs Monate und was sein Vertrag enthält
+([Kunden und Verträge](kunden.md#die-seite-eines-kunden)). In der Betriebsart „Nur für mich“ gibt
+es keine Leistungen.
 
 ## Monat und Kunden
 

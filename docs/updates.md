@@ -11,7 +11,7 @@ Eine neue Version einer App erreicht die Installationen in Wellen. Den Plan rech
 Funktion (`packages/planung`) aus den Installationen, dem Update, dem Stand der Wellen und dem
 Zeitpunkt; alle Zeiten gelten in `Europe/Berlin`.
 
-Welche Versionen es gibt, sagen die importierten Manifeste und die Registries ([Manifeste und
+Welche Versionen es gibt, sagen die importierten Manifeste und die Registries ([Katalog, Manifeste und
 Versionen](manifeste.md)). Die Seite **Updates** ist eine Tabelle je App: eine Kopfzeile mit der
 neuesten Version und dem Stand der App (Welle läuft, wie viele aktualisieren können, nur von Hand
 ohne Health), darunter jede Installation, die eine Welle gerade aktualisiert (fertig, wird
@@ -75,7 +75,8 @@ HTTP-Dienst, richtet die Zentrale nach dem Update die Backups bzw. die Route der
 
 ## Update von Hand
 
-Inhaber und Technik aktualisieren eine Installation auf der Seite **Updates** mit **Aktualisieren…**: Version
+Inhaber und Technik aktualisieren eine Installation auf der Seite **Updates** mit **Aktualisieren…**
+oder auf der Seite der App mit **Aktualisieren …** in der Zeile „Version“ des Überblicks: Version
 wählen (die neueste steht oben) und einen Grund angeben, der im Audit-Log steht. So auch Apps ohne
 Health, die keine Welle aktualisiert. In einer Sperrzeit der App darf nur der Inhaber; das Update
 gilt dann als Freigabe und die Zentrale vermerkt es. Über die API: `POST

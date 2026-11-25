@@ -1,21 +1,37 @@
 ---
 title: Support-Zugang
 description: >-
-  Zeitlich begrenzter Zugriff auf eine Installation mit Grund: Log-Auszug und Neustart für Support,
-  im Audit-Log und in den Ereignissen des Kunden; endet von selbst.
+  Wozu ein Support-Zugang da ist: Support liest das Log einer App eines Kunden und startet sie neu,
+  nur bei dieser App, zeitlich begrenzt und mit einem Grund, den der Kunde sieht; wo man ihn startet
+  und wo er steht.
 ---
 
 # Support-Zugang
 
-Support sieht Kunden, Server, Installationen, Aufträge und Ereignisse, greift aber nur mit einem
-**Support-Zugang** auf eine Installation zu: zeitlich begrenzt, mit Grund, im Audit-Log und in den
-Ereignissen des Kunden. Ein Zugang erlaubt [Log-Auszug und Neustart](aktionen.md) dieser einen
-Installation und endet von selbst.
+Mit einem **Support-Zugang** darf eine Person mit der Rolle **Support** bei einer App eines Kunden
+das Log lesen und die App neu starten: nur bei dieser einen App (Installation), nur für eine
+begrenzte Zeit und nur mit einem Grund, den der Kunde sieht. Danach endet der Zugang von selbst.
+
+Ein Beispiel: Ein Kunde meldet, dass seine App langsam ist. Die Person im Support startet einen
+Zugang für zwei Stunden mit dem Grund „Anfrage aus dem Portal: Anmeldung langsam“, liest das Log,
+startet die App neu und beendet den Zugang. Der Kunde sieht, wer wann warum auf seine App zugegriffen
+hat.
+
+Ohne Zugang sieht Support Kunden, Server, Apps, Aufträge und Ereignisse, greift aber auf keine App
+zu. Ein Zugang erlaubt [Log-Auszug und Neustart](aktionen.md) dieser einen Installation; Start und
+Ende stehen im Audit-Log und in den Ereignissen des Kunden. Den Zugang gibt es nur in der
+Betriebsart „Für Kunden“ ([Anmeldung](anmeldung.md#nur-fur-mich-oder-fur-kunden)).
 
 ## Zugang starten
 
-Wer hilft, startet den Zugang selbst: auf der Seite der App („Zugang starten“ unter „Mehr …“ oder
-im Kasten „Support-Zugang“ im Reiter „Technik“) oder auf der Seite **Support-Zugänge** mit Wahl der Installation. Der Dialog fragt
+Wer hilft, startet den Zugang selbst, an einer dieser Stellen:
+
+- auf der Seite der App: „Zugang starten“ unter **Mehr …** oder im Kasten „Support-Zugang“ im Reiter
+  **Technik**;
+- auf der Seite des Kunden im Reiter **Support**, mit Wahl einer seiner Apps;
+- unter **Kunden → Support-Zugänge**, mit Wahl der App.
+
+Der Dialog fragt
 
 - die **Dauer**: 1, 2 oder 4 Stunden, Vorgabe 2 Stunden (die API nimmt 15 bis 240 Minuten),
 - den **Grund**, etwa „Anfrage aus dem Portal: Anmeldung langsam“; er steht im Audit-Log und im
@@ -54,10 +70,12 @@ Kundenseite und später das Portal zeigen:
 - „Support-Zugang abgelaufen: Ole Kamp nach 2 h“ (die Zentrale prüft jede Minute, ob einer
   abgelaufen ist, und schreibt das Ereignis einmal mit dem Zeitpunkt des Ablaufs)
 
-Die Seite **Support-Zugänge** zeigt die laufenden Zugänge mit Restzeit und die beendeten mit Dauer
-und dem, was geschah (Log-Auszug, Neustart oder kein Eingriff). Der Reiter „Support“ der
-Kundenseite zeigt dasselbe für die Apps des Kunden und startet dort einen Zugang; „Überblick“ und
-„Leistungen“ nennen die Support-Minuten des laufenden Monats.
+Der Reiter **Support** auf der Seite eines Kunden zeigt die laufenden Zugänge zu seinen Apps mit
+Restzeit und die beendeten mit Dauer und dem, was geschah (Log-Auszug, Neustart oder kein
+Eingriff). Dieselbe Liste für alle Kunden steht unter **Kunden → Support-Zugänge** (`/support`).
+Die Reiter „Überblick“ und „Leistungen“ des Kunden nennen die Support-Minuten des laufenden Monats.
+Während des eigenen Zugangs zeigt der Kasten „Support-Zugang“ im Reiter „Technik“ der App die
+Restzeit, den Grund und „Zugang beenden“; „Zugang beenden“ steht dann auch unter „Mehr …“.
 
 ## API
 
