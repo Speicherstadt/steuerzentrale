@@ -110,8 +110,8 @@ von Hand im Dialog (`409 nur_intern`). Die Regel ist eine reine Funktion in `pac
 | Manifest importieren, nach neuen Versionen suchen | ja | – |
 | Kunden als intern markieren | ja | – |
 
-Wer ein Manifest importiert hat, erfährt nur der eigene Betreiber; bei einem anderen steht
-„von einem anderen Betreiber“.
+Beim Import steht, wann und wodurch: „von einem Mitglied“, „per Befehl“ oder „aus einer
+Installation“; welches Mitglied es war, nennt die API (`nutzerId`) nur dem eigenen Betreiber.
 
 ## API
 

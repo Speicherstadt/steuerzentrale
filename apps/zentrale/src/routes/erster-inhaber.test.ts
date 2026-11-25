@@ -3,6 +3,7 @@ import { organization } from "../db/auth-schema.ts";
 import { auditLog, betreiber, mitglieder } from "../db/schema.ts";
 import { EINRICHTUNG_GUELTIG_MS } from "../modules/anmeldung/einrichtungscode.ts";
 import { PASSWORT, testServer } from "../testhilfen/server.ts";
+import { betreiberEinrichten } from "./erster-inhaber.ts";
 
 const angaben = (code: string, email = "ines@betreiber.test") => ({
   code,
@@ -71,15 +72,48 @@ describe("POST /api/v1/erster-inhaber", () => {
   it("refuses a used code even while the setup is open", async () => {
     const server = testServer();
     const code = server.neuerCode();
-    // the code is used up, the account then fails (here: removed membership): the code stays gone
+    // the code is used up, the account then fails (here: removed operator and membership): the code
+    // stays gone
     expect(
       (await server.browser().json("/api/v1/erster-inhaber", { body: angaben(code) })).status,
     ).toBe(201);
+    server.sqlite.run("PRAGMA foreign_keys = OFF");
     server.sqlite.run("DELETE FROM mitglieder");
+    server.sqlite.run("DELETE FROM betreiber");
     const nochmal = await server.browser().json("/api/v1/erster-inhaber", {
       body: angaben(code, "noch@betreiber.test"),
     });
     expect(nochmal).toEqual({ status: 403, daten: { fehler: "code_ungueltig" } });
+  });
+
+  // BAULISTE.md Z-1208: the Zentrale has exactly one operator
+  it("refuses a second operator, even when the setup is open again", async () => {
+    const server = testServer();
+    const erster = await server.ersterInhaber();
+    server.sqlite.run("DELETE FROM mitglieder");
+    const code = server.neuerCode();
+    const zweiter = await server.browser().json("/api/v1/erster-inhaber", {
+      body: angaben(code, "zweite@betreiber.test"),
+    });
+    expect(zweiter).toEqual({ status: 409, daten: { fehler: "betreiber_vorhanden" } });
+    expect(server.db.select().from(betreiber).all()).toEqual([
+      expect.objectContaining({ betreiberId: erster.betreiberId }),
+    ]);
+    expect(await server.deps.auth.emailVergeben("zweite@betreiber.test")).toBe(false);
+  });
+
+  it("refuses a second operator made past the route", async () => {
+    const server = testServer();
+    await server.ersterInhaber();
+    const konto = await betreiberEinrichten(server.deps, "zweiter", {
+      betreiber: "Partner GmbH",
+      name: "Paula Partner",
+      email: "paula@partner.test",
+      passwort: PASSWORT,
+    });
+    expect(konto).toEqual({ ok: false, grund: "betreiber_vorhanden" });
+    expect(server.db.select().from(betreiber).all()).toHaveLength(1);
+    expect(server.db.select().from(organization).all()).toHaveLength(1);
   });
 
   it("refuses the code after 24 hours", async () => {

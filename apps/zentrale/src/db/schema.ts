@@ -16,7 +16,7 @@ import {
  */
 
 /**
- * An operator; partners are operators too (docs/plan.md, "Partner"). `betreiber_id` is the id of
+ * The operator, exactly one per Zentrale (Z-1208). `betreiber_id` is the id of
  * the operator's organization in Better Auth (docs/plan.md, "Anmeldung an der Zentrale")
  */
 export const betreiber = sqliteTable("betreiber", {

@@ -175,7 +175,7 @@ Was die Pforte damit tut:
 | Name | Wer | Was |
 | --- | --- | --- |
 | `zentrale.example.de` | nur Adressen aus den angegebenen Netzen | die Oberfläche und ihre API |
-| `agent.example.de` | alle | nur `/install.sh`, `/agent/*`, `/api/v1/agent/*` und `/health`; ein Client-Zertifikat wird gegen die CA jedes Betreibers geprüft und sein Fingerabdruck an die Zentrale weitergegeben |
+| `agent.example.de` | alle | nur `/install.sh`, `/agent/*`, `/api/v1/agent/*` und `/health`; ein Client-Zertifikat wird gegen die Agent-CA des Betreibers geprüft und sein Fingerabdruck an die Zentrale weitergegeben |
 
 Solange es noch keinen Betreiber gibt, fehlt `agent.example.de` (noch keine CA); Schritt 7 lädt die
 Pforte deshalb noch einmal.
@@ -250,8 +250,8 @@ Inhaber anlegen und den zweiten Faktor einrichten. Danach hat der Betreiber sein
 pforte_laden
 ```
 
-`pforte_laden` läuft wieder, wenn ein weiterer Betreiber dazukommt. Ein Agent, dessen CA die Pforte
-nicht kennt, kommt nicht durch.
+Die Zentrale hat genau einen Betreiber und eine CA für die Agenten; einen zweiten Betreiber legt sie
+nicht an. Ein Agent, dessen CA die Pforte nicht kennt, kommt nicht durch.
 
 ## 8. Der Agent desselben Servers
 

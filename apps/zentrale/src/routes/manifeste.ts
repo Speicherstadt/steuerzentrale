@@ -40,11 +40,14 @@ const STATUS = {
 
 type Importiert = {
   am: number;
-  durch: "mitglied" | "befehl" | "uebernommen" | "anderer_betreiber";
+  durch: "mitglied" | "befehl" | "uebernommen";
   nutzerId?: string;
 };
 
-/** Who imported a manifest, as the asking operator may see it */
+/**
+ * Who imported a manifest: the member only to its own operator, should an older Zentrale hold
+ * another's rows (Z-1208: one operator, separation by `betreiber_id` stays)
+ */
 const importiertFuer = (
   k: Pick<ManifestKopf, "importiertAm" | "importiertVon" | "importiertVonBetreiber">,
   betreiberId: string,
@@ -53,7 +56,7 @@ const importiertFuer = (
     return { am: k.importiertAm, durch: k.importiertVon };
   return k.importiertVonBetreiber === betreiberId
     ? { am: k.importiertAm, durch: "mitglied", nutzerId: k.importiertVon }
-    : { am: k.importiertAm, durch: "anderer_betreiber" };
+    : { am: k.importiertAm, durch: "mitglied" };
 };
 
 const versionAntwort = (v: AppVersion, betreiberId: string) => ({

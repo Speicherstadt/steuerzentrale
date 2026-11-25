@@ -122,7 +122,7 @@ describe("the apps and their versions", () => {
     expect(probe?.registry).toBeNull();
   });
 
-  it("name who imported only to the own operator", async () => {
+  it("name the member who imported only to the own operator", async () => {
     const [eigen] = await apps(teufel);
     const [fremd] = await apps(partner);
     expect(eigen?.versionen.at(-1)?.importiert).toMatchObject({
@@ -131,7 +131,7 @@ describe("the apps and their versions", () => {
     });
     expect(fremd?.versionen.at(-1)?.importiert).toEqual({
       am: server.jetzt(),
-      durch: "anderer_betreiber",
+      durch: "mitglied",
     });
     expect(JSON.stringify(fremd)).not.toContain(inhaber2.nutzerId);
   });

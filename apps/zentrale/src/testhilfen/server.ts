@@ -6,10 +6,11 @@ import { type AppDeps, createApp } from "../app.ts";
 import { createAuth } from "../auth/auth.ts";
 import { testDatenbank } from "../db/test-db.ts";
 import { einrichtungscodeErzeugen } from "../modules/anmeldung/einrichtungscode.ts";
+import { schreiben } from "../modules/audit/index.ts";
+import { betreiberAnlegen, mitgliedEintragen } from "../modules/mitglieder/index.ts";
 import { auslieferung } from "../modules/server/index.ts";
 import { verbindungen } from "../modules/verbindung/verbindungen.ts";
 import { versionen } from "../modules/versionen/index.ts";
-import { betreiberEinrichten } from "../routes/erster-inhaber.ts";
 import { TEST_AGENT_URL, testAgentDateien } from "./agent-dateien.ts";
 import { authenticator } from "./authenticator.ts";
 import { type Browser, browserFuer, erfolgreich, SOCKET_HEADER, TEST_URL } from "./browser.ts";
@@ -138,17 +139,29 @@ const personen = (k: Kern) => {
     return { ...b, email, totp, betreiberId: von.betreiberId, nutzerId: String(nutzerId) };
   };
 
-  /** A further operator with its owner (password and TOTP), as a partner will come in later */
+  /**
+   * A second operator with its owner (password and TOTP), as rows an older Zentrale may hold: the
+   * Zentrale itself makes no second one (Z-1208), but every query still filters by `betreiber_id`,
+   * and the separation tests prove it with this one.
+   */
   const weitererBetreiber = async (name: string, email: string) => {
     const b = k.browser();
     const betreiberId = randomUUID();
-    const konto = await betreiberEinrichten(k.deps, betreiberId, {
-      betreiber: name,
-      name: `Inhaber ${name}`,
+    const konto = await k.deps.auth.kontoAnlegen({
       email,
+      name: `Inhaber ${name}`,
       passwort: PASSWORT,
+      betreiberId,
+      betreiberName: name,
+      rolle: "inhaber",
     });
     if (!konto.ok) throw new Error(konto.grund);
+    const jetzt = k.deps.now();
+    const kontext = { betreiberId, akteur: konto.nutzerId, jetzt, grund: "Test" };
+    schreiben(k.deps.schreibDb, kontext, "betreiber.anlegen", (s) => {
+      betreiberAnlegen(s, betreiberId, name, jetzt);
+      mitgliedEintragen(s, { betreiberId, nutzerId: konto.nutzerId, rolle: "inhaber" }, jetzt);
+    });
     b.uebernehmen(konto.headers);
     const totp = await totpEinrichten(b);
     return { ...b, email, totp, betreiberId, nutzerId: konto.nutzerId };

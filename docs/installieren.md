@@ -27,7 +27,7 @@ drei Ergebnissen:
 | Öffentliche IPv4 | die App eine öffentliche IPv4 braucht und der Server nur private Adressen hat |
 | Mail | die App Mail verschickt und der öffentlichen Adresse ein PTR-Eintrag fehlt oder Port 25 ausgehend gesperrt oder unbekannt ist |
 | Server für sich | die App einen Server für sich braucht (auch `rootful` und ein eigener Proxy) und schon etwas anderes darauf läuft, oder umgekehrt |
-| Betreiber | der Server einem anderen Betreiber gehört; Installationen mehrerer Kunden teilen sich einen Server (Z-1205) |
+| Betreiber | der Server nicht zum Betreiber der Installation gehört (es gibt nur einen, Z-1208; die Regel bleibt mit `betreiber_id`); Installationen mehrerer Kunden teilen sich einen Server (Z-1205) |
 | Abhängigkeiten | die App etwas braucht (`braucht`, z. B. `oidc-anbieter`), das keine Installation des Kunden bietet |
 | Werte des Betreibers | ein Pflichtwert auf Ebene `betreiber` (z. B. die Hersteller-ID für ELSTER) fehlt |
 | Agent | der Agent des Servers nicht verbunden ist |
