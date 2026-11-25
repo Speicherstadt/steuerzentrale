@@ -59,8 +59,10 @@ Internet ──▶ Pforte des Servers (Caddy, :80/:443) ──▶ 127.0.0.1:<Por
   `127.0.0.1`; die Pforte setzt `X-Forwarded-For` selbst.
 - **Zentrale ↔ Cloudflare, S3**: Nur die Zentrale hat den DNS-Token und den Admin-Zugang des S3-Ziels;
   ein Server bekommt nur den auf das Präfix seiner Installation beschränkten Zugang.
-- **Browser ↔ Zentrale**: Die Oberfläche ist nur über WireGuard erreichbar; jede Anfrage braucht eine
-  Sitzung mit zweitem Faktor und das Recht der Route.
+- **Browser ↔ Zentrale**: Die Oberfläche ist nur über WireGuard erreichbar oder, mit
+  `STEUERZENTRALE_ACCESS_TEAM` und `STEUERZENTRALE_ACCESS_AUD`, durch einen Cloudflare Tunnel, dessen
+  Access-Token die Zentrale selbst prüft (Z-1104); jede Anfrage braucht eine Sitzung mit zweitem
+  Faktor und das Recht der Route.
 
 ## Bedrohungen
 
@@ -123,6 +125,7 @@ Disclosure, **D**enial of Service, **E**levation of Privilege. Tests ohne Pfad z
 | B-42 | Die Zentrale fällt aus oder ihre Daten gehen verloren | D | Sicherung der Datenbank mit restic, Schlüssel getrennt; Agenten verbinden sich nach der Wiederherstellung von selbst | CI-Schritt „The Zentrale is backed up and restored on a new server“ ([Zentrale sichern](zentrale-sichern.md)) |
 | B-43 | Eine übernommene Zentrale hält Server an, entfernt Installationen oder löscht Backups | D | Annahme: Gegen eine übernommene Zentrale ist die Verfügbarkeit nicht geschützt (Leitsatz oben), nur die Ausführung fremden Codes; Schutz bieten die Härtung des Zentrale-Servers (nur WireGuard, mTLS, Token) und die getrennte Sicherung der Zentrale (B-42) | – |
 | B-44 | Kundendaten werden vor Ende der Kündigungsfrist oder ohne Backup gelöscht | D | Entfernen nur einer Installation, die nicht läuft; das Löschen nach Vertragsende mit letztem Backup kommt mit Z-604 und seinem Test | `modules/installationen/entfernen.test.ts` › is refused while it is set up and once it runs; Annahme bis Z-604: Daten löscht nur ein Mensch, der eine Installation entfernt |
+| B-45 | Jemand erreicht die Oberfläche durch den Cloudflare Tunnel ohne Access oder gibt sich durch ihn als Agent aus | S, E | Vor jeder Route außer denen von `agent.<domain>` ein gültiges Token von Access (RS256 mit dem Schlüssel des Teams, `iss`, `aud`, `exp`, `nbf`), Schlüssel nur von `https://<team>.cloudflareaccess.com`; eine Anfrage mit einem Kopf von Cloudflare gilt nie als Agent; die Pforte lässt die Oberfläche mit `--tunnel` nur von Loopback herein | `routes/access.test.ts` › answers 403 to a wrong signature, a wrong audience and an expired token; gives no agent's rights to a request through Cloudflare with a forged fingerprint; `modules/access/access.test.ts`; Annahme: Cloudflare sieht den Verkehr der Oberfläche (docs/plan.md, Z-1104) |
 
 ## Notzugang per SSH
 

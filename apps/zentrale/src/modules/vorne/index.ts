@@ -6,7 +6,8 @@ import { agentCa } from "../server/ca.ts";
 
 /*
  * The Zentrale behind the Pforte of its own server (BAULISTE.md Z-1004, docs/installation.md):
- * `steuerzentrale pforte <netz>… [--intern]` reads the Pforte's configuration on stdin (`GET /config/`
+ * `steuerzentrale pforte <netz>… [--intern]` or `steuerzentrale pforte --tunnel [--intern]` (Z-1104:
+ * the interface only from loopback, for cloudflared) reads the Pforte's configuration on stdin (`GET /config/`
  * of its admin API, `null` while it has none) and prints it with the Zentrale's routes for
  * `POST /load` (packages/manifest, pforte/zentrale.ts). The CAs of all operators go in, each made
  * where it is missing, so a server that joins later connects without another run.
@@ -22,14 +23,22 @@ export type Vorne = {
   jetzt: number;
 };
 
+type Optionen = { uiNetze: string[]; zertifikate: Zertifikate; tunnel?: true };
+
+const NUTZUNG =
+  "usage: steuerzentrale pforte <netz>… [--intern] < config.json, or pforte --tunnel [--intern] < config.json";
+
 export const vorneArgumente = (
   args: string[],
-): { ok: true; uiNetze: string[]; zertifikate: Zertifikate } | { ok: false; grund: string } => {
+): ({ ok: true } & Optionen) | { ok: false; grund: string } => {
   const zertifikate: Zertifikate = args.includes("--intern") ? "intern" : "acme";
-  const netze = args.filter((a) => a !== "--intern");
-  if (netze.length === 0 || netze.some((n) => n.startsWith("-")))
-    return { ok: false, grund: "usage: steuerzentrale pforte <netz>… [--intern] < config.json" };
-  return { ok: true, uiNetze: netze, zertifikate };
+  const tunnel = args.includes("--tunnel");
+  const netze = args.filter((a) => a !== "--intern" && a !== "--tunnel");
+  if (netze.some((n) => n.startsWith("-")) || tunnel === netze.length > 0)
+    return { ok: false, grund: NUTZUNG };
+  return tunnel
+    ? { ok: true, uiNetze: [], zertifikate, tunnel: true }
+    : { ok: true, uiNetze: netze, zertifikate };
 };
 
 /** The agent CA of every operator, base64 DER as Caddy takes it (capools.go, inline) */
@@ -51,11 +60,7 @@ const alleCas = async (v: Vorne): Promise<string[]> => {
   return cas;
 };
 
-export const pforteKonfiguration = async (
-  v: Vorne,
-  aktuell: unknown,
-  optionen: { uiNetze: string[]; zertifikate: Zertifikate },
-) =>
+export const pforteKonfiguration = async (v: Vorne, aktuell: unknown, optionen: Optionen) =>
   zentraleInPforte(aktuell, {
     uiHost: new URL(v.env.url).hostname,
     agentHost: new URL(v.env.agentUrl).hostname,
@@ -63,4 +68,5 @@ export const pforteKonfiguration = async (
     uiNetze: optionen.uiNetze,
     clientCas: await alleCas(v),
     zertifikate: optionen.zertifikate,
+    ...(optionen.tunnel ? { tunnel: true } : {}),
   });

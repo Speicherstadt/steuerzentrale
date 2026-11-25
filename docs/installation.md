@@ -33,10 +33,13 @@ Server aus und aktualisiert mit ihnen die Agenten ([Updates des Agenten](agent-u
 - zwei DNS-Namen auf die öffentliche Adresse des Servers, etwa `zentrale.example.de` für die
   Oberfläche und `agent.example.de` für die Agenten; Port 80 und 443 offen (Zertifikate per
   HTTP-01);
-- WireGuard zum Server: Die Oberfläche antwortet nur Adressen aus dem WireGuard-Netz (im Beispiel
-  `10.8.0.0/24`). Auf dem Rechner des Betreibers führt die WireGuard-Verbindung die öffentliche
-  Adresse des Servers mit (`AllowedIPs = 10.8.0.0/24, <öffentliche Adresse>/32`), damit
-  `zentrale.example.de` durch den Tunnel geht;
+- einer von zwei Wegen zur Oberfläche:
+  - **WireGuard** zum Server: Die Oberfläche antwortet nur Adressen aus dem WireGuard-Netz (im
+    Beispiel `10.8.0.0/24`). Auf dem Rechner des Betreibers führt die WireGuard-Verbindung die
+    öffentliche Adresse des Servers mit (`AllowedIPs = 10.8.0.0/24, <öffentliche Adresse>/32`),
+    damit `zentrale.example.de` durch den Tunnel geht;
+  - oder ein **Cloudflare Tunnel** mit Cloudflare Access davor ([unten](#oberflache-uber-cloudflare-tunnel)):
+    schneller eingerichtet, aber Cloudflare beendet TLS und sieht den Verkehr der Oberfläche;
 - Root auf dem Server. Alle Befehle unten laufen als Root.
 
 Befehle als ein anderer Nutzer laufen über eine kleine Funktion, die dessen systemd und Podman
@@ -177,6 +180,60 @@ Was die Pforte damit tut:
 Solange es noch keinen Betreiber gibt, fehlt `agent.example.de` (noch keine CA); Schritt 7 lädt die
 Pforte deshalb noch einmal.
 
+### Oberfläche über Cloudflare Tunnel
+
+Statt WireGuard kann die Oberfläche durch einen Cloudflare Tunnel kommen. `agent.example.de` bleibt
+dabei öffentlich und direkt: Die Agenten melden sich mit ihrem Client-Zertifikat an der Pforte an,
+ein Tunnel würde TLS schon bei Cloudflare beenden. Der DNS-Eintrag von `agent.example.de` zeigt
+also weiter auf den Server, **ohne Proxy** (grau), Port 80 und 443 bleiben offen.
+
+In Cloudflare One:
+
+1. eine **Access-Anwendung** (Self-hosted) für `zentrale.example.de` mit einer Regel, wer hinein darf;
+   unter „Additional settings“ steht ihr **Application Audience (AUD) Tag**;
+2. ein **Tunnel** mit `cloudflared` auf demselben Server, dessen öffentlicher Hostname
+   `zentrale.example.de` an die Pforte auf dem Server geht:
+
+```yaml
+ingress:
+  - hostname: zentrale.example.de
+    service: https://127.0.0.1:443
+    originRequest:
+      originServerName: zentrale.example.de
+      noTLSVerify: true
+  - service: http_status:404
+```
+
+`originServerName` lässt die Pforte das richtige Zertifikat zeigen. Es stammt aus Caddys lokaler CA,
+weil `zentrale.example.de` auf Cloudflare zeigt und keine ACME-Prüfung den Server erreicht; die
+Verbindung geht nur über Loopback, daher `noTLSVerify` (Cloudflare-Doku „Origin parameters“).
+
+Die Zentrale prüft das Token von Access selbst. Team-Name (der Teil vor `.cloudflareaccess.com`) und
+AUD-Tag kommen in die Datei neben der Unit, danach startet die Zentrale neu:
+
+```sh
+printf '%s\n' STEUERZENTRALE_ACCESS_TEAM=teufel \
+  STEUERZENTRALE_ACCESS_AUD=4714c1358e65fe4b408ad6d432a5f878f08194bdb4752441fd56faefa9b2b6f2 \
+  >> /home/sz-zentrale/steuerzentrale.env
+als sz-zentrale systemctl --user restart steuerzentrale
+```
+
+Dann nimmt die Zentrale Oberfläche und API nur mit gültigem `Cf-Access-Jwt-Assertion` an: signiert
+mit einem Schlüssel des Teams (RS256), `aud` mit dem AUD-Tag, `iss`
+`https://<team>.cloudflareaccess.com`, nicht abgelaufen (Cloudflare-Doku „Validate JWTs“). Sonst
+antwortet sie `403` vor jeder Route. Die Schlüssel lädt sie nur von
+`https://<team>.cloudflareaccess.com/cdn-cgi/access/certs`, beim ersten Token und noch einmal, wenn
+ein Token eine unbekannte Schlüssel-ID nennt (Access tauscht den Schlüssel alle 6 Wochen), höchstens
+einmal je Minute. Hinter Access bleibt die eigene Anmeldung mit zweitem Faktor. Die Pfade von
+`agent.example.de` brauchen kein Token; eine Anfrage, die über Cloudflare kam, bekommt nie die Rechte
+eines Agenten, auch nicht mit einem Kopf `X-SZ-Client-Fingerabdruck`. Fehlt eine der beiden
+Variablen, startet die Zentrale nicht; ohne beide gilt WireGuard wie oben.
+
+Die Pforte lässt die Oberfläche dann nur von Loopback herein, wo `cloudflared` sie übergibt: In
+`pforte_laden` steht `steuerzentrale pforte --tunnel` statt `steuerzentrale pforte 10.8.0.0/24`.
+Wer später zu WireGuard wechselt, lädt die Pforte wieder mit den Netzen; die Regel für das
+Zertifikat aus der lokalen CA fällt dabei weg.
+
 ## 7. Erster Inhaber
 
 Beim ersten Start schreibt die Zentrale einen Einrichtungscode in ihr Log, einmal, 24 Stunden gültig
@@ -186,7 +243,7 @@ Beim ersten Start schreibt die Zentrale einen Einrichtungscode in ihr Log, einma
 journalctl _UID="$(id -u sz-zentrale)" -o cat | grep '"setup code for the first owner"'
 ```
 
-Über WireGuard `https://zentrale.example.de/erster-inhaber` öffnen, den Code eingeben, Betreiber und
+Über WireGuard (oder den Tunnel) `https://zentrale.example.de/erster-inhaber` öffnen, den Code eingeben, Betreiber und
 Inhaber anlegen und den zweiten Faktor einrichten. Danach hat der Betreiber seine CA für die Agenten:
 
 ```sh

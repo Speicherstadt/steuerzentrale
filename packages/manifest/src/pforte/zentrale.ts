@@ -13,10 +13,20 @@ import { PFORTE_SERVER, type PforteOptionen, pforteGrundkonfiguration } from "./
  * client_authentication, ca, mode; capools.go: provider "inline", trusted_ca_certs as base64 DER;
  * matchers.go: sni), modules/caddyhttp (ip_matchers.go: remote_ip ranges; app.go: the placeholder
  * {http.request.tls.client.fingerprint}; server.go: tls_connection_policies).
+ * With `tunnel` (Z-1104) the interface comes only from loopback, where cloudflared on the same
+ * server hands it over from a Cloudflare Tunnel; its host gets a certificate of Caddy's local CA by
+ * an automation policy with `subjects` in front, since the public name points to Cloudflare and no
+ * ACME challenge reaches the server; every other host keeps the default policy
+ * (modules/caddytls v2.11.9, tls.go: getAutomationPolicyForName, Validate). agent.<domain> stays
+ * public and direct: mTLS ends at the Pforte.
  */
 
 export const ZENTRALE_UI_ID = "sz_zentrale_ui";
 export const ZENTRALE_AGENT_ID = "sz_zentrale_agent";
+/** The automation policy of the interface's host behind a tunnel */
+export const ZENTRALE_UI_TLS_ID = "sz_zentrale_ui_tls";
+/** Where cloudflared reaches the Pforte from: the server itself */
+export const LOOPBACK_NETZE = ["127.0.0.1/32", "::1/128"];
 /** The header the Zentrale reads the fingerprint from (apps/zentrale, herkunft.ts) */
 export const FINGERABDRUCK_KOPF = "X-SZ-Client-Fingerabdruck";
 /** What agents and install.sh call on agent.<domain> (apps/zentrale, routes/zugang.ts) and /health */
@@ -34,11 +44,21 @@ export type ZentraleVorne = {
   /** The operators' agent CAs, base64 DER */
   clientCas: string[];
   zertifikate?: PforteOptionen["zertifikate"];
+  /** The interface through a Cloudflare Tunnel, from loopback only; then no networks */
+  tunnel?: boolean;
 };
 
 type Route = { "@id": string; [feld: string]: unknown };
+type Richtlinie = { "@id"?: string; [feld: string]: unknown };
 type Konfiguration = {
-  apps: { http: { servers: Record<string, { routes: Route[]; [feld: string]: unknown }> } };
+  apps: {
+    http: { servers: Record<string, { routes: Route[]; [feld: string]: unknown }> };
+    tls?: {
+      automation?: { policies?: Richtlinie[]; [feld: string]: unknown };
+      [feld: string]: unknown;
+    };
+    pki?: unknown;
+  };
 };
 
 const HOST =
@@ -53,7 +73,9 @@ const fehler = (vorne: ZentraleVorne): string | undefined => {
   if (vorne.uiHost === vorne.agentHost) return "the interface and agent.<domain> need two hosts";
   if (!Number.isInteger(vorne.port) || vorne.port < 1 || vorne.port > 65535)
     return "the port must be 1-65535";
-  if (vorne.uiNetze.length === 0) return "at least one network for the interface";
+  if (vorne.tunnel && vorne.uiNetze.length > 0)
+    return "--tunnel lets the interface in from loopback only, without networks";
+  if (!vorne.tunnel && vorne.uiNetze.length === 0) return "at least one network for the interface";
   if (!vorne.uiNetze.every((n) => IPV4_NETZ.test(n) || IPV6_NETZ.test(n)))
     return "networks as CIDR, e.g. 10.8.0.0/24";
   if (!vorne.clientCas.every((ca) => BASE64.test(ca))) return "CAs as base64 DER";
@@ -75,7 +97,7 @@ const proxy = (port: number, setzen: Record<string, string[]>, loeschen: string[
 const routen = (v: ZentraleVorne): Route[] => [
   {
     "@id": ZENTRALE_UI_ID,
-    match: [{ host: [v.uiHost], remote_ip: { ranges: v.uiNetze } }],
+    match: [{ host: [v.uiHost], remote_ip: { ranges: v.tunnel ? LOOPBACK_NETZE : v.uiNetze } }],
     handle: [proxy(v.port, {}, [FINGERABDRUCK_KOPF])],
     terminal: true,
   },
@@ -137,6 +159,23 @@ const belegtDurch = (routen: Route[], v: ZentraleVorne): string | undefined => {
     )?.["@id"];
 };
 
+/**
+ * The policies without the interface's own, and with it in front behind a tunnel; Caddy's local CA
+ * is then never put into a trust store (as for the local CA of tests, grund.ts)
+ */
+const tlsSetzen = (k: Konfiguration, v: ZentraleVorne) => {
+  const andere = (k.apps.tls?.automation?.policies ?? []).filter(
+    (p) => p["@id"] !== ZENTRALE_UI_TLS_ID,
+  );
+  const eigene: Richtlinie[] = v.tunnel
+    ? [{ "@id": ZENTRALE_UI_TLS_ID, subjects: [v.uiHost], issuers: [{ module: "internal" }] }]
+    : [];
+  const policies = [...eigene, ...andere];
+  if (policies.length === 0 && !k.apps.tls) return;
+  k.apps.tls = { ...k.apps.tls, automation: { ...k.apps.tls?.automation, policies } };
+  if (v.tunnel) k.apps.pki = { certificate_authorities: { local: { install_trust: false } } };
+};
+
 const istKonfiguration = (wert: unknown): wert is Konfiguration => {
   const server = (wert as Konfiguration | null)?.apps?.http?.servers?.[PFORTE_SERVER];
   return typeof server === "object" && server !== null && Array.isArray(server.routes);
@@ -162,5 +201,6 @@ export const zentraleInPforte = (
   const eigene = new Set([ZENTRALE_UI_ID, ZENTRALE_AGENT_ID]);
   server.routes = [...routen(vorne), ...server.routes.filter((r) => !eigene.has(r["@id"]))];
   server.tls_connection_policies = richtlinien(vorne);
+  tlsSetzen(basis, vorne);
   return { ok: true, konfiguration: basis };
 };

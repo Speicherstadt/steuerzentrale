@@ -95,4 +95,25 @@ describe("the arguments of steuerzentrale pforte", () => {
     expect(vorneArgumente([]).ok).toBe(false);
     expect(vorneArgumente(["--irgendwas", "10.8.0.0/24"]).ok).toBe(false);
   });
+
+  it("takes --tunnel without networks, for the interface through cloudflared on loopback (Z-1104)", () => {
+    expect(vorneArgumente(["--tunnel"])).toEqual({
+      ok: true,
+      uiNetze: [],
+      zertifikate: "acme",
+      tunnel: true,
+    });
+    expect(vorneArgumente(["--tunnel", "--intern"])).toMatchObject({ ok: true, tunnel: true });
+    expect(vorneArgumente(["--tunnel", "10.8.0.0/24"]).ok).toBe(false);
+  });
+
+  it("puts the interface behind loopback with --tunnel", async () => {
+    const d = mitBetreibern("b1");
+    const r = await pforteKonfiguration({ ...d, schluessel: bund, env, jetzt: 5 }, null, {
+      uiNetze: [],
+      zertifikate: "acme",
+      tunnel: true,
+    });
+    expect(JSON.stringify(r)).toContain('"ranges":["127.0.0.1/32","::1/128"]');
+  });
 });

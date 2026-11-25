@@ -3,8 +3,10 @@ import { PFORTE_SERVER, pforteGrundkonfiguration, UNBEKANNT_ID } from "./grund.t
 import {
   AGENT_PFADE,
   FINGERABDRUCK_KOPF,
+  LOOPBACK_NETZE,
   ZENTRALE_AGENT_ID,
   ZENTRALE_UI_ID,
+  ZENTRALE_UI_TLS_ID,
   type ZentraleVorne,
   zentraleInPforte,
 } from "./zentrale.ts";
@@ -132,6 +134,44 @@ describe("the Zentrale behind the Pforte of its server", () => {
   it("takes certificates from Caddy's local CA only when asked to, for tests", () => {
     expect(ok(null)).not.toHaveProperty("apps.tls");
     expect(ok(null, { ...vorne, zertifikate: "intern" })).toHaveProperty("apps.tls");
+  });
+
+  it("with --tunnel lets the interface in from loopback only, for cloudflared on the server (Z-1104)", () => {
+    const k = ok(null, { ...vorne, uiNetze: [], tunnel: true });
+    const ui = server(k).routes[0];
+    expect(ui?.match).toEqual([
+      { host: ["zentrale.example.de"], remote_ip: { ranges: ["127.0.0.1/32", "::1/128"] } },
+    ]);
+    expect(LOOPBACK_NETZE).toEqual(["127.0.0.1/32", "::1/128"]);
+    // agent.<domain> stays public and direct: mTLS ends at the Pforte, not at Cloudflare
+    const agent = server(k).routes[1];
+    expect(agent?.match).toEqual([{ host: ["agent.example.de"], path: AGENT_PFADE }]);
+  });
+
+  it("with --tunnel gives the interface's host a certificate of Caddy's local CA, and only that host", () => {
+    type Tls = { automation: { policies: Record<string, unknown>[] } };
+    const k = ok(null, { ...vorne, uiNetze: [], tunnel: true }) as { apps: { tls?: Tls } };
+    expect(k.apps.tls?.automation.policies).toEqual([
+      {
+        "@id": ZENTRALE_UI_TLS_ID,
+        subjects: ["zentrale.example.de"],
+        issuers: [{ module: "internal" }],
+      },
+    ]);
+    // a later run without --tunnel takes the policy away again; an intern Pforte keeps its own
+    const zurueck = ok(k, vorne) as { apps: { tls?: Tls } };
+    expect(zurueck.apps.tls?.automation.policies ?? []).toEqual([]);
+    const intern = ok(null, { ...vorne, uiNetze: [], tunnel: true, zertifikate: "intern" }) as {
+      apps: { tls?: Tls };
+    };
+    expect(intern.apps.tls?.automation.policies.map((p) => p["@id"] ?? "lokal")).toEqual([
+      ZENTRALE_UI_TLS_ID,
+      "lokal",
+    ]);
+  });
+
+  it("refuses networks next to --tunnel: the interface comes from loopback only", () => {
+    expect(zentraleInPforte(null, { ...vorne, tunnel: true })).toMatchObject({ ok: false });
   });
 
   it("refuses what is not the Pforte's configuration", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agentFingerabdruck } from "./herkunft.ts";
+import { agentFingerabdruck, durchCloudflare } from "./herkunft.ts";
 
 const FP = "a0bf7f807dda6a86c40538f5c8599d3c40b4be8e6fd682691826d73b063b98af";
 const MIT_DOPPELPUNKTEN = FP.toUpperCase().match(/../g)?.join(":") ?? "";
@@ -20,5 +20,17 @@ describe("agentFingerabdruck", () => {
   it("refuses what is no SHA-256", () => {
     for (const kopf of [null, "", "abc", `${FP}00`, FP.replace("a", "g"), `${FP},${FP}`])
       expect(agentFingerabdruck("127.0.0.1", kopf), String(kopf)).toBeUndefined();
+  });
+
+  // Z-1104: cloudflared on the server hands requests on from loopback too; Cloudflare puts its
+  // headers on every one, so with them no header claims a certificate
+  it("ignores the header on a request that came through Cloudflare", () => {
+    for (const kopf of ["cf-access-jwt-assertion", "cf-connecting-ip", "cf-ray"]) {
+      const h = new Headers({ [kopf]: "x" });
+      expect(durchCloudflare(h), kopf).toBe(true);
+      expect(agentFingerabdruck("127.0.0.1", FP, durchCloudflare(h)), kopf).toBeUndefined();
+    }
+    expect(durchCloudflare(new Headers({ "x-forwarded-for": "203.0.113.9" }))).toBe(false);
+    expect(agentFingerabdruck("127.0.0.1", FP, false)).toBe(FP);
   });
 });

@@ -79,7 +79,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
 | ⚙️ [Aktionen](https://speicherstadt.org/steuerzentrale/aktionen.html) · [Einstellungen](https://speicherstadt.org/steuerzentrale/einstellungen.html) | Neustart, Log-Auszug, nur lesen, Einstellungen ändern, jeweils mit Grund im Audit-Log und nie in einer Sperrzeit |
 | 👥 [Kunden und Verträge](https://speicherstadt.org/steuerzentrale/kunden.html) | Ansprechperson, Vertragsbeginn und -ende; je Kunde Überblick und Verlauf; nach der Kündigung letztes Backup, Archiv-Link für den Kunden und Löschung mit Protokoll |
 | 🏠 [Nur für mich oder für Kunden](https://speicherstadt.org/steuerzentrale/anmeldung.html#nur-fur-mich-oder-fur-kunden) | Einmal nach der Einrichtung gewählt, später vom Inhaber mit Grund geändert; „Nur für mich“ blendet Kunden und Verträge aus |
-| 🔐 [Anmeldung und Rollen](https://speicherstadt.org/steuerzentrale/anmeldung.html) | Passkey oder Passwort mit TOTP, Rollen Inhaber, Technik, Support; Oberfläche nur über WireGuard |
+| 🔐 [Anmeldung und Rollen](https://speicherstadt.org/steuerzentrale/anmeldung.html) | Passkey oder Passwort mit TOTP, Rollen Inhaber, Technik, Support; Oberfläche nur über WireGuard oder einen Cloudflare Tunnel mit Access, dessen Token die Zentrale selbst prüft |
 | 🛡️ [Sicherheit](https://speicherstadt.org/steuerzentrale/sicherheit.html) | Bedrohungsmodell mit Test je Bedrohung, Notzugang per SSH, TOMs nach Art. 32 DSGVO |
 | 📐 [Manifest für App-Entwickler](https://speicherstadt.org/steuerzentrale/manifest.html) | Ein Schema für Units, Volumes, Secrets, Health, Backup, Aktionen und Einstellungen einer App |
 
@@ -110,7 +110,8 @@ Alles zum Durchklicken, mit Beispieldaten und ohne Server: die **[Demo](https://
 
 Die Steuerzentrale läuft als ein Container (`tristanteu/steuerzentrale` oder `ghcr.io/speicherstadt/steuerzentrale`,
 amd64 und arm64) rootless unter Podman, mit Caddy als Pforte davor. Du brauchst einen Server mit Debian 13 oder
-Ubuntu 24.04, zwei DNS-Namen (Oberfläche und `agent.`) und WireGuard, denn die Oberfläche antwortet nur im VPN.
+Ubuntu 24.04, zwei DNS-Namen (Oberfläche und `agent.`) und WireGuard, denn die Oberfläche antwortet nur im VPN;
+statt WireGuard geht auch ein Cloudflare Tunnel mit Cloudflare Access.
 
 ### 1. Von einem Agenten aufsetzen lassen
 
