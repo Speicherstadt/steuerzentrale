@@ -36,6 +36,14 @@ export const demoStart = (): Benachrichtigungen => ({
       abSchwere: "fehler",
       angelegtAm: berlin("2026-09-01", "10:05"),
     },
+    {
+      // Z-1105: the phone of the one on call, by ntfy
+      empfaengerId: "demo-handy",
+      art: "ntfy",
+      anzeige: "https://ntfy.sh",
+      abSchwere: "fehler",
+      angelegtAm: berlin("2026-11-02", "08:30"),
+    },
   ],
   zustellungen: [
     {

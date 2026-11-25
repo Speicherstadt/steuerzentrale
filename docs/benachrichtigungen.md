@@ -1,7 +1,8 @@
 ---
 title: Benachrichtigungen und Webhooks
 description: >-
-  Wie die Steuerzentrale Ereignisse nach Schwere per Mail und als signierten Webhook meldet, eine
+  Wie die Steuerzentrale Ereignisse nach Schwere per Mail, als signierten Webhook und per ntfy aufs
+  Handy meldet, eine
   Nachricht je Störung statt je Prüfung, mit Ruhezeit, Wiederholung und einer Signatur, die der
   Empfänger prüft.
 ---
@@ -10,7 +11,8 @@ description: >-
 
 Was in der Zentrale passiert, steht als Ereignis im Protokoll unter „Ereignisse“: eine Störung einer Installation
 und ihre Behebung, ein Befund einer Prüfung, ein stiller Agent, ein gescheitertes Backup oder Update.
-Die Zentrale meldet diese Ereignisse an die Empfänger des Betreibers, per Mail oder als Webhook.
+Die Zentrale meldet diese Ereignisse an die Empfänger des Betreibers, per Mail, als Webhook oder per
+ntfy aufs Handy.
 
 ## Eine Nachricht je Störung
 
@@ -35,7 +37,8 @@ Eine Behebung (`…_behoben`, und `aussen_gruen` nach `aussen_rot` der Prüfung 
 die Schwere `info`, geht aber mit der Schwere des Ereignisses raus, das sie behebt: wer die Störung bekam, bekommt auch ihr Ende. Ein neuer Empfänger bekommt keine
 Ereignisse, die vor ihm geschrieben wurden.
 
-Empfänger legen Inhaber und Technik unter **Einstellungen → Benachrichtigungen** an, mit Grund;
+Empfänger legen Inhaber und Technik unter **Einstellungen → Benachrichtigungen** an, mit Grund (ein
+ntfy-Thema ohne);
 Support sieht sie nur. „Test senden“ schickt sofort eine Testnachricht an einen Empfänger, auch in der
 Ruhezeit, und zeigt, ob sie ankam.
 
@@ -125,6 +128,29 @@ an die geprüfte Adresse, mit dem Host als `Host`-Header und TLS-Name, sodass ei
 DNS nicht woanders hinzeigen kann. Weiterleitungen folgt sie nicht; nur eine Antwort `2xx` gilt als
 zugestellt.
 
+## ntfy aufs Handy
+
+[ntfy](https://ntfy.sh) schickt Nachrichten an die App auf dem Handy. Der Empfänger ist die Adresse
+eines Themas, `https://ntfy.sh/<thema>` oder auf einem eigenen ntfy-Server `https://push.example.de/<pfad>/<thema>`
+(Name des Themas: Buchstaben, Ziffern, `_` und `-`, höchstens 64), und für ein geschütztes Thema ein
+Zugriffstoken. Adresse und Token liegen verschlüsselt in der Datenbank; die Zentrale zeigt danach nur
+den Server (`https://ntfy.sh`), denn auf einem öffentlichen Server ist der Name des Themas sein
+Schlüssel, und das Token nie.
+
+Die Zentrale veröffentlicht als JSON an die Wurzel des Servers (ntfy-Doku, „Publish as JSON“), mit
+dem Token als `Authorization: Bearer …`:
+
+| Ereignis | `title` | `priority` | `tags` |
+| --- | --- | --- | --- |
+| Störung (`fehler`) | Störung | 5 (dringend: lange Vibration, auch bei „Nicht stören“ auf Android) | `rotating_light` |
+| Warnung (`warn`) | Warnung | 4 | `warning` |
+| Hinweis (`info`) | Hinweis | 3 | `information_source` |
+| Behebung | Behoben | 3 | `white_check_mark` |
+
+`message` ist der Text des Ereignisses, `topic` das Thema. Für die Adresse gilt dasselbe wie für
+einen Webhook: nur `https`, nur [öffentliche Adressen](#nur-offentliche-adressen), keine
+Weiterleitung, nur `2xx` gilt als zugestellt. Ruhezeit und Wiederholung sind dieselben.
+
 ## Ruhezeit
 
 Die Ruhezeit gilt täglich, in der Uhrzeit von Berlin, etwa 22:00 bis 07:00. In ihr gehen nur
@@ -153,6 +179,6 @@ Audit-Log, ohne Passwort, Adresse oder Schlüssel eines Webhooks. Zustellungen b
 | --- | --- | --- |
 | `GET /api/v1/benachrichtigungen` | alle | SMTP-Server (Passwort nur als `passwortGesetzt`), Ruhezeit, Empfänger (Webhook nur als Host), die 20 neuesten Zustellungen |
 | `PUT /api/v1/benachrichtigungen` | Inhaber, Technik | `smtp` (oder `null`) und `ruhezeit` (oder `null`) mit `grund`; ein fehlendes `passwort` behält das alte, solange Host und Benutzer gleich bleiben; mit einem anderen Host oder Benutzer ist es weg |
-| `POST /api/v1/benachrichtigungen/empfaenger` | Inhaber, Technik | `art` `mail` mit `adresse` oder `webhook` mit `url` und `schluessel` (32 bis 200 Zeichen), `abSchwere`, `grund` |
+| `POST /api/v1/benachrichtigungen/empfaenger` | Inhaber, Technik | `art` `mail` mit `adresse` oder `webhook` mit `url` und `schluessel` (32 bis 200 Zeichen), `abSchwere`, `grund`; oder `ntfy` mit `url` (Adresse des Themas), `token` (oder `null`) und `abSchwere`, ohne `grund` |
 | `DELETE /api/v1/benachrichtigungen/empfaenger/:id` | Inhaber, Technik | mit `grund`; wartende Zustellungen enden |
 | `POST /api/v1/benachrichtigungen/empfaenger/:id/test` | Inhaber, Technik | sendet sofort eine Testnachricht; `502` mit dem Grund, wenn sie nicht ankam |
