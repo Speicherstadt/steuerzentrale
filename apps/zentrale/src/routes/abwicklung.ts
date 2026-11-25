@@ -2,6 +2,7 @@ import { z } from "zod";
 import { abwicklungAnsicht, archivLink } from "../modules/abwicklung/index.ts";
 import { installationLesen } from "../modules/installationen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Registrar } from "./zugang.ts";
 
 /*
@@ -12,10 +13,9 @@ import type { Registrar } from "./zugang.ts";
  * only). An installation of another operator is unknown.
  */
 
-const grundSchema = z.object({ grund: z.string().trim().min(1).max(500) }).strict();
+const grundSchema = z.object({ grund }).strict();
 
 const STATUS = {
-  grund_fehlt: 400,
   keine_installation: 404,
   kein_archiv: 409,
   frist_abgelaufen: 409,

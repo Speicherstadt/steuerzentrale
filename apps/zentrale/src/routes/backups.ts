@@ -14,6 +14,7 @@ import { installationLesen } from "../modules/installationen/index.ts";
 import { type PruefDeps, pruefRestoreAnlegen } from "../modules/pruef-restore/index.ts";
 import { wiederherstellenAnlegen } from "../modules/wiederherstellen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
@@ -55,14 +56,13 @@ const zielSchema = z
     bucket: z.string().regex(BUCKET),
     accessKey: geheim.optional(),
     secretKey: geheim.min(8).optional(),
-    grund: z.string().trim().min(1).max(500),
+    grund,
   })
   .strict()
   .refine((z) => (z.accessKey === undefined) === (z.secretKey === undefined), {
     message: "access key and secret key go together",
   });
 
-const grund = z.string().trim().min(1).max(500);
 const grundSchema = z.object({ grund }).strict();
 const wiederherstellenSchema = z.object({ lauf: z.string().min(1).max(200), grund }).strict();
 

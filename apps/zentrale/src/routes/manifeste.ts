@@ -8,6 +8,7 @@ import {
 } from "../modules/manifeste/index.ts";
 import { type AppVersion, appsUebersicht } from "../modules/versionen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
@@ -19,7 +20,6 @@ import type { Anfrage, Registrar } from "./zugang.ts";
  * "anderer Betreiber".
  */
 
-const grund = z.string().trim().min(1).max(500);
 const importSchema = z
   .object({
     // the manifest's exact text: never trimmed, its bytes are what the signature signs

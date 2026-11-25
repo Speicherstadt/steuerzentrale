@@ -12,6 +12,7 @@ import {
   vertragsendeSetzen,
 } from "../modules/kunden/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
@@ -30,7 +31,6 @@ const tag = z
   .min(0)
   .max(LETZTER_TAG)
   .refine((t) => t <= LETZTER_TAG && tagesbeginn(t) === t);
-const grund = text(500);
 
 const stammdaten = {
   name: text(200),

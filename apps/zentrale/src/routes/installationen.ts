@@ -20,6 +20,7 @@ import {
 } from "../modules/installationen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
 import { einstellungsWerte } from "./einstellungen.ts";
+import { grund } from "./grund.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
@@ -34,7 +35,6 @@ import type { Anfrage, Registrar } from "./zugang.ts";
  */
 
 const id = z.string().min(1).max(200);
-const grund = z.string().trim().min(1).max(500);
 const wunsch = {
   kundeId: id,
   serverId: id,

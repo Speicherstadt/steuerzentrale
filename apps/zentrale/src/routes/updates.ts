@@ -11,6 +11,7 @@ import {
 } from "../modules/updates/index.ts";
 import { angeboteFuer } from "../modules/versionen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
@@ -25,7 +26,7 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 const updateSchema = z
   .object({
     version: z.string().min(1).max(100),
-    grund: z.string().trim().min(1).max(500),
+    grund,
   })
   .strict();
 

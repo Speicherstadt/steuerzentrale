@@ -6,6 +6,7 @@ import {
   type Gelesen,
 } from "../modules/einstellungen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
@@ -20,9 +21,7 @@ import type { Anfrage, Registrar } from "./zugang.ts";
 export const einstellungsWert = z.union([z.string().max(10_000), z.number(), z.boolean()]);
 export const einstellungsWerte = z.record(z.string().max(100), einstellungsWert);
 
-const aendernSchema = z
-  .object({ werte: einstellungsWerte, grund: z.string().trim().min(1).max(500) })
-  .strict();
+const aendernSchema = z.object({ werte: einstellungsWerte, grund }).strict();
 
 const STATUS: Record<string, 400 | 404 | 500> = {
   kein_manifest: 404,

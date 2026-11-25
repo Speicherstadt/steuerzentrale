@@ -11,6 +11,7 @@ import {
 } from "../modules/benachrichtigung/index.ts";
 import { ntfyThema } from "../modules/benachrichtigung/ntfy.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Registrar } from "./zugang.ts";
 
 /*
@@ -31,7 +32,7 @@ const UHRZEIT = /^([01]\d|2[0-3]):[0-5]\d$/;
 // a key of the operator's own, 32 to 200 visible ASCII characters: the browser offers 43 of base64url
 const SCHLUESSEL = /^[\x21-\x7e]{32,200}$/;
 const SCHWERE = z.enum(["info", "warn", "fehler"]);
-const GRUND = z.string().trim().min(1).max(500);
+const GRUND = grund;
 
 const smtpSchema = z
   .object({
@@ -105,7 +106,7 @@ const empfaengerSchema = z.discriminatedUnion("art", [
       url: ntfyUrl,
       token: z.string().regex(TOKEN).nullable().default(null),
       abSchwere: SCHWERE,
-      grund: GRUND.optional(),
+      grund: GRUND,
     })
     .strict(),
 ]);

@@ -24,12 +24,7 @@ export type LinkErgebnis =
   | { ok: true; gueltigBis: number; links: Link[] }
   | {
       ok: false;
-      grund:
-        | "grund_fehlt"
-        | "keine_installation"
-        | "kein_archiv"
-        | "frist_abgelaufen"
-        | "kein_zugang";
+      grund: "keine_installation" | "kein_archiv" | "frist_abgelaufen" | "kein_zugang";
       detail?: string;
     };
 
@@ -40,7 +35,6 @@ export const archivLink = async (
   kontext: Kontext,
   installationId: string,
 ): Promise<LinkErgebnis> => {
-  if (kontext.grund.trim() === "") return { ok: false, grund: "grund_fehlt" };
   const { betreiberId, jetzt } = kontext;
   const i = installationLesen(deps.db, betreiberId, installationId);
   if (!i) return { ok: false, grund: "keine_installation" };
