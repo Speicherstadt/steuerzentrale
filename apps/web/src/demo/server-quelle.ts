@@ -9,6 +9,7 @@ import type {
   NeustartStand,
   ServerDerZentrale,
   ServerFakten,
+  ServerLastStunde,
   ServerQuelle,
 } from "../daten/server.ts";
 import type { Server } from "../daten/typen.ts";
@@ -78,6 +79,19 @@ export const demoFakten = (sv: Server, jetzt: number): ServerFakten => {
       .filter((i) => i.server === sv.id)
       .map((i) => ({ host: i.adresse, gueltigBis: jetzt + sv.zertifikatTage * TAG_MS })),
     ...(sv.nurBeobachten ? { nurBeobachten: true } : {}),
+    // Z-1106: the demo's load as the agent reports it, each installation's user a share of it
+    last: {
+      cpuProzent: sv.cpu,
+      last1: Math.round((sv.cpu / 25) * 100) / 100,
+      ramBelegtMb: Math.round((sv.ramGb * 1024 * sv.ram) / 100),
+      nutzer: demo.installationen
+        .filter((i) => i.server === sv.id)
+        .map((i, n) => ({
+          name: `sz-${i.id}`,
+          cpuProzent: Math.round(sv.cpu / (n + 3)),
+          ramMb: 180 + ((n * 137) % 600),
+        })),
+    },
   };
 };
 
@@ -94,6 +108,26 @@ export const demoPlatten = (sv: Server, tage: number, bis: number): PlattenStund
     const tag = Math.sin(((ende - stunde) / (24 * STUNDE_MS)) * 2 * Math.PI) * 0.3;
     const prozent = Math.round((sv.platte * (1 - rest / 12) + tag) * 10) / 10;
     stunden.push({ stunde, platten: [{ mount: "/", prozent: Math.min(100, prozent) }] });
+  }
+  return stunden;
+};
+
+/** A value of the demo that moves with the time of day: up by day, down at night */
+const tagesgang = (wert: number, stunde: number, ende: number) =>
+  wert * (0.75 + 0.25 * Math.sin(((stunde - ende) / (24 * STUNDE_MS)) * 2 * Math.PI));
+
+/** CPU, load and memory of the demo server per hour up to its last report (Z-1106) */
+export const demoLast = (sv: Server, tage: number, bis: number): ServerLastStunde[] => {
+  const ende = stundeVon(bis);
+  const stunden: ServerLastStunde[] = [];
+  for (let stunde = plattenVon(tage, bis); stunde <= ende; stunde += STUNDE_MS) {
+    const cpu = Math.round(tagesgang(sv.cpu, stunde, ende) * 10) / 10;
+    stunden.push({
+      stunde,
+      cpuProzent: cpu,
+      last1: Math.round((cpu / 25) * 100) / 100,
+      ramProzent: Math.round(tagesgang(sv.ram, stunde, ende) * 0.2 + sv.ram * 0.8),
+    });
   }
   return stunden;
 };
@@ -167,6 +201,12 @@ export const demoServerQuelle = (start: Server[], jetzt: () => number): ServerQu
         seit: null,
       }));
       return ok({ ...sv, pruefungen });
+    },
+    last: async (id, tage) => {
+      const sv = liste.find((s) => s.serverId === id);
+      const roh = start.find((s) => s.id === id);
+      if (!sv || !roh) return fehlt;
+      return ok(demoLast(roh, tage, sv.faktenAm ?? jetzt()));
     },
     platten: async (id, tage) => {
       const sv = liste.find((s) => s.serverId === id);

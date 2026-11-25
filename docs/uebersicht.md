@@ -179,8 +179,9 @@ Die Seite **Server** ist eine Tabelle: Name mit der Art in Worten („für mehre
 Server eines Kunden“, „steht beim Kunden“), Zustand in Worten mit Symbol („Platte fast voll“,
 „meldet sich nicht, zuletzt vor 6 Min.“, „Neustart nötig, geplant morgen 03:30“, „verbunden“),
 Platte, Apps („4 Apps · 2 Kunden“) und System; eine volle Platte, ein stiller Agent und ein nötiger
-Neustart zuerst. Spalten für CPU und RAM gibt es nur, wenn etwas sie gemessen hat; der Agent meldet
-sie noch nicht, nur die Demo hat Werte. In „Nur für mich“ nennt die Tabelle weder Art noch Kunden.
+Neustart zuerst. Die Spalten CPU und RAM zeigen, was der Agent zuletzt mit den Fakten gemeldet hat
+(CPU als Anteil der Maschine seit der vorigen Meldung, RAM als belegter Anteil ohne Puffer und Cache);
+es gibt sie, sobald ein Server sie meldet. In „Nur für mich“ nennt die Tabelle weder Art noch Kunden.
 
 Die Seite eines Servers hat im Kopf Name und Art, den Zustand in einem Satz, die erste IPv4 und das
 System, daneben **Neu starten** ([Betriebssystem und Neustarts](betriebssystem.md)). Die Reiter
@@ -189,13 +190,33 @@ stehen in der Adresse (`?tab=`):
 | Reiter | Inhalt |
 | --- | --- |
 | Überblick | Auslastung (Platte aus den Fakten), Betriebssystem, Wartungsfenster, Prüfungen und Agent mit Zertifikat je in einer Zeile; die ersten vier Apps mit Zustand und „Zuletzt passiert“ |
-| Auslastung | wie voll jede Platte war, 24 Stunden, 7 oder 30 Tage, auf einer Skala von 0 bis 100 % (`GET /api/v1/server/<id>/platten`); CPU und Arbeitsspeicher, sobald der Agent sie meldet |
+| Auslastung | wie voll jede Platte war, 24 Stunden, 7 oder 30 Tage, auf einer Skala von 0 bis 100 % (`GET /api/v1/server/<id>/platten`); CPU und Arbeitsspeicher in Prozent und die Last der letzten Minute, je Punkt der höchste Wert (`GET /api/v1/server/<id>/last`, siehe [CPU und Arbeitsspeicher](#cpu-und-arbeitsspeicher)) |
 | Apps | die Apps darauf als Tabelle wie auf der Seite „Apps“ |
 | Verlauf | die Ereignisse des Servers und seiner Apps |
 | Technik | System und Netz aus den Fakten mit dem Zertifikat des Agenten, die Karte „Wartung“, alle Prüfungen und (nur in der Demo) die Pakete, die auf einen Neustart warten |
 
 Die Seite eines Kunden beschreibt [Kunden und Verträge](kunden.md#die-seite-eines-kunden). Beide
 nehmen die Installationen aus `GET /api/v1/installationen`.
+
+## CPU und Arbeitsspeicher
+
+Mit den Fakten (alle 15 Minuten) meldet der Agent im Feld `last`, was er aus Dateien liest, nie aus
+einem Befehl:
+
+| Wert | Quelle | gemeldet als |
+| --- | --- | --- |
+| CPU des Servers | erste Zeile `cpu` aus `/proc/stat` | Anteil der Maschine seit der vorigen Meldung; bei der ersten nach dem Start und nach einem Neustart des Servers `null` |
+| Last | erstes Feld aus `/proc/loadavg` | Mittel der letzten Minute |
+| Arbeitsspeicher | `MemTotal` minus `MemAvailable` aus `/proc/meminfo` | MiB |
+| je Installation | `memory.current` und `usage_usec` aus `cpu.stat` unter `/sys/fs/cgroup/user.slice/user-<uid>.slice` ihres Linux-Nutzers | MiB, CPU als Anteil der ganzen Maschine |
+
+Was er nicht lesen kann, meldet er als `null`, nie als 0. Die Zentrale bewahrt die Fakten 30 Tage
+auf wie die Platte und nimmt je Stunde den höchsten Wert. `GET /api/v1/server/<id>/last?tage=` gibt
+je Stunde CPU, Last und Arbeitsspeicher in Prozent des RAM, `GET /api/v1/installationen/<id>/last?tage=`
+CPU und Arbeitsspeicher des Nutzers der Installation (höchstens 30 Tage). Die Seite Apps zeigt die
+neuesten Werte je App in den Spalten CPU und RAM, der Reiter „Messwerte“ einer App ihre Verläufe.
+Die Prüfung [Arbeitsspeicher](pruefungen.md) meldet über 90 % gelb, über 95 % rot. Ein beobachteter
+Dienst mit eigenem Linux-Nutzer kommt mit Z-1103 dazu.
 
 ## Was noch kommt
 
@@ -204,7 +225,7 @@ mit welchem Punkt sie kommen:
 
 | Seite oder Teil | kommt mit |
 | --- | --- |
-| CPU und Arbeitsspeicher eines Servers, Pakete mit Namen; die Platte zeigt der Reiter „Auslastung“, das Betriebssystem seit Z-701 die Karte „Wartung“ | Z-1106 |
+| Pakete mit Namen; die Platte, CPU und Arbeitsspeicher zeigt der Reiter „Auslastung“, das Betriebssystem seit Z-701 die Karte „Wartung“ | – |
 
 Name, Symbol und Kurztext der Apps (Katalog) stehen in `apps/web/src/demo/apps.ts`; alles
 Technische (Version, Container, Ports, Health, Backup, Sperrzeiten, Einstellungen) liest die Demo aus

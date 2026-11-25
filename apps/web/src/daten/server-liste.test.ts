@@ -78,12 +78,13 @@ describe("the table of the page Server", () => {
     ).toEqual({ art: "neustart", ab: null });
   });
 
-  it("shows CPU and RAM only where something measured them", () => {
+  it("shows CPU and RAM only where the agent reported them (Z-1106)", () => {
     const zeilen = serverZeilen(b, ansichten, []);
     expect(lastGemessen(zeilen)).toBe(true);
+    expect(zeilen.find((z) => z.a.id === "shared-1")).toMatchObject({ cpu: 23, ram: 48 });
     const ohne = serverZeilen(
       b,
-      ansichten.map((a) => ({ ...a, demo: undefined })),
+      ansichten.map((a) => ({ ...a, cpu: null, ramProzent: null })),
       [],
     );
     expect(ohne.every((z) => z.cpu === null && z.ram === null)).toBe(true);

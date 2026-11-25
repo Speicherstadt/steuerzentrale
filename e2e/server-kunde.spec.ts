@@ -23,6 +23,8 @@ test.describe("servers and customers", { tag: "@phone" }, () => {
       await expect(tabelle.getByRole("columnheader")).toHaveText([
         "Server",
         "Zustand",
+        "CPU",
+        "RAM",
         "Platte",
         "Apps",
         "System",
@@ -50,9 +52,10 @@ test.describe("servers and customers", { tag: "@phone" }, () => {
       await page.getByRole("tab", { name: "Auslastung" }).click();
       await expect(page).toHaveURL(`/server/${agent.serverId}?tab=auslastung`);
       await expect(page.getByTestId("platte-/")).toContainText("40 %");
-      await expect(page.getByTestId("last-hinweis")).toHaveText(
-        "CPU und Arbeitsspeicher kommen, sobald der Agent sie meldet.",
-      );
+      // Z-1106: CPU, memory and load as the agent reported them with its facts
+      await expect(page.getByTestId("last-cpu")).toContainText("37 %");
+      await expect(page.getByTestId("last-ram")).toContainText("50 %");
+      await expect(page.getByTestId("last-load")).toContainText("0,8");
       await ohneBefund(page);
     } finally {
       agent.trennen();

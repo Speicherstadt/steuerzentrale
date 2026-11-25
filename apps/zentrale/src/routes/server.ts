@@ -6,11 +6,13 @@ import { neustartAnlegen, neustartStand } from "../modules/neustart/index.ts";
 import { pruefungenLesen } from "../modules/pruefungen/index.ts";
 import {
   ARTEN,
+  lastVerlauf,
   letzteHeartbeats,
   plattenVerlauf,
   type Server,
   serverAnlegen,
   serverFakten,
+  serverLast,
   serverLesen,
   serverListe,
   serverSperren,
@@ -125,6 +127,18 @@ export const serverPlattenRouten = (route: Registrar, deps: RoutenDeps): void =>
     if (!sv) return c.json({ fehler: "kein_server" }, 404);
     return c.json({
       stunden: plattenVerlauf(deps.db, betreiberId, sv.serverId, tage, deps.now()),
+    });
+  });
+
+  // Z-1106: CPU, load and memory, per hour the highest reading, from the same history
+  route("GET /api/v1/server/:serverId/last", (c) => {
+    const betreiberId = c.get("betreiberId");
+    const tage = tageAusText(c.req.query("tage"));
+    if (tage === undefined) return c.json({ fehler: "ungueltig" }, 400);
+    const sv = serverLesen(deps.db, betreiberId, c.req.param("serverId") ?? "");
+    if (!sv) return c.json({ fehler: "kein_server" }, 404);
+    return c.json({
+      stunden: serverLast(lastVerlauf(deps.db, betreiberId, sv.serverId, tage, deps.now())),
     });
   });
 };

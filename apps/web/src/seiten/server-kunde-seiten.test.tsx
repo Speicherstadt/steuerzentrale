@@ -114,15 +114,15 @@ describe("the page of a server", () => {
     expect(text(root, "pruefungen")).toContain("Prüfen");
   });
 
-  it("shows the disk over time on Auslastung, and no series it has no data for", async () => {
+  it("shows the disk, CPU, memory and load over time on Auslastung (Z-1106)", async () => {
     const { root } = await oeffne("/server/shared-1?tab=auslastung");
     await warten();
     expect(text(root, "platte-/")).toContain("Platte");
     expect(text(root, "platte-/")).toContain("47 %");
-    expect(root.querySelectorAll("[data-testid=linie]")).toHaveLength(1);
-    expect(text(root, "last-hinweis")).toBe(
-      "CPU und Arbeitsspeicher kommen, sobald der Agent sie meldet.",
-    );
+    expect(root.querySelectorAll("[data-testid=linie]")).toHaveLength(4);
+    expect(text(root, "last-cpu")).toContain("CPU");
+    expect(text(root, "last-ram")).toContain("RAM");
+    expect(text(root, "last-load")).toContain("Last");
     // 7 days a point every four hours, 24 hours a point each hour
     const punkte = () =>
       root.querySelector("[data-testid=linie] polyline")?.getAttribute("points")?.split(" ").length;

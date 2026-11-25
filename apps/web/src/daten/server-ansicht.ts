@@ -55,6 +55,11 @@ export type ServerAnsicht = {
   zertifikate: { host: string; gueltigBis: number }[] | null;
   /** Only observed (Z-1102): the Zentrale changes nothing there, not even a reboot */
   nurBeobachten: boolean;
+  /** CPU in percent of the machine and memory in use in percent of its RAM (Z-1106) */
+  cpu: number | null;
+  ramProzent: number | null;
+  /** The newest values of each installation's Linux user (Z-1106) */
+  nutzerLast: { name: string; cpuProzent: number | null; ramMb: number | null }[];
   /** Its checks (Z-702), on its own page; null in the list */
   pruefungen: ServerPruefung[] | null;
   demo: Server | undefined;
@@ -109,6 +114,12 @@ export const serverAnsicht = (sv: ServerDerZentrale, demo: Server | undefined): 
     zertifikate: f?.zertifikate ?? null,
     pruefungen: sv.pruefungen ?? null,
     nurBeobachten: f?.nurBeobachten === true,
+    cpu: f?.last?.cpuProzent ?? null,
+    ramProzent:
+      f?.ramMb && f.last?.ramBelegtMb != null
+        ? Math.round((f.last.ramBelegtMb / f.ramMb) * 100)
+        : null,
+    nutzerLast: f?.last?.nutzer ?? [],
     demo,
   };
 };

@@ -1,5 +1,6 @@
 import { aussenLesen, TAGE_MAX, tageLesen } from "../modules/aussen/index.ts";
 import { installationLesen } from "../modules/installationen/index.ts";
+import { lastVerlauf, nutzerLast } from "../modules/server/index.ts";
 import type { RoutenDeps } from "./deps.ts";
 import type { Registrar } from "./zugang.ts";
 
@@ -37,5 +38,17 @@ export const aussenRouten = (route: Registrar, deps: RoutenDeps): void => {
     const i = installationLesen(deps.db, betreiberId, c.req.param("installationId") ?? "");
     if (!i) return c.json({ fehler: "keine_installation" }, 404);
     return c.json({ tage: tageLesen(deps.db, betreiberId, i.installationId, tage, deps.now()) });
+  });
+
+  // Z-1106: CPU and memory of the installation's Linux user, per hour, from its server's facts;
+  // `tage` up to the 30 days the facts are kept
+  route("GET /api/v1/installationen/:installationId/last", (c) => {
+    const betreiberId = c.get("betreiberId");
+    const tage = tageAusText(c.req.query("tage") ?? "30");
+    if (tage === undefined || tage > 30) return c.json({ fehler: "ungueltig" }, 400);
+    const i = installationLesen(deps.db, betreiberId, c.req.param("installationId") ?? "");
+    if (!i) return c.json({ fehler: "keine_installation" }, 404);
+    const stunden = lastVerlauf(deps.db, betreiberId, i.serverId, tage, deps.now());
+    return c.json({ stunden: nutzerLast(stunden, `sz-${i.installationId}`) });
   });
 };

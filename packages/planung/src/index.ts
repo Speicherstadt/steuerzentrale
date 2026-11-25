@@ -62,6 +62,15 @@ export {
   vertragsphase,
 } from "./kuendigung.ts";
 export {
+  arbeitsspeicherPruefen,
+  type LastGemessen,
+  type LastMessung,
+  type LastStunde,
+  lastProStunde,
+  RAM_STOERUNG_PROZENT,
+  RAM_WARNUNG_PROZENT,
+} from "./last.ts";
+export {
   NEUSTART_PAUSE_MS,
   type NeustartEntscheid,
   type NeustartServer,

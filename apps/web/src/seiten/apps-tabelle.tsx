@@ -11,6 +11,7 @@ import {
 import { For, Match, Show, Switch } from "solid-js";
 import { type AppZeile, type AppZustand, type Gruppe, stufeVon } from "../daten/apps-liste.ts";
 import { grundText } from "../daten/bewertung.ts";
+import { prozent, speicher } from "../format/zahl.ts";
 import { datum, zeitpunkt } from "../format/zeit.ts";
 import { appIcon } from "../teile/app-icon.ts";
 import { Reihe, Tabelle, Zwischenzeile } from "../teile/tabelle.tsx";
@@ -19,7 +20,7 @@ import { ZuInstallation, ZuKunde, ZuServer } from "../teile/verweise.tsx";
 /*
  * The table of the page "Apps" (docs/plan.md, "Navigation (Oberfläche 2026-11)"): per app its
  * icon and name, the customer, its state in plain words with an icon, the version with an update
- * under way or offered, the last backup and the server; the whole row opens the app. Grouped, a grey
+ * under way or offered, the last backup, CPU and memory of its Linux user (Z-1106) and the server; the whole row opens the app. Grouped, a grey
  * row names the customer or server above its apps.
  */
 
@@ -135,7 +136,7 @@ const KundeZelle = (props: { z: AppZeile }) => (
 );
 
 /** One app; its name is the link, and the link covers the row, so a click anywhere opens it */
-const Zeile = (props: { z: AppZeile; mitKunde: boolean; jetzt: number }) => (
+const Zeile = (props: { z: AppZeile; mitKunde: boolean; mitLast: boolean; jetzt: number }) => (
   <Reihe class="relative [&>td]:align-middle">
     <td>
       <ZuInstallation
@@ -163,6 +164,14 @@ const Zeile = (props: { z: AppZeile; mitKunde: boolean; jetzt: number }) => (
     >
       {props.z.backup ? zeitpunkt(props.z.backup.zeitpunkt, props.jetzt) : "–"}
     </td>
+    <Show when={props.mitLast}>
+      <td class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+        {props.z.cpu === null ? "–" : prozent(props.z.cpu, props.z.cpu % 1 ? 1 : 0)}
+      </td>
+      <td class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+        {props.z.ramMb === null ? "–" : speicher(props.z.ramMb)}
+      </td>
+    </Show>
     <td class="whitespace-nowrap text-muted-foreground">{props.z.a.serverName}</td>
   </Reihe>
 );
@@ -194,12 +203,20 @@ export const AppsTabelle = (props: {
   mitKunde: boolean;
   jetzt: number;
 }) => {
+  const mitLast = () => props.zeilen.some((z) => z.cpu !== null || z.ramMb !== null);
   const spalten = () => [
     { name: m.inst_spalte_app() },
     ...(props.mitKunde ? [{ name: m.inst_spalte_kunde() }] : []),
     { name: m.server_spalte_zustand() },
     { name: m.server_version() },
     { name: m.apps_spalte_backup() },
+    // Z-1106: once any app's server reported them
+    ...(mitLast()
+      ? [
+          { name: m.server_spalte_cpu(), class: "text-right" },
+          { name: m.server_spalte_ram(), class: "text-right" },
+        ]
+      : []),
     { name: m.server_spalte_server() },
   ];
   return (
@@ -214,7 +231,9 @@ export const AppsTabelle = (props: {
         when={props.gruppen}
         fallback={
           <For each={props.zeilen}>
-            {(z) => <Zeile z={z} mitKunde={props.mitKunde} jetzt={props.jetzt} />}
+            {(z) => (
+              <Zeile z={z} mitKunde={props.mitKunde} mitLast={mitLast()} jetzt={props.jetzt} />
+            )}
           </For>
         }
       >
@@ -224,7 +243,14 @@ export const AppsTabelle = (props: {
               <>
                 <Gruppenkopf g={g} spalten={spalten().length} />
                 <For each={g.zeilen}>
-                  {(z) => <Zeile z={z} mitKunde={props.mitKunde} jetzt={props.jetzt} />}
+                  {(z) => (
+                    <Zeile
+                      z={z}
+                      mitKunde={props.mitKunde}
+                      mitLast={mitLast()}
+                      jetzt={props.jetzt}
+                    />
+                  )}
                 </For>
               </>
             )}

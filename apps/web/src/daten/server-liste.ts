@@ -56,7 +56,7 @@ export type ServerZeile = {
   /** Its apps not removed, and how many customers they belong to */
   apps: number;
   kunden: number;
-  /** Load in percent where measured */
+  /** CPU and memory in percent where the agent reported them (Z-1106) */
   cpu: number | null;
   ram: number | null;
 };
@@ -75,8 +75,8 @@ export const serverZeilen = (
         stand: serverStand(b, a),
         apps: hier.length,
         kunden: einmal(hier.map((i) => i.kundeId)).length,
-        cpu: a.demo?.cpu ?? null,
-        ram: a.demo?.ram ?? null,
+        cpu: a.cpu,
+        ram: a.ramProzent,
       };
     })
     .sort(

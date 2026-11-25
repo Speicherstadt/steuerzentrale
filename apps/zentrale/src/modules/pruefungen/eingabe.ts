@@ -25,6 +25,8 @@ export const pruefFakten = (sv: Server): PruefFakten | null => {
     zertifikate: f.zertifikate ?? null,
     uhrzeitAbweichungMs: f.uhrzeitAbweichungMs,
     uhrSynchron: f.uhrSynchron ?? null,
+    ramMb: f.ramMb,
+    ramBelegtMb: f.last?.ramBelegtMb ?? null,
   };
 };
 
