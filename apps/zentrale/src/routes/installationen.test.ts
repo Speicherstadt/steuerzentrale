@@ -238,7 +238,7 @@ describe("an installation over the API", () => {
       body: {
         name: "Kunde des Partners",
         kontakt: { name: "Pia", email: "pia@kunde.test" },
-        vertrag: { sla: "basis", beginn: BEGINN },
+        vertrag: { beginn: BEGINN },
         grund: "Vertrag",
       },
     });

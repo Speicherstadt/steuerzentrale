@@ -169,6 +169,13 @@
       "when": 1795533879937,
       "tag": "0023_betriebsart",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1795614872487,
+      "tag": "0024_ohne_sla",
+      "breakpoints": true
     }
   ]
 }

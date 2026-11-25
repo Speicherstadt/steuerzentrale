@@ -1,7 +1,7 @@
 ---
 title: Kunden und Verträge
 description: >-
-  Kunden mit Ansprechperson und Vertrag (SLA, Beginn, Vertragsende) anlegen, ändern und kündigen;
+  Kunden mit Ansprechperson und Vertrag (Beginn, Vertragsende) anlegen, ändern und kündigen;
   jede Änderung mit Grund im Audit-Log.
 ---
 
@@ -11,7 +11,7 @@ Ein Kunde ist, wem eine Installation gehört. Er meldet sich nie an der Zentrale
 zeigt später das Portal. Unter **Kunden** legt der Betreiber Kunden an, die nicht über das Portal
 kommen, ändert ihre Angaben und trägt eine Kündigung ein.
 
-Die Seite **Kunden** ist eine Tabelle: Kunde mit E-Mail-Adresse, SLA, Apps, Server und Vertrag
+Die Seite **Kunden** ist eine Tabelle: Kunde mit E-Mail-Adresse, Apps, Server und Vertrag
 („seit …“, „intern“ oder „Gekündigt zum …“), mit Suche und **Kunde anlegen**. Darüber führt
 **Support-Zugänge** ([Support-Zugang](support.md)) zur Liste der Zugänge aller Kunden. Ein Klick auf einen Kunden öffnet
 [seine Seite](#die-seite-eines-kunden).
@@ -24,12 +24,12 @@ Die Seite **Kunden** ist eine Tabelle: Kunde mit E-Mail-Adresse, SLA, Apps, Serv
 | Kürzel | Teil der Adressen seiner Installationen, `<app>.<kürzel>.<domain>` ([DNS](dns.md)) |
 | Ansprechperson | Name, E-Mail-Adresse und wahlweise Telefon |
 | Notiz | freier Text für den Betreiber, wahlweise |
-| Vertrag | SLA, Vertragsbeginn und, nach einer Kündigung, Vertragsende |
+| Vertrag | Vertragsbeginn und, nach einer Kündigung, Vertragsende |
 
-Jeder Kunde hat in Stufe 1 genau einen Vertrag, der mit ihm angelegt wird. Sein SLA ist **Basis**:
-Updates kommen mit allen anderen, nach der internen Welle ([Updates](updates.md)). Plus (frühe
-Welle) und Ruhe (späte Welle) kennt die Datenbank, angeboten werden sie nicht; die SLA entfällt mit
-Z-1202.
+Jeder Kunde hat genau einen Vertrag, der mit ihm angelegt wird. Er hat einen Beginn und, nach
+einer Kündigung, ein Ende, aber keine SLA: Updates kommen für alle Kunden nach der internen Welle
+([Updates](updates.md)). Die frühere Spalte `sla` hat eine Migration entfernt; vorhandene Verträge
+behalten Kunde, Beginn und Ende.
 
 Vertragsbeginn und Vertragsende sind Tage. Die Zentrale speichert den Beginn dieses Tages in
 `Europe/Berlin` als Zeitpunkt in UTC-Millisekunden; die Oberfläche zeigt ihn als TT.MM.JJJJ. Einen
@@ -140,7 +140,7 @@ Jede schreibende Route verlangt `grund` im Körper.
 | --- | --- | --- |
 | `GET /api/v1/kunden` | alle Rollen | – |
 | `GET /api/v1/kunden/:kundeId` | alle Rollen | – |
-| `POST /api/v1/kunden` | Inhaber, Technik | `name`, `kontakt` (`name`, `email`, `telefon`?), `notiz`?, `kuerzel`?, `vertrag` (`sla: "basis"`, `beginn`), `grund`; ohne `kuerzel` schlägt die Zentrale eines vor |
+| `POST /api/v1/kunden` | Inhaber, Technik | `name`, `kontakt` (`name`, `email`, `telefon`?), `notiz`?, `kuerzel`?, `vertrag` (`beginn`), `grund`; ohne `kuerzel` schlägt die Zentrale eines vor |
 | `PUT /api/v1/kunden/:kundeId` | Inhaber, Technik | `name`, `kontakt`, `notiz`?, `kuerzel`?, `beginn`, `grund`; ersetzt die Angaben, ein fehlendes Feld mit `?` wird leer, ein fehlendes `kuerzel` bleibt |
 | `PUT /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `ende`, `grund` |
 | `DELETE /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `grund` |
@@ -167,7 +167,7 @@ Die Antwort ist der Kunde:
   "kuerzelAenderbar": true,
   "intern": false,
   "angelegtAm": 1795167720000,
-  "vertrag": { "sla": "basis", "beginn": 1773442800000, "ende": null }
+  "vertrag": { "beginn": 1773442800000, "ende": null }
 }
 ```
 

@@ -123,9 +123,6 @@ export type Installation = {
   snapshots: Snapshot[];
 };
 
-/** The service levels (docs/plan.md, "SLA"); stage 1 offers only Basis, Plus and Ruhe come with Z-505 */
-export type Sla = "basis" | "plus" | "ruhe";
-
 /**
  * A customer as GET /api/v1/kunden answers (Z-801): one contact person and one contract; `ende` is
  * the day the contract ends once the customer gave notice, the start of that day in Berlin
@@ -140,7 +137,7 @@ export type Kunde = {
   /** False while an installation of the customer runs or is being set up */
   kuerzelAenderbar: boolean;
   angelegtAm: number;
-  vertrag: { sla: Sla; beginn: number; ende: number | null };
+  vertrag: { beginn: number; ende: number | null };
   /**
    * Our own customer (Z-501): its installations form the wave "intern" and alone are offered a
    * pre-release; only the owner sets it

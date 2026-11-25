@@ -9,7 +9,6 @@ import { kundenQuelle } from "../daten/kunden.ts";
 import { bestand } from "../daten/quelle.ts";
 import type { Kunde } from "../daten/typen.ts";
 import { datum } from "../format/zeit.ts";
-import { slaName } from "../rahmen/texte.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { KundeAnlegen } from "../seiten/kunden-dialoge.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
@@ -63,9 +62,6 @@ const Zeilen = (props: { kunden: Kunde[]; installationen: InstallationAnsicht[] 
               <span class="block font-medium">{k.name}</span>
               <span class="block text-xs text-muted-foreground">{k.kontakt.email}</span>
             </ZuKunde>
-          </td>
-          <td>
-            <Marke class="bg-accent">{slaName(k.vertrag.sla)}</Marke>
           </td>
           <td>
             <div class="flex flex-wrap gap-1">
@@ -146,7 +142,6 @@ const Kunden = () => {
             anzahl={treffer().length}
             spalten={[
               { name: m.inst_spalte_kunde() },
-              { name: m.kunden_spalte_sla() },
               { name: m.nav_apps() },
               { name: m.nav_server() },
               { name: m.kunden_spalte_vertrag() },

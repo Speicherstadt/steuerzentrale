@@ -173,7 +173,7 @@ const KundenFelder = (props: { kunde?: Kunde; heute: number }) => (
   </>
 );
 
-/** A new customer with its contract, SLA Basis in stage 1 */
+/** A new customer with its contract, which begins on a day (no SLA, Z-1202) */
 export const KundeAnlegen = (props: DialogProps & { heute: number }) => (
   <Dialog
     open={props.open}
@@ -190,7 +190,7 @@ export const KundeAnlegen = (props: DialogProps & { heute: number }) => (
           kundenQuelle().anlegen(
             {
               ...stammdatenAus(werte),
-              vertrag: { sla: "basis", beginn: berlin(werte.beginn ?? "") },
+              vertrag: { beginn: berlin(werte.beginn ?? "") },
             },
             werte.grund ?? "",
           )

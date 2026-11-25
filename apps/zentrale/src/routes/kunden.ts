@@ -41,11 +41,11 @@ const stammdaten = {
   kuerzel: z.string().regex(KUERZEL).optional(),
 };
 
-// stage 1 offers only SLA Basis; the schema of the table carries Plus and Ruhe for Z-505
+// a contract has a beginning and, once given notice, an end; no SLA (Z-1202)
 const anlegenSchema = z
   .object({
     ...stammdaten,
-    vertrag: z.object({ sla: z.literal("basis"), beginn: tag }).strict(),
+    vertrag: z.object({ beginn: tag }).strict(),
     grund,
   })
   .strict();

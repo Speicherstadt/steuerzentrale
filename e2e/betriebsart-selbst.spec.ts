@@ -95,7 +95,7 @@ test.describe("Nur für mich", { tag: "@phone" }, () => {
       data: {
         name: "Fremd",
         kontakt: { name: "F", email: "f@fremd.test" },
-        vertrag: { sla: "basis", beginn: Date.UTC(2026, 4, 1, 22) },
+        vertrag: { beginn: Date.UTC(2026, 4, 1, 22) },
         grund: "Test",
       },
     });

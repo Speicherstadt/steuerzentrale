@@ -214,12 +214,9 @@ export const kunden = sqliteTable(
   ],
 );
 
-/** The service levels of a contract (docs/plan.md, "SLA"); stage 1 offers only `basis` (Z-505) */
-export const SLAS = ["basis", "plus", "ruhe"] as const;
-
 /**
- * A customer's contract with its SLA, the day it begins and, once the customer gave notice, the day
- * it ends (docs/plan.md, "Kündigung und Löschung"); in stage 1 one per customer, made with it
+ * A customer's contract: the day it begins and, once the customer gave notice, the day it ends
+ * (docs/plan.md, "Kündigung und Löschung"); one per customer, made with it, no SLA (Z-1202)
  */
 export const vertraege = sqliteTable(
   "vertraege",
@@ -227,7 +224,6 @@ export const vertraege = sqliteTable(
     betreiberId: text("betreiber_id").notNull(),
     vertragId: text("vertrag_id").notNull(),
     kundeId: text("kunde_id").notNull(),
-    sla: text("sla", { enum: SLAS }).notNull(),
     beginn: integer("beginn").notNull(),
     ende: integer("ende"),
     angelegtAm: integer("angelegt_am").notNull(),

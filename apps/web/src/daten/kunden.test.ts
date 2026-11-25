@@ -33,7 +33,7 @@ describe("the API source of the customers", () => {
 
   it("sends every write with its reason", async () => {
     const anfragen = mitschreiben(kunden[1]);
-    await apiKunden.anlegen({ ...stamm, vertrag: { sla: "basis", beginn: 5 } }, "Vertrag");
+    await apiKunden.anlegen({ ...stamm, vertrag: { beginn: 5 } }, "Vertrag");
     await apiKunden.aendern("k1", { ...stamm, beginn: 6 }, "Umzug");
     await apiKunden.kuendigen("k1", 7, "Mail");
     await apiKunden.zuruecknehmen("k1", "doch nicht");
@@ -41,7 +41,7 @@ describe("the API source of the customers", () => {
       {
         pfad: "/api/v1/kunden",
         method: "POST",
-        body: { ...stamm, vertrag: { sla: "basis", beginn: 5 }, grund: "Vertrag" },
+        body: { ...stamm, vertrag: { beginn: 5 }, grund: "Vertrag" },
       },
       { pfad: "/api/v1/kunden/k1", method: "PUT", body: { ...stamm, beginn: 6, grund: "Umzug" } },
       { pfad: "/api/v1/kunden/k1/kuendigung", method: "PUT", body: { ende: 7, grund: "Mail" } },
@@ -62,14 +62,14 @@ describe("the API source of the customers", () => {
 describe("the demo source of the customers", () => {
   it("answers like the API: created, changed, given notice and taken back", async () => {
     const quelle = demoKunden(kunden, () => 42);
-    const neu = await quelle.anlegen({ ...stamm, vertrag: { sla: "basis", beginn: 10 } }, "x");
+    const neu = await quelle.anlegen({ ...stamm, vertrag: { beginn: 10 } }, "x");
     if (!neu.ok) throw new Error(neu.fehler);
     expect(neu.daten).toMatchObject({
       name: "Muster Design",
       kontakt: { telefon: null },
       notiz: null,
       angelegtAm: 42,
-      vertrag: { sla: "basis", beginn: 10, ende: null },
+      vertrag: { beginn: 10, ende: null },
     });
     const id = neu.daten.id;
     expect(await quelle.kuendigen(id, 5, "x")).toMatchObject({ status: 409 });

@@ -41,7 +41,7 @@ export const kundeAnlegen = async (json: Json, p: Pick<Person, "json">, name = "
     body: {
       name,
       kontakt: { name: "Kim", email: "kim@kanzlei.test" },
-      vertrag: { sla: "basis", beginn: BEGINN },
+      vertrag: { beginn: BEGINN },
       grund: "Vertrag",
     },
   });

@@ -106,7 +106,6 @@ export const installationsUmgebung = () => {
         betreiberId,
         vertragId: `v-${kundeId}`,
         kundeId,
-        sla: "basis",
         beginn: u.uhr.ms,
         angelegtAm: u.uhr.ms,
       });
