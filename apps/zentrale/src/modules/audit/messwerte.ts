@@ -5,6 +5,8 @@ import {
   auftraege,
   aussenPruefungen,
   type BEWERTUNGEN,
+  dienstPruefungen,
+  dienstVerfuegbarkeit,
   fakten,
   heartbeats,
   installationen,
@@ -20,7 +22,7 @@ import {
  * step a running job reports (Z-305), whose state changes go through `schreiben`, and the rating of
  * an installation with its history (Z-403), whose faults go through `schreiben`. Only the tables
  * and columns written here; so is the check from outside with its hourly count for the
- * availability (Z-704), whose events go through `schreiben`. The rows are kept 30 days, the history
+ * availability (Z-704), whose events go through `schreiben`, and that of an observed service (Z-1101). The rows are kept 30 days, the history
  * of ratings 90, the hourly counts 13 months
  * (src/modules/aufbewahrung), and deleting them goes through `schreiben` again.
  */
@@ -162,6 +164,50 @@ export const aussenSetzen = (schreibDb: SchreibDb, z: AussenZeile, stunde: numbe
         set: {
           gemessen: sql`${verfuegbarkeit.gemessen} + 1`,
           rot: sql`${verfuegbarkeit.rot} + ${rot}`,
+        },
+      })
+      .run();
+  });
+};
+
+export type DienstAussenZeile = Omit<AussenZeile, "installationId"> & { dienstId: string };
+
+/**
+ * Keeps an observed service's newest check from outside (Z-1101) and counts it into the slice of
+ * its UTC hour, as `aussenSetzen` does for an installation
+ */
+export const dienstAussenSetzen = (
+  schreibDb: SchreibDb,
+  z: DienstAussenZeile,
+  stunde: number,
+): void => {
+  const rot = z.zustand === "rot" ? 1 : 0;
+  const { betreiberId, dienstId } = z;
+  schreibDb.verbindung.transaction((tx) => {
+    tx.insert(dienstPruefungen)
+      .values(z)
+      .onConflictDoUpdate({
+        target: [dienstPruefungen.betreiberId, dienstPruefungen.dienstId],
+        set: {
+          zustand: z.zustand,
+          grund: z.grund,
+          seit: z.seit,
+          geprueftAm: z.geprueftAm,
+          ergebnis: z.ergebnis,
+        },
+      })
+      .run();
+    tx.insert(dienstVerfuegbarkeit)
+      .values({ betreiberId, dienstId, stunde, gemessen: 1, rot })
+      .onConflictDoUpdate({
+        target: [
+          dienstVerfuegbarkeit.betreiberId,
+          dienstVerfuegbarkeit.dienstId,
+          dienstVerfuegbarkeit.stunde,
+        ],
+        set: {
+          gemessen: sql`${dienstVerfuegbarkeit.gemessen} + 1`,
+          rot: sql`${dienstVerfuegbarkeit.rot} + ${rot}`,
         },
       })
       .run();

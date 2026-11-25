@@ -1,4 +1,4 @@
-import type { Grund, Serverpruefung } from "@steuerzentrale/planung";
+import type { AussenGrund, Grund, Serverpruefung } from "@steuerzentrale/planung";
 
 /*
  * What needs attention, as data (BAULISTE.md Z-406; docs/plan.md, "Übersicht"): each entry with its
@@ -17,11 +17,14 @@ export type InstallationVerweis = {
   serverId: string;
 };
 export type ServerVerweis = { serverId: string; name: string };
+/** An observed service (Z-1101) */
+export type DienstVerweis = { dienstId: string; name: string; host: string };
 
-/** Where an entry leads: the installation, the server, the job or the event list */
+/** Where an entry leads: the installation, the server, the observed service, the job or the event list */
 export type Verweis =
   | { art: "installation"; id: string }
   | { art: "server"; id: string }
+  | { art: "dienst"; id: string }
   | { art: "auftrag"; id: string }
   | { art: "ereignisse" };
 
@@ -39,6 +42,15 @@ export type Eintrag =
       installation: InstallationVerweis;
       zustand: "rot" | "gelb" | "unbekannt";
       grund: Grund;
+      seit: number | null;
+    }
+  | {
+      /** An observed service (Z-1101) with an open fault, red or unknown from outside */
+      art: "dienst";
+      schwere: Schwere;
+      dienst: DienstVerweis;
+      zustand: "stoerung" | "rot" | "unbekannt";
+      grund: AussenGrund;
       seit: number | null;
     }
   | {
@@ -89,15 +101,16 @@ export type MitVerweis = Eintrag & { verweis: Verweis };
 
 const RANG: Record<Schwere, number> = { stoerung: 0, warnung: 1, hinweis: 2 };
 
-/** Within one severity: faults, installations, agents, checks, test restores, jobs, events */
+/** Within one severity: faults, installations, services, agents, checks, test restores, jobs, events */
 const FOLGE: Record<Eintrag["art"], number> = {
   stoerung: 0,
   installation: 1,
-  agent: 2,
-  pruefung: 3,
-  pruef_restore: 4,
-  auftrag: 5,
-  ereignis: 6,
+  dienst: 2,
+  agent: 3,
+  pruefung: 4,
+  pruef_restore: 5,
+  auftrag: 6,
+  ereignis: 7,
 };
 
 /** An event's target as `art:id` (modules/bewertung/lesen.ts, `zielVon`) leads to its page */
@@ -106,6 +119,7 @@ export const zielVerweis = (ziel: string): Verweis => {
   const id = rest.join(":");
   if (art === "installation" && id) return { art: "installation", id };
   if (art === "server" && id) return { art: "server", id };
+  if (art === "dienst" && id) return { art: "dienst", id };
   return { art: "ereignisse" };
 };
 
@@ -115,6 +129,8 @@ export const verweisVon = (e: Eintrag): Verweis => {
     case "installation":
     case "pruef_restore":
       return { art: "installation", id: e.installation.installationId };
+    case "dienst":
+      return { art: "dienst", id: e.dienst.dienstId };
     case "agent":
     case "pruefung":
       return { art: "server", id: e.server.serverId };

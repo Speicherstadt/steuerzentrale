@@ -99,6 +99,11 @@ export const ROUTEN = {
   // the check from outside and the availability (Z-704): read like the installation
   "GET /api/v1/installationen/:installationId/aussen": recht("installationen:lesen"),
   "GET /api/v1/installationen/:installationId/verfuegbarkeit": recht("installationen:lesen"),
+  // Z-1101: observed services; every role reads, only the owner writes
+  "GET /api/v1/dienste": recht("dienste:lesen"),
+  "POST /api/v1/dienste": recht("dienste:schreiben"),
+  "PUT /api/v1/dienste/:dienstId": recht("dienste:schreiben"),
+  "DELETE /api/v1/dienste/:dienstId": recht("dienste:schreiben"),
   // the operator's values of an app (Z-404): rights as for installations, which they serve
   "GET /api/v1/apps/:app/einstellungen": recht("installationen:lesen"),
   "PUT /api/v1/apps/:app/einstellungen": recht("installationen:schreiben"),

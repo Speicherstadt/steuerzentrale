@@ -54,4 +54,14 @@ describe("the rows of Zu tun", () => {
     // the app without state because of the silent agent stands in the same row
     expect(z.textContent).toContain("Stellwerk bei Ingenieurbüro Kraft ohne Zustand");
   });
+
+  it("lead an observed service's fault to the services on the page Apps (Z-1101)", async () => {
+    rolle("mitglied");
+    const { root } = await oeffne("/");
+    const z = zeile(root, "Statusseite Praxis Weber ist gestört") as HTMLElement;
+    expect(z.textContent).toContain("status.praxis-weber.de");
+    expect(z.textContent).toContain("Zertifikat");
+    const oeffnen = [...z.querySelectorAll("a")].find((a) => a.textContent === "Dienste öffnen");
+    expect(oeffnen?.getAttribute("href")).toBe("/apps");
+  });
 });

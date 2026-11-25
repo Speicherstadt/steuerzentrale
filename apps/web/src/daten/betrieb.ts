@@ -1,4 +1,4 @@
-import type { Serverpruefung } from "@steuerzentrale/planung";
+import type { AussenGrund, Serverpruefung } from "@steuerzentrale/planung";
 import { type Antwort, api } from "../anmeldung/api.ts";
 import type { HealthGrund as Grund } from "./bewertung.ts";
 import type { AuftragsZustand } from "./installationen.ts";
@@ -24,11 +24,14 @@ export type InstallationsVerweis = {
   serverId: string;
 };
 export type ServerVerweis = { serverId: string; name: string };
+/** An observed service (Z-1101) */
+export type DienstVerweis = { dienstId: string; name: string; host: string };
 
 /** Where an overview entry leads */
 export type Verweis =
   | { art: "installation"; id: string }
   | { art: "server"; id: string }
+  | { art: "dienst"; id: string }
   | { art: "auftrag"; id: string }
   | { art: "ereignisse" };
 
@@ -40,6 +43,14 @@ export type UebersichtEintrag = { schwere: Dringlichkeit; verweis: Verweis } & (
       installation: InstallationsVerweis;
       zustand: "rot" | "gelb" | "unbekannt";
       grund: Grund;
+      seit: number | null;
+    }
+  | {
+      /** An observed service with an open fault, red or unknown from outside (Z-1101) */
+      art: "dienst";
+      dienst: DienstVerweis;
+      zustand: "stoerung" | "rot" | "unbekannt";
+      grund: AussenGrund;
       seit: number | null;
     }
   | { art: "agent"; server: ServerVerweis; zustand: "getrennt" | "still"; seit: number | null }
@@ -94,7 +105,11 @@ export type AuftragDerZentrale = {
 };
 
 /** The page of an event's or audit entry's target, with its name */
-export type ZielVerweis = { art: "installation" | "server" | "kunde"; id: string; name: string };
+export type ZielVerweis = {
+  art: "installation" | "server" | "kunde" | "dienst";
+  id: string;
+  name: string;
+};
 
 export type Ereignisschwere = "fehler" | "warn" | "info";
 

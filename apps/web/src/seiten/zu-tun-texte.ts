@@ -2,6 +2,7 @@ import { m } from "@steuerzentrale/ui";
 import { suche } from "../daten/ableitungen.ts";
 import type { InstallationsVerweis, UebersichtEintrag } from "../daten/betrieb.ts";
 import { grundText } from "../daten/bewertung.ts";
+import { dienstGrundText } from "../daten/dienste.ts";
 import { bestand } from "../daten/quelle.ts";
 import { dazu, type ZuTunZeile } from "../daten/zu-tun.ts";
 import { vor, zeitpunkt } from "../format/zeit.ts";
@@ -31,6 +32,13 @@ const SATZ_DER_BEWERTUNG: Record<"rot" | "gelb" | "unbekannt", [Satz, Satz]> = {
   unbekannt: [m.zutun_ohne_zustand, m.zutun_ohne_zustand_selbst],
 };
 
+const SATZ_DES_DIENSTES: Record<"stoerung" | "rot" | "unbekannt", (w: { name: string }) => string> =
+  {
+    stoerung: m.zutun_dienst_gestoert,
+    rot: m.zutun_dienst_rot,
+    unbekannt: m.zutun_dienst_unbekannt,
+  };
+
 /** The title of a row named by this entry */
 export const zuTunTitel = (e: UebersichtEintrag, fuerKunden: boolean): string => {
   switch (e.art) {
@@ -38,6 +46,8 @@ export const zuTunTitel = (e: UebersichtEintrag, fuerKunden: boolean): string =>
       return satz(e.installation, fuerKunden, m.zutun_gestoert, m.zutun_gestoert_selbst);
     case "installation":
       return satz(e.installation, fuerKunden, ...SATZ_DER_BEWERTUNG[e.zustand]);
+    case "dienst":
+      return SATZ_DES_DIENSTES[e.zustand]({ name: e.dienst.name });
     case "agent":
       return (e.zustand === "still" ? m.zutun_agent_still : m.zutun_agent_getrennt)({
         server: e.server.name,
@@ -88,6 +98,8 @@ const gruende = (e: UebersichtEintrag): string[] => {
     case "stoerung":
     case "installation":
       return [grundText(e.grund), ...seit(e.seit)];
+    case "dienst":
+      return [e.dienst.host, dienstGrundText(e.grund), ...seit(e.seit)];
     case "agent":
       return [
         m.zutun_agent_grund({

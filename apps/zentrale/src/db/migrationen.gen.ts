@@ -105,7 +105,11 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
     "sql": "DROP TABLE `support_zugaenge`;"
   },
   {
-    "tag": "0026_zwei_rollen",
+    "tag": "0026_dienste",
+    "sql": "CREATE TABLE `dienst_pruefungen` (\n\t`betreiber_id` text NOT NULL,\n\t`dienst_id` text NOT NULL,\n\t`zustand` text NOT NULL,\n\t`grund` text NOT NULL,\n\t`seit` integer NOT NULL,\n\t`geprueft_am` integer NOT NULL,\n\t`ergebnis` text NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `dienst_id`),\n\tFOREIGN KEY (`betreiber_id`,`dienst_id`) REFERENCES `dienste`(`betreiber_id`,`dienst_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE TABLE `dienst_verfuegbarkeit` (\n\t`betreiber_id` text NOT NULL,\n\t`dienst_id` text NOT NULL,\n\t`stunde` integer NOT NULL,\n\t`gemessen` integer NOT NULL,\n\t`rot` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `dienst_id`, `stunde`),\n\tFOREIGN KEY (`betreiber_id`,`dienst_id`) REFERENCES `dienste`(`betreiber_id`,`dienst_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `dienst_verfuegbarkeit_stunde` ON `dienst_verfuegbarkeit` (`stunde`);--> statement-breakpoint\nCREATE TABLE `dienste` (\n\t`betreiber_id` text NOT NULL,\n\t`dienst_id` text NOT NULL,\n\t`name` text NOT NULL,\n\t`host` text NOT NULL,\n\t`pfad` text NOT NULL,\n\t`kunde_id` text,\n\t`angelegt_am` integer NOT NULL,\n\t`entfernt_am` integer,\n\tPRIMARY KEY(`betreiber_id`, `dienst_id`),\n\tFOREIGN KEY (`betreiber_id`,`kunde_id`) REFERENCES `kunden`(`betreiber_id`,`kunde_id`) ON UPDATE no action ON DELETE no action\n);\n"
+  },
+  {
+    "tag": "0027_zwei_rollen",
     "sql": "-- Z-1204: two roles. technik becomes inhaber, support becomes mitglied, in the Zentrale's mirror and\n-- in Better Auth's member. An invitation not yet accepted gets the least rights: both old roles\n-- become mitglied, so a link sent before the update grants no owner's rights.\nUPDATE `mitglieder` SET `rolle` = 'inhaber' WHERE `rolle` = 'technik';--> statement-breakpoint\nUPDATE `mitglieder` SET `rolle` = 'mitglied' WHERE `rolle` = 'support';--> statement-breakpoint\nUPDATE `member` SET `role` = 'inhaber' WHERE `role` = 'technik';--> statement-breakpoint\nUPDATE `member` SET `role` = 'mitglied' WHERE `role` = 'support';--> statement-breakpoint\nUPDATE `einladungen` SET `rolle` = 'mitglied' WHERE `rolle` IN ('technik', 'support');--> statement-breakpoint\nUPDATE `invitation` SET `role` = 'mitglied' WHERE `role` IN ('technik', 'support');\n"
   }
 ];

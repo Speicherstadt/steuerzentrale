@@ -18,8 +18,13 @@ const zeilen = (root: HTMLElement) =>
     tr.querySelector("a[href^='/apps/']"),
   );
 
-const spalten = (root: HTMLElement) =>
-  [...root.querySelectorAll("main thead th")].map((th) => th.textContent);
+/** The heads of the apps' table, not those of the observed services' below it (Z-1101) */
+const spalten = (root: HTMLElement) => {
+  const tabelle = [...root.querySelectorAll("main section")].find(
+    (s) => s.getAttribute("aria-label") !== "Beobachtete Dienste" && s.querySelector("thead"),
+  );
+  return [...(tabelle?.querySelectorAll("thead th") ?? [])].map((th) => th.textContent);
+};
 
 const schalter = async (root: HTMLElement, name: string) => {
   [...root.querySelectorAll<HTMLButtonElement>("main fieldset button")]
@@ -31,6 +36,7 @@ const schalter = async (root: HTMLElement, name: string) => {
 describe("the page Apps", () => {
   it("lists every app in one table, what needs attention first, each row a link", async () => {
     const { root } = await oeffne("/apps");
+    await warten();
     expect(spalten(root)).toEqual([
       "App",
       "Kunde",

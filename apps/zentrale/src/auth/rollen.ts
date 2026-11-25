@@ -41,6 +41,8 @@ const ANWEISUNGEN = {
   // notifications (Z-703): every role sees mail server, quiet hours, recipients and deliveries,
   // never the SMTP password or a webhook's URL and key; the owner changes them and test
   benachrichtigungen: ["lesen", "schreiben"],
+  // observed services (Z-1101): every role reads, only the owner makes, changes and removes them
+  dienste: ["lesen", "schreiben"],
 } as const;
 
 export const zugriff = createAccessControl(ANWEISUNGEN);
@@ -67,6 +69,7 @@ export const ROLLEN_ZUGRIFF = {
     backups: ["lesen", "schreiben"],
     manifeste: ["lesen", "importieren", "abfragen"],
     benachrichtigungen: ["lesen", "schreiben"],
+    dienste: ["lesen", "schreiben"],
   }),
   // a member (Z-1204): sees everything the owner sees, the audit log too, and restarts an
   // installation or takes its log excerpt; installs, removes, gives notice and restores nothing,
@@ -83,6 +86,7 @@ export const ROLLEN_ZUGRIFF = {
     backups: ["lesen"],
     manifeste: ["lesen"],
     benachrichtigungen: ["lesen"],
+    dienste: ["lesen"],
   }),
 } as const;
 

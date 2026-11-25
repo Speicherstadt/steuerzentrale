@@ -8,6 +8,8 @@ import {
   backupZugaenge,
   benachrichtigungEinstellungen,
   betreiber,
+  dienste,
+  dienstVerfuegbarkeit,
   dnsEinstellungen,
   einladungen,
   empfaenger,
@@ -94,6 +96,12 @@ export const tabellen = {
     tabelle: verfuegbarkeit,
     schluessel: ["installationId", "stunde"],
     zeit: verfuegbarkeit.stunde,
+  },
+  dienste: { tabelle: dienste, schluessel: ["dienstId"], zeit: undefined },
+  dienstVerfuegbarkeit: {
+    tabelle: dienstVerfuegbarkeit,
+    schluessel: ["dienstId", "stunde"],
+    zeit: dienstVerfuegbarkeit.stunde,
   },
   manifeste: { tabelle: manifeste, schluessel: ["app", "version"], zeit: undefined, global: true },
   benachrichtigungEinstellungen: {

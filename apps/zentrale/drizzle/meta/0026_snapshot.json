@@ -1,8 +1,8 @@
 {
-  "id": "87f5bb09-7b9d-40da-a15b-c3e432da415f",
-  "prevId": "1d744ff5-2d52-485d-b163-ba3f4cc5bffc",
   "version": "6",
   "dialect": "sqlite",
+  "id": "caaecee1-7157-4fb0-94a5-0a714b2ad3ba",
+  "prevId": "1d744ff5-2d52-485d-b163-ba3f4cc5bffc",
   "tables": {
     "audit_log": {
       "name": "audit_log",
@@ -236,11 +236,11 @@
         "auftraege_betreiber_id_server_id_server_betreiber_id_server_id_fk": {
           "name": "auftraege_betreiber_id_server_id_server_betreiber_id_server_id_fk",
           "tableFrom": "auftraege",
-          "columnsFrom": ["betreiber_id", "server_id"],
           "tableTo": "server",
+          "columnsFrom": ["betreiber_id", "server_id"],
           "columnsTo": ["betreiber_id", "server_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1055,11 +1055,11 @@
         "vertraege_betreiber_id_kunde_id_kunden_betreiber_id_kunde_id_fk": {
           "name": "vertraege_betreiber_id_kunde_id_kunden_betreiber_id_kunde_id_fk",
           "tableFrom": "vertraege",
-          "columnsFrom": ["betreiber_id", "kunde_id"],
           "tableTo": "kunden",
+          "columnsFrom": ["betreiber_id", "kunde_id"],
           "columnsTo": ["betreiber_id", "kunde_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1192,11 +1192,11 @@
         "abwicklungen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "abwicklungen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "abwicklungen",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1266,11 +1266,11 @@
         "aussen_pruefungen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "aussen_pruefungen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "aussen_pruefungen",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1332,11 +1332,11 @@
         "verfuegbarkeit_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "verfuegbarkeit_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "verfuegbarkeit",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1465,11 +1465,11 @@
         "backup_zugaenge_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "backup_zugaenge_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "backup_zugaenge",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1564,11 +1564,11 @@
         "backups_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "backups_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "backups",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1670,11 +1670,11 @@
         "pruef_restores_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "pruef_restores_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "pruef_restores",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1797,11 +1797,11 @@
         "wiederherstellungen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "wiederherstellungen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "wiederherstellungen",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2058,6 +2058,227 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "dienst_pruefungen": {
+      "name": "dienst_pruefungen",
+      "columns": {
+        "betreiber_id": {
+          "name": "betreiber_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dienst_id": {
+          "name": "dienst_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "zustand": {
+          "name": "zustand",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "grund": {
+          "name": "grund",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "seit": {
+          "name": "seit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "geprueft_am": {
+          "name": "geprueft_am",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ergebnis": {
+          "name": "ergebnis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dienst_pruefungen_betreiber_id_dienst_id_dienste_betreiber_id_dienst_id_fk": {
+          "name": "dienst_pruefungen_betreiber_id_dienst_id_dienste_betreiber_id_dienst_id_fk",
+          "tableFrom": "dienst_pruefungen",
+          "tableTo": "dienste",
+          "columnsFrom": ["betreiber_id", "dienst_id"],
+          "columnsTo": ["betreiber_id", "dienst_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "dienst_pruefungen_betreiber_id_dienst_id_pk": {
+          "columns": ["betreiber_id", "dienst_id"],
+          "name": "dienst_pruefungen_betreiber_id_dienst_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "dienst_verfuegbarkeit": {
+      "name": "dienst_verfuegbarkeit",
+      "columns": {
+        "betreiber_id": {
+          "name": "betreiber_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dienst_id": {
+          "name": "dienst_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stunde": {
+          "name": "stunde",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "gemessen": {
+          "name": "gemessen",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rot": {
+          "name": "rot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "dienst_verfuegbarkeit_stunde": {
+          "name": "dienst_verfuegbarkeit_stunde",
+          "columns": ["stunde"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "dienst_verfuegbarkeit_betreiber_id_dienst_id_dienste_betreiber_id_dienst_id_fk": {
+          "name": "dienst_verfuegbarkeit_betreiber_id_dienst_id_dienste_betreiber_id_dienst_id_fk",
+          "tableFrom": "dienst_verfuegbarkeit",
+          "tableTo": "dienste",
+          "columnsFrom": ["betreiber_id", "dienst_id"],
+          "columnsTo": ["betreiber_id", "dienst_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "dienst_verfuegbarkeit_betreiber_id_dienst_id_stunde_pk": {
+          "columns": ["betreiber_id", "dienst_id", "stunde"],
+          "name": "dienst_verfuegbarkeit_betreiber_id_dienst_id_stunde_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "dienste": {
+      "name": "dienste",
+      "columns": {
+        "betreiber_id": {
+          "name": "betreiber_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dienst_id": {
+          "name": "dienst_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "host": {
+          "name": "host",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pfad": {
+          "name": "pfad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "angelegt_am": {
+          "name": "angelegt_am",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entfernt_am": {
+          "name": "entfernt_am",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dienste_betreiber_id_kunde_id_kunden_betreiber_id_kunde_id_fk": {
+          "name": "dienste_betreiber_id_kunde_id_kunden_betreiber_id_kunde_id_fk",
+          "tableFrom": "dienste",
+          "tableTo": "kunden",
+          "columnsFrom": ["betreiber_id", "kunde_id"],
+          "columnsTo": ["betreiber_id", "kunde_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "dienste_betreiber_id_dienst_id_pk": {
+          "columns": ["betreiber_id", "dienst_id"],
+          "name": "dienste_betreiber_id_dienst_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "app_einstellungen": {
       "name": "app_einstellungen",
       "columns": {
@@ -2210,11 +2431,11 @@
         "installation_konfigurationen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "installation_konfigurationen_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "installation_konfigurationen",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2276,11 +2497,11 @@
         "installation_verlauf_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "installation_verlauf_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "installation_verlauf",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2507,28 +2728,28 @@
         "installationen_host": {
           "name": "installationen_host",
           "columns": ["betreiber_id", "host"],
-          "where": "\"installationen\".\"zustand\" <> ?",
-          "isUnique": true
+          "isUnique": true,
+          "where": "\"installationen\".\"zustand\" <> ?"
         }
       },
       "foreignKeys": {
         "installationen_betreiber_id_server_id_server_betreiber_id_server_id_fk": {
           "name": "installationen_betreiber_id_server_id_server_betreiber_id_server_id_fk",
           "tableFrom": "installationen",
-          "columnsFrom": ["betreiber_id", "server_id"],
           "tableTo": "server",
+          "columnsFrom": ["betreiber_id", "server_id"],
           "columnsTo": ["betreiber_id", "server_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "installationen_betreiber_id_kunde_id_kunden_betreiber_id_kunde_id_fk": {
           "name": "installationen_betreiber_id_kunde_id_kunden_betreiber_id_kunde_id_fk",
           "tableFrom": "installationen",
-          "columnsFrom": ["betreiber_id", "kunde_id"],
           "tableTo": "kunden",
+          "columnsFrom": ["betreiber_id", "kunde_id"],
           "columnsTo": ["betreiber_id", "kunde_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2590,11 +2811,11 @@
         "installations_ports_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "installations_ports_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "installations_ports",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2821,11 +3042,11 @@
         "updates_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk": {
           "name": "updates_betreiber_id_installation_id_installationen_betreiber_id_installation_id_fk",
           "tableFrom": "updates",
-          "columnsFrom": ["betreiber_id", "installation_id"],
           "tableTo": "installationen",
+          "columnsFrom": ["betreiber_id", "installation_id"],
           "columnsTo": ["betreiber_id", "installation_id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2943,11 +3164,11 @@
         "account_user_id_user_id_fk": {
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
-          "columnsFrom": ["user_id"],
           "tableTo": "user",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3019,20 +3240,20 @@
         "invitation_organization_id_organization_id_fk": {
           "name": "invitation_organization_id_organization_id_fk",
           "tableFrom": "invitation",
-          "columnsFrom": ["organization_id"],
           "tableTo": "organization",
+          "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "invitation_inviter_id_user_id_fk": {
           "name": "invitation_inviter_id_user_id_fk",
           "tableFrom": "invitation",
-          "columnsFrom": ["inviter_id"],
           "tableTo": "user",
+          "columnsFrom": ["inviter_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3094,20 +3315,20 @@
         "member_organization_id_organization_id_fk": {
           "name": "member_organization_id_organization_id_fk",
           "tableFrom": "member",
-          "columnsFrom": ["organization_id"],
           "tableTo": "organization",
+          "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "member_user_id_user_id_fk": {
           "name": "member_user_id_user_id_fk",
           "tableFrom": "member",
-          "columnsFrom": ["user_id"],
           "tableTo": "user",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3269,11 +3490,11 @@
         "passkey_user_id_user_id_fk": {
           "name": "passkey_user_id_user_id_fk",
           "tableFrom": "passkey",
-          "columnsFrom": ["user_id"],
           "tableTo": "user",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3363,11 +3584,11 @@
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
-          "columnsFrom": ["user_id"],
           "tableTo": "user",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3440,11 +3661,11 @@
         "two_factor_user_id_user_id_fk": {
           "name": "two_factor_user_id_user_id_fk",
           "tableFrom": "two_factor",
-          "columnsFrom": ["user_id"],
           "tableTo": "user",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3586,9 +3807,9 @@
   "views": {},
   "enums": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
+    "tables": {},
+    "columns": {}
   },
   "internal": {
     "indexes": {}
