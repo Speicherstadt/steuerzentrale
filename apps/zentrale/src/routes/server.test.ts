@@ -155,6 +155,7 @@ describe("the servers of the operator", () => {
           synchron: null,
           seit: null,
         },
+        { pruefung: "arbeitsspeicher", ergebnis: "unbekannt", prozent: null, seit: null },
       ],
     });
     expect((await inhaber.json("/api/v1/server/gibt-es-nicht")).status).toBe(404);
@@ -207,6 +208,7 @@ describe("the servers of the operator", () => {
       { pruefung: "backups", ergebnis: "gruen", alt: [], seit: null },
       { pruefung: "ports", ergebnis: "gelb", fremd: [{ port: 8080, proto: "tcp" }], seit: null },
       { pruefung: "uhrzeit", ergebnis: "gruen", abweichungMs: 12, synchron: true, seit: null },
+      { pruefung: "arbeitsspeicher", ergebnis: "unbekannt", prozent: null, seit: null },
     ]);
     expect((await partner.json(`/api/v1/server/${serverId}`)).status).toBe(404);
     const fremd = (await partner.json("/api/v1/uebersicht")).daten as { eintraege: unknown[] };

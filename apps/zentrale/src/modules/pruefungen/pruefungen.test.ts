@@ -163,6 +163,7 @@ describe("pruefungenLesen", () => {
       ["backups", "gruen"],
       ["ports", "gelb"],
       ["uhrzeit", "gruen"],
+      ["arbeitsspeicher", "unbekannt"],
     ]);
   });
 

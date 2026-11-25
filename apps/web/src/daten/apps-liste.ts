@@ -3,6 +3,7 @@ import type { InstallationsAngebot } from "./apps.ts";
 import type { BackupZeile } from "./backups.ts";
 import type { HealthGrund } from "./bewertung.ts";
 import type { InstallationAnsicht } from "./installation-ansicht.ts";
+import type { ServerAnsicht } from "./server-ansicht.ts";
 
 /*
  * The table of the page "Apps" as data (docs/plan.md, "Navigation (Oberfläche 2026-11)"): per app
@@ -102,6 +103,9 @@ export type AppZeile = {
   angeboten: string | null;
   /** The newest successful backup, and whether it is older than the checks allow */
   backup: { zeitpunkt: number; alt: boolean } | null;
+  /** CPU of the machine and memory in MiB of its Linux user, as its server last reported (Z-1106) */
+  cpu: number | null;
+  ramMb: number | null;
 };
 
 export type ListenDaten = {
@@ -109,6 +113,8 @@ export type ListenDaten = {
   backups: BackupZeile[];
   angebote: InstallationsAngebot[];
   jetzt: number;
+  /** The servers with their newest facts, for CPU and memory (Z-1106) */
+  server?: ServerAnsicht[];
 };
 
 const zeileVon = (d: ListenDaten, a: InstallationAnsicht): AppZeile => {
@@ -116,6 +122,9 @@ const zeileVon = (d: ListenDaten, a: InstallationAnsicht): AppZeile => {
   const angebot = d.angebote.find((x) => x.installationId === a.id);
   const zustand = appZustand(a, backup, angebot, d.jetzt);
   const erfolg = backup?.letzterErfolg ?? null;
+  const nutzer = d.server
+    ?.find((s) => s.id === a.serverId)
+    ?.nutzerLast.find((n) => n.name === `sz-${a.id}`);
   return {
     a,
     zustand,
@@ -123,6 +132,8 @@ const zeileVon = (d: ListenDaten, a: InstallationAnsicht): AppZeile => {
     ziel: updateZiel(a, angebot),
     angeboten: angeboteneVersion(a, angebot),
     backup: erfolg === null ? null : { zeitpunkt: erfolg, alt: d.jetzt - erfolg > BACKUP_FRIST_MS },
+    cpu: nutzer?.cpuProzent ?? null,
+    ramMb: nutzer?.ramMb ?? null,
   };
 };
 

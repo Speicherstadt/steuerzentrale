@@ -116,6 +116,8 @@ const fakten = (zeit: number, bootId: string) => ({
   ],
   zertifikate: [],
   uhrSynchron: true,
+  // Z-1106: CPU, load and memory, as every agent since then reports them
+  last: { cpuProzent: 37, last1: 0.8, ramBelegtMb: 4096, nutzer: [] },
 });
 
 /**

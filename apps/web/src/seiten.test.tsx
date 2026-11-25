@@ -285,6 +285,7 @@ describe("servers of the Zentrale", () => {
         return sv ? { ok: true, status: 200, daten: sv } : { ok: false, status: 404, fehler: "x" };
       },
       platten: async () => ({ ok: true, status: 200, daten: [] }),
+      last: async () => ({ ok: true, status: 200, daten: [] }),
       sperren: async () => ({ ok: false, status: 409, fehler: "x" }),
       neustart: async () => ({ ok: false, status: 409, fehler: "x" }),
     });

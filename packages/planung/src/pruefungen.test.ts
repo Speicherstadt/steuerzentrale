@@ -250,6 +250,8 @@ describe("serverPruefen", () => {
       zertifikate: [],
       uhrzeitAbweichungMs: 4,
       uhrSynchron: true,
+      ramMb: 8000,
+      ramBelegtMb: 2000,
     },
     hosts: [],
     erlaubtePorts: [],
@@ -264,6 +266,7 @@ describe("serverPruefen", () => {
       ["backups", "gruen"],
       ["ports", "gruen"],
       ["uhrzeit", "gruen"],
+      ["arbeitsspeicher", "gruen"],
     ]);
   });
 
@@ -297,6 +300,7 @@ describe("serverPruefen", () => {
       "gruen",
       "unbekannt",
       "unbekannt",
+      "unbekannt",
     ]);
     expect(serverPruefen(eingabe({ fakten: null }))[0]?.ergebnis).toBe("unbekannt");
   });
@@ -313,7 +317,17 @@ describe("serverPruefen", () => {
       "gruen",
       "unbekannt",
       "gruen",
+      "unbekannt",
     ]);
+  });
+
+  it("checks the memory in use against the RAM (Z-1106)", () => {
+    const fakten = { ...eingabe().fakten, ramBelegtMb: 7700 } as PruefEingabe["fakten"];
+    expect(serverPruefen(eingabe({ fakten })).at(-1)).toEqual({
+      pruefung: "arbeitsspeicher",
+      ergebnis: "rot",
+      prozent: 96.3,
+    });
   });
 });
 

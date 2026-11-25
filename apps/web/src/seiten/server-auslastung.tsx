@@ -11,12 +11,13 @@ import { Karte } from "../teile/karte.tsx";
 import { Schalter } from "../teile/schalter.tsx";
 import { Fehler, fehlerText } from "./anmeldung-teile.tsx";
 import { BEREICHE, Messkarte } from "./app-messwerte.tsx";
+import { LAST_TAGE, LastKarte, stundenAus } from "./last-karten.tsx";
 
 /*
  * The tab "Auslastung" of a server (docs/plan.md, "Server und Kunden (Oberfläche 2026-11)"): how
  * full each disk was over 24 hours, 7 or 30 days, from the history of the agent's facts
- * (GET /api/v1/server/:id/platten, kept 30 days), on a scale from 0 to 100 %. CPU and memory
- * follow once the agent reports them; until then a note says so instead of a made-up curve.
+ * (GET /api/v1/server/:id/platten, kept 30 days), on a scale from 0 to 100 %; CPU, memory and
+ * load from the same history (Z-1106, GET /api/v1/server/:id/last).
  */
 
 const TAGE = 30;
@@ -107,15 +108,45 @@ const Platten = (props: { a: ServerAnsicht }) => {
   );
 };
 
+/** CPU, memory and load of the server (Z-1106) */
+const Last = (props: { a: ServerAnsicht }) => {
+  const s = stundenAus(() => serverQuelle().last(props.a.id, LAST_TAGE));
+  return (
+    <>
+      <Fehler text={s.fehler()} />
+      <LastKarte
+        titel={m.server_spalte_cpu()}
+        testid="last-cpu"
+        einheit="prozent"
+        stunden={s.stunden()}
+        wert={(x) => x.cpuProzent}
+        quelle={m.last_quelle_cpu()}
+      />
+      <LastKarte
+        titel={m.server_spalte_ram()}
+        testid="last-ram"
+        einheit="prozent"
+        stunden={s.stunden()}
+        wert={(x) => x.ramProzent}
+        quelle={m.last_quelle_ram()}
+      />
+      <LastKarte
+        titel={m.last_load()}
+        testid="last-load"
+        einheit="last"
+        stunden={s.stunden()}
+        wert={(x) => x.last1}
+        quelle={m.last_quelle_load()}
+      />
+    </>
+  );
+};
+
 export const ServerAuslastung = (props: { a: ServerAnsicht }) => (
   <div class="grid gap-4 lg:grid-cols-2">
     <Loading fallback={<p class="text-muted-foreground">{m.last_laden()}</p>}>
       <Platten a={props.a} />
+      <Last a={props.a} />
     </Loading>
-    <Karte class="flex items-center justify-center border-dashed p-5">
-      <p class="max-w-sm text-center text-muted-foreground" data-testid="last-hinweis">
-        {m.last_spaeter()}
-      </p>
-    </Karte>
   </div>
 );

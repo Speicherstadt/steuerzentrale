@@ -16,7 +16,7 @@ describe("server checks", () => {
   it("are all fine on a healthy server", () => {
     const sv = serverVon(demo, "shared-1");
     expect(pruefungen(sv).filter((p) => !p.ok)).toEqual([]);
-    expect(pruefungenDerDemo(demo, sv).map((p) => p.ergebnis)).toEqual(Array(5).fill("gruen"));
+    expect(pruefungenDerDemo(demo, sv).map((p) => p.ergebnis)).toEqual(Array(6).fill("gruen"));
     expect(serverZustand(demo, sv)).toBe("ok");
   });
 

@@ -22,12 +22,14 @@ import { Karte } from "../teile/karte.tsx";
 import { Schalter } from "../teile/schalter.tsx";
 import { Fehler, fehlerText } from "./anmeldung-teile.tsx";
 import { backupsLaden } from "./installation-backups.tsx";
+import { LAST_TAGE, LastKarte, stundenAus } from "./last-karten.tsx";
 
 /*
  * The tab "Messwerte" of an app (docs/plan.md, "Navigation (Oberfläche 2026-11)"): only what the
  * Zentrale measures, nothing made up. The availability of the last 90 days from the checks from
  * outside (Z-704), a bar per day; the size of the nightly backups (Z-601) over 24 hours, 7 or 30
- * days. Response time, CPU and memory follow once the agent reports them.
+ * days; CPU and memory of the app's Linux user from the agent's facts (Z-1106, seiten/last-karten.tsx).
+ * Response time follows once the agent reports it.
  */
 
 const TAGE = 90;
@@ -210,6 +212,32 @@ const Daten = (props: { a: Einzelansicht }) => {
   );
 };
 
+/** CPU and memory of the app's Linux user (Z-1106) */
+const AppLast = (props: { id: string }) => {
+  const s = stundenAus(() => aussenQuelle().last(props.id, LAST_TAGE));
+  return (
+    <>
+      <Fehler text={s.fehler()} />
+      <LastKarte
+        titel={m.server_spalte_cpu()}
+        testid="mess-cpu"
+        einheit="prozent"
+        stunden={s.stunden()}
+        wert={(x) => x.cpuProzent}
+        quelle={m.last_quelle_nutzer_cpu()}
+      />
+      <LastKarte
+        titel={m.server_spalte_ram()}
+        testid="mess-ram"
+        einheit="mb"
+        stunden={s.stunden()}
+        wert={(x) => x.ramMb}
+        quelle={m.last_quelle_nutzer_ram()}
+      />
+    </>
+  );
+};
+
 export const AppMesswerte = (props: { a: Einzelansicht }) => (
   <div class="grid gap-4">
     <Loading fallback={<p class="text-muted-foreground">{m.aussen_laden()}</p>}>
@@ -219,11 +247,9 @@ export const AppMesswerte = (props: { a: Einzelansicht }) => (
       <Loading fallback={<p class="text-muted-foreground">{m.bak_laden()}</p>}>
         <Daten a={props.a} />
       </Loading>
-      <Karte class="flex items-center justify-center border-dashed p-5">
-        <p class="max-w-sm text-center text-muted-foreground" data-testid="mess-hinweis">
-          {m.mess_spaeter()}
-        </p>
-      </Karte>
+      <Loading fallback={<p class="text-muted-foreground">{m.last_laden()}</p>}>
+        <AppLast id={props.a.id} />
+      </Loading>
     </div>
   </div>
 );

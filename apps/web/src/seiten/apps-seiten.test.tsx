@@ -43,6 +43,8 @@ describe("the page Apps", () => {
       "Zustand",
       "Version",
       "Letztes Backup",
+      "CPU",
+      "RAM",
       "Server",
     ]);
     const z = zeilen(root);
@@ -84,7 +86,15 @@ describe("the page Apps", () => {
       demoBetriebsart({ betriebsart: "selbst", eigenerKundeId: "intern" }),
     );
     const { root } = await oeffne("/apps");
-    expect(spalten(root)).toEqual(["App", "Zustand", "Version", "Letztes Backup", "Server"]);
+    expect(spalten(root)).toEqual([
+      "App",
+      "Zustand",
+      "Version",
+      "Letztes Backup",
+      "CPU",
+      "RAM",
+      "Server",
+    ]);
     expect(root.textContent).not.toContain("nach Kunde");
   });
 });
@@ -163,11 +173,10 @@ describe("the page of an app", () => {
     const titel = [...root.querySelectorAll("main [role=tabpanel]:not([hidden]) h2")].map(
       (h) => h.textContent,
     );
-    expect(titel).toEqual(["Verfügbarkeit · 90 Tage", "Daten"]);
-    expect(root.querySelectorAll("[data-testid=linie]")).toHaveLength(1);
-    expect(root.querySelector("[data-testid=mess-hinweis]")?.textContent).toBe(
-      "Antwortzeit, CPU und Arbeitsspeicher kommen, sobald der Agent sie meldet.",
-    );
+    expect(titel).toEqual(["Verfügbarkeit · 90 Tage", "Daten", "CPU", "RAM"]);
+    // Z-1106: CPU and memory of the app's user beside the size of its data
+    expect(root.querySelectorAll("[data-testid=linie]")).toHaveLength(3);
+    expect(root.querySelector("[data-testid=mess-ram]")?.textContent).toMatch(/MB/);
   });
 });
 

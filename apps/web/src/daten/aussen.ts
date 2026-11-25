@@ -8,6 +8,7 @@ import type {
 import { m } from "@steuerzentrale/ui";
 import { type Antwort, api } from "../anmeldung/api.ts";
 import { demoAussen } from "../demo/aussen.ts";
+import type { NutzerLastStunde } from "./server.ts";
 
 /*
  * The check from outside and the availability of an installation (BAULISTE.md Z-704; docs/plan.md,
@@ -29,6 +30,8 @@ export type AussenQuelle = {
   derInstallation: (id: string) => Promise<Antwort<AussenDerInstallation>>;
   /** The availability of each of the last `anzahl` days, today included, oldest first */
   tage: (id: string, anzahl: number) => Promise<Antwort<TagesVerfuegbarkeit[]>>;
+  /** CPU and memory of its Linux user per hour (Z-1106, GET /api/v1/installationen/:id/last) */
+  last: (id: string, tage: number) => Promise<Antwort<NutzerLastStunde[]>>;
 };
 
 export const apiAussen: AussenQuelle = {
@@ -39,6 +42,12 @@ export const apiAussen: AussenQuelle = {
       `/api/v1/installationen/${encodeURIComponent(id)}/verfuegbarkeit?tage=${anzahl}`,
     );
     return a.ok ? { ...a, daten: a.daten.tage } : a;
+  },
+  last: async (id, tage) => {
+    const a = await api<{ stunden: NutzerLastStunde[] }>(
+      `/api/v1/installationen/${encodeURIComponent(id)}/last?tage=${tage}`,
+    );
+    return a.ok ? { ...a, daten: a.daten.stunden } : a;
   },
 };
 
