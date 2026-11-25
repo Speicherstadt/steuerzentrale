@@ -107,7 +107,7 @@ export const monateText = (monate: MonatsVerfuegbarkeit[]): string => {
     .join(" · ");
 };
 
-/** Whether this and the last month reach the SLA's mark; null without a measurement */
+/** Whether this and the last month reach the mark of 99.9 %; null without a measurement */
 export const monateOk = (monate: MonatsVerfuegbarkeit[]): boolean | null => {
   const gemessen = monate.slice(0, 2).filter((v) => v.anteil !== null);
   if (gemessen.length === 0) return null;

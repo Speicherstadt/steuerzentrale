@@ -18,7 +18,7 @@ export type Stammdaten = {
   kuerzel?: string;
 };
 
-export type KundeNeu = Stammdaten & { vertrag: { sla: "basis"; beginn: number } };
+export type KundeNeu = Stammdaten & { vertrag: { beginn: number } };
 export type KundeAenderung = Stammdaten & { beginn: number };
 
 export type KundenQuelle = {

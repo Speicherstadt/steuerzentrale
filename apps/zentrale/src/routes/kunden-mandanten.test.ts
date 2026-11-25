@@ -14,7 +14,7 @@ const TAG = 86_400_000;
 const daten = (name: string) => ({
   name,
   kontakt: { name: "Kim Kunde", email: "kim@kunde.test" },
-  vertrag: { sla: "basis", beginn: BEGINN },
+  vertrag: { beginn: BEGINN },
   grund: "Vertrag",
 });
 

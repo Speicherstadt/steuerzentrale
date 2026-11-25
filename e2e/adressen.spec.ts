@@ -80,7 +80,7 @@ test.describe("addresses and DNS", { tag: "@phone" }, () => {
         name: `Kanzlei ${k}`,
         kuerzel: k,
         kontakt: { name: "Petra Weber", email: "praxis@praxis-weber.test" },
-        vertrag: { sla: "basis", beginn: Date.UTC(2026, 4, 1, 22) },
+        vertrag: { beginn: Date.UTC(2026, 4, 1, 22) },
         grund: "Test",
       },
     });

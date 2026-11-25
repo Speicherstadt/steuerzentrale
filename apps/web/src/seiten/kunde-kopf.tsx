@@ -14,7 +14,7 @@ import { Loading, Show } from "solid-js";
 import type { KundeStand } from "../daten/kunde-ansicht.ts";
 import type { Kunde } from "../daten/typen.ts";
 import { datum } from "../format/zeit.ts";
-import { anzahl, slaName } from "../rahmen/texte.ts";
+import { anzahl } from "../rahmen/texte.ts";
 import { Marke } from "../teile/zeichen.tsx";
 import { Installieren } from "./installieren.tsx";
 import {
@@ -81,8 +81,7 @@ const StandWorte = (props: { stand: KundeStand }) => (
 );
 
 /** Its contract; a notice stands in its own note below the head */
-const vertragText = (k: Kunde) =>
-  m.kunde_vertrag_seit({ sla: slaName(k.vertrag.sla), datum: datum(k.vertrag.beginn) });
+const vertragText = (k: Kunde) => m.kunde_vertrag_seit({ datum: datum(k.vertrag.beginn) });
 
 /** The other actions in "Mehr …": internal for the owner, notice while the contract runs */
 const Mehr = (props: { k: Kunde; oeffne: (dialog: Offen) => void }) => {

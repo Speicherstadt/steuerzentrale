@@ -145,11 +145,7 @@ describe("the Betriebsart", () => {
     const kunde = { name: "X", kontakt: { name: "K", email: "k@x.test" } };
     const eigener = String((await ich(inhaber)).eigenerKundeId);
     const anfragen: [string, string, Record<string, unknown>?][] = [
-      [
-        "POST",
-        "/api/v1/kunden",
-        { ...kunde, vertrag: { sla: "basis", beginn: BEGINN }, grund: "g" },
-      ],
+      ["POST", "/api/v1/kunden", { ...kunde, vertrag: { beginn: BEGINN }, grund: "g" }],
       ["PUT", `/api/v1/kunden/${eigener}`, { ...kunde, beginn: BEGINN, grund: "g" }],
       ["PUT", `/api/v1/kunden/${eigener}/kuendigung`, { ende: BEGINN, grund: "g" }],
       ["DELETE", `/api/v1/kunden/${eigener}/kuendigung`, { grund: "g" }],

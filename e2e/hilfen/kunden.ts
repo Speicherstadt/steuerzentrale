@@ -10,7 +10,7 @@ export const kundeAnlegen = async (request: APIRequestContext, name: string) => 
     data: {
       name: `${name} ${randomUUID().slice(0, 8)}`,
       kontakt: { name: "Petra Weber", email: "praxis@praxis-weber.test" },
-      vertrag: { sla: "basis", beginn: Date.UTC(2026, 4, 1, 22) },
+      vertrag: { beginn: Date.UTC(2026, 4, 1, 22) },
       grund: "Test",
     },
   });

@@ -43,7 +43,7 @@ export const demoKunden = (start: Kunde[], jetzt: () => number): KundenQuelle =>
         kuerzelAenderbar: true,
         intern: false,
         angelegtAm: jetzt(),
-        vertrag: { sla: neu.vertrag.sla, beginn: neu.vertrag.beginn, ende: null },
+        vertrag: { beginn: neu.vertrag.beginn, ende: null },
       };
       liste = [...liste, kunde];
       return { ok: true, status: 201, daten: kunde };

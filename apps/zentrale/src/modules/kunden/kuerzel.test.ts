@@ -27,7 +27,7 @@ const stamm = (name: string, kuerzel?: string) => ({
 const anlegen = (u: U, betreiberId: string, name: string, kuerzel?: string): Ergebnis =>
   kundeAnlegen(u.db, u.schreibDb, u.kontext(betreiberId), {
     ...stamm(name, kuerzel),
-    vertrag: { sla: "basis", beginn: 0 },
+    vertrag: { beginn: 0 },
   });
 
 const id = (e: Ergebnis) => {

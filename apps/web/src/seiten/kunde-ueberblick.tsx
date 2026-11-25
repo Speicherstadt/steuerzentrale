@@ -3,7 +3,7 @@ import { For } from "solid-js";
 import type { AppZeile } from "../daten/apps-liste.ts";
 import type { Kunde } from "../daten/typen.ts";
 import { datum } from "../format/zeit.ts";
-import { slaName, slaText, welleName } from "../rahmen/texte.ts";
+import { welleName } from "../rahmen/texte.ts";
 import { appIcon } from "../teile/app-icon.ts";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { ZuInstallation } from "../teile/verweise.tsx";
@@ -57,14 +57,12 @@ const VertragsKarte = (props: { k: Kunde }) => (
     <KartenInhalt>
       <Angaben
         zeilen={[
-          { name: m.kunde_stufe(), wert: slaName(props.k.vertrag.sla) },
           { name: m.kunde_feld_beginn(), wert: datum(props.k.vertrag.beginn) },
           {
             name: m.kunde_feld_ende(),
             wert:
               props.k.vertrag.ende === null ? m.kunde_ungekuendigt() : datum(props.k.vertrag.ende),
           },
-          { name: m.kunde_updates(), wert: slaText(props.k.vertrag.sla) },
           { name: m.inst_welle(), wert: welleName(props.k.intern ? "intern" : "alle") },
           { name: m.kunde_feld_kuerzel(), wert: props.k.kuerzel },
         ]}

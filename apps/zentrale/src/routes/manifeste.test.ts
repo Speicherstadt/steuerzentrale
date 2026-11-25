@@ -215,7 +215,6 @@ describe("the versions each installation is offered", () => {
           betreiberId,
           vertragId: `v-${kundeId}`,
           kundeId,
-          sla: "basis",
           beginn: 1,
           angelegtAm: 1,
         });

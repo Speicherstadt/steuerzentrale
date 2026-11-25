@@ -66,7 +66,7 @@ test.describe("servers and customers", { tag: "@phone" }, () => {
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(i.kunde.name);
       await expect(page.getByRole("tab")).toHaveText(["Überblick", "Support", "Verlauf"]);
       await expect(page.getByTestId("kunde-apps")).toContainText(i.host);
-      await expect(page.getByText(/Basis-Vertrag seit/)).toBeVisible();
+      await expect(page.getByText(/· Vertrag seit/)).toBeVisible();
       await ohneBefund(page);
 
       await page.getByRole("tab", { name: "Support" }).click();

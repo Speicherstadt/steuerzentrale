@@ -1,7 +1,7 @@
 import type { Kunde } from "../daten/typen.ts";
 import { berlin } from "./zeit.ts";
 
-/** In stage 1 every contract is SLA Basis; Plus and Ruhe come with Z-505 (BAULISTE.md, Z-801) */
+/** A contract with its beginning, no SLA (BAULISTE.md, Z-801, Z-1202) */
 const kunde = (
   id: string,
   name: string,
@@ -17,7 +17,7 @@ const kunde = (
   kuerzelAenderbar: false,
   intern: false,
   angelegtAm: berlin(seit, "09:00"),
-  vertrag: { sla: "basis", beginn: berlin(seit), ende: null },
+  vertrag: { beginn: berlin(seit), ende: null },
 });
 
 const sonne = kunde("sonne", "Café Sonne", ["Clara Sonne", "cafe@cafe-sonne.de"], "2026-01-11");
