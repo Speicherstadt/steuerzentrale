@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { auftragEinfuegen, ereignisEinfuegen, serverEinfuegen } from "../../testhilfen/betrieb.ts";
 import { bewertungsUmgebung, installationEinfuegen } from "../../testhilfen/bewertung.ts";
-import { bewertungSetzen, faktenAnfuegen } from "../audit/index.ts";
+import { bewertungSetzen, dienstAussenSetzen, faktenAnfuegen, schreiben } from "../audit/index.ts";
 import { pruefungenFortschreiben } from "../pruefungen/index.ts";
-import { type Eintrag, ordnen } from "./ordnen.ts";
+import { type Eintrag, ordnen, zielVerweis } from "./ordnen.ts";
 import { uebersichtLesen } from "./uebersicht.ts";
 
 /*
@@ -258,5 +258,84 @@ describe("ordnen", () => {
       ["ereignis", { art: "ereignisse" }],
       ["installation", { art: "installation", id: "i1" }],
     ]);
+  });
+});
+
+describe("observed services in the overview (Z-1101)", () => {
+  const umgebung = () => {
+    const offen = bewertungsUmgebung();
+    const dienst = (dienstId: string, name: string, zustand?: "gruen" | "rot", seit = JETZT) => {
+      schreiben(
+        offen.schreibDb,
+        { betreiberId: "b1", akteur: "test", jetzt: 1, grund: "Test" },
+        "test",
+        (w) =>
+          w.einfuegen("dienste", {
+            betreiberId: "b1",
+            dienstId,
+            name,
+            host: `${dienstId}.teufel-it.de`,
+            pfad: "/",
+            angelegtAm: 1,
+          }),
+      );
+      if (zustand)
+        dienstAussenSetzen(
+          offen.schreibDb,
+          {
+            betreiberId: "b1",
+            dienstId,
+            zustand,
+            grund: JSON.stringify(
+              zustand === "rot"
+                ? { code: "health", werte: { status: "503" } }
+                : { code: "erreichbar", werte: {} },
+            ),
+            seit,
+            geprueftAm: JETZT - 30_000,
+            ergebnis: "{}",
+          },
+          0,
+        );
+    };
+    return { ...offen, dienst };
+  };
+
+  it("names a service with an open fault, one red outside and one unknown, never a green one", () => {
+    const u = umgebung();
+    u.dienst("d1", "Wiki", "rot", JETZT - 600_000);
+    u.dienst("d2", "Shop", "rot", JETZT - 60_000);
+    u.dienst("d3", "Status", "gruen");
+    u.dienst("d4", "Mail");
+    ereignisEinfuegen(u.schreibDb, "b1", {
+      zeitpunkt: JETZT - 300_000,
+      art: "stoerung",
+      schwere: "fehler",
+      ziel: "dienst:d1",
+    });
+    ereignisEinfuegen(u.schreibDb, "b1", {
+      zeitpunkt: JETZT - 60_000,
+      art: "aussen_rot",
+      schwere: "warn",
+      ziel: "dienst:d2",
+    });
+    const liste = uebersichtLesen(
+      { db: u.db, jetzt: JETZT, verbundenSeit: () => JETZT },
+      "b1",
+    ).filter((e) => e.verweis.art === "dienst");
+    expect(liste.map((e) => [e.schwere, e.art, e.verweis])).toEqual([
+      ["stoerung", "dienst", { art: "dienst", id: "d1" }],
+      ["warnung", "dienst", { art: "dienst", id: "d2" }],
+    ]);
+    expect(liste[0]).toMatchObject({
+      dienst: { dienstId: "d1", name: "Wiki", host: "d1.teufel-it.de" },
+      zustand: "stoerung",
+      grund: { code: "health", werte: { status: "503" } },
+      seit: JETZT - 600_000,
+    });
+  });
+
+  it("leads an event about a service to the service", () => {
+    expect(zielVerweis("dienst:d1")).toEqual({ art: "dienst", id: "d1" });
   });
 });

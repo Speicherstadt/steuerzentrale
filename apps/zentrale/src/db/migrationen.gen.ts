@@ -103,5 +103,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0025_ohne_support_zugaenge",
     "sql": "DROP TABLE `support_zugaenge`;"
+  },
+  {
+    "tag": "0026_dienste",
+    "sql": "CREATE TABLE `dienst_pruefungen` (\n\t`betreiber_id` text NOT NULL,\n\t`dienst_id` text NOT NULL,\n\t`zustand` text NOT NULL,\n\t`grund` text NOT NULL,\n\t`seit` integer NOT NULL,\n\t`geprueft_am` integer NOT NULL,\n\t`ergebnis` text NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `dienst_id`),\n\tFOREIGN KEY (`betreiber_id`,`dienst_id`) REFERENCES `dienste`(`betreiber_id`,`dienst_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE TABLE `dienst_verfuegbarkeit` (\n\t`betreiber_id` text NOT NULL,\n\t`dienst_id` text NOT NULL,\n\t`stunde` integer NOT NULL,\n\t`gemessen` integer NOT NULL,\n\t`rot` integer NOT NULL,\n\tPRIMARY KEY(`betreiber_id`, `dienst_id`, `stunde`),\n\tFOREIGN KEY (`betreiber_id`,`dienst_id`) REFERENCES `dienste`(`betreiber_id`,`dienst_id`) ON UPDATE no action ON DELETE no action\n);\n--> statement-breakpoint\nCREATE INDEX `dienst_verfuegbarkeit_stunde` ON `dienst_verfuegbarkeit` (`stunde`);--> statement-breakpoint\nCREATE TABLE `dienste` (\n\t`betreiber_id` text NOT NULL,\n\t`dienst_id` text NOT NULL,\n\t`name` text NOT NULL,\n\t`host` text NOT NULL,\n\t`pfad` text NOT NULL,\n\t`kunde_id` text,\n\t`angelegt_am` integer NOT NULL,\n\t`entfernt_am` integer,\n\tPRIMARY KEY(`betreiber_id`, `dienst_id`),\n\tFOREIGN KEY (`betreiber_id`,`kunde_id`) REFERENCES `kunden`(`betreiber_id`,`kunde_id`) ON UPDATE no action ON DELETE no action\n);\n"
   }
 ];

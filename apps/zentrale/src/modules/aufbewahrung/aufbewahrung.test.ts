@@ -43,6 +43,7 @@ describe("aufbewahrungsGrenzen", () => {
       backups: Date.UTC(2025, 9, 20, 12, 0, 0),
       pruefRestores: Date.UTC(2025, 9, 20, 12, 0, 0),
       verfuegbarkeit: Date.UTC(2025, 9, 20, 12, 0, 0),
+      dienstVerfuegbarkeit: Date.UTC(2025, 9, 20, 12, 0, 0),
     });
   });
 });
@@ -138,6 +139,7 @@ describe("aufbewahren", () => {
       backups: 0,
       pruefRestores: 0,
       verfuegbarkeit: 2,
+      dienstVerfuegbarkeit: 0,
     });
     expect(alterIn(db.select().from(installationVerlauf).all())).toEqual([89, 89]);
     expect(

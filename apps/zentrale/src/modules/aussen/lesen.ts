@@ -25,7 +25,7 @@ export const AUSSEN_GRUEN_ART = "aussen_gruen";
 /** How many months the page shows: the current one and the twelve before (the retention's 13) */
 export const MONATE = 13;
 
-const grundLesen = (text: string): AussenGrund => {
+export const grundLesen = (text: string): AussenGrund => {
   const g = JSON.parse(text) as Partial<AussenGrund>;
   return { code: g.code ?? "keine_pruefung", werte: g.werte ?? {} };
 };
@@ -72,11 +72,11 @@ export const aussenStandLesen = (
     : null;
 };
 
-/** The last change reported from outside: `rot`, `gruen`, or null before any */
-export const letzteAussenMeldung = (
+/** The last change reported from outside about an event target: `rot`, `gruen`, or null before any */
+export const letzteAussenMeldungAm = (
   db: Db,
   betreiberId: string,
-  installationId: string,
+  ziel: string,
 ): "rot" | "gruen" | null => {
   const art = db
     .select({ art: ereignisse.art })
@@ -84,7 +84,7 @@ export const letzteAussenMeldung = (
     .where(
       and(
         eq(ereignisse.betreiberId, betreiberId),
-        eq(ereignisse.ziel, `installation:${installationId}`),
+        eq(ereignisse.ziel, ziel),
         inArray(ereignisse.art, [AUSSEN_ROT_ART, AUSSEN_GRUEN_ART]),
       ),
     )
@@ -94,6 +94,10 @@ export const letzteAussenMeldung = (
   if (art === undefined) return null;
   return art === AUSSEN_ROT_ART ? "rot" : "gruen";
 };
+
+/** The last change reported from outside about an installation */
+export const letzteAussenMeldung = (db: Db, betreiberId: string, installationId: string) =>
+  letzteAussenMeldungAm(db, betreiberId, `installation:${installationId}`);
 
 export type AussenAntwort = {
   aussen: (AussenStand & { ergebnis: unknown }) | null;

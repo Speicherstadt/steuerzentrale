@@ -3,7 +3,8 @@ title: Prüfung von außen und Verfügbarkeit
 description: >-
   Wie die Zentrale jede öffentliche Adresse unabhängig vom Agenten prüft (DNS, Zertifikat, Pforte,
   Health), was „Agent grün, außen rot“ auslöst, wie die Verfügbarkeit je Installation und Monat
-  berechnet wird und was `/health` der Zentrale einem externen Prüfdienst sagt.
+  berechnet wird, wie beobachtete Dienste geprüft werden und was `/health` der Zentrale einem
+  externen Prüfdienst sagt.
 ---
 
 # Prüfung von außen und Verfügbarkeit
@@ -125,6 +126,48 @@ Die Seite einer App zeigt, sobald sie läuft:
   Zertifikat, was die Prüfung von außen ergab und die Verfügbarkeit des Monats, darunter jeden
   gemessenen Monat der letzten 13.
 
+## Beobachtete Dienste
+
+Ein beobachteter Dienst ist einer, den die Zentrale nicht installiert hat: ein Wiki hinter
+Cloudflare, die Statusseite eines Kunden, ein Dienst auf einem Server, den sie nicht verwaltet. Er
+hat einen Namen, eine Adresse, den Pfad der Health-Prüfung (Vorgabe `/`) und auf Wunsch einen
+Kunden. Kein Agent, kein Manifest: ohne Version, Backup, Update und Aktionen.
+
+Die Zentrale prüft ihn in derselben Runde wie die Installationen, jede Minute, mit denselben
+Schritten: DNS, Zertifikat, Verbindung und Health. Zwei Unterschiede:
+
+- Die Adresse ist nur `https://<host>`, ohne Port, Pfad, Nutzer oder IP-Adresse; geprüft wird auf
+  Port 443. Ein Name ohne Punkt (`localhost`) ist keine Adresse. Eine Adresse, die auf eine nicht
+  öffentliche Adresse auflöst, fragt die Zentrale nie an (wie bei einer Installation).
+- Die Einträge im DNS vergleicht sie mit keinem Server: der Dienst darf hinter Cloudflare oder
+  einem anderen Proxy liegen. Gesund ist ein Status von 200 bis 399, wie beim Health-Pfad einer
+  Installation; „Pforte“ heißt bei einem Dienst „Keine Verbindung“.
+
+Danach gilt dasselbe wie für eine Installation, nur ohne die Seite innen: nach der zweiten roten
+Prüfung `aussen_rot`, wieder grün `aussen_gruen`, nach 5 Minuten rot die Störung `stoerung`, grün
+danach `stoerung_behoben`. Die Ereignisse tragen das Ziel `dienst:<id>` und gehen wie jedes
+Ereignis an die [Empfänger](benachrichtigungen.md). Jede Prüfung zählt in ihre Stunde
+(`dienst_verfuegbarkeit`, 13 Monate aufbewahrt). Für einen beobachteten Dienst entsteht nie ein
+Auftrag an einen Agenten.
+
+Auf der Seite **Apps** stehen die beobachteten Dienste unter den Apps in einer eigenen Tabelle, mit
+der Marke „beobachtet“, dem Kunden (nicht in „Nur für mich“), dem Zustand von außen in Worten und
+der Verfügbarkeit des Monats; was rot ist, zuerst. In der **Übersicht** steht ein Dienst mit offener
+Störung unter „Zu tun“, einer, der rot ist, als Warnung, einer ohne Prüfung seit 3 Minuten unter
+„Ohne Eile“; die Zeile führt zur Seite Apps. Das Protokoll nennt ihn mit seinem Namen.
+
+Anlegen, Ändern und Entfernen darf nur der Inhaber, sehen alle Rollen. Gefragt wird kein Grund; im
+Audit-Log steht `dienst.anlegen`, `dienst.aendern` oder `dienst.entfernen`. Ein entfernter Dienst
+wird nicht mehr geprüft und nicht mehr gezeigt; seine Ereignisse und Messwerte bleiben bis zum Ende
+ihrer Aufbewahrung.
+
+| Methode und Pfad | Wer | Was |
+| --- | --- | --- |
+| `GET /api/v1/dienste` | jede Rolle | die Dienste des Betreibers mit Zustand von außen (`aussen`, `null` vor der ersten Prüfung) und Verfügbarkeit des laufenden Monats |
+| `POST /api/v1/dienste` | Inhaber | `{ name, adresse, pfad?, kundeId? }`; `201` mit dem Dienst, `400` bei einer anderen Adresse als `https://<host>`, `404 kein_kunde` |
+| `PUT /api/v1/dienste/:dienstId` | Inhaber | dieselben Felder; `404 kein_dienst` für einen fremden oder entfernten |
+| `DELETE /api/v1/dienste/:dienstId` | Inhaber | `204`; `404 kein_dienst` |
+
 ## `/health` der Zentrale
 
 Die Zentrale selbst prüft ein externer Dienst. `GET /health` braucht keine Anmeldung und sagt nur,
@@ -152,3 +195,8 @@ erfunden sind (die E2E-Tests). Ohne die Variable (oder mit `an`) läuft sie.
   Zeitumstellung.
 - Vitest der Routen: jeder Betreiber sieht nur seine Installationen, auch die Tage.
 - Playwright: die Karte auf der Seite einer laufenden App, die Balken im Reiter „Messwerte“.
+- Beobachtete Dienste: Vitest in `apps/zentrale/src/modules/dienste` (grün gegen einen Test-Server
+  mit Test-Zertifikat, `aussen_rot` nach zwei roten Prüfungen, Störung nach 5 Minuten, Zählung je
+  Stunde, Zustellung an Empfänger, kein Auftrag, eine nicht öffentliche Adresse wird nie angefragt,
+  entfernt nicht mehr geprüft), der Routen (Adresse, Rollen, je Endpunkt kein fremder Betreiber) und
+  Playwright für Anlegen, Ändern und Entfernen (Desktop und `@phone`).

@@ -18,6 +18,7 @@ import { backupRouten } from "./routes/backups.ts";
 import { benachrichtigungRouten } from "./routes/benachrichtigungen.ts";
 import { betriebRouten } from "./routes/betrieb.ts";
 import { betriebsartRouten } from "./routes/betriebsart.ts";
+import { dienstRouten } from "./routes/dienste.ts";
 import { dnsRouten } from "./routes/dns.ts";
 import { einladungRouten } from "./routes/einladungen.ts";
 import { einstellungenRouten } from "./routes/einstellungen.ts";
@@ -130,6 +131,7 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   installationenRouten(route, deps);
   aktionenRouten(route, deps);
   aussenRouten(route, deps);
+  dienstRouten(route, deps);
   einstellungenRouten(route, deps);
   betriebRouten(route, deps);
   dnsRouten(route, deps);

@@ -55,18 +55,22 @@ export const verlaufLesen = (
     .all()
     .map((z) => ({ zeitpunkt: z.zeitpunkt, bewertung: z.bewertung, grund: grundLesen(z.grund) }));
 
-/** Whether the installation has a fault not yet fixed: its newest fault event is not a fix */
-export const stoerungOffen = (db: Db, betreiberId: string, installationId: string): boolean =>
+/** Whether an event target has a fault not yet fixed: its newest fault event is not a fix */
+export const stoerungOffenAm = (db: Db, betreiberId: string, ziel: string): boolean =>
   db
     .select({ art: ereignisse.art })
     .from(ereignisse)
     .where(
       and(
         eq(ereignisse.betreiberId, betreiberId),
-        eq(ereignisse.ziel, zielVon(installationId)),
+        eq(ereignisse.ziel, ziel),
         inArray(ereignisse.art, [STOERUNG_ART, BEHOBEN_ART]),
       ),
     )
     // a fix never comes before its fault: in the same millisecond, "stoerung_behoben" sorts first
     .orderBy(desc(ereignisse.zeitpunkt), desc(ereignisse.art))
     .get()?.art === STOERUNG_ART;
+
+/** Whether the installation has a fault not yet fixed */
+export const stoerungOffen = (db: Db, betreiberId: string, installationId: string): boolean =>
+  stoerungOffenAm(db, betreiberId, zielVon(installationId));

@@ -11,6 +11,7 @@ export default defineConfig({
     "./src/db/schema-manifeste.ts",
     "./src/db/schema-updates.ts",
     "./src/db/schema-aussen.ts",
+    "./src/db/schema-dienste.ts",
     "./src/db/schema-benachrichtigungen.ts",
     "./src/db/auth-schema.ts",
   ],

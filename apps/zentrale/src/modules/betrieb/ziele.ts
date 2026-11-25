@@ -1,22 +1,28 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "../../db/oeffnen.ts";
-import { installationen, kunden, server } from "../../db/schema.ts";
+import { dienste, installationen, kunden, server } from "../../db/schema.ts";
 
 /*
  * The page an event's or audit entry's target has, with the name the lists show (BAULISTE.md
- * Z-406): an installation as "customer · app", a server and a customer by name. Targets are written
+ * Z-406): an installation as "customer · app", a server, a customer and an observed service (Z-1101) by name. Targets are written
  * `art:id`: events name `installation:` and `server:` (modules/bewertung/lesen.ts), the audit log
  * the table (`installationen:`, `server:`, `kunden:`; modules/audit/schreiben.ts). Only the
  * operator's own rows are looked up.
  */
 
-export type ZielVerweis = { art: "installation" | "server" | "kunde"; id: string; name: string };
+export type ZielVerweis = {
+  art: "installation" | "server" | "kunde" | "dienst";
+  id: string;
+  name: string;
+};
 
 const ARTEN: Record<string, ZielVerweis["art"]> = {
   installation: "installation",
   installationen: "installation",
   server: "server",
   kunden: "kunde",
+  dienst: "dienst",
+  dienste: "dienst",
 };
 
 const teilen = (ziel: string) => {
@@ -38,6 +44,7 @@ export const zielVerweise = (
   const inst = idsDer(ziele, "installation");
   const sv = idsDer(ziele, "server");
   const ku = idsDer(ziele, "kunde");
+  const di = idsDer(ziele, "dienst");
   if (inst.length)
     for (const z of db
       .select({ id: installationen.installationId, app: installationen.app, kunde: kunden.name })
@@ -71,6 +78,13 @@ export const zielVerweise = (
       .where(and(eq(kunden.betreiberId, betreiberId), inArray(kunden.kundeId, ku)))
       .all())
       namen.set(`kunde:${z.id}`, z.name);
+  if (di.length)
+    for (const z of db
+      .select({ id: dienste.dienstId, name: dienste.name })
+      .from(dienste)
+      .where(and(eq(dienste.betreiberId, betreiberId), inArray(dienste.dienstId, di)))
+      .all())
+      namen.set(`dienst:${z.id}`, z.name);
   return new Map(
     ziele.flatMap((ziel) => {
       const { art, id } = teilen(ziel);

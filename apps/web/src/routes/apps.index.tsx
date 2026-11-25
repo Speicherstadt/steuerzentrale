@@ -15,6 +15,7 @@ import { appsListeLaden } from "../daten/installationen-laden.ts";
 import { bestand } from "../daten/quelle.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { AppsTabelle } from "../seiten/apps-tabelle.tsx";
+import { Dienste } from "../seiten/dienste.tsx";
 import { Installieren } from "../seiten/installieren.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
 import { Schalter } from "../teile/schalter.tsx";
@@ -24,7 +25,8 @@ import { Schalter } from "../teile/schalter.tsx";
  * 2026-11)"): what needs attention first, filtered to what needs someone or can be updated, as a
  * list or grouped by customer or server, with a search, and the dialog "App installieren". The
  * state, version, backup and server of each from the Zentrale (daten/apps-liste.ts); in the
- * Betriebsart "Nur für mich" without the column "Kunde", as every app is the operator's own.
+ * Betriebsart "Nur für mich" without the column "Kunde", as every app is the operator's own. Under
+ * it the observed services (Z-1101), which the Zentrale checks from outside only.
  */
 
 const FILTERNAMEN: Record<Filter, () => string> = {
@@ -105,6 +107,9 @@ const Apps = () => {
           mitKunde={!nurFuerMich(art())}
           jetzt={bestand().jetzt}
         />
+      </Loading>
+      <Loading fallback={null}>
+        <Dienste mitKunde={!nurFuerMich(art())} />
       </Loading>
     </div>
   );

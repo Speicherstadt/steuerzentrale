@@ -68,5 +68,12 @@ export const ZielLink = (props: { ziel: string; verweis: Verweis | null }) => (
     <Match when={props.verweis?.art === "kunde" && props.verweis}>
       {(v) => <ZuKunde id={v().id}>{v().name}</ZuKunde>}
     </Match>
+    <Match when={props.verweis?.art === "dienst" && props.verweis}>
+      {(v) => (
+        <Link to="/apps" class={linkClass}>
+          {v().name}
+        </Link>
+      )}
+    </Match>
   </Switch>
 );

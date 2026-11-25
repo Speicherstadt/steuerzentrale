@@ -72,6 +72,7 @@ Die Zahl neben „Übersicht“ in der Seitenleiste ist die Zahl dieser Zeilen.
 | App gestört oder rot | „Log ansehen“ und „Neustart“, je mit Grund, für Inhaber und Technik ([Aktionen](aktionen.md)); sonst „App öffnen“ |
 | andere Zeile einer App (gelb, Prüf-Restore, gescheiterte Einrichtung, gescheiterter Auftrag) | „App öffnen“ |
 | Server (Agent, Prüfung, Auftrag ohne App) | „Server öffnen“ |
+| beobachteter Dienst ([Prüfung von außen](aussen.md#beobachtete-dienste)) | „Dienste öffnen“, zur Seite Apps |
 | Ereignis ohne App oder Server | „Im Protokoll“ |
 
 Eine Zeile nur aus Hinweisen (ohne Zustand, Prüf-Restore überfällig) wartet: sie steht unten unter
@@ -110,6 +111,9 @@ Eintrag führt zu seiner Ursache und nennt bei einer App den Server, auf dem sie
 | --- | --- | --- |
 | offene Störung einer Installation (5 Minuten rot, siehe [Health und Zustand](zustand.md)) | Störung | Installation |
 | Installation rot | Störung | Installation |
+| offene Störung eines beobachteten Dienstes (5 Minuten außen rot, siehe [Prüfung von außen](aussen.md#beobachtete-dienste)) | Störung | Dienst |
+| beobachteter Dienst außen rot | Warnung | Dienst |
+| beobachteter Dienst ohne Prüfung seit 3 Minuten | Hinweis | Dienst |
 | Agent getrennt | Störung | Server |
 | Prüfung eines Servers rot (Platte über 90 %, Zertifikat abgelaufen, siehe [Prüfungen der Server](pruefungen.md)) | Störung | Server |
 | Installation gelb | Warnung | Installation |
@@ -121,7 +125,7 @@ Eintrag führt zu seiner Ursache und nennt bei einer App den Server, auf dem sie
 | Installation ohne Zustand (unbekannt) | Hinweis | Installation |
 | kein Prüf-Restore seit über 8 Tagen (ohne jeden ab dem ersten gelungenen Backup) | Hinweis | Installation |
 
-Innerhalb einer Schwere stehen Störungen vor Installationen, Agenten, Prüfungen der Server,
+Innerhalb einer Schwere stehen Störungen vor Installationen, beobachteten Diensten, Agenten, Prüfungen der Server,
 Prüf-Restores, Aufträgen und Ereignissen,
 und jeweils das Neueste zuerst. Es zählen nur Installationen, die laufen (eine, die eingerichtet
 wird oder deren Einrichtung scheiterte, steht als Auftrag da), und nur Server, deren Agent beigetreten
