@@ -62,6 +62,8 @@ test.describe("the interface", { tag: "@phone" }, () => {
               .getByRole("navigation", { name: "Bereiche" })
               .filter({ visible: true })
               .getByRole("link", { name: /^Übersicht/ });
+            // on the phone the menu opens only now and reads its count a moment later
+            await expect(eintrag).toHaveText(/^Übersicht\d+$/);
             const zahl = await eintrag.textContent();
             const erwartet = n === 1 ? "1 Ding braucht dich" : `${n} Dinge brauchen dich`;
             return urteil === erwartet && zahl === `Übersicht${n}`;
