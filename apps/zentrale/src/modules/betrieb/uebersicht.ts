@@ -5,7 +5,8 @@ import type { Db } from "../../db/oeffnen.ts";
 import { installationen, kunden } from "../../db/schema.ts";
 import { backupEingerichtet } from "../backups/auftraege.ts";
 import { STOERUNG_ART, standVon } from "../bewertung/index.ts";
-import { stoerungOffen } from "../bewertung/lesen.ts";
+import { stoerungOffen, stoerungOffenAm } from "../bewertung/lesen.ts";
+import { diensteListe, dienstZiel } from "../dienste/lesen.ts";
 import { pruefRestoreAufmerksamkeit } from "../pruef-restore/lesen.ts";
 import { pruefungenLesen } from "../pruefungen/index.ts";
 import { letzteHeartbeats, serverListe } from "../server/index.ts";
@@ -16,7 +17,7 @@ import { type Eintrag, type MitVerweis, ordnen, type Schwere } from "./ordnen.ts
 
 /*
  * The overview (BAULISTE.md Z-406; docs/plan.md, "Echte Daten (Z-406)"): open faults, installations
- * red, yellow or unknown, agents disconnected or silent, checks of a server red or yellow (Z-702),
+ * red, yellow or unknown, observed services with an open fault, red or unknown from outside (Z-1101), agents disconnected or silent, checks of a server red or yellow (Z-702),
  * test restores failed or older than 8 days
  * (Z-602), failed jobs of the last 7 days (a test restore's own job aside: its entry stands for it;
  * a restore's too, Z-603: its event `wiederherstellen_gescheitert` does),
@@ -97,6 +98,32 @@ const pruefRestoreEintraege = (deps: UebersichtDeps, betreiberId: string): Eintr
     const installation = verweisAuf(i, kunde);
     return [
       { art: "pruef_restore", schwere: a.gescheitert ? "warnung" : "hinweis", installation, ...a },
+    ];
+  });
+
+const SCHWERE_DES_DIENSTES = {
+  stoerung: "stoerung",
+  rot: "warnung",
+  unbekannt: "hinweis",
+} as const;
+
+/** Observed services with an open fault, or red or unknown from outside; one never checked is not */
+const dienstEintraege = (deps: UebersichtDeps, betreiberId: string): Eintrag[] =>
+  diensteListe(deps.db, betreiberId, deps.jetzt).flatMap((d): Eintrag[] => {
+    const stand = d.aussen;
+    if (!stand) return [];
+    const offen = stoerungOffenAm(deps.db, betreiberId, dienstZiel(d.id));
+    const zustand = offen ? "stoerung" : stand.zustand;
+    if (zustand === "gruen") return [];
+    return [
+      {
+        art: "dienst",
+        schwere: SCHWERE_DES_DIENSTES[zustand],
+        dienst: { dienstId: d.id, name: d.name, host: d.host },
+        zustand,
+        grund: stand.grund,
+        seit: stand.seit,
+      },
     ];
   });
 
@@ -196,6 +223,7 @@ const ereignisEintraege = (deps: UebersichtDeps, betreiberId: string): Eintrag[]
 export const uebersichtLesen = (deps: UebersichtDeps, betreiberId: string): MitVerweis[] =>
   ordnen([
     ...installationsEintraege(deps, betreiberId),
+    ...dienstEintraege(deps, betreiberId),
     ...agentEintraege(deps, betreiberId),
     ...pruefungsEintraege(deps, betreiberId),
     ...pruefRestoreEintraege(deps, betreiberId),

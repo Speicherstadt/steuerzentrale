@@ -8,6 +8,7 @@ import type {
 import type { Installation } from "../daten/typen.ts";
 import { auffaellig, pruefungenDerDemo } from "../daten/zustand.ts";
 import { pruefRestoreVon } from "./backups.ts";
+import { dienste } from "./dienste.ts";
 import { demo } from "./index.ts";
 import { installationen } from "./installationen.ts";
 import { kunden } from "./kunden.ts";
@@ -16,7 +17,7 @@ import { JETZT } from "./zeit.ts";
 
 /*
  * The demo's overview as GET /api/v1/uebersicht answers it (BAULISTE.md Z-406): a red installation
- * as an open fault, yellow and unknown ones, agents not connected, checks of a server red or yellow
+ * as an open fault, yellow and unknown ones, observed services red outside (Z-1101), agents not connected, checks of a server red or yellow
  * (Z-702, as src/demo/server-quelle.ts answers them), test restores failed or due
  * (Z-602, from the demo's `pruefRestore` as src/demo/backups.ts answers them), failed jobs, warnings
  * and errors of the last 24 h; ordered as the Zentrale orders (apps/zentrale,
@@ -28,11 +29,12 @@ const RANG: Record<Dringlichkeit, number> = { stoerung: 0, warnung: 1, hinweis: 
 const FOLGE: Record<UebersichtEintrag["art"], number> = {
   stoerung: 0,
   installation: 1,
-  agent: 2,
-  pruefung: 3,
-  pruef_restore: 4,
-  auftrag: 5,
-  ereignis: 6,
+  dienst: 2,
+  agent: 3,
+  pruefung: 4,
+  pruef_restore: 5,
+  auftrag: 6,
+  ereignis: 7,
 };
 
 const kunde = (id: string) => kunden.find((k) => k.id === id);
@@ -73,6 +75,29 @@ const zuInstallation = (i: Installation): UebersichtEintrag[] => {
     },
   ];
 };
+
+/** Five minutes red outside make a fault (docs/plan.md, "Störung") */
+const STOERUNG_NACH_MS = 5 * 60_000;
+
+/** The observed services red or unknown from outside (Z-1101); red for five minutes a fault */
+const beobachtet = (): UebersichtEintrag[] =>
+  dienste.flatMap((d): UebersichtEintrag[] => {
+    const a = d.aussen;
+    if (!a || a.zustand === "gruen") return [];
+    const gestoert = a.zustand === "rot" && JETZT - a.seit >= STOERUNG_NACH_MS;
+    const zustand = gestoert ? "stoerung" : a.zustand;
+    return [
+      {
+        art: "dienst",
+        schwere: zustand === "stoerung" ? "stoerung" : zustand === "rot" ? "warnung" : "hinweis",
+        verweis: { art: "dienst", id: d.id },
+        dienst: { dienstId: d.id, name: d.name, host: d.host },
+        zustand,
+        grund: a.grund,
+        seit: a.seit,
+      },
+    ];
+  });
 
 const agenten = (): UebersichtEintrag[] =>
   server.flatMap((s): UebersichtEintrag[] =>
@@ -136,6 +161,7 @@ export const demoUebersicht = (
 ): UebersichtEintrag[] => {
   const vorne = [
     ...installationen.flatMap(zuInstallation),
+    ...beobachtet(),
     ...agenten(),
     ...pruefungen(),
     ...installationen.flatMap(pruefRestore),

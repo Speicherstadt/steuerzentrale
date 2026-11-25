@@ -148,6 +148,10 @@ Eine Tabelle mit jeder App, die nicht entfernt ist: **App** (Symbol und Name), *
   Adresse und Server.
 - In der Betriebsart „Nur für mich“ fehlen die Spalte „Kunde“ und „nach Kunde“.
 
+Darunter die **beobachteten Dienste**: was die Zentrale nicht installiert hat und nur von außen
+prüft, mit der Marke „beobachtet“, Kunde, Zustand und Verfügbarkeit des Monats; der Inhaber legt sie
+an, ändert und entfernt sie ([Prüfung von außen](aussen.md#beobachtete-dienste)).
+
 Alle Backups auf einen Blick zeigt die Seite **Backups**, erreichbar über „Alle Backups“ im Reiter
 „Backups“ einer App.
 

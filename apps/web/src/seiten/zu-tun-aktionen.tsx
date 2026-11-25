@@ -16,10 +16,11 @@ import { installationsRecht } from "./recht.tsx";
 
 const AUSSEN = buttonClass({ variant: "outline" });
 
-/** Where an entry's thing has its page: an installation, a server, or the log */
+/** Where an entry's thing has its page: an installation, a server, the services, or the log */
 const ziel = (
   e: UebersichtEintrag,
-): { art: "installation" | "server"; id: string } | { art: "protokoll" } => {
+): { art: "installation" | "server"; id: string } | { art: "protokoll" } | { art: "dienste" } => {
+  if (e.art === "dienst" || e.verweis.art === "dienst") return { art: "dienste" };
   if (e.art === "agent" || e.art === "pruefung") return { art: "server", id: e.server.serverId };
   if (e.art === "auftrag")
     return e.installation
@@ -31,6 +32,9 @@ const ziel = (
       : { art: "protokoll" };
   return { art: "installation", id: e.installation.installationId };
 };
+
+/** Whether the entry is about an observed service (Z-1101), whose table is on the page "Apps" */
+export const zuDiensten = (e: UebersichtEintrag): boolean => ziel(e).art === "dienste";
 
 /** The id of the entry's installation or server, if it leads to one of `art` */
 export const idFuer = (e: UebersichtEintrag, art: "installation" | "server") => {
@@ -65,6 +69,11 @@ const Oeffnen = (props: { eintrag: UebersichtEintrag }) => (
           {m.zutun_server_oeffnen()}
         </ZuServer>
       )}
+    </Match>
+    <Match when={zuDiensten(props.eintrag)}>
+      <Link to="/apps" class={AUSSEN}>
+        {m.zutun_dienst_oeffnen()}
+      </Link>
     </Match>
   </Switch>
 );

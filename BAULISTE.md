@@ -512,7 +512,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
 
 ## Phase 8 – Bestehendes überwachen
 
-- [ ] **Z-1101 Beobachtete Dienste** – ein Dienst, den die Zentrale nicht installiert hat: Name,
+- [x] **Z-1101 Beobachtete Dienste** – ein Dienst, den die Zentrale nicht installiert hat: Name,
   Adresse (`https://…`), Pfad der Health-Prüfung (Vorgabe `/`), auf Wunsch ein Kunde. Die Zentrale
   prüft ihn jede Minute von außen wie eine Installation (DNS, Zertifikat, Verbindung, Health;
   Z-704), mit denselben Ereignissen, derselben Störung nach 5 Minuten und derselben Verfügbarkeit.
@@ -524,6 +524,12 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   `aussen_rot` und nach 5 Minuten `stoerung` schreibt (Test); ein Name, der auf eine nicht
   öffentliche Adresse auflöst, nie angefragt wird (Test); Anlegen, Ändern und Entfernen in Playwright
   laufen (Desktop und `@phone`); für ihn nie ein Auftrag an einen Agenten entsteht (Test).
+  Geschärft: die Adresse ist nur `https://<host>` auf Port 443 (ohne Port, Pfad, Nutzer oder
+  IP-Adresse; sonst `400`, Test); gesund heißt 200–399 wie der Health-Pfad einer Installation
+  (Test); Ereignisse und Störung tragen das Ziel `dienst:<id>` und gehen wie jedes Ereignis an die
+  Empfänger (Test); ein entfernter Dienst wird nicht mehr geprüft, seine Messwerte und Ereignisse
+  bleiben bis zur Aufbewahrungsfrist (Test); kein Betreiber sieht oder ändert den Dienst eines
+  anderen (Test je Endpunkt); schreiben darf nur der Inhaber (Test je Rolle).
 - [ ] **Z-1102 Server nur beobachten** – `install.sh --nur-beobachten` für einen Server, auf dem
   schon etwas läuft: nur der Agent kommt dazu. Kein Podman, keine Pforte, kein Nutzer `sz-pforte`,
   kein `ip_unprivileged_port_start`, keine Delegation der cgroup-Controller, keine Änderung an

@@ -2,6 +2,7 @@ import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import {
   backups,
   betreiber,
+  dienstVerfuegbarkeit,
   ereignisse,
   fakten,
   heartbeats,
@@ -29,6 +30,7 @@ const betreiberMitDaten = (db: Db): Set<string> =>
       backups,
       zustellungen,
       verfuegbarkeit,
+      dienstVerfuegbarkeit,
     ].flatMap((tabelle) =>
       db
         .selectDistinct({ betreiberId: tabelle.betreiberId })
@@ -51,6 +53,7 @@ export const aufbewahren = (db: Db, schreibDb: SchreibDb, jetzt: number): Geloes
     backups: 0,
     pruefRestores: 0,
     verfuegbarkeit: 0,
+    dienstVerfuegbarkeit: 0,
   };
   for (const betreiberId of betreiberMitDaten(db)) {
     const kontext = { betreiberId, akteur: "system", jetzt, grund: "Aufbewahrung (docs/plan.md)" };

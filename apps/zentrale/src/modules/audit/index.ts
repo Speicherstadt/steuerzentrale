@@ -3,6 +3,8 @@ export {
   aussenSetzen,
   type BewertungZeile,
   bewertungSetzen,
+  type DienstAussenZeile,
+  dienstAussenSetzen,
   type FaktenZeile,
   type FortschrittZeile,
   faktenAnfuegen,
