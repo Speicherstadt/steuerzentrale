@@ -1,5 +1,4 @@
 import {
-  type AussenGrund,
   type AussenStand,
   aussenBewerten,
   aussenFortschreiben,

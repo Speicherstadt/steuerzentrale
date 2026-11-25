@@ -194,8 +194,7 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
         (text) => s.senden(text),
         uhrAbweichung({ gesendet: halloAm, empfangen: deps.jetzt(), zentrale: n.zeit }),
       );
-      await pflege.faellig(s, n.zertifikatGueltigBis);
-      return;
+      return await pflege.faellig(s, n.zertifikatGueltigBis);
     }
     if (n.typ === "zertifikat" && (await pflege.gekommen(n))) {
       // the next connection opens with the new certificate, which replaces the old one

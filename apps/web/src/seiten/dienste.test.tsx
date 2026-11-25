@@ -5,7 +5,7 @@ import { diensteQuelleEinsetzen } from "../daten/dienste.ts";
 import { rollenQuelleEinsetzen } from "../daten/rolle.ts";
 import { demoBetriebsart } from "../demo/betriebsart.ts";
 import { demoDienste } from "../demo/dienste-quelle.ts";
-import { aufraeumen, dialog, eintragen, knopf, oeffne, warten } from "./test-dom.tsx";
+import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./test-dom.tsx";
 
 // BAULISTE.md Z-1101: the observed services on the page "Apps", against the demo's source, which
 // answers as the Zentrale's API does; marked "beobachtet", without version, backup or update
@@ -37,14 +37,49 @@ describe("observed services on the page Apps", () => {
       "Verwalten",
     ]);
     const z = zeilen(t);
-    expect(z).toHaveLength(2);
+    expect(z).toHaveLength(3);
     expect(z[0]).toContain("Statusseite Praxis Weber");
     expect(z[0]).toContain("beobachtet");
     expect(z[0]).toContain("status.praxis-weber.de/health");
     expect(z[0]).toContain("Praxis Weber");
     expect(z[0]).toContain("Zertifikat");
-    expect(z[1]).toContain("Wiki");
-    expect(z[1]).toContain("Erreichbar");
+    expect(z[2]).toContain("Wiki");
+    expect(z[2]).toContain("Erreichbar");
+  });
+
+  it("shows the units the agent reads and their state inside (Z-1103)", async () => {
+    const { root } = await oeffne("/apps");
+    const kontext = zeilen(tabelle(root)).find((z) => z?.includes("Kontext"));
+    expect(kontext).toContain("kontext: kontext.service, kontext-redis.service");
+    expect(kontext).toContain("innen: Units aktiv, Prüfung in Ordnung");
+  });
+
+  it("reads units only on an observed server, and refuses a name off the pattern", async () => {
+    const { root } = await oeffne("/apps");
+    knopf(root, "Dienst beobachten")?.click();
+    await warten();
+    eintragen("Name", "Grafana");
+    eintragen("Adresse", "https://grafana.beispiel-hosting.de");
+    const server = feld<HTMLSelectElement>("Server");
+    expect([...server.options].map((o) => o.textContent)).toEqual([
+      "Nur von außen prüfen",
+      "Bestandsserver",
+    ]);
+    server.value = "bestand";
+    server.dispatchEvent(new Event("change", { bubbles: true }));
+    await warten();
+    eintragen("Linux-Nutzer", "grafana");
+    eintragen("systemd-Units", "grafana.service;reboot");
+    dialog().querySelector("form")?.requestSubmit();
+    await warten();
+    expect(dialog().textContent).toContain("die Namen von Nutzer und Units stimmen nicht");
+    eintragen("systemd-Units", "grafana.service, grafana-db.service");
+    eintragen("Port auf 127.0.0.1", "3000");
+    dialog().querySelector("form")?.requestSubmit();
+    await warten();
+    const neu = zeilen(tabelle(root)).find((z) => z?.includes("Grafana"));
+    expect(neu).toContain("grafana: grafana.service, grafana-db.service");
+    expect(neu).toContain("innen: Noch keine Meldung");
   });
 
   it("offers adding, changing and removing to the owner only", async () => {

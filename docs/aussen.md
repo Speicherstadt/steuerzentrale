@@ -143,7 +143,7 @@ Schritten: DNS, Zertifikat, Verbindung und Health. Zwei Unterschiede:
   einem anderen Proxy liegen. Gesund ist ein Status von 200 bis 399, wie beim Health-Pfad einer
   Installation; „Pforte“ heißt bei einem Dienst „Keine Verbindung“.
 
-Danach gilt dasselbe wie für eine Installation, nur ohne die Seite innen: nach der zweiten roten
+Danach gilt dasselbe wie für eine Installation, ohne Agenten nur von außen: nach der zweiten roten
 Prüfung `aussen_rot`, wieder grün `aussen_gruen`, nach 5 Minuten rot die Störung `stoerung`, grün
 danach `stoerung_behoben`. Die Ereignisse tragen das Ziel `dienst:<id>` und gehen wie jedes
 Ereignis an die [Empfänger](benachrichtigungen.md). Jede Prüfung zählt in ihre Stunde
@@ -163,10 +163,53 @@ ihrer Aufbewahrung.
 
 | Methode und Pfad | Wer | Was |
 | --- | --- | --- |
-| `GET /api/v1/dienste` | jede Rolle | die Dienste des Betreibers mit Zustand von außen (`aussen`, `null` vor der ersten Prüfung) und Verfügbarkeit des laufenden Monats |
-| `POST /api/v1/dienste` | Inhaber | `{ name, adresse, pfad?, kundeId? }`; `201` mit dem Dienst, `400` bei einer anderen Adresse als `https://<host>`, `404 kein_kunde` |
+| `GET /api/v1/dienste` | jede Rolle | die Dienste des Betreibers mit Zustand von außen (`aussen`, `null` vor der ersten Prüfung), Verfügbarkeit des laufenden Monats und, wo der Agent liest, `innen` und `innenStand` |
+| `POST /api/v1/dienste` | Inhaber | `{ name, adresse, pfad?, kundeId?, innen? }`; `201` mit dem Dienst, `400` bei einer anderen Adresse als `https://<host>` oder einem Namen außerhalb des Musters, `404 kein_kunde`, `404 kein_server`, `409 server_verwaltet` |
 | `PUT /api/v1/dienste/:dienstId` | Inhaber | dieselben Felder; `404 kein_dienst` für einen fremden oder entfernten |
 | `DELETE /api/v1/dienste/:dienstId` | Inhaber | `204`; `404 kein_dienst` |
+
+### Units auf einem beobachteten Server
+
+Läuft der Dienst auf einem Server, der [nur beobachtet](server-hinzufuegen.md#server-nur-beobachten)
+wird, kann der Agent dort auch seine systemd-Units lesen. Dazu nennt der Inhaber im Dialog unter
+„Auf dem Server lesen“ (in der API das Feld `innen`):
+
+- den **Server**: einer des Betreibers, der nur beobachtet wird; ein verwalteter wird abgelehnt
+  (`409 server_verwaltet`), dort liest der Agent nur, was ein Manifest beschreibt;
+- den **Linux-Nutzer**, dem die Units gehören, oder keinen für Units des Systems (`nutzer: null`);
+- die **Units**, eine bis 20, etwa `kontext.service`;
+- auf Wunsch **Port** und **Pfad** einer Prüfung auf `127.0.0.1`: mit Pfad ein `GET` (200 bis 399
+  ist gesund), ohne Pfad eine TCP-Verbindung, ohne Port keine Prüfung.
+
+```json
+{ "serverId": "…", "nutzer": "tristan", "units": ["kontext.service"], "port": 3000, "pfad": "/health" }
+```
+
+Die Namen prüfen Zentrale und Agent mit denselben Mustern (`packages/protokoll`, `beobachten.ts`):
+ein Nutzer wie bei `useradd` (Kleinbuchstaben, Ziffern, `_` und `-`, nicht zuerst `-`, höchstens 32
+Zeichen), eine Unit mit Buchstaben, Ziffern, `:`, `_`, `.`, `@` und `-`, nicht zuerst `-`, und mit
+ihrer Art (`.service`, `.socket`, `.timer` …). Leerzeichen, `;`, `/` und `\` gehen nie durch.
+
+Die Zentrale schickt dem Agenten die Liste mit der Nachricht `beobachten`, nach `willkommen` und
+nach jeder Änderung eines Dienstes auf dem Server. Der Agent behält sie nur, solange er nur
+beobachtet; ein verwalteter Agent protokolliert sie und liest nichts. Gelesen wird mit festem argv
+und nur mit:
+
+```sh
+systemctl show -p Id,ActiveState,LoadState -- <units>                     # Units des Systems
+runuser -u <nutzer> -- env -i … systemctl --user show -p Id,ActiveState,LoadState -- <units>
+```
+
+und der HTTP- oder TCP-Prüfung auf `127.0.0.1`. Der Agent startet und stoppt nichts. Eine Unit, die
+systemd nicht kennt (`LoadState=not-found`), ist unbekannt, nie grün; Units eines Nutzers liest
+`systemctl --user` nur, wenn dessen Nutzer-Manager läuft (`loginctl enable-linger <nutzer>`), sonst
+sind sie unbekannt.
+
+Was er liest, kommt alle 30 Sekunden mit dem Zustand der Installationen. Die Zentrale bewertet es
+wie eine Installation: grün, gelb, rot oder unbekannt mit Grund, unbekannt nach 90 Sekunden ohne
+Meldung. Innen und außen zusammen ergeben die Störung: 5 Minuten rot innen oder außen machen
+`stoerung`, behoben ist sie erst, wenn beide Seiten grün sind. Auf der Seite **Apps** steht unter der
+Adresse, welche Units der Agent liest, und unter dem Zustand von außen der Zustand innen.
 
 ## `/health` der Zentrale
 
@@ -200,3 +243,9 @@ erfunden sind (die E2E-Tests). Ohne die Variable (oder mit `an`) läuft sie.
   Stunde, Zustellung an Empfänger, kein Auftrag, eine nicht öffentliche Adresse wird nie angefragt,
   entfernt nicht mehr geprüft), der Routen (Adresse, Rollen, je Endpunkt kein fremder Betreiber) und
   Playwright für Anlegen, Ändern und Entfernen (Desktop und `@phone`).
+- Units auf einem beobachteten Server: Vitest der Muster (`packages/protokoll`), des Agenten (argv
+  vollständig aufgezeichnet, nur `systemctl show`, eine unbekannte Unit nie grün, ein Name außerhalb
+  des Musters in keinem argv), der Bewertung und Störung in der Zentrale, der Routen (Muster, nur ein
+  eigener beobachteter Server, die Liste an den Agenten); in der CI eine von Hand angelegte
+  Quadlet-Unit unter einem eigenen Linux-Nutzer, laufend grün, gestoppt rot, fehlend unbekannt
+  (`apps/agent/test/beobachtet.agent.test.ts`).

@@ -550,7 +550,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   bricht ab, wenn `minisign`, `curl` oder `sha256sum` fehlen (Test); der Agent meldet den Modus mit
   den Fakten, und erlaubt ist ihm im Modus nur `agent_update` (Test je Auftragsart).
   Sicherheitsrelevant: `install.sh`, was der Agent ausführt.
-- [ ] **Z-1103 Vorhandene Units beobachten** – zu einem beobachteten Dienst auf einem beobachteten
+- [x] **Z-1103 Vorhandene Units beobachten** – zu einem beobachteten Dienst auf einem beobachteten
   Server nennt der Betreiber den Linux-Nutzer (oder das System), die systemd-Units und auf Wunsch
   Port und Pfad der Health-Prüfung auf `127.0.0.1`. Der Agent liest den Zustand der Units mit
   `systemctl show` und prüft Health wie bei einer Installation (Z-403); grün, gelb, rot oder

@@ -150,6 +150,16 @@ const agentMerken = (
   );
 };
 
+/** The units an observed server's agent reads (Z-1103); a managed server reads none */
+const beobachtenGeben = (deps: SitzungDeps, sv: Server) => {
+  if (nurBeobachtet(sv))
+    deps.verbindungen.senden(
+      sv.betreiberId,
+      sv.serverId,
+      beobachtenNachricht(deps.db, sv.betreiberId, sv.serverId),
+    );
+};
+
 const senden = (sockel: Sockel, nachricht: NachrichtVonDerZentrale, protokoll: number) =>
   sockel.senden(fuerVersion(nachrichtSchreiben(VonDerZentrale, nachricht), protokoll));
 
@@ -188,13 +198,7 @@ export const sitzung = (
       protokoll,
     );
     deps.verbindungen.gruessen(betreiberId, serverId, s, protokoll);
-    // the units an observed server's agent reads (Z-1103); a managed server reads none
-    if (nurBeobachtet(server))
-      deps.verbindungen.senden(
-        betreiberId,
-        serverId,
-        beobachtenNachricht(deps.db, betreiberId, serverId),
-      );
+    beobachtenGeben(deps, server);
     offeneZustellen(deps, betreiberId, serverId);
   };
 
