@@ -47,7 +47,7 @@ const ueberschrift = (root: HTMLElement) => root.querySelector("main h1")?.textC
 const ALLE = [
   ["/", "Übersicht"],
   ["/server", "Server"],
-  ["/server/holm", "Schreinerei Holm"],
+  ["/server/holm", "Server 4"],
   ["/apps", "Apps"],
   ["/apps/kraft-stellwerk", "Stellwerk · Ingenieurbüro Kraft"],
   ["/updates", "Updates"],
@@ -114,7 +114,7 @@ describe("pages", () => {
   it("name a server's check on the overview, leading to the server", async () => {
     const root = await oeffne("/");
     const zeile = [...root.querySelectorAll<HTMLElement>("main ul.divide-y > li")].find((li) =>
-      li.textContent?.includes("Platte auf Server „Studio Lind“ zu 91 % voll"),
+      li.textContent?.includes("Platte auf Server „Server 3“ zu 91 % voll"),
     );
     expect(zeile?.textContent).toContain("91 % belegt (Grenze 90 %)");
     expect(zeile?.textContent).toContain("Haben bei Studio Lind läuft eingeschränkt");
@@ -135,7 +135,7 @@ describe("pages", () => {
     // holm-belegt in its maintenance window tonight, shared-2 for its new kernel (demo plans)
     expect(naechstes).toContain("heute 22:00");
     expect(naechstes).toContain("Update: Belegt 0.0.7 bei Schreinerei Holm");
-    expect(naechstes).toContain("Neustart: Gemeinsamer Server 2");
+    expect(naechstes).toContain("Neustart: Server 2");
     expect(naechstes).toContain("in 12 Tagen");
     expect(naechstes).toContain("Vertrag Café Sonne endet");
     expect(karte("Von selbst erledigt")?.textContent).toContain("15 Backups gesichert");
@@ -163,10 +163,10 @@ describe("pages", () => {
 
   it("name the object of a detail page in the path", async () => {
     const root = await oeffne("/server/shared-2");
-    expect(ueberschrift(root)).toBe("Gemeinsamer Server 2");
+    expect(ueberschrift(root)).toBe("Server 2");
     const pfad = root.querySelector('nav[aria-label="Pfad"]');
     expect(pfad?.textContent).toContain("Server");
-    expect(pfad?.querySelector('[aria-current="page"]')?.textContent).toBe("Gemeinsamer Server 2");
+    expect(pfad?.querySelector('[aria-current="page"]')?.textContent).toBe("Server 2");
   });
 
   it("mark the current area in the sidebar, also on a detail page", async () => {

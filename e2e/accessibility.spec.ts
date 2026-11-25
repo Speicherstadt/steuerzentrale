@@ -48,7 +48,7 @@ test.use({ locale: "de-DE" });
 
 const ECHT: Record<string, (page: Page) => Promise<string>> = {
   "/server/shared-2": async (page) =>
-    `/server/${(await serverAnlegen(page.request, "Gemeinsamer Server 2")).serverId}`,
+    `/server/${(await serverAnlegen(page.request, "Server 2")).serverId}`,
   "/apps/lind-haben": async (page) => {
     const i = await installationAnlegen(page.request);
     i.agent.trennen();

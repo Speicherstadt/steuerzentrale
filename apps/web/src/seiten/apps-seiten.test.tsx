@@ -71,7 +71,7 @@ describe("the page Apps", () => {
     const koepfe = [...root.querySelectorAll("main tbody tr.bg-muted")].map(
       (tr) => tr.querySelector("a")?.textContent,
     );
-    expect(koepfe[0]).toBe("Gemeinsamer Server 2");
+    expect(koepfe[0]).toBe("Server 2");
     expect(koepfe).toHaveLength(5);
     await schalter(root, "nach Kunde");
     expect(root.querySelector("main tbody tr.bg-muted a")?.textContent).toBe("IT Berger");
@@ -102,7 +102,7 @@ describe("the page of an app", () => {
     expect(text("verfuegbarkeit-monate")).toBe(
       "VerfügbarkeitNovember 100 % · Oktober 100 %in Ordnung",
     );
-    expect(text("server")).toContain("Server: Gemeinsamer Server 1");
+    expect(text("server")).toContain("Server: Server 1");
     expect(text("server")).toContain("verbunden");
     expect(root.textContent).toMatch(/Vertragseit \d\d\.\d\d\.\d{4}/);
     expect(root.querySelector("[data-testid=zuletzt]")?.textContent).toContain("Einrichten");

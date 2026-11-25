@@ -56,7 +56,7 @@ Darunter vier Kacheln:
 
 Links **Zu tun**: was die Zentrale nicht selbst lösen kann, das Dringendste zuerst. Jede Zeile ist ein
 Ding, eine App oder ein Server, mit Symbol (Störung oder Warnung), einem Titel in Worten („Schreibzeug
-bei IT Berger ist gestört“, „Platte auf Server „Studio Lind“ zu 91 % voll“), einer Zeile mit Grund
+bei IT Berger ist gestört“, „Platte auf Server „Server 3“ zu 91 % voll“), einer Zeile mit Grund
 und Zeit und ihren Knöpfen. Ein stiller oder getrennter Agent und eine volle Platte sind die Ursache
 dessen, was die Apps auf dem Server melden: das steht in der Zeile des Servers („dazu: …“), nicht
 in eigenen Zeilen. Jede andere Prüfung eines Servers ist es nicht, ihre Apps behalten ihre Zeilen.

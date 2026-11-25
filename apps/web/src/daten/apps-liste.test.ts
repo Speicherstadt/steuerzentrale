@@ -112,7 +112,7 @@ describe("the rows of the page Apps", () => {
     const zeilen = appZeilen(daten);
     expect(ids(gefiltert(zeilen, "alle", "HOLM")).sort()).toEqual(["holm-belegt", "holm-haben"]);
     expect(gefiltert(zeilen, "alle", "schreibzeug")).toHaveLength(2);
-    expect(gefiltert(zeilen, "alle", "gemeinsamer server 2")).toHaveLength(4);
+    expect(gefiltert(zeilen, "alle", "SERVER 2")).toHaveLength(4);
   });
 
   it("group by customer or server, the group with the most pressing app first", () => {

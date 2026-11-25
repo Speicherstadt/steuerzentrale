@@ -15,7 +15,7 @@ const nachts = { von: "03:30", bis: "04:30" };
 export const server: Server[] = [
   {
     id: "shared-1",
-    name: "Gemeinsamer Server 1",
+    name: "Server 1",
     host: "shared-fsn-1",
     anbieter: "netcup RS 4000",
     arch: "amd64",
@@ -37,7 +37,7 @@ export const server: Server[] = [
   },
   {
     id: "shared-2",
-    name: "Gemeinsamer Server 2",
+    name: "Server 2",
     host: "shared-fsn-2",
     anbieter: "netcup RS 1000",
     arch: "amd64",
@@ -67,7 +67,7 @@ export const server: Server[] = [
   },
   {
     id: "lind",
-    name: "Studio Lind",
+    name: "Server 3",
     host: "srv-studio-lind",
     anbieter: "Hetzner CX32",
     arch: "amd64",
@@ -89,7 +89,7 @@ export const server: Server[] = [
   },
   {
     id: "holm",
-    name: "Schreinerei Holm",
+    name: "Server 4",
     host: "holm-buero",
     anbieter: "eigene Hardware",
     arch: "arm64",
@@ -112,7 +112,7 @@ export const server: Server[] = [
   },
   {
     id: "kraft",
-    name: "Ingenieurbüro Kraft",
+    name: "Server 5",
     host: "srv-kraft",
     anbieter: "netcup VPS 8000",
     arch: "amd64",

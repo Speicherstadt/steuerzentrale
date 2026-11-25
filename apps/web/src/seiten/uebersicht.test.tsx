@@ -49,7 +49,7 @@ describe("the rows of Zu tun", () => {
   it("lead a server's row to the server", async () => {
     rolle("inhaber");
     const { root } = await oeffne("/");
-    const z = zeile(root, "Server „Ingenieurbüro Kraft“ meldet sich nicht") as HTMLElement;
+    const z = zeile(root, "Server „Server 5“ meldet sich nicht") as HTMLElement;
     const oeffnen = [...z.querySelectorAll("a")].find((a) => a.textContent === "Server öffnen");
     expect(oeffnen?.getAttribute("href")).toBe("/server/kraft");
     // the app without state because of the silent agent stands in the same row
