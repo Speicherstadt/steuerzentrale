@@ -8,9 +8,9 @@ Die Liste, die der Agenten-Loop abarbeitet, in der Reihenfolge der Bauphasen aus
   Stufe 1 erscheint die Steuerzentrale 1.0.
 - **Stufe 2 – Zuschnitt auf den eigenen Betrieb** (Phasen 8 und 9): anbinden und überwachen, was
   schon läuft, und ausbauen, was ein einzelner Betreiber nicht braucht (Leistungen, SLA,
-  Support-Zugänge, Rollen, Server-Art, Betriebsart, Grund, weitere Betreiber). Der Loop beginnt
-  Stufe 2 erst, wenn ein Mensch die Zeile „Stufe 2 freigegeben“ unten abhakt; bis dahin endet er
-  nach Stufe 1.
+  Support-Zugänge, die dritte Rolle, Server-Art, Betriebsart, Grund, weitere Betreiber). Der Loop
+  beginnt Stufe 2 erst, wenn ein Mensch die Zeile „Stufe 2 freigegeben“ unten abhakt; bis dahin
+  endet er nach Stufe 1.
 
 ## So arbeitet der Loop
 
@@ -499,8 +499,8 @@ wiederkommen kann, steht unter „Später, bei Bedarf“.
 
 Für jeden Punkt dieser Stufe gilt:
 
-- **Neues fragt keinen Grund und kennt keine Rollen**: beides fällt in Phase 9 weg, Phase 8 baut es
-  nicht erst ein.
+- **Neues fragt keinen Grund** (er fällt mit Z-1207 weg) und kennt nur die Rechte von Inhaber und
+  Mitglied (Z-1204): schreiben darf der Inhaber, lesen beide.
 - **Ein Ausbau nimmt alles mit**: Code, Routen, Tabellen und Spalten (mit einer neuen Migration, nie
   einer geänderten), Texte in `messages/`, die Seite in `docs/`, die Zeile im README, die Demodaten.
   Die Tests des entfernten Verhaltens gehen mit ihm; jeder andere Test bleibt und bleibt grün.
@@ -590,12 +590,17 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   Fertig, wenn: die Routen der Support-Zugänge `404` antworten (Test) und Log-Auszug und Neustart
   ohne Zugang laufen (Playwright).
   Sicherheitsrelevant: Rechte.
-- [ ] **Z-1204 Rollen entfernen** – jedes Konto darf, was bisher der Inhaber durfte; Technik und
-  Support entfallen, vorhandene Mitglieder werden Inhaber (Migration), eine Einladung fragt keine
-  Rolle. Der letzte Inhaber lässt sich weiter nicht entfernen.
+- [ ] **Z-1204 Zwei Rollen** – Inhaber und Mitglied statt Inhaber, Technik und Support. Der Inhaber
+  darf alles. Ein Mitglied sieht alles und darf Neustart und Log-Auszug; es installiert, entfernt,
+  kündigt und stellt nichts wieder her, ändert keine Einstellung und kein Geheimnis (DNS, S3,
+  Benachrichtigungen, Werte des Betreibers) und lädt niemanden ein. Vorhandene Mitglieder der Rolle
+  Technik werden Inhaber, die der Rolle Support Mitglied (Migration). Der letzte Inhaber lässt sich
+  weiter nicht entfernen.
   nach: Z-1203
-  Fertig, wenn: jede Route ohne Anmeldung weiter `401` antwortet (Test je Route), ein eingeladenes
-  Konto jede Route nutzen kann (Test) und die Oberfläche keine Rolle mehr zeigt (Playwright).
+  Fertig, wenn: jede Route ohne Anmeldung weiter `401` antwortet und jede Route in beiden Rollen
+  ihr Recht prüft (Test je Route und Rolle), ein Mitglied an jeder schreibenden Route außer
+  Neustart und Log-Auszug `403` bekommt (Test), die Migration die Rollen wie beschrieben umsetzt
+  (Test) und eine Einladung nur diese zwei Rollen anbietet (Playwright).
   Sicherheitsrelevant: Anmeldung, Rollen und Rechte.
 - [ ] **Z-1205 Server-Art entfernen** – jeder Server ist ein eigener Server des Betreibers für
   mehrere Kunden. „Eigen“ (ein Kunde) und „beim Kunden“ entfallen, mit dem Kunden am Server und der

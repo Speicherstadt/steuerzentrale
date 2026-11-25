@@ -39,8 +39,8 @@ Bauliste baut dafür um:
 - **dazu**: beobachtete Dienste (Prüfung von außen ohne Agent und Manifest), Server nur beobachten
   (Agent ohne Pforte und Podman), vorhandene systemd-Units lesen, Oberfläche über Cloudflare Tunnel
   als zweiter Weg neben WireGuard, Meldung aufs Handy;
-- **weg**: Leistungen, SLA, Support-Zugänge, Rollen, Server-Art, Betriebsart, der Grund in jedem
-  Dialog, weitere Betreiber.
+- **weg**: Leistungen, SLA, Support-Zugänge, die dritte Rolle (es bleiben Inhaber und Mitglied),
+  Server-Art, Betriebsart, der Grund in jedem Dialog, weitere Betreiber.
 
 Bis ein Punkt gemergt ist, beschreibt diese Seite noch den alten Stand; der Punkt zieht sie nach.
 
@@ -206,6 +206,7 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Modus „nur beobachten“ (Z-1102) | liegt lokal beim Agenten, von `install.sh` gesetzt; die Zentrale kann ihn nicht aufheben, der Agent lehnt jeden ändernden Auftrag ab | eine übernommene Zentrale macht aus einem beobachteten Server keinen verwalteten |
 | Vorhandene Units lesen (Z-1103) | der Agent liest Units, die kein Manifest beschreibt, nur mit `systemctl show` und der Health-Prüfung auf `127.0.0.1`; Namen gegen ein Muster geprüft, argv fest, nichts wird gestartet oder gestoppt | „nur was das Manifest beschreibt“ gilt für alles, was etwas ändert; Lesen mit festen Argumenten führt keinen fremden Code aus |
 | Oberfläche: WireGuard oder Cloudflare Tunnel (Z-1104) | beides; mit Tunnel prüft die Zentrale das Token von Cloudflare Access selbst, die eigene Anmeldung mit zweitem Faktor bleibt. `agent.<domain>` bleibt direkt | ein Tunnel ist schneller eingerichtet; Cloudflare beendet dabei TLS und sieht den Verkehr der Oberfläche, wer das nicht will, bleibt bei WireGuard. mTLS der Agenten ginge durch einen Tunnel verloren |
+| Rollen (Z-1204) | zwei: Inhaber darf alles, Mitglied sieht alles und darf Neustart und Log-Auszug | im Team loggen sich mehrere ein; ein gekapertes Konto eines Mitglieds löscht keine Kundendaten und tauscht kein Geheimnis. Technik und Support unterschieden sich nur für einen Betrieb mit fremdem Support |
 | `betreiber_id` bleibt (Z-1208) | genau ein Betreiber, die Spalte und ihre Filter bleiben in jeder Tabelle und Abfrage | sie zu entfernen ändert jede Tabelle und nichts, was man sieht; die Trennung bleibt getestet, falls ein zweiter Betreiber je wiederkommt |
 | Grund (Z-1207) | kein Dialog fragt ihn, die API nimmt ihn weiter an; das Audit-Log bleibt vollständig | ein einzelner Betreiber schreibt den Grund nur für sich selbst; was geändert wurde, wann und von wem, steht ohnehin im Audit-Log |
 | Demo | bleibt und zeigt nach jedem Punkt der Stufe 2 den neuen Stand | sie ist die schnellste Art, die Oberfläche ohne Server anzusehen |
@@ -588,8 +589,8 @@ Zwei Stufen:
   Betrieben werden Haben, Belegt, Schreibzeug und Fixpunkt auf unseren Servern, ein Betreiber.
 - **Stufe 2 – Zuschnitt auf den eigenen Betrieb** (13 Punkte), erst nach Freigabe durch einen
   Menschen: 8 Bestehendes überwachen (beobachtete Dienste und Server, Cloudflare Tunnel, Meldung
-  aufs Handy) · 9 Ausbau (Leistungen, SLA, Support-Zugänge, Rollen, Server-Art, Betriebsart, Grund,
-  weitere Betreiber). Warum, steht unter „Zuschnitt“ und in den Entscheidungen.
+  aufs Handy) · 9 Ausbau (Leistungen, SLA, Support-Zugänge, zwei Rollen, Server-Art, Betriebsart,
+  Grund, weitere Betreiber). Warum, steht unter „Zuschnitt“ und in den Entscheidungen.
 
 Das Schema trägt aus der früheren Planung `betreiber_id`, `braucht`/`bietet` und `dns`; sie
 bleiben. Die Spalte der SLA entfernt Z-1202.
