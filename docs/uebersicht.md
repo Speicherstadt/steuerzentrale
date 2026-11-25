@@ -69,7 +69,7 @@ Die Zahl neben „Übersicht“ in der Seitenleiste ist die Zahl dieser Zeilen.
 
 | Zeile | Knöpfe |
 | --- | --- |
-| App gestört oder rot | „Log ansehen“ und „Neustart“, je mit Grund, für Inhaber und Technik und für Support während seines eigenen Zugangs ([Aktionen](aktionen.md)); sonst „App öffnen“ |
+| App gestört oder rot | „Log ansehen“ und „Neustart“, je mit Grund, für Inhaber und Technik ([Aktionen](aktionen.md)); sonst „App öffnen“ |
 | andere Zeile einer App (gelb, Prüf-Restore, gescheiterte Einrichtung, gescheiterter Auftrag) | „App öffnen“ |
 | Server (Agent, Prüfung, Auftrag ohne App) | „Server öffnen“ |
 | Ereignis ohne App oder Server | „Im Protokoll“ |
