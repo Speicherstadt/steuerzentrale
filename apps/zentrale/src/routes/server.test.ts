@@ -230,6 +230,21 @@ describe("the servers of the operator", () => {
     expect(beitritt.status).toBe(401);
   });
 
+  // Z-1207: a write whose only field was the reason is taken without a body too
+  it("are revoked without a body, with an empty reason in the audit log (Z-1207)", async () => {
+    const server = testServer();
+    const inhaber = await server.inhaber();
+    const { serverId } = await serverHinzufuegen(inhaber);
+    const antwort = await inhaber.anfrage(`/api/v1/server/${serverId}/sperren`, {
+      method: "POST",
+    });
+    expect(antwort.status).toBe(200);
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "server.sperren",
+      grund: "",
+    });
+  });
+
   it("are revoked by owner and technician, not by mitglied", async () => {
     const server = testServer();
     const inhaber = await server.inhaber();
