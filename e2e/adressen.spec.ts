@@ -41,7 +41,7 @@ test.describe("addresses and DNS", { tag: "@phone" }, () => {
     await dialog.getByLabel("Ansprechperson").fill("Mia Muster");
     await dialog.getByLabel("E-Mail-Adresse").fill("mia@kanzlei.test");
     await dialog.getByLabel("Vertragsbeginn").fill("2026-12-01");
-    await dialog.getByLabel("Grund").fill("Vertrag vom 20.11.");
+    await expect(dialog.getByLabel("Grund")).toHaveCount(0);
     await ohneBefund(page);
     await dialog.getByRole("button", { name: "Anlegen" }).click();
     await expect(page).toHaveURL(/\/kunden\/[0-9a-f-]{36}$/);
@@ -57,7 +57,7 @@ test.describe("addresses and DNS", { tag: "@phone" }, () => {
     await karte.getByLabel("Domain").fill(DOMAIN);
     await karte.getByLabel("Zone-ID").fill(ZONE);
     await karte.getByLabel("API-Token").fill(TOKEN);
-    await karte.getByLabel("Grund").fill("Zone bei Cloudflare angelegt");
+    await expect(karte.getByLabel("Grund")).toHaveCount(0);
     await ohneBefund(page);
     await karte.getByRole("button", { name: "Speichern" }).click();
     await expect(karte.getByText("DNS-Einstellungen gespeichert.")).toBeVisible();

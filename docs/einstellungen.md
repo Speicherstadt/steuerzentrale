@@ -57,7 +57,7 @@ Umschalten, daneben, für wie viele Installationen die Werte gelten und wie viel
 Titel in Worten (`titel` aus dem Manifest, sonst der Name), mit „Pflicht“, dem Namen klein daneben
 und der Beschreibung darunter. Ein Geheimnis erscheint nur als „gesetzt“ mit „Ändern“, das ein leeres
 Feld öffnet (leer behält den Wert), oder als leeres Feld, solange es nicht gesetzt ist. Der Inhaber
-speichert alle Werte einer App mit einem Grund, ein Mitglied sieht die Werte nur. Ein geänderter Wert kommt **nicht von
+speichert alle Werte einer App, ein Mitglied sieht die Werte nur. Ein geänderter Wert kommt **nicht von
 selbst** an laufende Installationen: jede hält fest, womit sie eingerichtet wurde, und bekommt neue
 Werte des Betreibers erst mit „Einstellungen ändern“.
 
@@ -115,9 +115,9 @@ ohne Angabe „Werte für Apps“; auf dem Handy sind die Abschnitte eine Zeile 
 | Route | Recht | Körper | Antwort |
 | --- | --- | --- | --- |
 | `GET /api/v1/apps/:app/einstellungen` | alle Rollen | – | `{ app, version, felder, werte, gesetzt }`: das Formular, die Werte, die nicht geheim sind, und die Namen der gesetzten Geheimnisse |
-| `PUT /api/v1/apps/:app/einstellungen` | Inhaber | `werte`, `grund` | wie `GET` |
+| `PUT /api/v1/apps/:app/einstellungen` | Inhaber | `werte`, `grund`? | wie `GET` |
 | `POST /api/v1/installationen` | Inhaber | wie bisher, dazu `betreiberWerte` | `201` mit der Installation |
-| `PUT /api/v1/installationen/:installationId/einstellungen` | Inhaber | `einstellungen`, `grund` | die Seite der Installation mit dem neuen Auftrag |
+| `PUT /api/v1/installationen/:installationId/einstellungen` | Inhaber | `einstellungen`, `grund`? | die Seite der Installation mit dem neuen Auftrag |
 
 `GET /api/v1/installationen/:installationId` liefert dazu `formular` (`felder` der Ebene
 `installation`, `gesetzt`: die Namen ihrer gesetzten Geheimnisse). Kein Betreiber erreicht die

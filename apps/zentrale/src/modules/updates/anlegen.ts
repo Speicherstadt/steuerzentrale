@@ -39,7 +39,6 @@ import { type NeueWerte, updateWerte } from "./werte.ts";
  */
 
 export type UpdateFehler =
-  | "grund_fehlt"
   | "keine_installation"
   | "laeuft_nicht"
   | "nicht_eingerichtet"
@@ -160,7 +159,6 @@ export const updateAnlegen = (
   installationId: string,
   wunsch: UpdateWunsch,
 ): UpdateAngelegt => {
-  if (kontext.grund.trim() === "") return nein("grund_fehlt");
   const i = installationLesen(deps.db, kontext.betreiberId, installationId);
   if (!i) return nein("keine_installation");
   const sperre = gesperrt(deps, i);

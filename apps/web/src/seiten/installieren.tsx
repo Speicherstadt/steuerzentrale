@@ -126,7 +126,7 @@ const Formular = (props: {
       einstellungen: einstellungenAus(a.einstellungen(), werte),
       betreiberWerte: eingetragen(a.betreiberFormular(), werte, "betreiber"),
     };
-    const antwort = await installationenQuelle().anlegen(neu, werte.grund ?? "");
+    const antwort = await installationenQuelle().anlegen(neu);
     setLaeuft(false);
     if (antwort.ok) return props.onAngelegt(antwort.daten);
     setAblehnung({
@@ -143,14 +143,6 @@ const Formular = (props: {
         <AdressFeld a={a} />
       </Loading>
       <Platzierung a={a} />
-      <Input
-        label={m.feld_grund()}
-        name="grund"
-        required
-        maxlength={500}
-        placeholder={m.installieren_grund_platzhalter()}
-        hint={m.feld_grund_hinweis()}
-      />
       <AblehnungsText ablehnung={ablehnung()} />
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button onClick={() => props.onAbbruch()}>{m.knopf_abbrechen()}</Button>

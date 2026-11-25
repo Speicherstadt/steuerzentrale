@@ -27,7 +27,6 @@ export type EinstellungenQuelle = {
   aendern: (
     app: string,
     werte: Record<string, Einstellungswert>,
-    grund: string,
   ) => Promise<Antwort<BetreiberEinstellungen>>;
 };
 
@@ -47,8 +46,8 @@ export const apiEinstellungen: EinstellungenQuelle = {
       daten: antworten.flatMap((a) => (a.ok ? [a.daten] : [])),
     };
   },
-  aendern: (app, werte, grund) =>
-    api<BetreiberEinstellungen>(pfad(app), { method: "PUT", body: { werte, grund } }),
+  aendern: (app, werte) =>
+    api<BetreiberEinstellungen>(pfad(app), { method: "PUT", body: { werte } }),
 };
 
 let quelle: EinstellungenQuelle = demoEinstellungenQuelle(demo);

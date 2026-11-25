@@ -25,7 +25,7 @@ test.describe("backups", { tag: "@phone" }, () => {
     await karte.getByLabel("Bucket").fill(BUCKET);
     await karte.getByLabel("Access Key des Admins").fill(ADMIN.accessKey);
     await karte.getByLabel("Secret Key des Admins").fill(ADMIN.secretKey);
-    await karte.getByLabel("Grund").fill("MinIO beim Betreiber eingerichtet");
+    await expect(karte.getByLabel("Grund")).toHaveCount(0);
     await ohneBefund(page);
     await karte.getByRole("button", { name: "Speichern" }).click();
     await expect(karte.getByText("Backup-Ziel gespeichert.")).toBeVisible();
@@ -59,7 +59,7 @@ test.describe("backups", { tag: "@phone" }, () => {
       await page.goto(`/apps/${i.installationId}`);
       await page.getByRole("button", { name: "Backup jetzt" }).click();
       const dialog = page.getByRole("dialog", { name: "Backup jetzt" });
-      await dialog.getByLabel("Grund").fill("vor dem Update auf 1.1.0");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Ausführen" }).click();
       await expect(dialog).toBeHidden();
@@ -88,7 +88,7 @@ test.describe("backups", { tag: "@phone" }, () => {
       await page.getByRole("button", { name: "Mehr …" }).click();
       await page.getByRole("menuitem", { name: "Prüf-Restore jetzt" }).click();
       const pruef = page.getByRole("dialog", { name: "Prüf-Restore jetzt" });
-      await pruef.getByLabel("Grund").fill("nach dem Wechsel des S3-Ziels");
+      await expect(pruef.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await pruef.getByRole("button", { name: "Ausführen" }).click();
       await expect(pruef).toBeHidden();
@@ -140,10 +140,16 @@ test.describe("backups", { tag: "@phone" }, () => {
       await page.goto(`/apps/${id}`);
       await page.getByRole("tab", { name: "Backups" }).click();
       const laeufe = page.getByRole("region", { name: "Läufe" });
-      await laeufe.getByRole("button", { name: /^Lauf vom .+ wiederherstellen$/ }).click();
+      const lauf = laeufe.getByRole("button", { name: /^Lauf vom .+ wiederherstellen$/ });
       const dialog = page.getByRole("dialog", { name: "Lauf wiederherstellen?" });
+      // Z-1207: without the confirmation nothing happens
+      await lauf.click();
+      await dialog.getByRole("button", { name: "Abbrechen" }).click();
+      await expect(dialog).toBeHidden();
+      expect((await backups(page.request, id)).wiederherstellen.letzter ?? null).toBeNull();
+      await lauf.click();
       await expect(dialog.getByRole("note")).toContainText("Vorher wird der Ist-Zustand gesichert");
-      await dialog.getByLabel("Grund").fill("Auftrag des Kunden vom 20.11.");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Wiederherstellen" }).click();
       await expect(dialog).toBeHidden();

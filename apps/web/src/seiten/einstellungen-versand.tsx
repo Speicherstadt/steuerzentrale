@@ -104,7 +104,7 @@ export const VersandFormular = (props: { b: Benachrichtigungen; gespeichert: () 
     const formular = event.currentTarget as HTMLFormElement;
     const w = felder(event);
     setLaeuft(true);
-    const antwort = await benachrichtigungsQuelle().setzen(aenderung(w), w.grund ?? "");
+    const antwort = await benachrichtigungsQuelle().setzen(aenderung(w));
     setLaeuft(false);
     setFehler(fehlerText(antwort));
     if (!antwort.ok) return;
@@ -175,14 +175,6 @@ export const VersandFormular = (props: { b: Benachrichtigungen; gespeichert: () 
           hint={m.melden_ruhe_hinweis()}
         />
       </div>
-      <Input
-        label={m.feld_grund()}
-        name="grund"
-        required
-        maxlength={500}
-        placeholder={m.melden_grund_platzhalter()}
-        hint={m.feld_grund_hinweis()}
-      />
       <Fehler text={fehler()} />
       <div class="flex justify-end">
         <Button type="submit" variant="primary" disabled={laeuft()}>

@@ -87,7 +87,6 @@ export type BackupAusgeloest =
   | {
       ok: false;
       grund:
-        | "grund_fehlt"
         | "keine_installation"
         | "laeuft_nicht"
         | "nicht_eingerichtet"
@@ -103,7 +102,6 @@ export const backupJetzt = (
   kontext: Kontext,
   installationId: string,
 ): BackupAusgeloest => {
-  if (kontext.grund.trim() === "") return { ok: false, grund: "grund_fehlt" };
   const { betreiberId } = kontext;
   const i = installationLesen(deps.db, betreiberId, installationId);
   if (!i) return { ok: false, grund: "keine_installation" };

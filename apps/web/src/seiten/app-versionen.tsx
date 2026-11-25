@@ -1,4 +1,4 @@
-import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
+import { Button, Dialog, Icon, m } from "@steuerzentrale/ui";
 import {
   CircleCheck,
   CircleDashed,
@@ -16,7 +16,7 @@ import {
 import { zeitpunkt } from "../format/zeit.ts";
 import { Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { Marke, Zustand } from "../teile/zeichen.tsx";
-import { Fehler, felder } from "./anmeldung-teile.tsx";
+import { Fehler } from "./anmeldung-teile.tsx";
 import { DateiFeld } from "./installieren-felder.tsx";
 import { installationsFehler } from "./installieren-texte.ts";
 
@@ -132,16 +132,16 @@ export const VersionenTeil = (props: { a: AppDerZentrale | undefined; jetzt: num
   </Karte>
 );
 
-/** The import's form: both files and the reason; a refusal stays in the dialog */
+/** The import's form: both files; a refusal stays in the dialog */
 const ImportFormular = (props: { onFertig: (meldung: string) => void; onAbbruch: () => void }) => {
   const [manifest, setManifest] = createSignal("");
   const [signatur, setSignatur] = createSignal("");
   const [fehler, setFehler] = createSignal("");
   const [laeuft, setLaeuft] = createSignal(false);
   const senden = async (event: SubmitEvent) => {
-    const grund = felder(event).grund ?? "";
+    event.preventDefault();
     setLaeuft(true);
-    const a = await appsQuelle().importieren({ manifest: manifest(), signatur: signatur() }, grund);
+    const a = await appsQuelle().importieren({ manifest: manifest(), signatur: signatur() });
     setLaeuft(false);
     if (!a.ok) return setFehler(installationsFehler(a));
     const { app, version } = a.daten;
@@ -162,14 +162,6 @@ const ImportFormular = (props: { onFertig: (meldung: string) => void; onAbbruch:
         hint={m.installieren_signatur_hinweis()}
         accept=".minisig"
         onText={setSignatur}
-      />
-      <Input
-        label={m.feld_grund()}
-        name="grund"
-        required
-        maxlength={500}
-        placeholder={m.apps_import_grund_platzhalter()}
-        hint={m.feld_grund_hinweis()}
       />
       <Fehler text={fehler()} />
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

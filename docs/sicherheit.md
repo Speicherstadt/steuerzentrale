@@ -203,7 +203,7 @@ Pseudonymisierung ist für den Betrieb nicht nötig und nicht vorgesehen.
 
 ### Integrität (Art. 32 Abs. 1 lit. b)
 
-**Eingabekontrolle**: Jede schreibende Handlung steht mit Akteur, Zeit, Ziel und Grund im Audit-Log,
+**Eingabekontrolle**: Jede schreibende Handlung steht mit Akteur, Zeit und Ziel im Audit-Log (ein Grund, wenn einer genannt ist; Z-1207),
 das sich nicht ändern oder löschen lässt (B-33); Meldungen der Agenten tragen den Server als Akteur.
 
 **Weitergabekontrolle**: Code kommt nur über signierte Manifeste, Images per Digest und signierte

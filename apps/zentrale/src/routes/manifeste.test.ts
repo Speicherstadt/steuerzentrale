@@ -86,13 +86,12 @@ describe("importing a manifest through the interface", () => {
     expect(server.db.select().from(manifeste).all()).toHaveLength(1);
   });
 
-  it("refuses a manifest without a valid signature and one without a reason", async () => {
+  it("refuses a manifest without a valid signature", async () => {
     const falsch = { ...probeVersion("1.1.0"), signatur: signiert("stumm").signatur };
     expect(await importieren(teufel, falsch, "falsch")).toMatchObject({
       status: 422,
       daten: { fehler: "signatur_ungueltig" },
     });
-    expect((await importieren(teufel, probeVersion("1.1.0"))).status).toBe(400);
     expect(await importieren(teufel, signiert("kaputt"), "kaputt")).toMatchObject({
       status: 422,
       daten: { fehler: "manifest_ungueltig" },
@@ -288,7 +287,13 @@ describe("marking a customer as internal", () => {
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
-    expect((await intern(teufel, "kunde-extern", { intern: true })).status).toBe(400);
+    // Z-1207: without a reason too, with an empty one in the audit log
+    expect((await intern(teufel, "kunde-extern", { intern: true })).status).toBe(200);
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "kunde.intern",
+      grund: "",
+    });
+    await intern(teufel, "kunde-extern", { intern: false });
     const a = await intern(teufel, "kunde-extern", { intern: true, grund: "Testkunde" });
     expect(a).toMatchObject({ status: 200, daten: { id: "kunde-extern", intern: true } });
     const eintrag = server.db.select().from(auditLog).all().at(-1);
@@ -308,5 +313,17 @@ describe("marking a customer as internal", () => {
       daten: { fehler: "kein_kunde" },
     });
     expect((await json(teufel, "/api/v1/kunden/kunde-intern")).daten.intern).toBe(true);
+  });
+});
+
+// Z-1207: last, since every version imported changes the lists above
+describe("a manifest imported without a reason", () => {
+  it("is stored, with an empty reason in the audit log", async () => {
+    const r = await importieren(teufel, probeVersion("1.1.0"));
+    expect(r.status).toBe(201);
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "manifest.importieren",
+      grund: "",
+    });
   });
 });

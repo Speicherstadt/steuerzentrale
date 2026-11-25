@@ -1,4 +1,4 @@
-import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
+import { Button, Dialog, Icon, m } from "@steuerzentrale/ui";
 import { Archive, ArchiveRestore } from "@steuerzentrale/ui/icons";
 import { createMemo, createSignal, For, Loading, refresh, Show } from "solid-js";
 import type { Antwort, Fehlschlag } from "../anmeldung/api.ts";
@@ -13,7 +13,7 @@ import { bestand } from "../daten/quelle.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Angaben, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
-import { Fehler, fehlerText, felder } from "./anmeldung-teile.tsx";
+import { Fehler, fehlerText } from "./anmeldung-teile.tsx";
 import {
   Ergebnis,
   laufTeilText,
@@ -197,20 +197,18 @@ export const InstallationBackups = (props: { a: InstallationAnsicht }) => {
 export type JetztArt = {
   knopf: () => string;
   text: (name: string) => string;
-  platzhalter: () => string;
   angefordert: () => string;
   icon: typeof Archive;
-  senden: (id: string, grund: string) => Promise<Antwort<BackupAuftrag>>;
+  senden: (id: string) => Promise<Antwort<BackupAuftrag>>;
   angeboten: (b: BackupsDerInstallation) => boolean;
 };
 
 export const BACKUP: JetztArt = {
   knopf: m.aktion_backup,
   text: (name) => m.aktion_backup_text({ name }),
-  platzhalter: m.aktion_backup_grund_platzhalter,
   angefordert: m.aktion_backup_angefordert,
   icon: Archive,
-  senden: (id, grund) => backupQuelle().jetzt(id, grund),
+  senden: (id) => backupQuelle().jetzt(id),
   angeboten: (b) => b.eingerichtet,
 };
 
@@ -218,10 +216,9 @@ export const BACKUP: JetztArt = {
 export const PRUEF: JetztArt = {
   knopf: m.aktion_pruef,
   text: (name) => m.aktion_pruef_text({ name }),
-  platzhalter: m.aktion_pruef_grund_platzhalter,
   angefordert: m.aktion_pruef_angefordert,
   icon: ArchiveRestore,
-  senden: (id, grund) => backupQuelle().pruefRestore(id, grund),
+  senden: (id) => backupQuelle().pruefRestore(id),
   angeboten: (b) => b.eingerichtet && !b.pruefRestore.laeuft && b.laeufe.some((l) => l.ok),
 };
 
@@ -235,9 +232,9 @@ export const JetztDialog = (props: {
   const [fehler, setFehler] = createSignal("");
   const [laeuft, setLaeuft] = createSignal(false);
   const senden = async (event: SubmitEvent) => {
-    const werte = felder(event);
+    event.preventDefault();
     setLaeuft(true);
-    const antwort = await props.art.senden(props.a.id, werte.grund ?? "");
+    const antwort = await props.art.senden(props.a.id);
     setLaeuft(false);
     if (!antwort.ok) return setFehler(fehlerVon(antwort));
     setFehler("");
@@ -252,14 +249,6 @@ export const JetztDialog = (props: {
     >
       <Show when={props.open}>
         <form class="grid gap-4" onSubmit={senden}>
-          <Input
-            label={m.feld_grund()}
-            name="grund"
-            required
-            maxlength={500}
-            placeholder={props.art.platzhalter()}
-            hint={m.feld_grund_hinweis()}
-          />
           <Fehler text={fehler()} />
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button onClick={() => props.onClose()}>{m.knopf_abbrechen()}</Button>

@@ -30,7 +30,7 @@ const laeuft = (request: APIRequestContext, id: string) =>
 // restart and log excerpt run without one, and the page offers none. The agent's own side (journald, replacing
 // the secrets, refusing what is not offered) runs in CI against Podman (apps/agent).
 test.describe("the actions of an installation", { tag: "@phone" }, () => {
-  test("restarts with a reason and shows a log excerpt", async ({ page }) => {
+  test("restarts without a reason and shows a log excerpt", async ({ page }) => {
     const i = await installationAnlegen(page.request, neuerHost("laeuft"));
     try {
       await laeuft(page.request, i.installationId);
@@ -44,7 +44,7 @@ test.describe("the actions of an installation", { tag: "@phone" }, () => {
 
       await page.getByRole("button", { name: "Neustart" }).click();
       const neustart = page.getByRole("dialog", { name: "Neustart" });
-      await neustart.getByLabel("Grund").fill("Health rot seit 10:31");
+      await expect(neustart.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await neustart.getByRole("button", { name: "Ausführen" }).click();
       await expect(neustart).toBeHidden();
@@ -57,7 +57,7 @@ test.describe("the actions of an installation", { tag: "@phone" }, () => {
       await page.getByRole("button", { name: "Mehr …" }).click();
       await page.getByRole("menuitem", { name: "Log-Auszug" }).click();
       const log = page.getByRole("dialog", { name: "Log-Auszug" });
-      await log.getByLabel("Grund").fill("Anfrage aus dem Portal: Anmeldung langsam");
+      await expect(log.getByLabel("Grund")).toHaveCount(0);
       await log.getByRole("button", { name: "Anfordern" }).click();
       const zeilen = log.getByRole("region", { name: "Zeilen des Log-Auszugs" });
       for (const zeile of LOG_ZEILEN) await expect(zeilen).toContainText(zeile);

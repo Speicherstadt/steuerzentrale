@@ -49,14 +49,11 @@ const Formular = (props: { e: DnsEinstellungen; gespeichert: () => void }) => {
     const formular = event.currentTarget as HTMLFormElement;
     const werte = felder(event);
     setLaeuft(true);
-    const antwort = await dnsQuelle().setzen(
-      {
-        domain: werte.domain ?? "",
-        zoneId: werte.zone ?? "",
-        ...(werte.token ? { token: werte.token } : {}),
-      },
-      werte.grund ?? "",
-    );
+    const antwort = await dnsQuelle().setzen({
+      domain: werte.domain ?? "",
+      zoneId: werte.zone ?? "",
+      ...(werte.token ? { token: werte.token } : {}),
+    });
     setLaeuft(false);
     setFehler(fehlerText(antwort));
     if (!antwort.ok) return;
@@ -92,14 +89,6 @@ const Formular = (props: { e: DnsEinstellungen; gespeichert: () => void }) => {
         autocomplete="off"
         required={!props.e.tokenGesetzt}
         hint={props.e.tokenGesetzt ? m.einst_dns_token_gesetzt() : m.einst_dns_token_neu()}
-      />
-      <Input
-        label={m.feld_grund()}
-        name="grund"
-        required
-        maxlength={500}
-        placeholder={m.einst_dns_grund_platzhalter()}
-        hint={m.feld_grund_hinweis()}
       />
       <Fehler text={fehler()} />
       <div class="flex justify-end">

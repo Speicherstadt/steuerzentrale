@@ -41,12 +41,25 @@ export type RoutenDeps = {
   versand?: Versand;
 };
 
-/** The request's JSON body parsed against `schema`, or undefined */
+/** What a body says: its JSON, `{}` for none, null for what is no JSON */
+const koerper = (text: string): unknown => {
+  if (text === "") return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The request's JSON body parsed against `schema`, or undefined. No body counts as `{}`: the
+ * reason is optional (Z-1207), so a write that carried nothing else needs no body.
+ */
 export const eingabe = async <S extends z.ZodType>(
   c: Context,
   schema: S,
 ): Promise<z.infer<S> | undefined> => {
-  const geparst = schema.safeParse(await c.req.json().catch(() => null));
+  const geparst = schema.safeParse(koerper(await c.req.text()));
   return geparst.success ? geparst.data : undefined;
 };
 

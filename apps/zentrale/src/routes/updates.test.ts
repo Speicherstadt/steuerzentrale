@@ -143,12 +143,11 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("an update by hand", () => {
-  it("is refused to mitglied, without a reason or a version", async () => {
+  it("is refused to mitglied and without a version", async () => {
     expect(await update(mitglied, { version: "1.3.0", grund: "x" })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
-    expect((await update(inhaber2, { version: "1.3.0", grund: " " })).status).toBe(400);
     expect((await update(inhaber2, { grund: "x" })).status).toBe(400);
     expect(await update(inhaber2, { version: "1.0.4", grund: "x" })).toEqual({
       status: 422,
@@ -199,9 +198,9 @@ describe("an update by hand", () => {
     ]);
   });
 
-  it("backs up first and updates after it, by inhaber2, with the reason in the audit log", async () => {
+  it("backs up first and updates after it, by inhaber2, without a reason too (Z-1207)", async () => {
     server.uhr.ms = DANACH;
-    const r = await update(inhaber2, { version: "1.3.0", grund: "Wunsch des Kunden" });
+    const r = await update(inhaber2, { version: "1.3.0" });
     expect(r).toMatchObject({
       status: 201,
       daten: {
@@ -217,7 +216,10 @@ describe("an update by hand", () => {
       .select()
       .from(auditLog)
       .all()
-      .filter((e) => e.aktion === "installation.update" && e.grund === "Wunsch des Kunden");
+      .filter(
+        (e) =>
+          e.aktion === "installation.update" && e.akteur === inhaber2.nutzerId && e.grund === "",
+      );
     expect(audit.map((e) => e.ziel.split(":")[0])).toEqual([
       "auftraege",
       "auftraege",

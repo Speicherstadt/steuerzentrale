@@ -12,11 +12,12 @@ import {
   vertragsendeSetzen,
 } from "../modules/kunden/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Anfrage, Registrar } from "./zugang.ts";
 
 /*
  * Customers and their contracts (BAULISTE.md Z-801): every role reads, the owner writes
- * (src/auth/rollen.ts); only the owner marks a customer as internal (Z-501). Every write names its reason in `grund`, which goes into the audit log.
+ * (src/auth/rollen.ts); only the owner marks a customer as internal (Z-501). A write may name its reason in `grund`, which goes into the audit log (Z-1207).
  * The short name (Z-407) may be left out: a new customer gets one from its name, a change keeps it.
  */
 
@@ -30,7 +31,6 @@ const tag = z
   .min(0)
   .max(LETZTER_TAG)
   .refine((t) => t <= LETZTER_TAG && tagesbeginn(t) === t);
-const grund = text(500);
 
 const stammdaten = {
   name: text(200),

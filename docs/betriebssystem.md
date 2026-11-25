@@ -84,7 +84,7 @@ Server nie ein zweites Mal. Läuft gerade ein anderer Auftrag bei ihm, lehnt er 
 
 ## Neustart von Hand
 
-Der Inhaber startet einen Server auf seiner Seite mit **Neu starten** und Grund neu (Recht
+Der Inhaber startet einen Server auf seiner Seite mit **Neu starten** neu (Recht
 `server:neustart`, `POST /api/v1/server/:serverId/neustart`). Das geht auch außerhalb des
 Wartungsfensters und wenn kein Neustart nötig ist, mit denselben Backups davor, aber nie in einer
 Sperrzeit einer App auf dem Server, auch nicht für den Inhaber: ein Neustart des Servers trifft jede

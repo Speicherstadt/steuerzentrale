@@ -139,6 +139,13 @@ describe("after a contract's end", () => {
     const log = JSON.stringify(x.u.db.select().from(auditLog).all());
     expect(log).not.toContain("X-Amz-Signature");
     expect(log).toContain("Kunde bat um seine Daten");
+    // Z-1207: a link without a reason too, with an empty one in the audit log
+    const ohne = await archivLink(x.u.deps, { ...x.u.kontext("b1"), grund: "" }, x.id);
+    expect(ohne.ok).toBe(true);
+    expect(x.u.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "installation.archiv-link",
+      grund: "",
+    });
     x.takt(x.nurLesenBis);
     expect(await archivLink(x.u.deps, x.u.kontext("b1"), x.id)).toMatchObject({
       ok: false,

@@ -2,6 +2,7 @@ import { HOST } from "@steuerzentrale/manifest";
 import { z } from "zod";
 import { dnsEinstellungenLesen, dnsEinstellungenSetzen } from "../modules/dns/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Registrar } from "./zugang.ts";
 
 /*
@@ -21,7 +22,7 @@ const setzenSchema = z
     domain: z.string().regex(HOST, "a lowercase domain with a dot"),
     zoneId: z.string().regex(ZONE_ID),
     token: z.string().regex(TOKEN).optional(),
-    grund: z.string().trim().min(1).max(500),
+    grund,
   })
   .strict();
 

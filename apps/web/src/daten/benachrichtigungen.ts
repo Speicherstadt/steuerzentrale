@@ -61,12 +61,12 @@ export type NeuerEmpfaenger =
 
 export type BenachrichtigungsQuelle = {
   lesen: () => Promise<Antwort<Benachrichtigungen>>;
-  setzen: (
-    neu: { smtp: SmtpAenderung | null; ruhezeit: Ruhezeit | null },
-    grund: string,
-  ) => Promise<Antwort<Benachrichtigungen>>;
-  anlegen: (neu: NeuerEmpfaenger, grund: string) => Promise<Antwort<Empfaenger>>;
-  entfernen: (empfaengerId: string, grund: string) => Promise<Antwort<null>>;
+  setzen: (neu: {
+    smtp: SmtpAenderung | null;
+    ruhezeit: Ruhezeit | null;
+  }) => Promise<Antwort<Benachrichtigungen>>;
+  anlegen: (neu: NeuerEmpfaenger) => Promise<Antwort<Empfaenger>>;
+  entfernen: (empfaengerId: string) => Promise<Antwort<null>>;
   testen: (empfaengerId: string) => Promise<Antwort<{ ok: true }>>;
 };
 
@@ -74,14 +74,13 @@ const PFAD = "/api/v1/benachrichtigungen";
 
 export const apiBenachrichtigungen: BenachrichtigungsQuelle = {
   lesen: () => api<Benachrichtigungen>(PFAD),
-  setzen: (neu, grund) => api<Benachrichtigungen>(PFAD, { method: "PUT", body: { ...neu, grund } }),
+  setzen: (neu) => api<Benachrichtigungen>(PFAD, { method: "PUT", body: neu }),
   // a ntfy topic asks no reason (Z-1105, BAULISTE.md Stufe 2)
-  anlegen: (neu, grund) =>
-    api<Empfaenger>(`${PFAD}/empfaenger`, { body: neu.art === "ntfy" ? neu : { ...neu, grund } }),
-  entfernen: (id, grund) =>
+  anlegen: (neu) => api<Empfaenger>(`${PFAD}/empfaenger`, { body: neu }),
+  entfernen: (id) =>
     api<null>(`${PFAD}/empfaenger/${encodeURIComponent(id)}`, {
       method: "DELETE",
-      body: { grund },
+      body: {},
     }),
   testen: (id) =>
     api<{ ok: true }>(`${PFAD}/empfaenger/${encodeURIComponent(id)}/test`, { body: {} }),

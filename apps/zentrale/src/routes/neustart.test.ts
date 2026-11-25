@@ -130,14 +130,23 @@ describe("the reboot of a server", () => {
     });
   });
 
-  it("is refused without a reason and for mitglied", async () => {
+  it("is refused for mitglied", async () => {
     allesErledigt(teufel);
-    for (const grund of [undefined, "", "   "])
-      expect(await neustart(teufel, serverId, grund)).toEqual({
-        status: 400,
-        daten: { fehler: "ungueltig" },
-      });
     expect((await neustart(mitglied, serverId, "darf nicht")).status).toBe(403);
+  });
+
+  it("is taken without a reason, with an empty one in the audit log (Z-1207)", async () => {
+    allesErledigt(teufel);
+    const r = await neustart(teufel, serverId);
+    expect(r.status, JSON.stringify(r.daten)).toBe(201);
+    const auftragId = (r.daten.neustart as { auftragId: string }).auftragId;
+    expect(server.db.select().from(auditLog).all()).toContainEqual(
+      expect.objectContaining({
+        aktion: "server.neustart",
+        ziel: `auftraege:${auftragId}`,
+        grund: "",
+      }),
+    );
   });
 
   it("is refused in a freeze window of an app on the server, also for the owner", async () => {

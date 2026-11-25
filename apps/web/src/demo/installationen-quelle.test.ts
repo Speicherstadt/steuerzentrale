@@ -61,10 +61,10 @@ describe("the demo's installations", () => {
 
   it("make an installation that waits for its agent, without its secret", async () => {
     const q = quelle();
-    const a = await q.anlegen(
-      { ...neu, einstellungen: { PROBE_TITEL: "Atelier", PROBE_KENNWORT: "geheim-7" } },
-      "Auftrag",
-    );
+    const a = await q.anlegen({
+      ...neu,
+      einstellungen: { PROBE_TITEL: "Atelier", PROBE_KENNWORT: "geheim-7" },
+    });
     if (!a.ok) throw new Error(a.fehler);
     expect(a).toMatchObject({ status: 201, daten: { app: "probe", zustand: "wird_eingerichtet" } });
     expect(a.daten.installationId).toMatch(/^probe-[a-z0-9]{6}$/);
@@ -82,12 +82,12 @@ describe("the demo's installations", () => {
 
   it("refuse a host given twice and a value of no setting", async () => {
     const q = quelle();
-    expect((await q.anlegen(neu, "g")).ok).toBe(true);
-    expect(await q.anlegen(neu, "g")).toMatchObject({ status: 409, fehler: "host_vergeben" });
+    expect((await q.anlegen(neu)).ok).toBe(true);
+    expect(await q.anlegen(neu)).toMatchObject({ status: 409, fehler: "host_vergeben" });
     expect(
-      await q.anlegen({ ...neu, host: "b.example.org", einstellungen: { FREMD: "x" } }, "g"),
+      await q.anlegen({ ...neu, host: "b.example.org", einstellungen: { FREMD: "x" } }),
     ).toMatchObject({ status: 400, fehler: "einstellung_ungueltig" });
-    expect(await q.anlegen({ ...neu, optionen: ["nein"] }, "g")).toMatchObject({
+    expect(await q.anlegen({ ...neu, optionen: ["nein"] })).toMatchObject({
       status: 409,
       fehler: "passt_nicht",
       gruende: [{ code: "unbekannte_option", werte: { option: "nein" } }],
@@ -96,16 +96,16 @@ describe("the demo's installations", () => {
 
   it("remove only a failed setup, once", async () => {
     const q = quelle();
-    expect(await q.entfernen("intern-haben", "g")).toMatchObject({
+    expect(await q.entfernen("intern-haben")).toMatchObject({
       status: 409,
       fehler: "nicht_gescheitert",
     });
-    const weg = await q.entfernen(GESCHEITERT, "neu anlegen");
+    const weg = await q.entfernen(GESCHEITERT);
     expect(weg.ok && weg.daten.auftraege.at(-1)).toMatchObject({
       aktion: "installation_entfernen",
       zustand: "zugestellt",
     });
-    expect(await q.entfernen(GESCHEITERT, "noch mal")).toMatchObject({
+    expect(await q.entfernen(GESCHEITERT)).toMatchObject({
       status: 409,
       fehler: "entfernen_laeuft",
     });
@@ -132,7 +132,7 @@ describe("the demo's installations", () => {
 
   it("have no state before the agent reported: a new one or a failed setup", async () => {
     const q = quelle();
-    const neueInstallation = await q.anlegen(neu, "g");
+    const neueInstallation = await q.anlegen(neu);
     const gescheitert = await q.installation(GESCHEITERT);
     for (const a of [neueInstallation, gescheitert])
       expect(a.ok && a.daten.health).toEqual({

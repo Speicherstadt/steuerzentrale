@@ -31,24 +31,24 @@ describe("the API source of the customers", () => {
     ]);
   });
 
-  it("sends every write with its reason", async () => {
+  it("sends every write without a reason (Z-1207)", async () => {
     const anfragen = mitschreiben(kunden[1]);
-    await apiKunden.anlegen({ ...stamm, vertrag: { beginn: 5 } }, "Vertrag");
-    await apiKunden.aendern("k1", { ...stamm, beginn: 6 }, "Umzug");
-    await apiKunden.kuendigen("k1", 7, "Mail");
-    await apiKunden.zuruecknehmen("k1", "doch nicht");
+    await apiKunden.anlegen({ ...stamm, vertrag: { beginn: 5 } });
+    await apiKunden.aendern("k1", { ...stamm, beginn: 6 });
+    await apiKunden.kuendigen("k1", 7);
+    await apiKunden.zuruecknehmen("k1");
     expect(anfragen).toEqual([
       {
         pfad: "/api/v1/kunden",
         method: "POST",
-        body: { ...stamm, vertrag: { beginn: 5 }, grund: "Vertrag" },
+        body: { ...stamm, vertrag: { beginn: 5 } },
       },
-      { pfad: "/api/v1/kunden/k1", method: "PUT", body: { ...stamm, beginn: 6, grund: "Umzug" } },
-      { pfad: "/api/v1/kunden/k1/kuendigung", method: "PUT", body: { ende: 7, grund: "Mail" } },
+      { pfad: "/api/v1/kunden/k1", method: "PUT", body: { ...stamm, beginn: 6 } },
+      { pfad: "/api/v1/kunden/k1/kuendigung", method: "PUT", body: { ende: 7 } },
       {
         pfad: "/api/v1/kunden/k1/kuendigung",
         method: "DELETE",
-        body: { grund: "doch nicht" },
+        body: {},
       },
     ]);
   });
@@ -62,7 +62,7 @@ describe("the API source of the customers", () => {
 describe("the demo source of the customers", () => {
   it("answers like the API: created, changed, given notice and taken back", async () => {
     const quelle = demoKunden(kunden, () => 42);
-    const neu = await quelle.anlegen({ ...stamm, vertrag: { beginn: 10 } }, "x");
+    const neu = await quelle.anlegen({ ...stamm, vertrag: { beginn: 10 } });
     if (!neu.ok) throw new Error(neu.fehler);
     expect(neu.daten).toMatchObject({
       name: "Muster Design",
@@ -72,12 +72,12 @@ describe("the demo source of the customers", () => {
       vertrag: { beginn: 10, ende: null },
     });
     const id = neu.daten.id;
-    expect(await quelle.kuendigen(id, 5, "x")).toMatchObject({ status: 409 });
-    expect(await quelle.kuendigen(id, 20, "x")).toMatchObject({ daten: { vertrag: { ende: 20 } } });
-    expect(await quelle.aendern(id, { ...stamm, name: "Neu", beginn: 10 }, "x")).toMatchObject({
+    expect(await quelle.kuendigen(id, 5)).toMatchObject({ status: 409 });
+    expect(await quelle.kuendigen(id, 20)).toMatchObject({ daten: { vertrag: { ende: 20 } } });
+    expect(await quelle.aendern(id, { ...stamm, name: "Neu", beginn: 10 })).toMatchObject({
       daten: { name: "Neu", vertrag: { ende: 20 } },
     });
-    expect(await quelle.zuruecknehmen(id, "x")).toMatchObject({
+    expect(await quelle.zuruecknehmen(id)).toMatchObject({
       daten: { vertrag: { ende: null } },
     });
     expect(await quelle.kunde("gibt-es-nicht")).toMatchObject({ ok: false, status: 404 });
@@ -87,7 +87,7 @@ describe("the demo source of the customers", () => {
 
   it("leaves the fixtures as they are", async () => {
     const quelle = demoKunden(kunden, () => 0);
-    await quelle.kuendigen("atelier-nord", Date.UTC(2030, 0, 1), "x");
+    await quelle.kuendigen("atelier-nord", Date.UTC(2030, 0, 1));
     expect(kunden.find((k) => k.id === "atelier-nord")?.vertrag.ende).toBeNull();
   });
 });

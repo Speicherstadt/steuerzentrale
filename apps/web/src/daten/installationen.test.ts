@@ -53,21 +53,21 @@ describe("the API source of the installations", () => {
     ]);
   });
 
-  it("makes and removes with the reason", async () => {
+  it("makes and removes without a reason (Z-1207)", async () => {
     const anfragen = mitschreiben({});
     const neu = { ...wunsch, host: "probe.kunde.example", einstellungen: { PROBE_TITEL: "X" } };
-    await apiInstallationen.anlegen(neu, "Auftrag vom 20.11.");
-    await apiInstallationen.entfernen("probe-abc123", "gescheitert");
+    await apiInstallationen.anlegen(neu);
+    await apiInstallationen.entfernen("probe-abc123");
     expect(anfragen).toEqual([
       {
         pfad: "/api/v1/installationen",
         method: "POST",
-        body: { ...neu, grund: "Auftrag vom 20.11." },
+        body: neu,
       },
       {
         pfad: "/api/v1/installationen/probe-abc123",
         method: "DELETE",
-        body: { grund: "gescheitert" },
+        body: {},
       },
     ]);
   });
@@ -82,8 +82,11 @@ describe("the API source of the installations", () => {
       gruende,
     });
     mitschreiben({ fehler: "manifest_ungueltig", detail: "id: required" }, 422);
-    expect(
-      await apiInstallationen.anlegen({ ...wunsch, host: "x.y", einstellungen: {} }, "g"),
-    ).toEqual({ ok: false, status: 422, fehler: "manifest_ungueltig", detail: "id: required" });
+    expect(await apiInstallationen.anlegen({ ...wunsch, host: "x.y", einstellungen: {} })).toEqual({
+      ok: false,
+      status: 422,
+      fehler: "manifest_ungueltig",
+      detail: "id: required",
+    });
   });
 });

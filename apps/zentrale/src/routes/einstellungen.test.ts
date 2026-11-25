@@ -180,8 +180,16 @@ describe("the operator's values of an app", () => {
     });
   });
 
-  it("need a reason, and are not changed by mitglied", async () => {
-    expect((await json(teufel, APP, { method: "PUT", body: { werte: {} } })).status).toBe(400);
+  it("are changed without a reason too (Z-1207), and not by mitglied", async () => {
+    const ohne = await json(teufel, APP, {
+      method: "PUT",
+      body: { werte: { PROBE_LIZENZ: `${NEUE_LIZENZ}-ohne-grund` } },
+    });
+    expect(ohne.status).toBe(200);
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "app_einstellungen.aendern",
+      grund: "",
+    });
     expect(await json(mitglied, APP, { method: "PUT", body: { werte: {}, grund: "x" } })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
@@ -224,11 +232,22 @@ describe("changing an installation's settings", () => {
     ).toEqual({ status: 409, daten: { fehler: "auftrag_offen" } });
   });
 
-  it("needs a reason and values of the form, and is not done by mitglied", async () => {
+  it("is done without a reason too (Z-1207), and not by mitglied", async () => {
     const pfad = einstellungen(laufend);
-    expect((await json(teufel, pfad, { method: "PUT", body: { einstellungen: {} } })).status).toBe(
-      400,
-    );
+    eingerichtet(teufel.betreiberId, laufend);
+    const ohne = await json(teufel, pfad, {
+      method: "PUT",
+      body: { einstellungen: { PROBE_TITEL: "Nord" } },
+    });
+    expect(ohne.status, JSON.stringify(ohne.daten)).toBe(200);
+    expect(
+      server.db
+        .select()
+        .from(auditLog)
+        .all()
+        .filter((e) => e.aktion === "installation.konfigurieren")
+        .at(-1),
+    ).toMatchObject({ grund: "" });
     expect(
       await json(mitglied, pfad, { method: "PUT", body: { einstellungen: {}, grund: "x" } }),
     ).toEqual({ status: 403, daten: { fehler: "keine_berechtigung" } });

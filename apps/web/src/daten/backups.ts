@@ -128,41 +128,36 @@ export type WiederherstellenAuftraege = { backup: BackupAuftrag; wiederherstelle
 
 export type BackupQuelle = {
   ziel: () => Promise<Antwort<BackupZiel>>;
-  zielSetzen: (neu: BackupZielAenderung, grund: string) => Promise<Antwort<BackupZiel>>;
+  zielSetzen: (neu: BackupZielAenderung) => Promise<Antwort<BackupZiel>>;
   uebersicht: () => Promise<Antwort<BackupZeile[]>>;
   derInstallation: (id: string) => Promise<Antwort<BackupsDerInstallation>>;
-  jetzt: (id: string, grund: string) => Promise<Antwort<BackupAuftrag>>;
-  pruefRestore: (id: string, grund: string) => Promise<Antwort<BackupAuftrag>>;
-  wiederherstellen: (
-    id: string,
-    lauf: string,
-    grund: string,
-  ) => Promise<Antwort<WiederherstellenAuftraege>>;
+  jetzt: (id: string) => Promise<Antwort<BackupAuftrag>>;
+  pruefRestore: (id: string) => Promise<Antwort<BackupAuftrag>>;
+  wiederherstellen: (id: string, lauf: string) => Promise<Antwort<WiederherstellenAuftraege>>;
 };
 
 const pfad = (id: string) => `/api/v1/installationen/${encodeURIComponent(id)}`;
 
 export const apiBackups: BackupQuelle = {
   ziel: () => api<BackupZiel>("/api/v1/backup-ziel"),
-  zielSetzen: (neu, grund) =>
-    api<BackupZiel>("/api/v1/backup-ziel", { method: "PUT", body: { ...neu, grund } }),
+  zielSetzen: (neu) => api<BackupZiel>("/api/v1/backup-ziel", { method: "PUT", body: neu }),
   uebersicht: async () => {
     const a = await api<{ installationen: BackupZeile[] }>("/api/v1/backups");
     return a.ok ? { ...a, daten: a.daten.installationen } : a;
   },
   derInstallation: (id) => api<BackupsDerInstallation>(`${pfad(id)}/backups`),
-  jetzt: async (id, grund) => {
-    const a = await api<{ auftrag: BackupAuftrag }>(`${pfad(id)}/backup`, { body: { grund } });
+  jetzt: async (id) => {
+    const a = await api<{ auftrag: BackupAuftrag }>(`${pfad(id)}/backup`, { body: {} });
     return a.ok ? { ...a, daten: a.daten.auftrag } : a;
   },
-  pruefRestore: async (id, grund) => {
+  pruefRestore: async (id) => {
     const a = await api<{ auftrag: BackupAuftrag }>(`${pfad(id)}/pruef-restore`, {
-      body: { grund },
+      body: {},
     });
     return a.ok ? { ...a, daten: a.daten.auftrag } : a;
   },
-  wiederherstellen: (id, lauf, grund) =>
-    api<WiederherstellenAuftraege>(`${pfad(id)}/wiederherstellen`, { body: { lauf, grund } }),
+  wiederherstellen: (id, lauf) =>
+    api<WiederherstellenAuftraege>(`${pfad(id)}/wiederherstellen`, { body: { lauf } }),
 };
 
 let quelle: BackupQuelle = demoBackups();

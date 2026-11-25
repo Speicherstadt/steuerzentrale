@@ -161,7 +161,7 @@ Störung) und die Adresse. Daneben **Öffnen** (die Adresse in einem neuen Fenst
 **Mehr …** mit Log-Auszug, Backup jetzt, Prüf-Restore jetzt, Einstellungen ändern und „nur lesen“: jede Aktion nur, wo das Manifest oder die Backups sie anbieten,
 und mit denselben Rechten wie bisher ([Aktionen](aktionen.md), [Backups](backups.md),
 [Einstellungen](einstellungen.md)). Nach einer gescheiterten
-Einrichtung steht darunter **Entfernen …** mit Grund.
+Einrichtung steht darunter **Entfernen …** mit Bestätigung.
 
 Die Reiter stehen in der Adresse (`?tab=`):
 
@@ -176,16 +176,16 @@ Die Reiter stehen in der Adresse (`?tab=`):
 
 ## API
 
-Beide Rollen lesen, der Inhaber schreibt; Neustart und Log-Auszug dürfen beide ([Aktionen](aktionen.md)). Jede schreibende Route verlangt einen `grund`, der
-ins Audit-Log geht.
+Beide Rollen lesen, der Inhaber schreibt; Neustart und Log-Auszug dürfen beide ([Aktionen](aktionen.md)). Jede schreibende Route nimmt ein
+freiwilliges `grund` an, das ins Audit-Log geht; ohne ihn steht dort ein leerer Grund (Z-1207).
 
 | Route | Körper | Antwort |
 | --- | --- | --- |
 | `POST /api/v1/installationen/platzierung` | `kundeId`, `serverId`, `app`, `version`, `optionen` | `{ platzierung }` mit `art` `passt`, `hinweise` oder `passt_nicht` und den Codes |
-| `POST /api/v1/installationen` | wie oben, dazu `host`, `einstellungen` (Ebene `installation`), `betreiberWerte` (fehlende Werte des Betreibers, freiwillig), `grund` | `201` mit der Installation |
+| `POST /api/v1/installationen` | wie oben, dazu `host`, `einstellungen` (Ebene `installation`), `betreiberWerte` (fehlende Werte des Betreibers, freiwillig), `grund`? | `201` mit der Installation |
 | `GET /api/v1/installationen` | – | `{ installationen }` |
 | `GET /api/v1/installationen/:installationId` | – | die Installation mit ihren Aufträgen (Zustand, letzter Schritt, Fehler) und dem Formular ihrer Einstellungen |
-| `DELETE /api/v1/installationen/:installationId` | `grund` | die Installation mit dem neuen Auftrag `installation_entfernen` |
+| `DELETE /api/v1/installationen/:installationId` | `grund`? | die Installation mit dem neuen Auftrag `installation_entfernen` |
 
 Fehler kommen als `{ fehler }` mit einem Code, bei `passt_nicht` mit `gruende`, bei einem
 ungültigen Manifest oder einem Wert, der nicht rendert, mit `detail`: `signatur_ungueltig`,

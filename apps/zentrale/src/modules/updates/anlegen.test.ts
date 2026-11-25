@@ -80,15 +80,19 @@ describe("making an update", () => {
     expect(neu.map((e) => e.inhalt).join("")).not.toContain("kennwort-der-installation");
   });
 
-  it("refuses without a reason, to no newer or unknown version, beside an open job", async () => {
+  it("refuses no newer or unknown version and one beside an open job", async () => {
     const { u, id } = await umgebung();
-    expect(u.anlegen(id, {}, { grund: " " })).toEqual({ ok: false, grund: "grund_fehlt" });
     expect(u.anlegen(id, { version: "1.0.3" })).toEqual({ ok: false, grund: "nicht_angeboten" });
     expect(u.anlegen(id, { version: "1.0.0" })).toEqual({ ok: false, grund: "nicht_angeboten" });
     expect(u.anlegen(id, { version: "9.9.9" })).toEqual({ ok: false, grund: "kein_manifest" });
     expect(u.anlegen("gibt-es-nicht")).toEqual({ ok: false, grund: "keine_installation" });
     expect(u.anlegen(id).ok).toBe(true);
     expect(u.anlegen(id)).toEqual({ ok: false, grund: "auftrag_offen" });
+  });
+
+  it("takes no reason (Z-1207)", async () => {
+    const { u, id } = await umgebung();
+    expect(u.anlegen(id, {}, { grund: "" }).ok).toBe(true);
   });
 
   it("refuses a version with a required value the installation lacks, and writes nothing", async () => {

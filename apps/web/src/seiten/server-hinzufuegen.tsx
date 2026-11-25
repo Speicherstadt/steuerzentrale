@@ -57,7 +57,6 @@ const Formular = (props: { onAngelegt: (a: Angelegt) => void; onAbbruch: () => v
         </div>
         <p class="text-xs text-muted-foreground">{m.server_wartung_hinweis()}</p>
       </div>
-      <Input label={m.feld_grund()} name="grund" hint={m.feld_grund_hinweis()} required />
       <Fehler text={fehler()} />
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" onClick={() => props.onAbbruch()}>

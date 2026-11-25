@@ -17,6 +17,7 @@ import {
 } from "../modules/server/index.ts";
 import { verbindungsZustand } from "../modules/verbindung/zustand.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Registrar } from "./zugang.ts";
 
 const uhrzeit = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -34,7 +35,7 @@ const anlegenSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
     wartungsfenster,
-    grund: z.string().trim().min(1).max(500),
+    grund,
   })
   // every server is the operator's own for several customers: no kind, no customer (Z-1205)
   .strict();
@@ -47,7 +48,7 @@ const tageAusText = (text: string | undefined): number | undefined => {
   return tage >= 1 && tage <= PLATTEN_TAGE_MAX ? tage : undefined;
 };
 
-const grundSchema = z.object({ grund: z.string().trim().min(1).max(500) }).strict();
+const grundSchema = z.object({ grund }).strict();
 
 /** The newest facts (Z-304) without the message's own fields, or null before the first */
 const fakten = (sv: Server) => {

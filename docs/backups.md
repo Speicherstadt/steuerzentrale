@@ -121,7 +121,7 @@ Wird eine Installation entfernt, gehen Timer, Service und beide Dateien mit ihre
 
 ### S3-Ziel
 
-Unter **Einstellungen → Backup-Ziel** setzt der Inhaber mit Grund:
+Unter **Einstellungen → Backup-Ziel** setzt der Inhaber:
 
 | Angabe | Bedeutung |
 | --- | --- |
@@ -222,7 +222,7 @@ nächtlichen Backups über 24 Stunden, 7 oder 30 Tage: die Summe der Bytes, die 
 
 Auf der Seite einer laufenden App, deren Backups eingerichtet sind, startet **Backup jetzt** (in der
 Zeile „Backup“ des Überblicks und unter „Mehr …“)
-mit Grund einen Lauf sofort (Auftrag `installation_backup`, nur der Inhaber). Nicht, solange ein
+einen Lauf sofort (Auftrag `installation_backup`, nur der Inhaber). Nicht, solange ein
 Backup-Auftrag der Installation offen ist (`409 backup_laeuft`), solange sie wiederhergestellt wird
 (`409 auftrag_offen`, siehe unten) oder bevor die Backups eingerichtet sind (`409 nicht_eingerichtet`). Ein Backup startet die App nicht neu und läuft darum auch in einer
 Sperrzeit.
@@ -273,7 +273,7 @@ Prüf-Restore gescheitert ist (Warnung) oder die seit über 8 Tagen keinen hatte
 Prüf-Restore gezählt ab ihrem ersten gelungenen Backup). Der gescheiterte Auftrag selbst steht dort
 nicht noch einmal.
 
-**Prüf-Restore jetzt** (unter „Mehr …“) startet auf der Seite der App einen Prüf-Restore mit Grund (nur der
+**Prüf-Restore jetzt** (unter „Mehr …“) startet auf der Seite der App einen Prüf-Restore (nur der
 Inhaber), unabhängig vom Wochenrhythmus. Dieselben Bedingungen gelten: `409 nicht_eingerichtet`,
 `409 kein_backup` (noch kein gelungener Lauf), `409 auftrag_offen`, `409 server_belegt` (ein anderer
 Prüf-Restore auf dem Server), `409 kein_platz` (mit den Gründen der Platzierung in `gruende`),
@@ -342,14 +342,14 @@ lange wie ein Backup (vier Stunden) und 30 Minuten für Stoppen, Starten und Hea
 
 Im Reiter **Backups** einer Installation steht neben jedem gelungenen Lauf **Wiederherstellen**
 (nur der Inhaber). Der Dialog „Lauf wiederherstellen?“ nennt Installation und Stand des Laufs,
-sagt deutlich, dass vorher der Ist-Zustand gesichert wird, und verlangt einen Grund. Angeboten wird es
+sagt deutlich, dass vorher der Ist-Zustand gesichert wird, und wartet auf die Bestätigung. Angeboten wird es
 nur für eine laufende Installation mit eingerichteten Backups und nur, solange weder ein
 Wiederherstellen noch ein Prüf-Restore läuft. Auch in einer Sperrzeit ist es erlaubt: Es ist eine
 Reparatur auf Anfrage, kein Update.
 
 **Ablauf.** Die Zentrale prüft, dass der Lauf zu dieser Installation und diesem Betreiber gehört und
 gelungen ist, und dass kein anderer Auftrag der Installation offen ist. Dann legt sie in einer Änderung
-des Audit-Logs (`installation.wiederherstellen`, mit Grund) zwei Aufträge an:
+des Audit-Logs (`installation.wiederherstellen`) zwei Aufträge an:
 
 1. `installation_backup`, ein Backup vom Ist-Zustand wie „Backup jetzt“; es geht sofort an den Agenten;
 2. `installation_wiederherstellen` mit dem Snapshot jedes zurückgespielten Teils aus dem gewählten
@@ -432,12 +432,12 @@ Aufräumen bei einer Installation, schreibt der Agent das ins Log und macht mit 
 | Route | Wer | Körper | Antwort |
 | --- | --- | --- | --- |
 | `GET /api/v1/backup-ziel` | alle Rollen | – | `{ endpunkt, region, bucket, zugangGesetzt }` |
-| `PUT /api/v1/backup-ziel` | Inhaber | `endpunkt`, `region`, `bucket`, `accessKey`?, `secretKey`?, `grund` | wie `GET` |
+| `PUT /api/v1/backup-ziel` | Inhaber | `endpunkt`, `region`, `bucket`, `accessKey`?, `secretKey`?, `grund`? | wie `GET` |
 | `GET /api/v1/backups` | alle Rollen | – | `{ installationen: [{ installationId, app, kundeName, serverName, teile, zugang, eingerichtet, letzter, letzterErfolg, pruefRestore, … }] }` |
 | `GET /api/v1/installationen/:id/backups` | alle Rollen | – | `{ installationId, teile, zugang, eingerichtet, laeufe, pruefRestore, wiederherstellen }` |
-| `POST /api/v1/installationen/:id/backup` | Inhaber | `grund` | `201 { auftrag }` |
-| `POST /api/v1/installationen/:id/pruef-restore` | Inhaber | `grund` | `201 { auftrag }` |
-| `POST /api/v1/installationen/:id/wiederherstellen` | Inhaber | `lauf`, `grund` | `201 { backup, wiederherstellen }` |
+| `POST /api/v1/installationen/:id/backup` | Inhaber | `grund`? | `201 { auftrag }` |
+| `POST /api/v1/installationen/:id/pruef-restore` | Inhaber | `grund`? | `201 { auftrag }` |
+| `POST /api/v1/installationen/:id/wiederherstellen` | Inhaber | `lauf`, `grund`? | `201 { backup, wiederherstellen }` |
 
 `pruefRestore` ist `{ letzter, laeuft }`: `letzter` der neueste Prüf-Restore als `{ zeitpunkt, ok,
 grund, kopie, teile: [{ tag, snapshot, zurueckgespielt, grund }], dauerMs }` oder `null`, `laeuft`, ob
@@ -463,10 +463,10 @@ Audit-Log:
 | `backup.zugang-geloescht` | Zugang einer entfernten Installation gelöscht (Akteur `system`) |
 | `backup.zugang-fehler` | ein Versuch gescheitert, mit dem nächsten Zeitpunkt |
 | `backup.stand` | ein Lauf gemeldet (Akteur `server:<id>`) |
-| `installation.backup` | „Backup jetzt“, mit Grund |
-| `installation.pruef-restore` | Prüf-Restore angelegt, mit den Ports der Kopie (Akteur `system` nach Zeitplan, sonst wer „jetzt“ wählte, mit Grund) |
+| `installation.backup` | „Backup jetzt“ |
+| `installation.pruef-restore` | Prüf-Restore angelegt, mit den Ports der Kopie (Akteur `system` nach Zeitplan, sonst wer „jetzt“ wählte) |
 | `ereignis.pruef-restore-kein-platz` | kein Platz auf dem Server (Akteur `system`) |
-| `installation.wiederherstellen` | Wiederherstellen angelegt: Backup vom Ist-Zustand, Wiederherstellen und die Zeile in `wiederherstellungen`, mit Grund |
+| `installation.wiederherstellen` | Wiederherstellen angelegt: Backup vom Ist-Zustand, Wiederherstellen und die Zeile in `wiederherstellungen` |
 
 ### Tests
 

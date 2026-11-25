@@ -58,8 +58,8 @@ describe("the demo's backups", () => {
       zugangGesetzt: false,
     });
     const ort = { endpunkt: "https://s3.example.net", region: "eu-central-1", bucket: "b" };
-    expect(await q.zielSetzen(ort, "Test")).toMatchObject({ ok: false, fehler: "zugang_fehlt" });
-    const gesetzt = await q.zielSetzen({ ...ort, accessKey: "admin", secretKey: "geheim-1" }, "T");
+    expect(await q.zielSetzen(ort)).toMatchObject({ ok: false, fehler: "zugang_fehlt" });
+    const gesetzt = await q.zielSetzen({ ...ort, accessKey: "admin", secretKey: "geheim-1" });
     expect(gesetzt).toEqual({ ok: true, status: 200, daten: { ...ort, zugangGesetzt: true } });
   });
 
@@ -70,15 +70,15 @@ describe("the demo's backups", () => {
     const gut = vorher.daten.laeufe.find((l) => l.ok);
     const kaputt = vorher.daten.laeufe.find((l) => !l.ok);
     expect(vorher.daten.wiederherstellen).toEqual({ letzter: null, laeuft: false });
-    expect(await q.wiederherstellen("lind-haben", kaputt?.id ?? "", "x")).toMatchObject({
+    expect(await q.wiederherstellen("lind-haben", kaputt?.id ?? "")).toMatchObject({
       ok: false,
       fehler: "lauf_gescheitert",
     });
-    expect(await q.wiederherstellen("lind-haben", "backup-fremd", "x")).toMatchObject({
+    expect(await q.wiederherstellen("lind-haben", "backup-fremd")).toMatchObject({
       ok: false,
       fehler: "lauf_unbekannt",
     });
-    const r = await q.wiederherstellen("lind-haben", gut?.id ?? "", "Auftrag des Kunden");
+    const r = await q.wiederherstellen("lind-haben", gut?.id ?? "");
     expect(r).toMatchObject({
       ok: true,
       status: 201,
@@ -92,7 +92,7 @@ describe("the demo's backups", () => {
       laeuft: true,
       letzter: { phase: "sichern", laufZeitpunkt: gut?.zeitpunkt },
     });
-    expect(await q.wiederherstellen("lind-haben", gut?.id ?? "", "x")).toMatchObject({
+    expect(await q.wiederherstellen("lind-haben", gut?.id ?? "")).toMatchObject({
       ok: false,
       fehler: "auftrag_offen",
     });

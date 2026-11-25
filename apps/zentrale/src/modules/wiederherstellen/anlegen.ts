@@ -31,7 +31,6 @@ import {
  */
 
 export type WiederherstellenFehler =
-  | "grund_fehlt"
   | "keine_installation"
   | "laeuft_nicht"
   | "nicht_eingerichtet"
@@ -126,7 +125,6 @@ export const wiederherstellenAnlegen = (
   installationId: string,
   backupId: string,
 ): WiederherstellenAngelegt => {
-  if (kontext.grund.trim() === "") return { ok: false, grund: "grund_fehlt" };
   const i = installationLesen(deps.db, kontext.betreiberId, installationId);
   const nein = gesperrt(deps.db, i);
   if (nein || !i) return nein ?? { ok: false, grund: "keine_installation" };

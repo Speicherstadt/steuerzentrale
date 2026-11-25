@@ -1,4 +1,4 @@
-import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
+import { Button, Dialog, Icon, m } from "@steuerzentrale/ui";
 import { LoaderCircle, Lock, RotateCw } from "@steuerzentrale/ui/icons";
 import { createSignal, onSettled, Show } from "solid-js";
 import type { Fehlschlag } from "../anmeldung/api.ts";
@@ -12,7 +12,7 @@ import {
   installationenQuelle,
   type LogAuszug,
 } from "../daten/installationen.ts";
-import { Fehler, felder } from "./anmeldung-teile.tsx";
+import { Fehler } from "./anmeldung-teile.tsx";
 import { installationsFehler } from "./installieren-texte.ts";
 
 /*
@@ -44,17 +44,6 @@ const aktionsFehler = (f: Pick<Fehlschlag, "fehler" | "detail">): string => {
   return f.detail ? m.inst_fehler_mit_detail({ text: eigen(), detail: f.detail }) : eigen();
 };
 
-const GrundFeld = (props: { platzhalter: string }) => (
-  <Input
-    label={m.feld_grund()}
-    name="grund"
-    required
-    maxlength={500}
-    placeholder={props.platzhalter}
-    hint={m.feld_grund_hinweis()}
-  />
-);
-
 export type Schreibend = Exclude<InstallationsAktion, "log_auszug">;
 
 export const TITEL: Record<Schreibend, () => string> = {
@@ -78,13 +67,9 @@ export const GrundDialog = (props: {
   const [fehler, setFehler] = createSignal("");
   const [laeuft, setLaeuft] = createSignal(false);
   const senden = async (event: SubmitEvent) => {
-    const werte = felder(event);
+    event.preventDefault();
     setLaeuft(true);
-    const antwort = await installationenQuelle().aktion(
-      props.a.id,
-      props.aktion,
-      werte.grund ?? "",
-    );
+    const antwort = await installationenQuelle().aktion(props.a.id, props.aktion);
     setLaeuft(false);
     if (!antwort.ok) return setFehler(aktionsFehler(antwort));
     setFehler("");
@@ -99,7 +84,6 @@ export const GrundDialog = (props: {
     >
       <Show when={props.open}>
         <form class="grid gap-4" onSubmit={senden}>
-          <GrundFeld platzhalter={m.aktion_grund_platzhalter()} />
           <Fehler text={fehler()} />
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button onClick={() => props.onClose()}>{m.knopf_abbrechen()}</Button>
@@ -173,10 +157,10 @@ const LogInhalt = (props: { a: Angaben; onClose: () => void; angefordert: () => 
   };
 
   const senden = async (event: SubmitEvent) => {
-    const werte = felder(event);
+    event.preventDefault();
     setLaeuft(true);
     const id = props.a.id;
-    const antwort = await installationenQuelle().aktion(id, "log_auszug", werte.grund ?? "");
+    const antwort = await installationenQuelle().aktion(id, "log_auszug");
     setLaeuft(false);
     if (!antwort.ok) return setFehler(aktionsFehler(antwort));
     setFehler("");
@@ -189,11 +173,7 @@ const LogInhalt = (props: { a: Angaben; onClose: () => void; angefordert: () => 
     <div class="grid gap-4">
       <Show
         when={auftrag()}
-        fallback={
-          <form id="log-auszug-form" class="grid gap-4" onSubmit={senden}>
-            <GrundFeld platzhalter={m.log_auszug_grund_platzhalter()} />
-          </form>
-        }
+        fallback={<form id="log-auszug-form" class="grid gap-4" onSubmit={senden}></form>}
       >
         <Show
           when={auszug()}

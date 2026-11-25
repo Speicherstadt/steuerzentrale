@@ -5,6 +5,7 @@ import type { Auftrag } from "../modules/auftraege/index.ts";
 import { logAuszugLesen } from "../modules/auftraege/log-auszug.ts";
 import { aktionAusloesen } from "../modules/installationen/index.ts";
 import { eingabe, type RoutenDeps } from "./deps.ts";
+import { grund } from "./grund.ts";
 import type { Anfrage, Registrar, RoutenName } from "./zugang.ts";
 
 /*
@@ -14,7 +15,7 @@ import type { Anfrage, Registrar, RoutenName } from "./zugang.ts";
  * excerpt only to the roles with that right. An installation or job of another operator is unknown.
  */
 
-const grundSchema = z.object({ grund: z.string().trim().min(1).max(500) }).strict();
+const grundSchema = z.object({ grund }).strict();
 
 const STATUS: Record<string, 404 | 409 | 422> = {
   keine_installation: 404,

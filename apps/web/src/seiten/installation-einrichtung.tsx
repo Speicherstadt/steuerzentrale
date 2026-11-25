@@ -1,4 +1,4 @@
-import { Button, Dialog, Icon, Input, m } from "@steuerzentrale/ui";
+import { Button, Dialog, Icon, m } from "@steuerzentrale/ui";
 import { CircleX, Trash2 } from "@steuerzentrale/ui/icons";
 import { createSignal, For, Show } from "solid-js";
 import {
@@ -11,7 +11,7 @@ import { installationenQuelle } from "../daten/installationen.ts";
 import { zeitpunkt } from "../format/zeit.ts";
 import { Angaben, Hinweisbox, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
 import { ZuKunde, ZuServer } from "../teile/verweise.tsx";
-import { Fehler, felder } from "./anmeldung-teile.tsx";
+import { Fehler } from "./anmeldung-teile.tsx";
 import { aktionsText, auftragsZustandText, installationsFehler } from "./installieren-texte.ts";
 import { MitInstallationsRecht } from "./recht.tsx";
 
@@ -128,8 +128,8 @@ const EntfernenDialog = (props: {
 }) => {
   const [fehler, setFehler] = createSignal("");
   const senden = async (event: SubmitEvent) => {
-    const werte = felder(event);
-    const antwort = await installationenQuelle().entfernen(props.a.id, werte.grund ?? "");
+    event.preventDefault();
+    const antwort = await installationenQuelle().entfernen(props.a.id);
     if (!antwort.ok) return setFehler(installationsFehler(antwort));
     props.entfernt();
   };
@@ -142,14 +142,6 @@ const EntfernenDialog = (props: {
     >
       <Show when={props.open}>
         <form class="grid gap-4" onSubmit={senden}>
-          <Input
-            label={m.feld_grund()}
-            name="grund"
-            required
-            maxlength={500}
-            placeholder={m.inst_entfernen_grund_platzhalter()}
-            hint={m.feld_grund_hinweis()}
-          />
           <Fehler text={fehler()} />
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button onClick={() => props.onClose()}>{m.knopf_abbrechen()}</Button>

@@ -103,15 +103,19 @@ describe("an action of an installation", () => {
     );
   });
 
-  it("is refused without a reason", () => {
+  it("is taken without a reason, with an empty one in the audit log (Z-1207)", () => {
     const u = installationsUmgebung();
     const { i } = laufend(u);
-    const jobs = u.db.select().from(auftraege).all().length;
-    for (const aktion of ["neustart", "log_auszug"] as const)
-      expect(
-        aktionAusloesen(u.deps, { ...u.kontext("b1"), grund: "  " }, i.installationId, aktion),
-      ).toEqual({ ok: false, grund: "grund_fehlt" });
-    expect(u.db.select().from(auftraege).all()).toHaveLength(jobs);
+    const r = aktionAusloesen(
+      u.deps,
+      { ...u.kontext("b1"), grund: "" },
+      i.installationId,
+      "neustart",
+    );
+    expect(r.ok).toBe(true);
+    expect(u.db.select().from(auditLog).all()).toContainEqual(
+      expect.objectContaining({ aktion: "installation.neustart", grund: "" }),
+    );
   });
 
   it.each(["neustart", "nur_lesen"] as const)("%s is refused when not offered", (aktion) => {

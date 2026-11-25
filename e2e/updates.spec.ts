@@ -46,7 +46,9 @@ const bereit = async (request: APIRequestContext, host: string) => {
 // reports as it ended: held, or rolled back with its reason. The agent's own side (pulling,
 // restarting, health, rolling back with the backup) runs in CI against Podman (apps/agent).
 test.describe("updates", { tag: "@phone" }, () => {
-  test("an update by hand with a reason: backup first, then the new version", async ({ page }) => {
+  test("an update by hand without a reason: backup first, then the new version", async ({
+    page,
+  }) => {
     const i = await bereit(page.request, neuerHost("laeuft"));
     try {
       await page.goto("/updates");
@@ -59,7 +61,7 @@ test.describe("updates", { tag: "@phone" }, () => {
       const dialog = page.getByRole("dialog", { name: "Installation aktualisieren?" });
       await expect(dialog.getByRole("note")).toContainText("Vorher wird der Ist-Zustand gesichert");
       await expect(dialog.getByLabel("Version")).toHaveValue("1.1.0");
-      await dialog.getByLabel("Grund").fill("Fehlerbehebung laut Hersteller");
+      await expect(dialog.getByLabel("Grund")).toHaveCount(0);
       await ohneBefund(page);
       await dialog.getByRole("button", { name: "Aktualisieren" }).click();
       await expect(dialog).toBeHidden();

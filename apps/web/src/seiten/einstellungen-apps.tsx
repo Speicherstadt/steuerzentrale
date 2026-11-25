@@ -1,5 +1,5 @@
 import { Button, m, Tabs } from "@steuerzentrale/ui";
-import { createMemo, createSignal, createUniqueId, For, Loading, refresh, Show } from "solid-js";
+import { createMemo, createSignal, For, Loading, refresh, Show } from "solid-js";
 import { installationenJeApp, werteGesetzt } from "../daten/app-werte.ts";
 import { type BetreiberEinstellungen, einstellungenQuelle } from "../daten/einstellungen.ts";
 import { einstellungenAus } from "../daten/einstellungs-formular.ts";
@@ -36,28 +36,14 @@ const NurLesen = (props: { e: BetreiberEinstellungen }) => (
   </div>
 );
 
-/** One reason for the whole form and "Speichern", as the audit log writes it */
-const GrundZeile = (props: { laeuft: boolean }) => {
-  const id = createUniqueId();
-  return (
-    <div class="flex flex-col gap-3 border-t pt-4 sm:flex-row">
-      <label for={id} class="sr-only">
-        {m.feld_grund()}
-      </label>
-      <input
-        id={id}
-        name="grund"
-        required
-        maxlength={500}
-        placeholder={m.einst_grund_platzhalter()}
-        class="h-9 w-full min-w-0 rounded-lg sm:flex-1 border border-border bg-background px-3 text-[13px] placeholder:text-muted-foreground"
-      />
-      <Button type="submit" variant="primary" class="h-9" disabled={props.laeuft}>
-        {m.knopf_speichern()}
-      </Button>
-    </div>
-  );
-};
+/** "Speichern" for the whole form */
+const Speichern = (props: { laeuft: boolean }) => (
+  <div class="flex justify-end border-t pt-4">
+    <Button type="submit" variant="primary" class="h-9" disabled={props.laeuft}>
+      {m.knopf_speichern()}
+    </Button>
+  </div>
+);
 
 const AppFormular = (props: { e: BetreiberEinstellungen; gespeichert: () => void }) => {
   const [fehler, setFehler] = createSignal("");
@@ -68,7 +54,6 @@ const AppFormular = (props: { e: BetreiberEinstellungen; gespeichert: () => void
     const antwort = await einstellungenQuelle().aendern(
       props.e.app,
       einstellungenAus(props.e.felder, werte, { aendern: true }),
-      werte.grund ?? "",
     );
     setLaeuft(false);
     if (!antwort.ok) return setFehler(installationsFehler(antwort));
@@ -83,7 +68,7 @@ const AppFormular = (props: { e: BetreiberEinstellungen; gespeichert: () => void
       <div class={fehler() ? "pb-3" : undefined}>
         <Fehler text={fehler()} />
       </div>
-      <GrundZeile laeuft={laeuft()} />
+      <Speichern laeuft={laeuft()} />
     </form>
   );
 };

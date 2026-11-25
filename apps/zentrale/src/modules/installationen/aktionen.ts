@@ -29,7 +29,6 @@ export type AktionAusgeloest =
   | {
       ok: false;
       grund:
-        | "grund_fehlt"
         | "keine_installation"
         | "nicht_angeboten"
         | "laeuft_nicht"
@@ -75,7 +74,6 @@ export const aktionAusloesen = (
   installationId: string,
   aktion: InstallationsAktion,
 ): AktionAusgeloest => {
-  if (kontext.grund.trim() === "") return { ok: false, grund: "grund_fehlt" };
   const i = installationLesen(deps.db, kontext.betreiberId, installationId);
   if (!i) return { ok: false, grund: "keine_installation" };
   const geprueft = manifestPruefen(i.manifest);

@@ -59,7 +59,7 @@ test.describe("contract end", () => {
     await expect(page.getByText("1 Dateien")).toBeVisible();
     await page.getByRole("button", { name: "Link für den Kunden" }).click();
     const dialog = page.getByRole("dialog", { name: "Link für den Kunden" });
-    await dialog.getByLabel("Grund").fill("Kunde bittet um seine Daten");
+    await expect(dialog.getByLabel("Grund")).toHaveCount(0);
     await ohneBefund(page);
     await dialog.getByRole("button", { name: "Link erzeugen" }).click();
     await expect(dialog).toBeHidden();

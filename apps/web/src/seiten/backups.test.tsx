@@ -21,7 +21,7 @@ import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./te
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
 
-let gesendet: { id: string; grund: string; was?: string; lauf?: string }[] = [];
+let gesendet: { id: string; was?: string; lauf?: string }[] = [];
 
 beforeEach(() => {
   setLocale("de", { reload: false });
@@ -42,17 +42,17 @@ beforeEach(() => {
   const q = demoBackups();
   const mitProtokoll: BackupQuelle = {
     ...q,
-    jetzt: (id, grund) => {
-      gesendet.push({ id, grund });
-      return q.jetzt(id, grund);
+    jetzt: (id) => {
+      gesendet.push({ id });
+      return q.jetzt(id);
     },
-    pruefRestore: (id, grund) => {
-      gesendet.push({ id, grund, was: "pruef" });
-      return q.pruefRestore(id, grund);
+    pruefRestore: (id) => {
+      gesendet.push({ id, was: "pruef" });
+      return q.pruefRestore(id);
     },
-    wiederherstellen: (id, lauf, grund) => {
-      gesendet.push({ id, grund, was: "wiederherstellen", lauf });
-      return q.wiederherstellen(id, lauf, grund);
+    wiederherstellen: (id, lauf) => {
+      gesendet.push({ id, was: "wiederherstellen", lauf });
+      return q.wiederherstellen(id, lauf);
     },
   };
   backupQuelleEinsetzen(mitProtokoll);
@@ -91,7 +91,7 @@ describe("the page Backups", () => {
 });
 
 describe("the S3 target", () => {
-  it("is saved with a reason; the admin access shows only as set and its fields stay empty", async () => {
+  it("is saved without a reason (Z-1207); the admin access shows only as set and its fields stay empty", async () => {
     backupQuelleEinsetzen(
       demoBackups(demo, { endpunkt: null, region: null, bucket: null, zugangGesetzt: false }),
     );
@@ -103,7 +103,7 @@ describe("the S3 target", () => {
     eintragen("Bucket", "sz-backups", k);
     eintragen("Access Key des Admins", "admin", k);
     eintragen("Secret Key des Admins", "minio-geheim-123", k);
-    eintragen("Grund", "MinIO eingerichtet", k);
+    expect(k.textContent).not.toContain("Grund");
     flush();
     k.querySelector("form")?.requestSubmit();
     await warten();
@@ -127,16 +127,15 @@ describe("the S3 target", () => {
 });
 
 describe("Backup jetzt", () => {
-  it("asks for a reason and makes the job", async () => {
+  it("makes the job without asking for a reason (Z-1207)", async () => {
     const { root } = await oeffne("/apps/atelier-haben");
     await warten();
     knopf(root, "Backup jetzt")?.click();
     await warten();
-    eintragen("Grund", "vor dem Update");
-    flush();
+    expect(dialog().textContent).not.toContain("Grund");
     dialog().querySelector("form")?.requestSubmit();
     await warten();
-    expect(gesendet).toEqual([{ id: "atelier-haben", grund: "vor dem Update" }]);
+    expect(gesendet).toEqual([{ id: "atelier-haben" }]);
     expect(document.querySelector("dialog[open]")).toBeNull();
     expect(root.textContent).toContain("Backup angefordert");
   });
@@ -151,19 +150,16 @@ describe("Backup jetzt", () => {
 });
 
 describe("Prüf-Restore jetzt", () => {
-  it("asks for a reason and makes the job", async () => {
+  it("makes the job without asking for a reason (Z-1207)", async () => {
     const { root } = await oeffne("/apps/atelier-haben");
     await warten();
     knopf(root, "Prüf-Restore jetzt")?.click();
     await warten();
     expect(dialog().textContent).toContain("die Installation läuft unverändert weiter");
-    eintragen("Grund", "nach dem Wechsel des Buckets");
-    flush();
+    expect(dialog().textContent).not.toContain("Grund");
     dialog().querySelector("form")?.requestSubmit();
     await warten();
-    expect(gesendet).toEqual([
-      { id: "atelier-haben", grund: "nach dem Wechsel des Buckets", was: "pruef" },
-    ]);
+    expect(gesendet).toEqual([{ id: "atelier-haben", was: "pruef" }]);
     expect(root.textContent).toContain("Prüf-Restore angefordert");
   });
 
@@ -204,7 +200,7 @@ describe("restoring a run", () => {
       /^Lauf vom .+ wiederherstellen$/.test(b.getAttribute("aria-label") ?? ""),
     );
 
-  it("asks for a reason, says the current state is backed up first, then shows the restore", async () => {
+  it("asks for confirmation, not a reason, says the current state is backed up first, then shows the restore", async () => {
     const root = await reiter("atelier-haben");
     const knoepfe = wiederherstellenKnoepfe(root);
     expect(knoepfe).toHaveLength(5);
@@ -214,14 +210,12 @@ describe("restoring a run", () => {
     expect(dialog().querySelector('[role="note"]')?.textContent).toContain(
       "Vorher wird der Ist-Zustand gesichert",
     );
-    eintragen("Grund", "Auftrag des Kunden vom 20.11.");
-    flush();
+    expect(dialog().textContent).not.toContain("Grund");
     dialog().querySelector("form")?.requestSubmit();
     await warten();
     expect(gesendet).toEqual([
       {
         id: "atelier-haben",
-        grund: "Auftrag des Kunden vom 20.11.",
         was: "wiederherstellen",
         lauf: expect.stringMatching(/^backup-[0-9a-f]{32}$/),
       },
@@ -232,6 +226,17 @@ describe("restoring a run", () => {
     expect(text).toContain("läuft: Backup vom Ist-Zustand, dann Stand");
     // one restore at a time: no button while it is under way
     expect(wiederherstellenKnoepfe(root)).toEqual([]);
+  });
+
+  it("does nothing without the confirmation (Z-1207)", async () => {
+    const root = await reiter("atelier-haben");
+    wiederherstellenKnoepfe(root)[1]?.click();
+    await warten();
+    knopf(dialog(), "Abbrechen")?.click();
+    await warten();
+    expect(document.querySelector("dialog[open]")).toBeNull();
+    expect(gesendet).toEqual([]);
+    expect(wiederherstellenKnoepfe(root)).toHaveLength(5);
   });
 
   it("offers no failed run", async () => {

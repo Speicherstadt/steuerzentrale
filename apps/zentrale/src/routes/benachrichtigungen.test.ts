@@ -114,7 +114,7 @@ describe("the notification settings", () => {
     expect(eintraege[1]?.inhalt).toContain("[verschlüsselt]");
   });
 
-  it("refuses mitglied, an invalid field, plain SMTP to another machine and a missing reason", async () => {
+  it("refuses mitglied, an invalid field and plain SMTP to another machine; takes no reason (Z-1207)", async () => {
     expect(
       await json(mitglied, "/api/v1/benachrichtigungen", { method: "PUT", body: setzen() }),
     ).toEqual({
@@ -129,7 +129,6 @@ describe("the notification settings", () => {
       { smtp: { ...SMTP, port: 0 } },
       { ruhezeit: { von: "22:00", bis: "22:00" } },
       { ruhezeit: { von: "24:00", bis: "07:00" } },
-      { grund: " " },
       { unbekannt: 1 },
     ])
       expect(
@@ -137,12 +136,16 @@ describe("the notification settings", () => {
           .status,
         JSON.stringify(falsch),
       ).toBe(400);
-    const lokal = setzen({
+    const { grund: _, ...lokal } = setzen({
       smtp: { ...SMTP, host: "localhost", sicherheit: "keine", benutzer: null },
     });
     expect(
       (await json(teufel, "/api/v1/benachrichtigungen", { method: "PUT", body: lokal })).status,
     ).toBe(200);
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "benachrichtigung.einstellungen",
+      grund: "",
+    });
     // without a user the password goes too
     expect((await json(mitglied, "/api/v1/benachrichtigungen")).daten).toMatchObject({
       smtp: { host: "localhost", benutzer: null, passwortGesetzt: false },
@@ -191,7 +194,6 @@ describe("recipients", () => {
       { ...mail, adresse: "betrieb@betreiber.test\r\nBcc: x@y.test" },
       { ...mail, adresse: "<betrieb@betreiber.test>" },
       { ...mail, abSchwere: "hinweis" },
-      { ...mail, grund: "" },
     ])
       expect(
         (await json(teufel, "/api/v1/benachrichtigungen/empfaenger", { body: falsch })).status,
@@ -199,7 +201,17 @@ describe("recipients", () => {
       ).toBe(400);
   });
 
-  it("get a test message, signed, and are removed with a reason", async () => {
+  it("are added without a reason, with an empty one in the audit log (Z-1207)", async () => {
+    const { grund: _, ...ohneGrund } = { ...mail, adresse: "ohne-grund@betreiber.test" };
+    const r = await json(teufel, "/api/v1/benachrichtigungen/empfaenger", { body: ohneGrund });
+    expect(r.status).toBe(201);
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "benachrichtigung.empfaenger-anlegen",
+      grund: "",
+    });
+  });
+
+  it("get a test message, signed, and are removed without a reason too (Z-1207)", async () => {
     const e = webhookEmpfaenger(SCHLUESSEL, { jetzt: server.jetzt });
     afterAll(() => e.stoppen());
     const angelegt = await json(teufel, "/api/v1/benachrichtigungen/empfaenger", {
@@ -228,10 +240,11 @@ describe("recipients", () => {
     });
     expect((await json(mitglied, pfad, { body: {} })).status).toBe(403);
     const weg = `/api/v1/benachrichtigungen/empfaenger/${id}`;
-    expect((await json(teufel, weg, { method: "DELETE", body: {} })).status).toBe(400);
-    expect(
-      (await teufel.json(weg, { method: "DELETE", body: { grund: "Chat abgeschaltet" } })).status,
-    ).toBe(204);
+    expect((await teufel.json(weg, { method: "DELETE", body: {} })).status).toBe(204);
+    expect(server.db.select().from(auditLog).all().at(-1)).toMatchObject({
+      aktion: "benachrichtigung.empfaenger-entfernen",
+      grund: "",
+    });
     expect((await json(teufel, weg, { method: "DELETE", body: { grund: "nochmal" } })).status).toBe(
       404,
     );

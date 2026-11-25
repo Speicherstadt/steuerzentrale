@@ -57,7 +57,7 @@ const ELSTER = "Hersteller-ID für ELSTER";
 const SCHLUESSEL = "Schlüssel für die KI-Auslesung";
 
 describe("the operator's values per app", () => {
-  it("are a form from the schema, a secret only as set, saved with a reason", async () => {
+  it("are a form from the schema, a secret only as set, saved without a reason (Z-1207)", async () => {
     const { root } = await oeffne("/einstellungen");
     const werte = karte(root, WERTE);
     expect(werte.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Haben");
@@ -75,7 +75,7 @@ describe("the operator's values per app", () => {
     expect(schluessel.value).toBe("");
     expect(werte.textContent).toContain("leer lassen behält den bisherigen");
     eintragen(ELSTER, "54321", werte);
-    eintragen("Grund", "neue Hersteller-ID", werte);
+    expect(werte.textContent).not.toContain("Grund");
     flush();
     werte.querySelector("form")?.requestSubmit();
     await warten();
@@ -88,7 +88,7 @@ describe("the operator's values per app", () => {
     const werte = karte(root, WERTE);
     feld<HTMLInputElement>(ELSTER, werte).required = false;
     eintragen(ELSTER, "", werte);
-    eintragen("Grund", "weg damit", werte);
+    expect(werte.textContent).not.toContain("Grund");
     flush();
     werte.querySelector("form")?.requestSubmit();
     await warten();
@@ -163,14 +163,14 @@ describe("the DNS settings", () => {
     return { root, k: karte(root, "DNS") };
   };
 
-  it("are saved with a reason; the token shows only as set and its field stays empty", async () => {
+  it("are saved without a reason (Z-1207); the token shows only as set and its field stays empty", async () => {
     dnsQuelleEinsetzen(demoDns({ domain: null, zoneId: null, tokenGesetzt: false }));
     const { root, k } = await dnsKarte();
     expect(feld<HTMLInputElement>("API-Token", k).required).toBe(true);
     eintragen("Domain", "apps.example.de", k);
     eintragen("Zone-ID", "023e105f4ecef8ad9ca31a8372d0c353", k);
     eintragen("API-Token", "cf-token-aus-dem-dashboard-1234567890", k);
-    eintragen("Grund", "Zone angelegt", k);
+    expect(k.textContent).not.toContain("Grund");
     flush();
     k.querySelector("form")?.requestSubmit();
     await warten();
@@ -194,13 +194,13 @@ describe("the DNS settings", () => {
 });
 
 describe("changing an installation's settings", () => {
-  it("sends the job to configure it anew with a reason", async () => {
+  it("sends the job to configure it anew without a reason (Z-1207)", async () => {
     const { root } = await oeffne("/apps/atelier-schreibzeug");
     knopf(root, "Einstellungen ändern")?.click();
     await warten();
     expect(feld<HTMLInputElement>("SCHREIBZEUG_OPEN_SIGNUP").value).toBe("false");
     eintragen("SCHREIBZEUG_OPEN_SIGNUP", "true");
-    eintragen("Grund", "Wunsch des Kunden");
+    expect(dialog().textContent).not.toContain("Grund");
     flush();
     dialog().querySelector("form")?.requestSubmit();
     await warten();

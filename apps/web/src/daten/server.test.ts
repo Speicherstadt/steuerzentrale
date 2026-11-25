@@ -32,11 +32,11 @@ describe("the API source of the servers", () => {
     });
     expect(await apiServer.liste()).toEqual({ ok: true, status: 200, daten: [beispiel] });
     await apiServer.server("a/b");
-    await apiServer.sperren("s1", "gestohlen");
+    await apiServer.sperren("s1");
     expect(anfragen).toEqual([
       "GET /api/v1/server",
       "GET /api/v1/server/a%2Fb",
-      'POST /api/v1/server/s1/sperren {"grund":"gestohlen"}',
+      "POST /api/v1/server/s1/sperren {}",
     ]);
   });
 });
@@ -66,11 +66,11 @@ describe("the demo source of the servers", () => {
   it("revokes once, and the agent is disconnected after it", async () => {
     const quelle = demoServerQuelle(server, () => JETZT);
     const id = server[0]?.id ?? "";
-    expect(await quelle.sperren(id, "weg")).toMatchObject({
+    expect(await quelle.sperren(id)).toMatchObject({
       ok: true,
       daten: { gesperrtAm: JETZT, agent: { zustand: "getrennt" } },
     });
-    expect(await quelle.sperren(id, "noch mal")).toMatchObject({ ok: false, status: 409 });
+    expect(await quelle.sperren(id)).toMatchObject({ ok: false, status: 409 });
     expect(await quelle.server("gibt-es-nicht")).toMatchObject({ ok: false, status: 404 });
   });
 });

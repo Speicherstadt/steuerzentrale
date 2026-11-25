@@ -22,7 +22,6 @@ import { sperrzeitenAufServer } from "./sperrzeiten.ts";
  */
 
 export type NeustartFehler =
-  | "grund_fehlt"
   | "kein_server"
   | "nicht_beigetreten"
   | "server_gesperrt"
@@ -118,7 +117,6 @@ export const neustartAnlegen = (
   kontext: Kontext,
   serverId: string,
 ): NeustartAngelegt => {
-  if (kontext.grund.trim() === "") return nein("grund_fehlt");
   const geprueft = pruefen(deps, kontext, serverLesen(deps.db, kontext.betreiberId, serverId));
   if (!geprueft.ok) return geprueft;
   const jobs = auftraegeVorbereiten(deps, kontext, geprueft.sv, geprueft.bootId);

@@ -215,22 +215,29 @@ describe("an installation over the API", () => {
     });
   });
 
-  it("needs a reason for every write", async () => {
+  it("takes every write without a reason, with an empty one in the audit log (Z-1207)", async () => {
     const { grund: _, ...ohne } = neu("ohne.kanzlei.example");
-    expect(await json(teufel, "/api/v1/installationen", { body: ohne })).toEqual({
-      status: 400,
-      daten: { fehler: "ungueltig" },
-    });
-    const i = await anlegen(teufel, "grund.kanzlei.example");
-    zustandSetzen(teufel.betreiberId, i.installationId, "gescheitert");
-    expect(
-      (
-        await json(teufel, `/api/v1/installationen/${i.installationId}`, {
-          method: "DELETE",
-          body: {},
-        })
-      ).status,
-    ).toBe(400);
+    const a = await json(teufel, "/api/v1/installationen", { body: ohne });
+    expect(a.status).toBe(201);
+    const id = String(a.daten.installationId);
+    const audit = () => server.db.select().from(auditLog).all();
+    expect(audit()).toContainEqual(
+      expect.objectContaining({
+        aktion: "installation.anlegen",
+        ziel: `installationen:${id}`,
+        grund: "",
+      }),
+    );
+    zustandSetzen(teufel.betreiberId, id, "gescheitert");
+    const vorher = audit().length;
+    const weg = await json(teufel, `/api/v1/installationen/${id}`, { method: "DELETE", body: {} });
+    expect(weg.status).toBeLessThan(300);
+    // the member's own entries; delivering the jobs to the agent writes the Zentrale's own
+    const neue = audit()
+      .slice(vorher)
+      .filter((e) => e.akteur === teufel.nutzerId);
+    expect(neue.length).toBeGreaterThan(0);
+    for (const e of neue) expect(e.grund).toBe("");
   });
 
   it("is refused without the operator's required value, naming it", async () => {
