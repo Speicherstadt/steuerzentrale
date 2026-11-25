@@ -19,9 +19,11 @@ import { heartbeatAnfuegen, schreiben } from "../audit/index.ts";
 import { offeneZustellen } from "../auftraege/index.ts";
 import { backupStandAnnehmen } from "../backups/stand.ts";
 import { zustandAnnehmen } from "../bewertung/index.ts";
+import { beobachtenNachricht } from "../dienste/beobachten.ts";
 import type { BeitrittDeps } from "../server/beitritt.ts";
 import {
   neuesZertifikatUebernehmen,
+  nurBeobachtet,
   type Server,
   serverLesen,
   zertifikatRotieren,
@@ -40,7 +42,8 @@ import type { Sockel, Verbindungen } from "./verbindungen.ts";
  * src/modules/bewertung). After `willkommen` the agent gets its open jobs, and its reports
  * about them move them on (Z-305, src/modules/auftraege); the lines of a log excerpt are kept for
  * a log job of this server (Z-405, auftraege/log-auszug.ts), any other dropped and logged. The
- * runs of backups (Z-601) are kept for installations of this server (src/modules/backups).
+ * runs of backups (Z-601) are kept for installations of this server (src/modules/backups). An
+ * observed server's agent gets after `willkommen` the units it reads (Z-1103, modules/dienste).
  * Everything the Zentrale sends goes in the protocol version of the agent's `hallo`, so an agent one
  * version behind keeps reading it until its own update (Z-504); a changed agent version becomes an
  * event of the server (modules/agent-update).
@@ -185,6 +188,13 @@ export const sitzung = (
       protokoll,
     );
     deps.verbindungen.gruessen(betreiberId, serverId, s, protokoll);
+    // the units an observed server's agent reads (Z-1103); a managed server reads none
+    if (nurBeobachtet(server))
+      deps.verbindungen.senden(
+        betreiberId,
+        serverId,
+        beobachtenNachricht(deps.db, betreiberId, serverId),
+      );
     offeneZustellen(deps, betreiberId, serverId);
   };
 

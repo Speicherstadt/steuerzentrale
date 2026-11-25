@@ -1,4 +1,5 @@
 import {
+  type BeobachteterDienst,
   Hallo,
   HEARTBEAT_MS,
   Heartbeat,
@@ -29,6 +30,7 @@ import type { Oeffnen, Sockel, Tls } from "./sockel.ts";
  * its certificate the agent asks for a new one over the open connection, keeps it, and reconnects
  * with it. While connected it reports its facts and SSH logins (meldungen.ts, Z-304) and takes
  * jobs (src/auftraege, Z-305), whose reports go over whatever connection is open when they come.
+ * The list of observed units (Z-1103) goes to its keeper, which keeps it only on an observed server.
  */
 
 /** Plans `lauf` in `ms`; returns how to cancel it */
@@ -53,6 +55,11 @@ export type VerbindenDeps = {
   auftraege?: Pick<Auftraege, "empfangen">;
   /** At each `willkommen`: confirms an update of the agent to this version (Z-504, src/agent-update) */
   verbunden?: () => Promise<void>;
+  /**
+   * Keeps the observed services of `beobachten` (Z-1103, zustand/beobachtet.ts); false when the
+   * server is managed and keeps none
+   */
+  beobachten?: (dienste: readonly BeobachteterDienst[]) => boolean;
 };
 
 /** The WebSocket address for the Zentrale's origin: wss for https, ws for http (test mode only) */
@@ -94,6 +101,15 @@ const zertifikatAnfrage = (csr: string) =>
   schreiben(ZertifikatAnfrage, { typ: "zertifikat_anfrage", protokoll: PROTOKOLL_VERSION, csr });
 
 export type Schleife = { stoppen: () => void };
+
+/** The list of `beobachten` to its keeper; logged when the server is managed and keeps none */
+const beobachten = (
+  deps: VerbindenDeps,
+  dienste: readonly BeobachteterDienst[],
+  log: (msg: string) => void,
+) => {
+  if (deps.beobachten?.(dienste) === false) log("observed units refused: the server is managed");
+};
 
 /** At `willkommen`: an update of the agent to this version is confirmed (Z-504) */
 const bestaetigen = (
@@ -187,6 +203,7 @@ export const verbindungsSchleife = (deps: VerbindenDeps, zentrale: string): Schl
       s.schliessen(1000, "certificate rotated");
     }
     if (n.typ === "auftrag") await deps.auftraege?.empfangen(n, (text) => sockel?.senden(text));
+    if (n.typ === "beobachten") beobachten(deps, n.dienste, log);
   };
 
   const wiederholen = (code: number, grund: string) => {

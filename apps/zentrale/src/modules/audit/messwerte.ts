@@ -5,6 +5,7 @@ import {
   auftraege,
   aussenPruefungen,
   type BEWERTUNGEN,
+  dienstInnen,
   dienstPruefungen,
   dienstVerfuegbarkeit,
   fakten,
@@ -22,7 +23,8 @@ import {
  * step a running job reports (Z-305), whose state changes go through `schreiben`, and the rating of
  * an installation with its history (Z-403), whose faults go through `schreiben`. Only the tables
  * and columns written here; so is the check from outside with its hourly count for the
- * availability (Z-704), whose events go through `schreiben`, and that of an observed service (Z-1101). The rows are kept 30 days, the history
+ * availability (Z-704), whose events go through `schreiben`, and that of an observed service (Z-1101)
+ * with the rating of its units inside (Z-1103). The rows are kept 30 days, the history
  * of ratings 90, the hourly counts 13 months
  * (src/modules/aufbewahrung), and deleting them goes through `schreiben` again.
  */
@@ -212,4 +214,24 @@ export const dienstAussenSetzen = (
       })
       .run();
   });
+};
+
+export type DienstInnenZeile = typeof dienstInnen.$inferInsert;
+
+/** The newest rating inside of an observed service's units (Z-1103), one row per service */
+export const dienstInnenSetzen = (schreibDb: SchreibDb, z: DienstInnenZeile): void => {
+  schreibDb.verbindung
+    .insert(dienstInnen)
+    .values(z)
+    .onConflictDoUpdate({
+      target: [dienstInnen.betreiberId, dienstInnen.dienstId],
+      set: {
+        bewertung: z.bewertung,
+        grund: z.grund,
+        seit: z.seit,
+        gemeldetAm: z.gemeldetAm,
+        meldung: z.meldung,
+      },
+    })
+    .run();
 };

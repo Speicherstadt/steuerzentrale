@@ -54,6 +54,7 @@ const pruefen = async (teil: Partial<SondenDeps>) => {
     host: HOST,
     pfad: "/health",
     kundeId: null,
+    innen: null,
   });
   if (!r.ok) throw new Error(r.grund);
   await aussenPruefen({

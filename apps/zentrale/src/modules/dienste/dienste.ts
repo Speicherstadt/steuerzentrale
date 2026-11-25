@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import { type Kontext, schreiben } from "../audit/index.ts";
 import { kundeLesen } from "../kunden/index.ts";
+import { type Innen, type InnenFehler, innenPruefen, innenSpalten } from "./innen.ts";
 import { type Dienst, dienstLesen, dienstZeileLesen } from "./lesen.ts";
 
 export { type Dienst, diensteListe, dienstLesen } from "./lesen.ts";
@@ -10,7 +11,8 @@ export { type Dienst, diensteListe, dienstLesen } from "./lesen.ts";
  * Observed services (BAULISTE.md Z-1101): made, changed and removed through `schreiben`, each with
  * its entry in the audit log; the reason is the action's own, nobody is asked for one (BAULISTE.md,
  * Stufe 2). A customer must be one of the operator's. Removing keeps the row with `entfernt_am`, so
- * events and measurements still name the service until the retention ends them.
+ * events and measurements still name the service until the retention ends them. Its inside
+ * (Z-1103) only on one of the operator's servers that is only observed (innen.ts).
  */
 
 /** What the operator enters about a service; host and path already checked (adresse.ts) */
@@ -19,11 +21,22 @@ export type DienstDaten = {
   host: string;
   pfad: string;
   kundeId: string | null;
+  /** What the agent reads inside (Z-1103); null: only from outside */
+  innen: Innen | null;
 };
 
 export type Ergebnis =
   | { ok: true; dienst: Dienst }
-  | { ok: false; grund: "kein_dienst" | "kein_kunde" };
+  | { ok: false; grund: "kein_dienst" | "kein_kunde" | InnenFehler };
+
+/** The columns of the service as stored */
+const spalten = ({ innen, ...rest }: DienstDaten) => ({ ...rest, ...innenSpalten(innen) });
+
+/** Why the data cannot be taken, or undefined */
+const fehler = (db: Db, betreiberId: string, daten: DienstDaten) =>
+  kundeFehlt(db, betreiberId, daten.kundeId)
+    ? ("kein_kunde" as const)
+    : innenPruefen(db, betreiberId, daten.innen);
 
 const kundeFehlt = (db: Db, betreiberId: string, kundeId: string | null) =>
   kundeId !== null && kundeLesen(db, betreiberId, kundeId) === undefined;
@@ -39,13 +52,14 @@ export const dienstAnlegen = (
   kontext: Kontext,
   daten: DienstDaten,
 ): Ergebnis => {
-  if (kundeFehlt(db, kontext.betreiberId, daten.kundeId)) return { ok: false, grund: "kein_kunde" };
+  const grund = fehler(db, kontext.betreiberId, daten);
+  if (grund) return { ok: false, grund };
   const dienstId = randomUUID();
   schreiben(schreibDb, kontext, "dienst.anlegen", (s) =>
     s.einfuegen("dienste", {
       betreiberId: kontext.betreiberId,
       dienstId,
-      ...daten,
+      ...spalten(daten),
       angelegtAm: kontext.jetzt,
     }),
   );
@@ -61,9 +75,10 @@ export const dienstAendern = (
 ): Ergebnis => {
   const alt = dienstZeileLesen(db, kontext.betreiberId, dienstId);
   if (!alt) return { ok: false, grund: "kein_dienst" };
-  if (kundeFehlt(db, kontext.betreiberId, daten.kundeId)) return { ok: false, grund: "kein_kunde" };
+  const grund = fehler(db, kontext.betreiberId, daten);
+  if (grund) return { ok: false, grund };
   const geaendert = Object.fromEntries(
-    Object.entries(daten).filter(([feld, wert]) => alt[feld as keyof DienstDaten] !== wert),
+    Object.entries(spalten(daten)).filter(([feld, wert]) => alt[feld as keyof typeof alt] !== wert),
   );
   if (Object.keys(geaendert).length > 0)
     schreiben(schreibDb, kontext, "dienst.aendern", (s) =>

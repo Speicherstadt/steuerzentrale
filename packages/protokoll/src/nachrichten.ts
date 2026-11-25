@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Beobachten } from "./beobachten.ts";
 import { pem } from "./pem.ts";
 
 /*
@@ -121,6 +122,12 @@ export const Zustand = z.object({
   protokoll,
   zeit: zeitpunkt,
   installationen: z.array(z.object({ installationId: id, units: z.array(unit), health })),
+  // Z-1103, still in protocol 1: optional, an agent before it reads no observed units
+  /** The observed services of `beobachten`, read as the installations are */
+  dienste: z
+    .array(z.object({ dienstId: id, units: z.array(unit).max(20), health }))
+    .max(100)
+    .optional(),
 });
 
 export const Bestaetigt = z.object({ typ: z.literal("bestaetigt"), protokoll, auftragId: id });
@@ -299,7 +306,12 @@ export const VomAgenten = z.discriminatedUnion("typ", [
   ZertifikatAnfrage,
   BackupStand,
 ]);
-export const VonDerZentrale = z.discriminatedUnion("typ", [Willkommen, Auftrag, Zertifikat]);
+export const VonDerZentrale = z.discriminatedUnion("typ", [
+  Willkommen,
+  Auftrag,
+  Zertifikat,
+  Beobachten,
+]);
 
 /**
  * Why the Zentrale closes an agent's connection, as WebSocket close codes (4000-4999 are the

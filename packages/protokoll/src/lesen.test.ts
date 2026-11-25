@@ -42,7 +42,7 @@ describe("every message", () => {
     expect(beispiele, `add beispiele-v${PROTOKOLL_VERSION}.ts`).toBeDefined();
     expect(new Set(beispiele?.vomAgenten.map((n) => n.typ))).toEqual(new Set(TYPEN_VOM_AGENTEN));
     expect(new Set(beispiele?.vonDerZentrale.map((n) => n.typ))).toEqual(
-      new Set(["willkommen", "auftrag", "zertifikat"]),
+      new Set(["willkommen", "auftrag", "zertifikat", "beobachten"]),
     );
   });
 

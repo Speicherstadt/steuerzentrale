@@ -1,6 +1,9 @@
 import {
   type AussenStand,
   aussenJetzt,
+  type BewertungJetzt,
+  type Bewertungsstand,
+  bewertungJetzt,
   letzteMonate,
   type MonatsVerfuegbarkeit,
   monatsGrenzen,
@@ -8,13 +11,15 @@ import {
 } from "@steuerzentrale/planung";
 import { and, eq, gte, isNull } from "drizzle-orm";
 import type { Db } from "../../db/oeffnen.ts";
-import { dienste, dienstPruefungen, dienstVerfuegbarkeit } from "../../db/schema.ts";
+import { dienste, dienstInnen, dienstPruefungen, dienstVerfuegbarkeit } from "../../db/schema.ts";
 import { grundLesen } from "../aussen/lesen.ts";
+import { type Innen, innenVon } from "./innen.ts";
 
 /*
  * Reading observed services (BAULISTE.md Z-1101), always within one operator: the service, its
  * newest check from outside (unknown after three minutes without one, as for an installation) and
- * its availability in the current month from the hourly counts. A removed service is not read.
+ * its availability in the current month from the hourly counts, and on an observed server the
+ * rating of its units inside (Z-1103). A removed service is not read.
  */
 
 export type DienstZeile = typeof dienste.$inferSelect;
@@ -32,6 +37,10 @@ export type Dienst = {
   aussen: AussenStand | null;
   /** The current month up to now */
   verfuegbarkeit: MonatsVerfuegbarkeit;
+  /** What the agent reads inside (Z-1103), null when only checked from outside */
+  innen: Innen | null;
+  /** The rating inside now; null without `innen` */
+  innenStand: BewertungJetzt | null;
 };
 
 /** The event target of a service: its events and faults carry it */
@@ -53,6 +62,27 @@ export const dienstStandLesen = (
   return z
     ? { zustand: z.zustand, grund: grundLesen(z.grund), seit: z.seit, geprueftAm: z.geprueftAm }
     : null;
+};
+
+/** The rating inside as last stored (Z-1103), or null before the first report */
+export const dienstInnenLesen = (
+  db: Db,
+  betreiberId: string,
+  dienstId: string,
+): Bewertungsstand | null => {
+  const z = db
+    .select()
+    .from(dienstInnen)
+    .where(and(eq(dienstInnen.betreiberId, betreiberId), eq(dienstInnen.dienstId, dienstId)))
+    .get();
+  if (!z) return null;
+  const g = JSON.parse(z.grund) as Partial<Bewertungsstand["grund"]>;
+  return {
+    bewertung: z.bewertung,
+    grund: { code: g.code ?? "noch_keine_meldung", werte: g.werte ?? {} },
+    seit: z.seit,
+    gemeldetAm: z.gemeldetAm,
+  };
 };
 
 const monatLesen = (
@@ -83,6 +113,7 @@ const monatLesen = (
 
 const alsDienst = (db: Db, z: DienstZeile, jetzt: number): Dienst => {
   const stand = dienstStandLesen(db, z.betreiberId, z.dienstId);
+  const innen = innenVon(z);
   return {
     id: z.dienstId,
     name: z.name,
@@ -93,6 +124,8 @@ const alsDienst = (db: Db, z: DienstZeile, jetzt: number): Dienst => {
     angelegtAm: z.angelegtAm,
     aussen: stand && aussenJetzt(stand, jetzt),
     verfuegbarkeit: monatLesen(db, z.betreiberId, z.dienstId, jetzt),
+    innen,
+    innenStand: innen && bewertungJetzt(dienstInnenLesen(db, z.betreiberId, z.dienstId), jetzt),
   };
 };
 
@@ -137,3 +170,17 @@ export const dienstLesen = (
 /** Every service to check now, of every operator */
 export const diensteZuPruefen = (db: Db): DienstZeile[] =>
   db.select().from(dienste).where(isNull(dienste.entferntAm)).all();
+
+/** The services not removed whose units the agent of this server reads (Z-1103) */
+export const diensteAufServer = (db: Db, betreiberId: string, serverId: string): DienstZeile[] =>
+  db
+    .select()
+    .from(dienste)
+    .where(
+      and(
+        eq(dienste.betreiberId, betreiberId),
+        eq(dienste.serverId, serverId),
+        isNull(dienste.entferntAm),
+      ),
+    )
+    .all();

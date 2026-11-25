@@ -24,6 +24,7 @@ const aufgebaut = (
   zufall = 0,
   meldungen?: VerbindenDeps["meldungen"],
   auftraege?: VerbindenDeps["auftraege"],
+  beobachten?: VerbindenDeps["beobachten"],
 ) => {
   const uhr = { ms: JETZT };
   const plaene: { wann: number; lauf: () => void; aktiv: boolean }[] = [];
@@ -71,6 +72,7 @@ const aufgebaut = (
       }),
       ...(meldungen ? { meldungen } : {}),
       ...(auftraege ? { auftraege } : {}),
+      ...(beobachten ? { beobachten } : {}),
     },
     "https://agent.example.de",
   );
@@ -392,6 +394,51 @@ describe("jobs (Z-305)", () => {
     erhalten[0]?.senden(JSON.stringify({ typ: "ergebnis" }));
     expect(a.letzte()?.gesendet.at(-1)).toEqual({ typ: "ergebnis" });
     expect(erste?.gesendet.some((n) => n.typ === "ergebnis")).toBe(false);
+  });
+});
+
+describe("observed units (Z-1103)", () => {
+  const beobachten = (dienste: unknown[]) =>
+    JSON.stringify({ typ: "beobachten", protokoll: PROTOKOLL_VERSION, dienste });
+  const dienst = {
+    dienstId: "d1",
+    nutzer: "tristan",
+    units: ["kontext.service"],
+    health: { art: "tcp", port: 5432 },
+  };
+
+  it("hands the list to its keeper, and refuses one with a name off the pattern", async () => {
+    const listen: unknown[] = [];
+    const a = aufgebaut(0, undefined, undefined, (dienste) => {
+      listen.push(dienste);
+      return true;
+    });
+    await a.vergehen(0);
+    a.letzte()?.e.offen();
+    a.willkommen();
+    a.letzte()?.e.nachricht(beobachten([dienst]));
+    for (const falsch of [
+      { ...dienst, units: ["a;reboot.service"] },
+      { ...dienst, units: ["-H.service"] },
+      { ...dienst, nutzer: "a b" },
+      { ...dienst, nutzer: "../root" },
+    ])
+      a.letzte()?.e.nachricht(beobachten([falsch]));
+    await a.vergehen(0);
+    expect(listen).toEqual([[dienst]]);
+    expect(a.zeilen.filter((z) => z.msg === "message refused")).toHaveLength(4);
+  });
+
+  it("logs a list it does not keep: the server is managed", async () => {
+    const a = aufgebaut(0, undefined, undefined, () => false);
+    await a.vergehen(0);
+    a.letzte()?.e.offen();
+    a.willkommen();
+    a.letzte()?.e.nachricht(beobachten([dienst]));
+    await a.vergehen(0);
+    expect(a.zeilen.some((z) => z.msg === "observed units refused: the server is managed")).toBe(
+      true,
+    );
   });
 });
 
