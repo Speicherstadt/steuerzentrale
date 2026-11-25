@@ -87,6 +87,12 @@ export const Fakten = z.object({
     .optional(),
   /** Whether the server's time service says it is synchronised (timedatectl, NTPSynchronized) */
   uhrSynchron: z.boolean().nullable().optional(),
+  // Z-1102, still in protocol 1: optional, an agent before it is a managed server
+  /**
+   * Whether the server is only observed: install.sh set the mode on the server, where the agent
+   * holds it; the Zentrale only learns of it and cannot lift it
+   */
+  nurBeobachten: z.boolean().optional(),
 });
 
 // The ActiveState values of systemd (`systemctl --state=help`; "refreshing" since systemd 257),

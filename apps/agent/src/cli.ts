@@ -62,6 +62,8 @@ export type CliDeps = {
     pfade: Pfade,
     architektur: "amd64" | "arm64",
     vertrauen: Vertrauen,
+    /** Only observed (Z-1102): no job but its own update, and the facts say so */
+    nurBeobachten: boolean,
   ) => void;
   /** Reads the server's facts (src/fakten) */
   fakten: () => Promise<FaktenNachricht>;
@@ -121,7 +123,13 @@ const agentUpdateDeps = (
   jetzt: Date.now,
 });
 
-const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, vertrauen) => {
+const dienstStarten: CliDeps["dienstStarten"] = (
+  zentrale,
+  pfade,
+  architektur,
+  vertrauen,
+  nurBeobachten,
+) => {
   // one record of installations for jobs and checks, so a finished setup is checked at once
   const gedaechtnis = gedaechtnisOeffnen(echteDateien, pfade.installationen, Date.now);
   const nutzer = nutzerAusPasswd(echteHausDateien.lesen);
@@ -129,6 +137,7 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
     dateien: echteDateien,
     pfad: pfade.auftraege,
     vertrauen,
+    nurBeobachten,
     spawn: echtSpawn,
     // 80 and 443, certificates by ACME (docs/plan.md, "Pforte")
     pforte: {
@@ -172,8 +181,10 @@ const dienstStarten: CliDeps["dienstStarten"] = (zentrale, pfade, architektur, v
       pfade,
       architektur,
       meldungen: {
-        fakten: (uhrzeitAbweichungMs) =>
-          faktenLesen(echteQuellen(), { jetzt: Date.now(), uhrzeitAbweichungMs }),
+        fakten: async (uhrzeitAbweichungMs) => ({
+          ...(await faktenLesen(echteQuellen(), { jetzt: Date.now(), uhrzeitAbweichungMs })),
+          ...(nurBeobachten ? { nurBeobachten } : {}),
+        }),
         anmeldungen: (melden) =>
           anmeldungenFolgen({
             folgen: echtFolgen,
@@ -274,12 +285,12 @@ const dienstBefehl = async (deps: CliDeps): Promise<CliResult> => {
   const geprueft = await dienstPruefen(deps.dateien, pfade);
   if (!geprueft.ok)
     return { code: 1, out: JSON.stringify({ msg: "refusing to start", grund: geprueft.grund }) };
-  const { zentrale, serverId, vertrauen } = geprueft.wert;
-  deps.dienstStarten(zentrale, pfade, architektur, vertrauen);
+  const { zentrale, serverId, vertrauen, nurBeobachten } = geprueft.wert;
+  deps.dienstStarten(zentrale, pfade, architektur, vertrauen, nurBeobachten);
   return {
     code: 0,
     bleiben: true,
-    out: JSON.stringify({ msg: "ready", version: VERSION, zentrale, serverId }),
+    out: JSON.stringify({ msg: "ready", version: VERSION, zentrale, serverId, nurBeobachten }),
   };
 };
 

@@ -150,7 +150,7 @@ describe("a server as the pages show it (Z-304)", () => {
         demo.ramGb,
         demo.platte,
         demo.kernel,
-        demo.podman,
+        demo.podman || null,
         demo.sicherheitsupdates,
         demo.uhrAbweichungMs,
       ]);

@@ -10,7 +10,8 @@ import { artText, StandWorte } from "./server-zustand.tsx";
 /*
  * The head of a server's page (docs/plan.md, "Server und Kunden (Oberfläche 2026-11)"), like an
  * app's: its icon, its name and kind, its state in one sentence with its first address and
- * operating system, and "Neu starten" for the roles that may (Z-701).
+ * operating system, and "Neu starten" for the roles that may (Z-701); a server only observed
+ * (Z-1102) is marked so and offers no reboot.
  */
 
 export const ServerKopf = (props: {
@@ -32,6 +33,14 @@ export const ServerKopf = (props: {
               · {artText(props.a.art)}
             </span>
           </Show>
+          <Show when={props.a.nurBeobachten}>
+            <span
+              class="self-center rounded-md border px-1.5 py-0.5 text-xs text-muted-foreground"
+              title={m.server_nur_beobachten_text()}
+            >
+              {m.server_nur_beobachten()}
+            </span>
+          </Show>
         </div>
         <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
           <StandWorte stand={serverStand(props.b, props.a)} jetzt={props.b.jetzt} satz />
@@ -44,6 +53,8 @@ export const ServerKopf = (props: {
         </p>
       </div>
     </div>
-    <NeustartKnopf a={props.a} neu={() => props.neu()} />
+    <Show when={!props.a.nurBeobachten}>
+      <NeustartKnopf a={props.a} neu={() => props.neu()} />
+    </Show>
   </div>
 );

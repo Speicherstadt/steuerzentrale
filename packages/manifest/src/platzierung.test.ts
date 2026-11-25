@@ -44,6 +44,7 @@ const anfrage = (aenderung: Aenderung = {}): PlatzAnfrage => ({
     art: "gemeinsam",
     kundeId: null,
     agentVerbunden: true,
+    nurBeobachten: false,
     architektur: "amd64",
     ramMb: 4096,
     platteFreiMb: 100 * 1024,
@@ -414,6 +415,12 @@ describe("placement", () => {
         container: [{ name: "app", image: { noch_nicht_veroeffentlicht: "Soll" } }],
       });
       expect(codes(anfrage({ manifest: soll })).gruende).toEqual(["kein_image"]);
+    });
+    it("passt nicht on a server that is only observed (Z-1102), whatever else fits", () => {
+      expect(codes(anfrage({ server: { nurBeobachten: true } }))).toMatchObject({
+        art: "passt_nicht",
+        gruende: ["nur_beobachten"],
+      });
     });
     it("refuses an option the manifest does not know", () => {
       expect(codes(anfrage({ optionen: ["gibts-nicht"] })).gruende).toEqual(["unbekannte_option"]);

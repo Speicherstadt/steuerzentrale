@@ -23,7 +23,8 @@ import { letzteHeartbeats, serverAnlegen, serverFakten } from "../modules/server
  * state, result) and the events of the server, for the test of the agent's update (Z-504).
  * `neustart` names the newest job `server_neustart` (state, result, when it ended), the boot id
  * and "reboot needed" of the newest facts and when they came, the last heartbeat and the events of
- * the server, for the test of the reboot (Z-701).
+ * the server, for the test of the reboot (Z-701), and whether the facts say the server is only
+ * observed (Z-1102).
  *
  * It reads the Zentrale's environment (STEUERZENTRALE_DATA, _SECRET_KEY, _URL, _AGENT_URL).
  */
@@ -133,7 +134,13 @@ if (befehl === "anlegen") {
   console.log(
     JSON.stringify({
       neustart: neustart ?? null,
-      fakten: f ? { bootId: f.bootId, neustartNoetig: f.neustartNoetig } : null,
+      fakten: f
+        ? {
+            bootId: f.bootId,
+            neustartNoetig: f.neustartNoetig,
+            nurBeobachten: f.nurBeobachten ?? false,
+          }
+        : null,
       faktenAm: zeile?.faktenAm ?? null,
       letzterHeartbeat: letzteHeartbeats(db, BETREIBER, wert).get(wert) ?? null,
       ereignisse: arten,

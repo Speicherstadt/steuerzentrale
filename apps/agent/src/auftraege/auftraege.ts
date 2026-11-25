@@ -1,4 +1,4 @@
-import { AGENT_BINARY } from "@steuerzentrale/manifest";
+import { AGENT_BINARY, imBeobachtenErlaubt } from "@steuerzentrale/manifest";
 import {
   Bestaetigt,
   Ergebnis as ErgebnisNachricht,
@@ -101,6 +101,11 @@ export type AuftraegeDeps = {
   neustarten?: () => void;
   /** The reboot of the server (Z-701), without in tests that do not need it */
   neustart?: NeustartDeps;
+  /**
+   * The server is only observed (Z-1102, install.sh's file `nur-beobachten`): every job but the
+   * agent's own update is refused before it is checked
+   */
+  nurBeobachten?: boolean;
 };
 
 export type Auftraege = {
@@ -115,6 +120,9 @@ export type Auftraege = {
 };
 
 export const NEU_GESTARTET = "Agent neu gestartet";
+
+/** The answer to a job that would change a server that is only observed (Z-1102) */
+export const NUR_BEOBACHTET = "abgelehnt: der Server wird nur beobachtet";
 
 /** The longest error text a result carries (packages/protokoll, `ergebnis`) */
 const MAX_FEHLER = 2000;
@@ -345,6 +353,9 @@ export const auftraegeAnnehmen = (deps: AuftraegeDeps): Auftraege => {
     if (bekannt?.zustand === "fertig") return ergebnisSenden(n.auftragId, bekannt.ergebnis, senden);
     senden(bestaetigt(n.auftragId));
     if (laufend.has(n.auftragId)) return;
+    // the mode is the agent's own: whatever the Zentrale sends, it changes nothing (Z-1102)
+    if (deps.nurBeobachten && !imBeobachtenErlaubt(n.aktion))
+      return abschliessen(stand, n.auftragId, { ok: false, fehler: NUR_BEOBACHTET }, senden);
     const geprueft = auftragPruefen(n, deps.vertrauen);
     if (!geprueft.ok)
       return abschliessen(

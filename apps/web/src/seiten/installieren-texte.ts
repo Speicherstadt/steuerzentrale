@@ -67,6 +67,7 @@ const GRUENDE: Record<string, (werte: Werte) => string> = {
   braucht_dienst: (x) => m.platz_braucht_dienst({ dienst: w(x, "dienst") }),
   betreiberwert_fehlt: (x) => m.platz_betreiberwert_fehlt({ name: w(x, "name") }),
   fakten_fehlen: (x) => m.platz_fakten_fehlen({ fakten: w(x, "fakten") }),
+  nur_beobachten: () => m.platz_nur_beobachten(),
   installation_unlesbar: (x) =>
     m.platz_installation_unlesbar({ installation: w(x, "installation") }),
 };

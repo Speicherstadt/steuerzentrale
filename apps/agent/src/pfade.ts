@@ -10,6 +10,8 @@ export const ZUSTAND = "/var/lib/steuerzentrale";
 export type Pfade = {
   manifestSchluessel: string;
   einstellungen: string;
+  /** Present: the server is only observed (Z-1102); install.sh sets it, nothing of the Zentrale */
+  nurBeobachten: string;
   schluessel: string;
   zertifikat: string;
   ca: string;
@@ -31,6 +33,7 @@ export type Pfade = {
 export const pfadeIn = (konfig = KONFIG, zustand = ZUSTAND): Pfade => ({
   manifestSchluessel: join(konfig, "manifest.pub"),
   einstellungen: join(konfig, "agent.json"),
+  nurBeobachten: join(konfig, "nur-beobachten"),
   schluessel: join(zustand, "agent.key"),
   zertifikat: join(zustand, "agent.pem"),
   ca: join(zustand, "ca.pem"),

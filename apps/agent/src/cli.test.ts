@@ -133,7 +133,34 @@ describe("agent command line", () => {
         expect.objectContaining({ zertifikat: "/var/lib/steuerzentrale/agent.pem" }),
         "amd64",
         { schluessel: expect.objectContaining({ id: TEST_SCHLUESSEL_ID }), zweck: "test" },
+        false,
       ],
+    ]);
+  });
+
+  it("starts only observing where install.sh left the mode's file (Z-1102)", async () => {
+    const pem = (art: string) => `-----BEGIN ${art}-----\nAAAA\n-----END ${art}-----\n`;
+    const d = deps();
+    d.dateien = speicher({
+      "/etc/steuerzentrale/manifest.pub": TEST_PUB,
+      "/etc/steuerzentrale/agent.json": JSON.stringify({
+        zentrale: "https://agent.example.de",
+        serverId: "srv-1",
+        testmodus: true,
+      }),
+      "/etc/steuerzentrale/nur-beobachten": "nur-beobachten\n",
+      "/var/lib/steuerzentrale/agent.key": pem("PRIVATE KEY"),
+      "/var/lib/steuerzentrale/agent.pem": pem("CERTIFICATE"),
+      "/var/lib/steuerzentrale/ca.pem": pem("CERTIFICATE"),
+    }).dateien;
+    const ergebnis = await runCli(["dienst"], d);
+    expect(JSON.parse(ergebnis.out)).toMatchObject({ msg: "ready", nurBeobachten: true });
+    expect(d.gestartet[0]).toEqual([
+      expect.any(String),
+      expect.anything(),
+      "amd64",
+      expect.anything(),
+      true,
     ]);
   });
 

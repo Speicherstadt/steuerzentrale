@@ -104,6 +104,7 @@ const STATUS: Record<string, 404 | 409 | 422> = {
   kein_server: 404,
   nicht_beigetreten: 409,
   server_gesperrt: 409,
+  nur_beobachten: 409,
   unbekannt: 409,
   auftrag_offen: 409,
   backup_fehlt: 409,

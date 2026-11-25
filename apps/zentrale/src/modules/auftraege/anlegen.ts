@@ -21,6 +21,7 @@ import {
   type Einrichtung,
   einrichtungAuftragPruefen,
   INSTALLATIONS_NAME,
+  imBeobachtenErlaubt,
   istAbwicklungAktion,
   istAktionsAuftrag,
   istBackupAktion,
@@ -50,7 +51,7 @@ import {
 } from "@steuerzentrale/manifest";
 import type { AuftragZustand } from "@steuerzentrale/protokoll";
 import { type Kontext, type Schreiber, schreiben } from "../audit/index.ts";
-import { serverLesen } from "../server/index.ts";
+import { nurBeobachtet, serverLesen } from "../server/index.ts";
 import { startzustand, zyklusIn } from "./abhaengigkeiten.ts";
 import { type Auftrag, auftragLesen, vorgaengerVon, zustaendeLesen } from "./lesen.ts";
 import { type AuftragDeps, auftragNachricht, zustellen } from "./zustellen.ts";
@@ -101,6 +102,7 @@ export type NeuerAuftrag = {
 export type AnlageFehler =
   | "server_unbekannt"
   | "server_gesperrt"
+  | "nur_beobachten"
   | "manifest_ungueltig"
   | "aktion_unbekannt"
   | "argumente_ungueltig"
@@ -259,6 +261,9 @@ export const auftragVorbereiten = (
   const server = serverLesen(deps.db, betreiberId, neu.serverId);
   if (!server) return { ok: false, grund: "server_unbekannt" };
   if (server.gesperrtAm !== null) return { ok: false, grund: "server_gesperrt" };
+  // a server only observed takes no job that changes it, its agent's update aside (Z-1102)
+  if (nurBeobachtet(server) && !imBeobachtenErlaubt(neu.aktion))
+    return { ok: false, grund: "nur_beobachten" };
   const geprueft = kennung(neu);
   if (!geprueft.ok) return geprueft;
   const auftragId = neu.auftragId ?? randomUUID();

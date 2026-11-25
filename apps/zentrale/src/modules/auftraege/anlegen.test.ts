@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { auditLog, auftraege } from "../../db/schema.ts";
 import { auftragsUmgebung, MANIFEST, neuerAuftrag } from "../../testhilfen/auftraege.ts";
+import { FAKTEN } from "../../testhilfen/installationen.ts";
 import { schreiben } from "../audit/index.ts";
 import { zyklusIn } from "./abhaengigkeiten.ts";
 import { auftragAnlegen } from "./anlegen.ts";
@@ -112,6 +113,23 @@ describe("a new job", () => {
     expect(auftragAnlegen(u.deps, u.kontext("b1"), neuerAuftrag("s1", teil))).toMatchObject({
       ok: false,
       grund,
+    });
+    expect(u.db.select().from(auftraege).all()).toEqual([]);
+  });
+
+  it("is refused on a server that is only observed (Z-1102), and nothing is written", () => {
+    const u = auftragsUmgebung();
+    u.betreiber("b1", "s1");
+    schreiben(u.schreibDb, u.kontext("b1"), "test", (w) =>
+      w.aendern(
+        "server",
+        { serverId: "s1" },
+        { fakten: JSON.stringify({ ...FAKTEN, nurBeobachten: true }), faktenAm: 1 },
+      ),
+    );
+    expect(auftragAnlegen(u.deps, u.kontext("b1"), neuerAuftrag("s1"))).toEqual({
+      ok: false,
+      grund: "nur_beobachten",
     });
     expect(u.db.select().from(auftraege).all()).toEqual([]);
   });

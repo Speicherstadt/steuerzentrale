@@ -530,7 +530,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   Empfänger (Test); ein entfernter Dienst wird nicht mehr geprüft, seine Messwerte und Ereignisse
   bleiben bis zur Aufbewahrungsfrist (Test); kein Betreiber sieht oder ändert den Dienst eines
   anderen (Test je Endpunkt); schreiben darf nur der Inhaber (Test je Rolle).
-- [ ] **Z-1102 Server nur beobachten** – `install.sh --nur-beobachten` für einen Server, auf dem
+- [x] **Z-1102 Server nur beobachten** – `install.sh --nur-beobachten` für einen Server, auf dem
   schon etwas läuft: nur der Agent kommt dazu. Kein Podman, keine Pforte, kein Nutzer `sz-pforte`,
   kein `ip_unprivileged_port_start`, keine Delegation der cgroup-Controller, keine Änderung an
   unattended-upgrades. Der Agent meldet Heartbeat, Fakten, Prüfungen (Z-702) und SSH-Anmeldungen. Den
@@ -544,6 +544,11 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   jeden ändernden Auftrag ablehnt, auch wenn die Zentrale ihn schickt (Test je Auftragsart); die
   Platzierung ihn mit Grund ablehnt (Test); die Prüfung „offene Ports, die kein Manifest nennt“ auf
   ihm nichts meldet (Test).
+  Geschärft: den Modus hält die Datei `/etc/steuerzentrale/nur-beobachten`; ein zweiter Lauf von
+  `install.sh` ohne den Schalter behält ihn, ein schon verwalteter Server wird nicht umgestellt
+  (Abbruch, nichts geändert, Test); `install.sh --nur-beobachten` installiert kein Paket und
+  bricht ab, wenn `minisign`, `curl` oder `sha256sum` fehlen (Test); der Agent meldet den Modus mit
+  den Fakten, und erlaubt ist ihm im Modus nur `agent_update` (Test je Auftragsart).
   Sicherheitsrelevant: `install.sh`, was der Agent ausführt.
 - [ ] **Z-1103 Vorhandene Units beobachten** – zu einem beobachteten Dienst auf einem beobachteten
   Server nennt der Betreiber den Linux-Nutzer (oder das System), die systemd-Units und auf Wunsch

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, onTestFinished } from "vitest";
@@ -192,5 +192,165 @@ describe("install.sh makes the Pforte's user (Z-401)", () => {
     const lauf = pforte(true, "runner:100000:65536\n");
     expect(lauf.code).toBe(1);
     expect(lauf.fehler).toContain("sz-pforte has no subordinate ids");
+  });
+});
+
+// BAULISTE.md Z-1102: with --nur-beobachten the script only adds the agent. Every step that
+// changes the server is a shell function here that logs its name; the paths point into a
+// temporary directory, so main runs whole without root. The whole script runs in CI's VMs.
+describe("install.sh --nur-beobachten (Z-1102)", () => {
+  const TOKEN = "einmal-token-1234567890";
+  const SCHRITTE = [
+    "schluessel_pruefen",
+    "system_pruefen",
+    "uhrzeit_pruefen",
+    "pakete_installieren",
+    "delegation_einrichten",
+    "werkzeuge_pruefen",
+    "server_einrichten",
+    "pforte_einrichten",
+    "beitreten",
+    "dienst_einrichten",
+  ];
+
+  const lauf = (args: string[], vorher: Record<string, string> = {}) => {
+    const ordner = mkdtempSync(join(tmpdir(), "sz-test-install-"));
+    onTestFinished(() => rmSync(ordner, { recursive: true, force: true }));
+    for (const [pfad, inhalt] of Object.entries(vorher)) {
+      Bun.spawnSync(["mkdir", "-p", join(ordner, pfad, "..")]);
+      writeFileSync(join(ordner, pfad), inhalt);
+    }
+    const log = join(ordner, "log");
+    const stubs = SCHRITTE.map((s) => `${s}() { echo ${s} >>"$LOG"; }`).join("\n");
+    const ergebnis = shell(
+      `LOG="$1"; O="$2"; shift 2
+       KONFIG="$O/etc"; ZUSTAND="$O/var"; BINARY="$O/agent"; ARCH=x64
+       ${stubs}
+       manifest_schluessel_ablegen() { :; }
+       agent_laden() { echo binary >"$1/steuerzentrale-agent-linux-x64"; }
+       agent_pruefen() { :; }
+       main "$@"`,
+      log,
+      ordner,
+      ...args,
+    );
+    let schritte: string[] = [];
+    try {
+      schritte = readFileSync(log, "utf8").trim().split("\n");
+    } catch {
+      // nothing ran
+    }
+    const modus = () => {
+      try {
+        return readFileSync(join(ordner, "etc/nur-beobachten"), "utf8");
+      } catch {
+        return null;
+      }
+    };
+    return { ...ergebnis, schritte, modus: modus() };
+  };
+
+  it("installs no package, sets no sysctl, makes no Pforte and leaves the mode", () => {
+    const r = lauf(["--token", TOKEN, "--nur-beobachten"]);
+    expect(r.code, r.fehler).toBe(0);
+    expect(r.schritte).toEqual([
+      "schluessel_pruefen",
+      "system_pruefen",
+      "werkzeuge_pruefen",
+      "uhrzeit_pruefen",
+      "beitreten",
+      "dienst_einrichten",
+    ]);
+    expect(r.modus).toBe("nur-beobachten\n");
+  });
+
+  it("sets up a managed server as before, without the mode", () => {
+    const r = lauf(["--token", TOKEN]);
+    expect(r.code, r.fehler).toBe(0);
+    expect(r.schritte).toEqual([
+      "schluessel_pruefen",
+      "system_pruefen",
+      "uhrzeit_pruefen",
+      "pakete_installieren",
+      "delegation_einrichten",
+      "server_einrichten",
+      "pforte_einrichten",
+      "beitreten",
+      "dienst_einrichten",
+    ]);
+    expect(r.modus).toBeNull();
+  });
+
+  it("keeps the mode when it runs again without the switch", () => {
+    const r = lauf(["--token", TOKEN], { "etc/nur-beobachten": "nur-beobachten\n" });
+    expect(r.code, r.fehler).toBe(0);
+    expect(r.schritte).not.toContain("pakete_installieren");
+    expect(r.schritte).not.toContain("pforte_einrichten");
+    expect(r.modus).toBe("nur-beobachten\n");
+  });
+
+  it("does not switch a server that joined as a managed one, and changes nothing", () => {
+    const r = lauf(["--token", TOKEN, "--nur-beobachten"], {
+      "var/agent.pem": "-----BEGIN CERTIFICATE-----\n",
+      "etc/agent.json": "{}",
+    });
+    expect(r.code).toBe(1);
+    expect(r.fehler).toContain("joined as a managed one");
+    expect(r.schritte).toEqual([]);
+    expect(r.modus).toBeNull();
+  });
+
+  // docs/server-hinzufuegen.md, "Server nur beobachten": a missing tool stops the script before it
+  // changed anything, so neither /etc/steuerzentrale nor the manifest key are there afterwards
+  it("changes nothing when a tool is missing: the check comes before the first write", () => {
+    const ordner = mkdtempSync(join(tmpdir(), "sz-test-install-"));
+    onTestFinished(() => rmSync(ordner, { recursive: true, force: true }));
+    // a PATH with what main needs up to the check, and without minisign
+    const bin = join(ordner, "bin");
+    Bun.spawnSync(["mkdir", "-p", bin]);
+    for (const werkzeug of [
+      "install",
+      "mkdir",
+      "grep",
+      "sed",
+      "mktemp",
+      "rm",
+      "curl",
+      "sha256sum",
+    ]) {
+      const pfad = Bun.which(werkzeug);
+      if (pfad) Bun.spawnSync(["ln", "-s", pfad, join(bin, werkzeug)]);
+    }
+    const log = join(ordner, "log");
+    const r = shell(
+      `LOG="$1"; O="$2"; PATH="$3"; shift 3
+       KONFIG="$O/etc"; ZUSTAND="$O/var"; BINARY="$O/agent"; ARCH=x64
+       schluessel_pruefen() { :; }
+       system_pruefen() { :; }
+       uhrzeit_pruefen() { echo uhrzeit_pruefen >>"$LOG"; }
+       manifest_schluessel_ablegen() { echo manifest_schluessel_ablegen >>"$LOG"; }
+       main "$@"`,
+      log,
+      ordner,
+      bin,
+      "--token",
+      TOKEN,
+      "--nur-beobachten",
+    );
+    expect(r.code).toBe(1);
+    expect(r.fehler).toContain("installs no package; install first: minisign");
+    expect(existsSync(log) ? readFileSync(log, "utf8") : "").toBe("");
+    expect(existsSync(join(ordner, "etc"))).toBe(false);
+  });
+
+  it("stops when minisign, curl or sha256sum are missing, as it installs none", () => {
+    const ordner = mkdtempSync(join(tmpdir(), "sz-test-install-"));
+    onTestFinished(() => rmSync(ordner, { recursive: true, force: true }));
+    const curl = Bun.which("curl");
+    if (curl) Bun.spawnSync(["ln", "-s", curl, join(ordner, "curl")]);
+    const r = shell('PATH="$1"; werkzeuge_pruefen', ordner);
+    expect(r.code).toBe(1);
+    expect(r.fehler).toContain("installs no package; install first: minisign");
+    expect(r.fehler).toContain("sha256sum");
   });
 });

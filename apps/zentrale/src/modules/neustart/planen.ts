@@ -7,7 +7,7 @@ import { auftraege, betreiber, server } from "../../db/schema.ts";
 import { schreiben } from "../audit/index.ts";
 import type { Planer } from "../aufbewahrung/index.ts";
 import type { AuftragDeps } from "../auftraege/zustellen.ts";
-import { serverFakten } from "../server/index.ts";
+import { nurBeobachtet, serverFakten } from "../server/index.ts";
 import { neustartAnlegen } from "./anlegen.ts";
 import { neustartFortschreiben } from "./ende.ts";
 import { neustartServer } from "./lage.ts";
@@ -103,6 +103,8 @@ export const neustartsPlanen = (deps: AuftragDeps): NeustartRunde => {
     .all()) {
     runde.abgebrochen.push(...verpassteAbbrechen(deps, betreiberId, jetzt));
     for (const s of beigetretene(deps.db, betreiberId)) {
+      // a server only observed is not rebooted by the Zentrale (Z-1102)
+      if (nurBeobachtet(s)) continue;
       if (neustartPruefen(neustartServer(deps.db, verbunden, s), jetzt).art !== "jetzt") continue;
       const kontext = { betreiberId, akteur: VON_DER_PLANUNG, jetzt, grund: grundFuer(s) };
       const r = neustartAnlegen(deps, kontext, s.serverId);

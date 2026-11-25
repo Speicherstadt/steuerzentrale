@@ -23,6 +23,13 @@ const text = (root: HTMLElement, id: string) =>
   root.querySelector(`[data-testid="${id}"]`)?.textContent ?? "";
 
 describe("the page Server", () => {
+  it("marks a server that is only observed and offers no reboot there (Z-1102)", async () => {
+    const { root } = await oeffne("/server/bestand");
+    await warten();
+    expect(root.querySelector("main h1")?.parentElement?.textContent).toContain("nur beobachtet");
+    expect(knopf(root, "Neu starten")).toBeUndefined();
+  });
+
   it("lists every server in one table, what needs attention first, each row a link", async () => {
     const { root } = await oeffne("/server");
     await warten();
@@ -33,6 +40,7 @@ describe("the page Server", () => {
       "/server/kraft",
       "/server/shared-2",
       "/server/holm",
+      "/server/bestand",
       "/server/shared-1",
     ]);
     expect(zeilen[0]?.textContent).toContain("Studio Lindeigener Server eines Kunden");

@@ -60,6 +60,7 @@ describe("facts → PlatzServer", () => {
       art: "gemeinsam",
       kundeId: null,
       agentVerbunden: true,
+      nurBeobachten: false,
       architektur: "amd64",
       ramMb: 8192,
       platteFreiMb: 40960,
@@ -69,6 +70,11 @@ describe("facts → PlatzServer", () => {
       port25Ausgehend: false,
       portsBelegt: [{ port: 443, proto: "tcp" }],
     });
+  });
+
+  it("takes the mode of a server that is only observed from the facts (Z-1102)", () => {
+    const f = serverFakten(ZEILE);
+    expect(platz(f ? { ...f, nurBeobachten: true } : null)?.nurBeobachten).toBe(true);
   });
 
   it("reads the disk that holds the installations' home directories", () => {
