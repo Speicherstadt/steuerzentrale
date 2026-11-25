@@ -31,7 +31,6 @@ const DURCH: Record<Importiert["durch"], () => string> = {
   mitglied: () => m.apps_importiert_mitglied(),
   befehl: () => m.apps_importiert_befehl(),
   uebernommen: () => m.apps_importiert_uebernommen(),
-  anderer_betreiber: () => m.apps_importiert_anderer(),
 };
 
 const ZustandsZelle = (props: { v: AppVersion }) => (

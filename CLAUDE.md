@@ -208,11 +208,10 @@ behaviour.
 - The Zentrale has three hostnames: the UI only over WireGuard, `agent.<domain>` (mTLS per server)
   and `api.<domain>` (tokens for the Portal). DNS records are set by the Zentrale through the
   Cloudflare API, never by a server.
-- A partner is another operator (`betreiber`) in the same Zentrale, with its own servers, S3 target,
-  app values and brand; there is no partner role.
+- The Zentrale has exactly one operator (`betreiber`) and one Agent-CA; a second operator is refused.
 - Every table with an operator's data carries `betreiber_id` (exempt: manifests, Better Auth's
   tables); every query filters by it; a test per endpoint proves that no
-  operator or partner sees another's data. Writes go through one function that appends to the
+  operator sees another's data. Writes go through one function that appends to the
   audit log in the same transaction.
 - Secrets: encrypted columns with the key from `STEUERZENTRALE_SECRET_KEY` (32 bytes, base64); the
   Zentrale refuses to start without it. Agent certificates are stored as fingerprints, API tokens

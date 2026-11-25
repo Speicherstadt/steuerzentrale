@@ -15,7 +15,7 @@ export type VersionsZustand = "verfuegbar" | "manifest_fehlt";
 /** Who imported a manifest, as the operator may see it */
 export type Importiert = {
   am: number;
-  durch: "mitglied" | "befehl" | "uebernommen" | "anderer_betreiber";
+  durch: "mitglied" | "befehl" | "uebernommen";
   nutzerId?: string;
 };
 

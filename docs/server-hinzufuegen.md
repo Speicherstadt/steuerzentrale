@@ -140,7 +140,7 @@ kommen.
 
 TLS beendet Caddy, die Pforte auf dem Server der Zentrale. Auf `agent.<domain>` prüft sie ein
 Client-Zertifikat, wenn eines kommt (`install.sh` und der Token-Tausch kommen ohne), gegen die
-Agent-CAs der Betreiber und gibt seinen SHA-256-Fingerabdruck an die Zentrale auf `127.0.0.1`
+Agent-CA des Betreibers und gibt seinen SHA-256-Fingerabdruck an die Zentrale auf `127.0.0.1`
 weiter. Auf allen anderen Hostnamen löscht sie den Header, damit niemand einen Fingerabdruck
 erfinden kann. Die Zentrale glaubt ihn nur vom Loopback:
 

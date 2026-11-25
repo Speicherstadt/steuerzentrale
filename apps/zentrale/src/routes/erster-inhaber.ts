@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { betreiber } from "../db/schema.ts";
 import {
   einrichtungOffen,
   einrichtungscodeEinloesen,
@@ -15,16 +16,20 @@ const ersterInhaberSchema = kontoSchema
 
 type Inhaber = { betreiber: string; name: string; email: string; passwort?: string | undefined };
 
+/** The Zentrale has exactly one operator (BAULISTE.md Z-1208); a second is never made */
+const betreiberVorhanden = (deps: RoutenDeps): boolean =>
+  deps.db.select({ id: betreiber.betreiberId }).from(betreiber).limit(1).get() !== undefined;
+
 /**
- * An operator with its organization and first owner, signed in: Better Auth makes account,
+ * The one operator with its organization and first owner, signed in: Better Auth makes account,
  * organization and membership, `schreiben` the operator row and the mirror of the membership.
- * Partners (BAULISTE.md, phase 8) will come in the same way.
  */
 export const betreiberEinrichten = async (
   deps: RoutenDeps,
   betreiberId: string,
   angaben: Inhaber,
 ) => {
+  if (betreiberVorhanden(deps)) return { ok: false as const, grund: "betreiber_vorhanden" };
   const konto = await deps.auth.kontoAnlegen({
     email: angaben.email,
     name: angaben.name,
@@ -54,6 +59,8 @@ export const ersterInhaberRouten = (route: Registrar, deps: RoutenDeps): void =>
     const angaben = await eingabe(c, ersterInhaberSchema);
     if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
     if (!einrichtungOffen(deps.db)) return c.json({ fehler: "abgeschlossen" }, 409);
+    // checked before the code is used up, like the address below
+    if (betreiberVorhanden(deps)) return c.json({ fehler: "betreiber_vorhanden" }, 409);
     // checked before the code is used up, so a taken address does not cost the code
     if (await deps.auth.emailVergeben(angaben.email))
       return c.json({ fehler: "email_vergeben" }, 409);

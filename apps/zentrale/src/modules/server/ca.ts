@@ -5,10 +5,10 @@ import { schreiben } from "../audit/index.ts";
 import { geheimnisLesen, geheimnisSetzen } from "../geheim/index.ts";
 
 /*
- * The CA that issues the agents' client certificates (docs/plan.md, "TLS und Zertifikate"), one per
- * operator: its key lies encrypted in `geheimnisse` like every other secret of the operator (rotated
- * with the key, recorded in the audit log only as changed), and a partner's servers never hold a
- * certificate of another operator's CA. The Pforte of the Zentrale trusts the CA certificates.
+ * The Agent-CA that issues the agents' client certificates (docs/plan.md, "TLS und Zertifikate"),
+ * the one operator's (Z-1208): its key lies encrypted in `geheimnisse` like every other secret of the
+ * operator (rotated with the key, recorded in the audit log only as changed). The Pforte of the
+ * Zentrale trusts exactly this CA.
  */
 export const CA_GEHEIMNIS = "agent-ca";
 export const ALGORITHMUS = { name: "ECDSA", namedCurve: "P-256", hash: "SHA-256" } as const;
