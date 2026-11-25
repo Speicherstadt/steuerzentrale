@@ -6,7 +6,11 @@ import { faktorenVon, zweiterFaktorVorhanden } from "../modules/anmeldung/faktor
 import { nurFuerMich } from "../modules/betriebsart/index.ts";
 import { mitgliedschaftenVon, mitgliedVon } from "../modules/mitglieder/index.ts";
 import { serverZumFingerabdruck } from "../modules/server/index.ts";
-import { agentFingerabdruck, FINGERABDRUCK_HEADER } from "../modules/verbindung/herkunft.ts";
+import {
+  agentFingerabdruck,
+  durchCloudflare,
+  FINGERABDRUCK_HEADER,
+} from "../modules/verbindung/herkunft.ts";
 
 /**
  * Who calls, for which operator, in which role: set by the guard for every route with a right; for
@@ -213,6 +217,7 @@ const agentWache =
     const fingerabdruck = agentFingerabdruck(
       socketAdresse(c.req.raw, c.env),
       c.req.header(FINGERABDRUCK_HEADER),
+      durchCloudflare(c.req.raw.headers),
     );
     const gefunden = fingerabdruck ? serverZumFingerabdruck(db, fingerabdruck) : undefined;
     if (!fingerabdruck || !gefunden) return c.json({ fehler: "kein_zertifikat" }, 401);

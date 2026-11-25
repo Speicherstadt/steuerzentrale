@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Schluesselbund } from "./db/schluessel.ts";
+import { teamGueltig } from "./modules/access/index.ts";
 import { CLOUDFLARE_API } from "./modules/dns/cloudflare.ts";
 import { type Schluessel, schluesselAus } from "./modules/geheim/verschluesseln.ts";
 
@@ -90,26 +91,51 @@ const registryFeld = z
   });
 
 /** The settings of the Zentrale from the environment; dev uses port 18300 (CLAUDE.md, "Working rules") */
-const EnvSchema = z.object({
-  STEUERZENTRALE_PORT: z.coerce.number().int().min(1).max(65535).default(8300),
-  STEUERZENTRALE_HOST: z.string().min(1).default("127.0.0.1"),
-  STEUERZENTRALE_DATA: z.string().min(1).default("data"),
-  STEUERZENTRALE_URL: urlFeld,
-  STEUERZENTRALE_AGENT_URL: agentUrlFeld,
-  // The install script, the agent binaries and their signed checksums (scripts/agent-dateien.ts)
-  STEUERZENTRALE_AGENT_DATEIEN: z.string().min(1).optional(),
-  // The built interface (apps/web/dist); the image of the Zentrale sets it (Z-1004)
-  STEUERZENTRALE_WEB: z.string().min(1).optional(),
-  STEUERZENTRALE_SECRET_KEY: schluesselFeld("STEUERZENTRALE_SECRET_KEY"),
-  // The previous key, only while rotating (`steuerzentrale schluessel-rotieren`)
-  STEUERZENTRALE_SECRET_KEY_ALT: schluesselFeld("STEUERZENTRALE_SECRET_KEY_ALT").optional(),
-  STEUERZENTRALE_CLOUDFLARE_API: cloudflareFeld,
-  STEUERZENTRALE_REGISTRY_HTTP: registryFeld,
-  // The check from outside (Z-704); `aus` only where the hosts are made up (e2e)
-  STEUERZENTRALE_AUSSEN_PRUEFUNG: z
-    .enum(["an", "aus"], { error: "STEUERZENTRALE_AUSSEN_PRUEFUNG must be an or aus" })
-    .default("an"),
-});
+const EnvSchema = z
+  .object({
+    STEUERZENTRALE_PORT: z.coerce.number().int().min(1).max(65535).default(8300),
+    STEUERZENTRALE_HOST: z.string().min(1).default("127.0.0.1"),
+    STEUERZENTRALE_DATA: z.string().min(1).default("data"),
+    STEUERZENTRALE_URL: urlFeld,
+    STEUERZENTRALE_AGENT_URL: agentUrlFeld,
+    // The install script, the agent binaries and their signed checksums (scripts/agent-dateien.ts)
+    STEUERZENTRALE_AGENT_DATEIEN: z.string().min(1).optional(),
+    // The built interface (apps/web/dist); the image of the Zentrale sets it (Z-1004)
+    STEUERZENTRALE_WEB: z.string().min(1).optional(),
+    STEUERZENTRALE_SECRET_KEY: schluesselFeld("STEUERZENTRALE_SECRET_KEY"),
+    // The previous key, only while rotating (`steuerzentrale schluessel-rotieren`)
+    STEUERZENTRALE_SECRET_KEY_ALT: schluesselFeld("STEUERZENTRALE_SECRET_KEY_ALT").optional(),
+    STEUERZENTRALE_CLOUDFLARE_API: cloudflareFeld,
+    STEUERZENTRALE_REGISTRY_HTTP: registryFeld,
+    // The check from outside (Z-704); `aus` only where the hosts are made up (e2e)
+    STEUERZENTRALE_AUSSEN_PRUEFUNG: z
+      .enum(["an", "aus"], { error: "STEUERZENTRALE_AUSSEN_PRUEFUNG must be an or aus" })
+      .default("an"),
+    // The interface through a Cloudflare Tunnel (Z-1104): the team name and the application's AUD tag
+    STEUERZENTRALE_ACCESS_TEAM: z
+      .string()
+      .refine(teamGueltig, {
+        error: "STEUERZENTRALE_ACCESS_TEAM must be the team name alone, e.g. teufel",
+      })
+      .optional(),
+    STEUERZENTRALE_ACCESS_AUD: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/, {
+        error: "STEUERZENTRALE_ACCESS_AUD must be the application's AUD tag (64 hex digits)",
+      })
+      .optional(),
+  })
+  .superRefine((e, ctx) => {
+    const team = e.STEUERZENTRALE_ACCESS_TEAM !== undefined;
+    const aud = e.STEUERZENTRALE_ACCESS_AUD !== undefined;
+    if (team === aud) return;
+    const fehlt = team ? "STEUERZENTRALE_ACCESS_AUD" : "STEUERZENTRALE_ACCESS_TEAM";
+    ctx.addIssue({
+      code: "custom",
+      path: [fehlt],
+      message: `${fehlt} is missing: Cloudflare Access needs STEUERZENTRALE_ACCESS_TEAM and STEUERZENTRALE_ACCESS_AUD together`,
+    });
+  });
 
 /** `dataDir` holds the database `zentrale.db`; created on the first start */
 export type Env = {
@@ -129,6 +155,8 @@ export type Env = {
   registryHttp: string | undefined;
   /** Whether the Zentrale checks the installations' public addresses (Z-704) */
   aussenPruefung: boolean;
+  /** Cloudflare Access in front of the interface (Z-1104); unset: WireGuard as before */
+  access: { team: string; aud: string } | undefined;
 };
 
 export const parseEnv = (env: Record<string, string | undefined>): Env => {
@@ -146,5 +174,9 @@ export const parseEnv = (env: Record<string, string | undefined>): Env => {
     cloudflareApi: parsed.STEUERZENTRALE_CLOUDFLARE_API,
     registryHttp: parsed.STEUERZENTRALE_REGISTRY_HTTP,
     aussenPruefung: parsed.STEUERZENTRALE_AUSSEN_PRUEFUNG === "an",
+    access:
+      parsed.STEUERZENTRALE_ACCESS_TEAM && parsed.STEUERZENTRALE_ACCESS_AUD
+        ? { team: parsed.STEUERZENTRALE_ACCESS_TEAM, aud: parsed.STEUERZENTRALE_ACCESS_AUD }
+        : undefined,
   };
 };
