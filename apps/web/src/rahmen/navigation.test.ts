@@ -59,7 +59,7 @@ describe("navigation", () => {
   it("shows the object below its area on a detail page", () => {
     expect(pfadStufen(demo, "/server/shared-1")).toEqual([
       { name: "Server", pfad: "/server" },
-      { name: "Gemeinsamer Server 1" },
+      { name: "Server 1" },
     ]);
     expect(pfadStufen(demo, "/apps/lind-haben")).toEqual([
       { name: "Apps", pfad: "/apps" },

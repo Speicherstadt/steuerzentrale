@@ -75,7 +75,7 @@ describe("the dialog Installieren", () => {
     expect(dialog().textContent).not.toContain("Manifest (manifest.yml)");
     expect(dialog().textContent).toContain("Manifest probe 1.0.0");
     expect(platzierung()).toContain("Passt");
-    expect(platzierung()).toContain("probe auf Gemeinsamer Server 1");
+    expect(platzierung()).toContain("probe auf Server 1");
     expect(feld<HTMLInputElement>("PROBE_KENNWORT").type).toBe("password");
     expect(feld<HTMLInputElement>("PROBE_KENNWORT").required).toBe(true);
     expect(feld<HTMLInputElement>("PROBE_LIMIT").type).toBe("number");

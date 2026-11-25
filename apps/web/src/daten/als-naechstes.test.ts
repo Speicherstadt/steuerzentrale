@@ -112,7 +112,7 @@ describe("alsNaechstes", () => {
         ...LEER,
         server: [
           server("shared-2", {
-            name: "Gemeinsamer Server 2",
+            name: "Server 2",
             kernel: { laeuft: "6.12.41", installiert: "6.12.48" },
             neustartStand: {
               noetig: true,
@@ -138,7 +138,7 @@ describe("alsNaechstes", () => {
         zeit: samstag,
         warn: false,
         serverId: "shared-2",
-        name: "Gemeinsamer Server 2",
+        name: "Server 2",
         kernel: "6.12.48",
       },
     ]);

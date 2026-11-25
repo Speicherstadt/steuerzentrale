@@ -94,7 +94,7 @@ const objektName = (b: Bestand, bereich: Pfad, id: string): string | undefined =
 
 /**
  * The path in the header: the area, and on a detail page or a page below the area the object or
- * page below it ("Server › Gemeinsamer Server 1", "Apps › Backups"); only the last step is
+ * page below it ("Server › Server 1", "Apps › Backups"); only the last step is
  * not a link
  */
 export const pfadStufen = (b: Bestand, pathname: string): Stufe[] => {

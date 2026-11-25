@@ -40,7 +40,7 @@ describe("the page Server", () => {
       "/server/bestand",
       "/server/shared-1",
     ]);
-    expect(zeilen[0]?.textContent).toContain("Studio Lind");
+    expect(zeilen[0]?.textContent).toContain("Server 3");
     expect(zeilen[0]?.textContent).not.toContain("eigener Server eines Kunden");
     expect(zeilen[0]?.textContent).toContain("Platte fast voll");
     expect(zeilen[0]?.textContent).toContain("91 %");
@@ -56,7 +56,7 @@ describe("the page Server", () => {
 describe("the page of a server", () => {
   it("heads with its name, no kind (Z-1205), its state in a sentence and its tabs in the URL", async () => {
     const { root, router } = await oeffne("/server/shared-1");
-    expect(root.querySelector("main h1")?.textContent).toBe("Gemeinsamer Server 1");
+    expect(root.querySelector("main h1")?.textContent).toBe("Server 1");
     expect(root.querySelector("main")?.textContent).not.toContain("für mehrere Kunden");
     expect(root.textContent).toContain("Verbunden, alles in Ordnung");
     expect(root.textContent).toContain("203.0.113.11");
