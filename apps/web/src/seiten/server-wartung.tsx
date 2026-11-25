@@ -21,7 +21,7 @@ import { MitInstallationsRecht } from "./recht.tsx";
  * The maintenance of a server (BAULISTE.md Z-701; mockup, server page "Wartung" and "Neustart
  * planen"): its operating system as the agent reports it (unattended-upgrades, pending packages,
  * "Neustart nötig", since when it runs), its maintenance window and the freeze windows of its apps,
- * what the plan decides for its reboot and how the last one ended; owner and technik (the roles
+ * what the plan decides for its reboot and how the last one ended; the owner (the roles
  * with `server:neustart`, the same as for installations) reboot it by hand with a reason.
  */
 

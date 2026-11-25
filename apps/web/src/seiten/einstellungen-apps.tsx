@@ -15,7 +15,7 @@ import { MitInstallationsRecht } from "./recht.tsx";
  * The section "Werte für Apps" of the settings (BAULISTE.md Z-404; the approved mockup
  * "Einstellungen"): the operator's values of each app it has installations of and whose newest
  * manifest has values of the operator, one app at a time, as a form from that manifest, saved with
- * one reason by owner and technik; support sees them read-only. A secret shows only as set. A new
+ * one reason by the owner; a member sees them read-only. A secret shows only as set. A new
  * value reaches a running installation with "Einstellungen ändern" on its page, not by itself.
  */
 

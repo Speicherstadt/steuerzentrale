@@ -18,7 +18,7 @@ type Antwort = { status: number; daten: Record<string, unknown> };
 
 let server: TestServer;
 let teufel: Person;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 
 const json = async (p: Pick<Person, "json">, pfad: string) => (await p.json(pfad)) as Antwort;
@@ -46,7 +46,7 @@ const ausListe = async (p: Pick<Person, "json">, installationId: string) => {
 beforeAll(async () => {
   server = testServer(afterAll);
   teufel = await server.inhaber();
-  support = await server.eingeladen(teufel, "support");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   kundeUndServer(server.schreibDb, teufel.betreiberId, ["s1"]);
   kundeUndServer(server.schreibDb, partner.betreiberId, ["s1"]);
@@ -66,8 +66,8 @@ describe("the state of an installation over the API", () => {
       gemeldetAm: start + 30_000,
       units: [{ name: "probe-zstand-app.service", aktiv: "failed" }],
     };
-    expect(await ausListe(support, "probe-zstand")).toMatchObject({ health });
-    expect((await json(support, "/api/v1/installationen/probe-zstand")).daten).toMatchObject({
+    expect(await ausListe(mitglied, "probe-zstand")).toMatchObject({ health });
+    expect((await json(mitglied, "/api/v1/installationen/probe-zstand")).daten).toMatchObject({
       health,
       verlauf: [
         { zeitpunkt: start + 30_000, bewertung: "gelb", grund: health.grund },

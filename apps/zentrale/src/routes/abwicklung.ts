@@ -7,7 +7,7 @@ import type { Registrar } from "./zugang.ts";
 /*
  * After the contract's end (BAULISTE.md Z-604; docs/plan.md, "Kündigung und Löschung"): where an
  * installation stands (phase, deadlines, archive, deletion log) for every role, and the link to the
- * archive for the customer, made with a reason for owner and technik and shown once: the answer
+ * archive for the customer, made with a reason for the owner and shown once: the answer
  * is the only place it appears, it is never stored and never logged (the request log has the path
  * only). An installation of another operator is unknown.
  */

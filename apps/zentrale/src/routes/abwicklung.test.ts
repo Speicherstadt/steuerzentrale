@@ -7,7 +7,7 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
  * BAULISTE.md Z-604 over HTTP: every role reads where an installation stands after its contract;
- * the link to the archive only owner and technik with a reason, refused while there is no archive;
+ * the link to the archive only owner and inhaber2 with a reason, refused while there is no archive;
  * no operator reaches another's installation (a test per endpoint). The link itself, its time and
  * its refusal afterwards are tested in modules/abwicklung against the stand-in of MinIO.
  */
@@ -16,8 +16,8 @@ type Antwort = { status: number; daten: Record<string, unknown> };
 
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 let id = "";
 const agent: Record<string, unknown>[] = [];
@@ -34,8 +34,8 @@ const link = (p: Pick<Person, "json">, body: Record<string, unknown> = { grund: 
 beforeAll(async () => {
   server = testServer(afterAll);
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   const kundeId = await kundeAnlegen(json, teufel);
   const serverId = await serverMitAgent(server, json, teufel, agent);
@@ -51,7 +51,7 @@ beforeAll(async () => {
 
 describe("after the contract's end over HTTP", () => {
   it("shows every role where the installation stands", async () => {
-    for (const p of [teufel, technik, support]) {
+    for (const p of [teufel, inhaber2, mitglied]) {
       const r = await json(p, `/api/v1/installationen/${id}/abwicklung`);
       expect(r).toMatchObject({
         status: 200,
@@ -60,10 +60,10 @@ describe("after the contract's end over HTTP", () => {
     }
   });
 
-  it("lets owner and technik ask for a link with a reason, none without an archive", async () => {
+  it("lets owner and inhaber2 ask for a link with a reason, none without an archive", async () => {
     expect((await link(teufel)).daten).toEqual({ fehler: "kein_archiv" });
-    expect((await link(technik)).status).toBe(409);
-    expect((await link(support)).status).toBe(403);
+    expect((await link(inhaber2)).status).toBe(409);
+    expect((await link(mitglied)).status).toBe(403);
     expect((await link(teufel, {})).status).toBe(400);
   });
 

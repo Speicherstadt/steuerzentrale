@@ -79,7 +79,7 @@ gekündigten Kunden:
    dem eigenen S3-Zugang der Installation neben ihr Repository (`<präfix>archiv/`). Ohne
    eingerichtetes Backup gibt es kein Archiv. Scheitert es, versucht die Zentrale es später wieder
    und meldet `archiv_gescheitert` (Schwere `fehler`).
-2. **30 Tage lang** erzeugen Inhaber und Technik auf der Seite der App (Reiter „Backups“,
+2. **30 Tage lang** erzeugt der Inhaber auf der Seite der App (Reiter „Backups“,
    Karte „Vertragsende“) mit Grund einen **Link für den Kunden**: je Datei ein vorsignierter
    S3-Link, signiert mit dem Zugang der Installation, gültig höchstens 7 Tage und nie über die 30
    Tage hinaus. Er erscheint nur in dieser Antwort; die Zentrale speichert ihn nicht und schreibt ihn
@@ -122,11 +122,11 @@ Jede schreibende Aktion fragt nach dem Grund („Vertrag vom 20.11.“, „Künd
 
 ## Rollen
 
-| Recht | Inhaber | Technik | Support |
-| --- | --- | --- | --- |
-| Kunden und Verträge sehen | ja | ja | ja |
-| Kunden anlegen, ändern, kündigen, Kündigung zurücknehmen | ja | ja | – |
-| Kunden als intern markieren | ja | – | – |
+| Recht | Inhaber | Mitglied |
+| --- | --- | --- |
+| Kunden und Verträge sehen | ja | ja |
+| Kunden anlegen, ändern, kündigen, Kündigung zurücknehmen | ja | – |
+| Kunden als intern markieren | ja | – |
 
 Jeder Betreiber sieht nur seine eigenen Kunden; eine fremde ID antwortet wie eine unbekannte mit
 `404`.
@@ -139,13 +139,13 @@ Jede schreibende Route verlangt `grund` im Körper.
 | --- | --- | --- |
 | `GET /api/v1/kunden` | alle Rollen | – |
 | `GET /api/v1/kunden/:kundeId` | alle Rollen | – |
-| `POST /api/v1/kunden` | Inhaber, Technik | `name`, `kontakt` (`name`, `email`, `telefon`?), `notiz`?, `kuerzel`?, `vertrag` (`beginn`), `grund`; ohne `kuerzel` schlägt die Zentrale eines vor |
-| `PUT /api/v1/kunden/:kundeId` | Inhaber, Technik | `name`, `kontakt`, `notiz`?, `kuerzel`?, `beginn`, `grund`; ersetzt die Angaben, ein fehlendes Feld mit `?` wird leer, ein fehlendes `kuerzel` bleibt |
-| `PUT /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `ende`, `grund` |
-| `DELETE /api/v1/kunden/:kundeId/kuendigung` | Inhaber, Technik | `grund` |
+| `POST /api/v1/kunden` | Inhaber | `name`, `kontakt` (`name`, `email`, `telefon`?), `notiz`?, `kuerzel`?, `vertrag` (`beginn`), `grund`; ohne `kuerzel` schlägt die Zentrale eines vor |
+| `PUT /api/v1/kunden/:kundeId` | Inhaber | `name`, `kontakt`, `notiz`?, `kuerzel`?, `beginn`, `grund`; ersetzt die Angaben, ein fehlendes Feld mit `?` wird leer, ein fehlendes `kuerzel` bleibt |
+| `PUT /api/v1/kunden/:kundeId/kuendigung` | Inhaber | `ende`, `grund` |
+| `DELETE /api/v1/kunden/:kundeId/kuendigung` | Inhaber | `grund` |
 | `PUT /api/v1/kunden/:kundeId/intern` | Inhaber | `intern` (`true` oder `false`), `grund` |
 | `GET /api/v1/installationen/:installationId/abwicklung` | alle Rollen | – |
-| `POST /api/v1/installationen/:installationId/archiv-link` | Inhaber, Technik | `grund` |
+| `POST /api/v1/installationen/:installationId/archiv-link` | Inhaber | `grund` |
 
 `GET …/abwicklung` nennt `phase` (`laeuft`, `nur_lesen`, `wartet`, `loeschen`), `vertragsende`,
 `nurLesenBis`, `loeschenAb`, `schritt` (`archiv`, `warten`, `loeschen`, `repository`, `zugang`,

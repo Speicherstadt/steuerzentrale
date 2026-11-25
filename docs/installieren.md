@@ -100,7 +100,7 @@ die Löschung 90 Tage nach dem Vertragsende (`installation_loeschen`, nach einem
 
 Den Knopf **App installieren** zeigen die Seite **Apps**, die Seite eines Kunden, dessen Vertrag
 nicht gekündigt ist, und im **Katalog** jede App mit einem importierten Manifest („Installieren“ auf
-ihrer Kachel und auf ihrer Seite), nur den Rollen Inhaber und Technik. Der Dialog fragt:
+ihrer Kachel und auf ihrer Seite), nur dem Inhaber. Der Dialog fragt:
 
 - **Kunde** (von der Kundenseite aus schon gewählt; in der Betriebsart „Nur für mich“ gar nicht) und
   **Server**; gesperrte Server und Kunden nach Vertragsende stehen nicht zur Wahl;
@@ -173,7 +173,7 @@ Die Reiter stehen in der Adresse (`?tab=`):
 
 ## API
 
-Alle Rollen lesen, Inhaber und Technik schreiben. Jede schreibende Route verlangt einen `grund`, der
+Beide Rollen lesen, der Inhaber schreibt; Neustart und Log-Auszug dürfen beide ([Aktionen](aktionen.md)). Jede schreibende Route verlangt einen `grund`, der
 ins Audit-Log geht.
 
 | Route | Körper | Antwort |

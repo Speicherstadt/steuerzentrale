@@ -13,7 +13,7 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 /*
  * BAULISTE.md Z-404 over HTTP: the operator's values of an app (read, written, and added in the
  * dialog "App installieren" in the installation's transaction) and "Einstellungen ändern" of an
- * installation. Every role reads, owner and technik write with a reason; no operator reaches
+ * installation. Every role reads, owner and inhaber2 write with a reason; no operator reaches
  * another's settings (a test per endpoint); no answer, audit entry or database byte holds a secret.
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
@@ -25,8 +25,8 @@ const PARTNER_LIZENZ = "lizenz-des-partners-aus-dem-dialog-77ab90";
 
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 let kundeId: string;
 let serverId: string;
@@ -75,8 +75,8 @@ const einstellungen = (id: string) => `/api/v1/installationen/${id}/einstellunge
 beforeAll(async () => {
   server = testServer(afterAll);
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   kundeId = await kundeAnlegen(json, teufel);
   serverId = await serverMitAgent(server, json, teufel, []);
@@ -84,7 +84,7 @@ beforeAll(async () => {
 
 describe("the operator's values of an app", () => {
   it("have no form before a manifest of the app is imported (Z-501)", async () => {
-    expect(await json(support, APP)).toEqual({ status: 404, daten: { fehler: "kein_manifest" } });
+    expect(await json(mitglied, APP)).toEqual({ status: 404, daten: { fehler: "kein_manifest" } });
     expect(
       await json(teufel, APP, { method: "PUT", body: { werte: {}, grund: "erste Werte" } }),
     ).toEqual({ status: 404, daten: { fehler: "kein_manifest" } });
@@ -108,7 +108,7 @@ describe("the operator's values of an app", () => {
       daten: { fehler: "einstellung_ungueltig", detail: "PROBE_LIZENZ: a value of another type" },
     });
     expect(server.db.select().from(appEinstellungen).all()).toEqual([]);
-    const mit = await json(technik, "/api/v1/installationen", {
+    const mit = await json(inhaber2, "/api/v1/installationen", {
       body: neu("mit.kanzlei.test", { betreiberWerte: { PROBE_LIZENZ: LIZENZ } }),
     });
     expect(mit.status).toBe(201);
@@ -123,7 +123,7 @@ describe("the operator's values of an app", () => {
   });
 
   it("show a secret only as set, with the form of the newest manifest", async () => {
-    expect(await json(support, APP)).toEqual({
+    expect(await json(mitglied, APP)).toEqual({
       status: 200,
       daten: {
         app: "probe",
@@ -144,8 +144,8 @@ describe("the operator's values of an app", () => {
     });
   });
 
-  it("are changed by owner and technik with a reason; an empty secret keeps its value", async () => {
-    const leer = await json(technik, APP, {
+  it("are changed by owner and inhaber2 with a reason; an empty secret keeps its value", async () => {
+    const leer = await json(inhaber2, APP, {
       method: "PUT",
       body: { werte: { PROBE_LIZENZ: "" }, grund: "nur speichern" },
     });
@@ -180,9 +180,9 @@ describe("the operator's values of an app", () => {
     });
   });
 
-  it("need a reason, and are not changed by support", async () => {
+  it("need a reason, and are not changed by mitglied", async () => {
     expect((await json(teufel, APP, { method: "PUT", body: { werte: {} } })).status).toBe(400);
-    expect(await json(support, APP, { method: "PUT", body: { werte: {}, grund: "x" } })).toEqual({
+    expect(await json(mitglied, APP, { method: "PUT", body: { werte: {}, grund: "x" } })).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
@@ -201,7 +201,7 @@ describe("changing an installation's settings", () => {
 
   it("makes the job to configure it anew, and refuses another while it is open", async () => {
     eingerichtet(teufel.betreiberId, laufend);
-    const seite = await json(technik, einstellungen(laufend), {
+    const seite = await json(inhaber2, einstellungen(laufend), {
       method: "PUT",
       body: {
         einstellungen: { PROBE_TITEL: "Süd", PROBE_KENNWORT: NEUES_KENNWORT },
@@ -224,13 +224,13 @@ describe("changing an installation's settings", () => {
     ).toEqual({ status: 409, daten: { fehler: "auftrag_offen" } });
   });
 
-  it("needs a reason and values of the form, and is not done by support", async () => {
+  it("needs a reason and values of the form, and is not done by mitglied", async () => {
     const pfad = einstellungen(laufend);
     expect((await json(teufel, pfad, { method: "PUT", body: { einstellungen: {} } })).status).toBe(
       400,
     );
     expect(
-      await json(support, pfad, { method: "PUT", body: { einstellungen: {}, grund: "x" } }),
+      await json(mitglied, pfad, { method: "PUT", body: { einstellungen: {}, grund: "x" } }),
     ).toEqual({ status: 403, daten: { fehler: "keine_berechtigung" } });
   });
 });

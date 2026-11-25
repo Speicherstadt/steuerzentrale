@@ -14,7 +14,7 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
  * BAULISTE.md Z-402 over HTTP: the placement as the dialog's preview, making, listing, reading and
- * removing installations. Every role reads, owner and technik write; no operator reaches another's
+ * removing installations. Every role reads, owner and inhaber2 write; no operator reaches another's
  * installations (a test per endpoint); no answer carries a secret. Their state (Z-403) is tested in
  * installationen-zustand.test.ts.
  */
@@ -23,8 +23,8 @@ type Antwort = { status: number; daten: Record<string, unknown> };
 
 let server: TestServer;
 let teufel: Person;
-let technik: Awaited<ReturnType<TestServer["eingeladen"]>>;
-let support: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let inhaber2: Awaited<ReturnType<TestServer["eingeladen"]>>;
+let mitglied: Awaited<ReturnType<TestServer["eingeladen"]>>;
 let partner: Person;
 let kundeId: string;
 let serverId: string;
@@ -105,8 +105,8 @@ const zustandSetzen = (betreiberId: string, installationId: string, zustand: "ge
 beforeAll(async () => {
   server = testServer(afterAll);
   teufel = await server.inhaber();
-  technik = await server.eingeladen(teufel, "technik");
-  support = await server.eingeladen(teufel, "support");
+  inhaber2 = await server.eingeladen(teufel, "inhaber");
+  mitglied = await server.eingeladen(teufel, "mitglied");
   partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
   kundeId = await kundeAnlegen(json, teufel);
   serverId = await serverMitAgent(teufel, agent);
@@ -117,7 +117,7 @@ beforeAll(async () => {
 describe("the placement", () => {
   it("answers whether the app fits, writing nothing", async () => {
     const vorher = server.db.select().from(auditLog).all().length;
-    expect(await json(support, "/api/v1/installationen/platzierung", { body: wunsch() })).toEqual({
+    expect(await json(mitglied, "/api/v1/installationen/platzierung", { body: wunsch() })).toEqual({
       status: 200,
       daten: { platzierung: { art: "passt", hinweise: [] } },
     });
@@ -167,7 +167,7 @@ describe("the placement", () => {
 
 describe("an installation over the API", () => {
   it("is made with a reason, listed and read with its jobs", async () => {
-    const i = await anlegen(technik, "liste.kanzlei.example");
+    const i = await anlegen(inhaber2, "liste.kanzlei.example");
     expect(i).toEqual({
       installationId: expect.stringMatching(/^probe-[a-z0-9]{6}$/),
       kundeId,
@@ -188,13 +188,13 @@ describe("an installation over the API", () => {
         gemeldetAm: null,
         units: [],
       },
-      angelegtVon: technik.nutzerId,
+      angelegtVon: inhaber2.nutzerId,
       angelegtAm: server.jetzt(),
       geaendertAm: server.jetzt(),
     });
-    const { daten: liste } = await json(support, "/api/v1/installationen");
+    const { daten: liste } = await json(mitglied, "/api/v1/installationen");
     expect(liste.installationen).toContainEqual(i);
-    const { daten: eine } = await json(support, `/api/v1/installationen/${i.installationId}`);
+    const { daten: eine } = await json(mitglied, `/api/v1/installationen/${i.installationId}`);
     expect(eine).toMatchObject({
       ...i,
       auftraege: [
@@ -210,7 +210,7 @@ describe("an installation over the API", () => {
       .find((e) => e.ziel === `installationen:${i.installationId}`);
     expect(eintrag).toMatchObject({
       aktion: "installation.anlegen",
-      akteur: technik.nutzerId,
+      akteur: inhaber2.nutzerId,
       grund: "Auftrag vom 20.11.",
     });
   });
@@ -263,7 +263,7 @@ describe("an installation over the API", () => {
       daten: { fehler: "nicht_gescheitert" },
     });
     zustandSetzen(teufel.betreiberId, i.installationId, "gescheitert");
-    const { status, daten } = await json(technik, pfad, {
+    const { status, daten } = await json(inhaber2, pfad, {
       method: "DELETE",
       body: { grund: "weg" },
     });
@@ -275,9 +275,9 @@ describe("an installation over the API", () => {
     });
   });
 
-  it("is not made or removed by support", async () => {
+  it("is not made or removed by mitglied", async () => {
     expect(
-      await json(support, "/api/v1/installationen", { body: neu("support.kanzlei.example") }),
+      await json(mitglied, "/api/v1/installationen", { body: neu("mitglied.kanzlei.example") }),
     ).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
@@ -285,7 +285,7 @@ describe("an installation over the API", () => {
     const i = await anlegen(teufel, "support2.kanzlei.example");
     zustandSetzen(teufel.betreiberId, i.installationId, "gescheitert");
     expect(
-      await json(support, `/api/v1/installationen/${i.installationId}`, {
+      await json(mitglied, `/api/v1/installationen/${i.installationId}`, {
         method: "DELETE",
         body: { grund: "weg" },
       }),

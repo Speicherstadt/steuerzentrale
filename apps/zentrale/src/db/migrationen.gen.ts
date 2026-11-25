@@ -103,5 +103,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0025_ohne_support_zugaenge",
     "sql": "DROP TABLE `support_zugaenge`;"
+  },
+  {
+    "tag": "0026_zwei_rollen",
+    "sql": "-- Z-1204: two roles. technik becomes inhaber, support becomes mitglied, in the Zentrale's mirror,\n-- in Better Auth's member and in open invitations of both.\nUPDATE `mitglieder` SET `rolle` = 'inhaber' WHERE `rolle` = 'technik';--> statement-breakpoint\nUPDATE `mitglieder` SET `rolle` = 'mitglied' WHERE `rolle` = 'support';--> statement-breakpoint\nUPDATE `member` SET `role` = 'inhaber' WHERE `role` = 'technik';--> statement-breakpoint\nUPDATE `member` SET `role` = 'mitglied' WHERE `role` = 'support';--> statement-breakpoint\nUPDATE `einladungen` SET `rolle` = 'inhaber' WHERE `rolle` = 'technik';--> statement-breakpoint\nUPDATE `einladungen` SET `rolle` = 'mitglied' WHERE `rolle` = 'support';--> statement-breakpoint\nUPDATE `invitation` SET `role` = 'inhaber' WHERE `role` = 'technik';--> statement-breakpoint\nUPDATE `invitation` SET `role` = 'mitglied' WHERE `role` = 'support';\n"
   }
 ];

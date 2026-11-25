@@ -23,7 +23,7 @@ const anfrage = (name: RoutenName) => {
   const ohneKoerper = methode === "GET" || methode === "DELETE";
   return {
     pfad: pfad.replace(/:\w+/g, "gibt-es-nicht").replace("*", "get-session"),
-    init: { method: methode, ...(ohneKoerper ? {} : { body: { rolle: "support" } }) },
+    init: { method: methode, ...(ohneKoerper ? {} : { body: { rolle: "mitglied" } }) },
   };
 };
 
@@ -35,8 +35,7 @@ beforeAll(async () => {
   server = testServer(afterAll);
   const inhaber = await server.inhaber();
   personen.inhaber = inhaber;
-  personen.technik = await server.eingeladen(inhaber, "technik");
-  personen.support = await server.eingeladen(inhaber, "support");
+  personen.mitglied = await server.eingeladen(inhaber, "mitglied");
 }, 60_000);
 
 describe("the list of routes", () => {
@@ -71,6 +70,41 @@ describe.each(MIT_RECHT)("%s", (name) => {
     const { pfad, init } = anfrage(name);
     const { status } = await server.browser().json(pfad, init);
     expect(status).toBe(401);
+  });
+});
+
+/*
+ * BAULISTE.md Z-1204: a member changes nothing but restarts an installation and takes its log
+ * excerpt. Every route that writes answers it 403, whatever rollen.ts says; the dialog's placement
+ * preview is a POST that only reads.
+ */
+const MITGLIED_DARF = [
+  "POST /api/v1/installationen/:installationId/neustart",
+  "POST /api/v1/installationen/:installationId/log-auszug",
+  "POST /api/v1/installationen/platzierung",
+];
+
+describe("a member", () => {
+  it.each(
+    NAMEN.filter(
+      (name) =>
+        ROUTEN[name].art === "recht" && !name.startsWith("GET ") && !MITGLIED_DARF.includes(name),
+    ),
+  )("is refused %s", async (name) => {
+    const { pfad, init } = anfrage(name);
+    const { status, daten } = await personen.mitglied.json(pfad, init);
+    expect({ status, daten }).toEqual({ status: 403, daten: { fehler: "keine_berechtigung" } });
+  });
+
+  it.each(MITGLIED_DARF)("reaches %s", (name) => {
+    expect(rollenFuer(ROUTEN[name as RoutenName])).toContain("mitglied");
+  });
+
+  it("reads every GET route but the open invitations", () => {
+    for (const name of NAMEN.filter((n) => ROUTEN[n].art === "recht" && n.startsWith("GET ")))
+      expect(rollenFuer(ROUTEN[name]).includes("mitglied"), name).toBe(
+        name !== "GET /api/v1/einladungen",
+      );
   });
 });
 

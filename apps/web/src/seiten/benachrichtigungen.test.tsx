@@ -9,9 +9,9 @@ import { aufraeumen, dialog, eintragen, feld, knopf, oeffne, warten } from "./te
 
 /*
  * BAULISTE.md Z-703: the settings' tab "Benachrichtigungen" against the demo source, which answers
- * as the Zentrale's API: owner and technik set mail server and quiet hours with a reason, add a
- * webhook whose key is made in the browser and shown only before saving, send a test and remove a
- * recipient with a reason; support only reads. No password or key shows after saving.
+ * as the Zentrale's API: the owner sets mail server and quiet hours with a reason, adds a
+ * webhook whose key is made in the browser and shown only before saving, sends a test and removes a
+ * recipient with a reason; a member only reads. No password or key shows after saving.
  */
 const rolle = (r: Rolle) =>
   rollenQuelleEinsetzen(async () => ({ ok: true, status: 200, daten: r }));
@@ -19,7 +19,7 @@ const rolle = (r: Rolle) =>
 beforeEach(() => {
   setLocale("de", { reload: false });
   benachrichtigungsQuelleEinsetzen(demoBenachrichtigungen());
-  rolle("technik");
+  rolle("inhaber");
 });
 afterEach(aufraeumen);
 
@@ -59,8 +59,8 @@ describe("mail server and quiet hours", () => {
     expect(root.textContent).not.toContain("neues-passwort-4711");
   });
 
-  it("are only read by support, without any form or button that changes", async () => {
-    rolle("support");
+  it("are only read by a member, without any form or button that changes", async () => {
+    rolle("mitglied");
     const root = await tab();
     const k = karte(root, "Benachrichtigungen");
     expect(k.querySelector("form")).toBeNull();
@@ -137,7 +137,7 @@ describe("recipients", () => {
     benachrichtigungsQuelleEinsetzen(
       demoBenachrichtigungen({ ...demoStart(), smtp: null, empfaenger: [], zustellungen: [] }),
     );
-    rolle("support");
+    rolle("mitglied");
     const root = await tab();
     expect(root.textContent).toContain("keiner, nur Webhooks");
     expect(root.textContent).toContain("Noch keine Empfänger.");

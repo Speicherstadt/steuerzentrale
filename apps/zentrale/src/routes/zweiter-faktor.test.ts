@@ -31,7 +31,7 @@ describe("an account without a second factor", () => {
       const { methode, pfad } = anfrageFuer(name);
       const { status, daten } = await inhaber.json(pfad, {
         method: methode,
-        ...(methode === "GET" || methode === "DELETE" ? {} : { body: { rolle: "technik" } }),
+        ...(methode === "GET" || methode === "DELETE" ? {} : { body: { rolle: "inhaber" } }),
       });
       expect([status, daten], name).toEqual([403, { fehler: "zweiter_faktor_fehlt" }]);
     }

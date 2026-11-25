@@ -17,7 +17,7 @@ const zwei = async () => {
 };
 
 const einladungVon = async (person: Person) => {
-  const { daten } = await person.json("/api/v1/einladungen", { body: { rolle: "technik" } });
+  const { daten } = await person.json("/api/v1/einladungen", { body: { rolle: "inhaber" } });
   return daten as { einladungId: string; link: string };
 };
 
@@ -44,9 +44,9 @@ describe("no operator reaches another's data", () => {
   it("PATCH and DELETE /api/v1/mitglieder/:nutzerId do not touch another's member", async () => {
     const { server, teufel, partner } = await zwei();
     const pfad = `/api/v1/mitglieder/${teufel.nutzerId}`;
-    expect((await partner.json(pfad, { method: "PATCH", body: { rolle: "support" } })).status).toBe(
-      404,
-    );
+    expect(
+      (await partner.json(pfad, { method: "PATCH", body: { rolle: "mitglied" } })).status,
+    ).toBe(404);
     expect((await partner.json(pfad, { method: "DELETE" })).status).toBe(404);
     expect(server.db.select().from(mitglieder).all()).toContainEqual(
       expect.objectContaining({

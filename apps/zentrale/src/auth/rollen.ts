@@ -8,8 +8,10 @@ import { defaultStatements } from "better-auth/plugins/organization/access";
  * every route of the Zentrale names the right it needs (src/routes/zugang.ts), checked here.
  * Better Auth's own statements stay empty for every role: its organization routes are closed
  * (src/auth/auth.ts), memberships change only through the Zentrale's routes and the audit log.
+ * Two roles since Z-1204 (docs/plan.md, "Rollen (Z-1204)"): the owner may do everything; a member
+ * sees everything and restarts an installation or takes its log excerpt, nothing else.
  */
-export const ROLLEN = ["inhaber", "technik", "support"] as const;
+export const ROLLEN = ["inhaber", "mitglied"] as const;
 
 export type Rolle = (typeof ROLLEN)[number];
 
@@ -23,8 +25,9 @@ const ANWEISUNGEN = {
   // neustart: the reboot of a server by hand (Z-701)
   server: ["anlegen", "lesen", "sperren", "neustart"],
   // log_auszug: the lines of an installation's journal (Z-405), customer data; sperrzeit: an
-  // update by hand in a freeze window of the app (Z-503)
-  installationen: ["lesen", "schreiben", "log_auszug", "sperrzeit"],
+  // update by hand in a freeze window of the app (Z-503); neustart: the restart of an installation
+  // (Z-405), which a member may do since Z-1204
+  installationen: ["lesen", "schreiben", "neustart", "log_auszug", "sperrzeit"],
   // the audit log (Z-406): who changed what, with the content of each change
   audit: ["lesen"],
   // the operator's domain, zone and Cloudflare token (Z-407); the token itself is never read back
@@ -33,10 +36,10 @@ const ANWEISUNGEN = {
   // read back; writing sets the target and starts "Backup jetzt"
   backups: ["lesen", "schreiben"],
   // the imported manifests and the registries' versions (Z-501): every role reads; importing a
-  // signed manifest and asking the registries now is for owner and technik
+  // signed manifest and asking the registries now is for the owner
   manifeste: ["lesen", "importieren", "abfragen"],
   // notifications (Z-703): every role sees mail server, quiet hours, recipients and deliveries,
-  // never the SMTP password or a webhook's URL and key; owner and technik change them and test
+  // never the SMTP password or a webhook's URL and key; the owner changes them and test
   benachrichtigungen: ["lesen", "schreiben"],
 } as const;
 
@@ -58,40 +61,24 @@ export const ROLLEN_ZUGRIFF = {
     mitglieder: ["lesen", "einladen", "rolle", "entfernen"],
     kunden: ["lesen", "schreiben", "intern"],
     server: ["anlegen", "lesen", "sperren", "neustart"],
-    installationen: ["lesen", "schreiben", "log_auszug", "sperrzeit"],
+    installationen: ["lesen", "schreiben", "neustart", "log_auszug", "sperrzeit"],
     audit: ["lesen"],
     dns: ["lesen", "schreiben"],
     backups: ["lesen", "schreiben"],
     manifeste: ["lesen", "importieren", "abfragen"],
     benachrichtigungen: ["lesen", "schreiben"],
   }),
-  // servers, installations and updates (later items); sees who else works on the operator; takes
-  // on customers and their contracts, which installing an app starts from (docs/plan.md, "Kunden")
-  technik: zugriff.newRole({
-    ...KEINE_RECHTE_IN_BETTER_AUTH,
-    betreiber: ["lesen"],
-    mitglieder: ["lesen"],
-    kunden: ["lesen", "schreiben"],
-    server: ["anlegen", "lesen", "sperren", "neustart"],
-    installationen: ["lesen", "schreiben", "log_auszug"],
-    audit: ["lesen"],
-    dns: ["lesen", "schreiben"],
-    backups: ["lesen", "schreiben"],
-    manifeste: ["lesen", "importieren", "abfragen"],
-    benachrichtigungen: ["lesen", "schreiben"],
-  }),
-  // support for customers; sees who else works on the operator, whom it helps, the servers and
-  // installations they run on, but changes no customer, contract, server or installation; reads
-  // jobs and events, not the audit log (docs/plan.md, "Echte Daten (Z-406)"); takes no log excerpt and
-  // restarts nothing, since support accesses are gone (Z-1203)
-  support: zugriff.newRole({
+  // a member (Z-1204): sees everything the owner sees, the audit log too, and restarts an
+  // installation or takes its log excerpt; installs, removes, gives notice and restores nothing,
+  // changes no setting and no secret (DNS, S3, notifications, the operator's values), invites no one
+  mitglied: zugriff.newRole({
     ...KEINE_RECHTE_IN_BETTER_AUTH,
     betreiber: ["lesen"],
     mitglieder: ["lesen"],
     kunden: ["lesen"],
     server: ["lesen"],
-    installationen: ["lesen"],
-    audit: [],
+    installationen: ["lesen", "neustart", "log_auszug"],
+    audit: ["lesen"],
     dns: ["lesen"],
     backups: ["lesen"],
     manifeste: ["lesen"],

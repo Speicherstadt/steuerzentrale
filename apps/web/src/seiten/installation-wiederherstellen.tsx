@@ -16,7 +16,7 @@ import { Fehler, fehlerText, felder } from "./anmeldung-teile.tsx";
 
 /*
  * Restoring a run (BAULISTE.md Z-603; mockup, installation page, tab "Backups", "Snapshot
- * wiederherstellen?"): a button beside each successful run for owner and technik, one dialog for
+ * wiederherstellen?"): a button beside each successful run for the owner, one dialog for
  * the run chosen that asks for a reason and says plainly that the current state is backed up first,
  * then where the restore stands: backing up, playing back, succeeded or failed with its reason.
  * Offered only for a running installation whose backups are set up and while neither a restore nor

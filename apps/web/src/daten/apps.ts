@@ -123,7 +123,7 @@ export type UpdateAngefordert = {
 export type AppsQuelle = {
   liste: () => Promise<Antwort<AppDerZentrale[]>>;
   manifest: (app: string, version: string) => Promise<Antwort<ManifestDerZentrale>>;
-  /** Owner and technik, with a reason: the manifest's exact text and its .minisig */
+  /** The owner, with a reason: the manifest's exact text and its .minisig */
   importieren: (
     eingabe: { manifest: string; signatur: string },
     grund: string,
@@ -132,7 +132,7 @@ export type AppsQuelle = {
   abfragen: () => Promise<Antwort<AppDerZentrale[]>>;
   /** What each installation of the operator is offered, its plan and its last update */
   angebote: () => Promise<Antwort<InstallationsAngebot[]>>;
-  /** Owner and technik, with a reason: an update to a version the installation is offered (Z-503) */
+  /** The owner, with a reason: an update to a version the installation is offered (Z-503) */
   update: (
     installationId: string,
     version: string,

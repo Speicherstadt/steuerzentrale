@@ -170,7 +170,8 @@ export type Auftrag = {
   fortschritt?: number;
 };
 
-export type Rolle = "inhaber" | "technik" | "support";
+/** The two roles (Z-1204): the owner may do everything, a member sees everything and restarts */
+export type Rolle = "inhaber" | "mitglied";
 
 export type AuditEintrag = {
   zeit: number;

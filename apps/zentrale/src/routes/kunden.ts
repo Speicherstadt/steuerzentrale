@@ -15,7 +15,7 @@ import { eingabe, type RoutenDeps } from "./deps.ts";
 import { type Anfrage, nurFuerKunden, type Registrar } from "./zugang.ts";
 
 /*
- * Customers and their contracts (BAULISTE.md Z-801): every role reads, owner and technik write
+ * Customers and their contracts (BAULISTE.md Z-801): every role reads, the owner writes
  * (src/auth/rollen.ts); only the owner marks a customer as internal (Z-501). Every write names its reason in `grund`, which goes into the audit log.
  * The short name (Z-407) may be left out: a new customer gets one from its name, a change keeps it.
  */

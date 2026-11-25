@@ -33,7 +33,7 @@ import { UpdateDialog } from "./update-dialog.tsx";
 /*
  * The table of the page "Updates" (BAULISTE.md Z-501, Z-503): per app its head, the installations
  * in a running wave or able to update with their state, the current ones counted, a registry tag
- * without manifest with its import; an update by hand for owner and technik (update-dialog.tsx).
+ * without manifest with its import; an update by hand for the owner (update-dialog.tsx).
  */
 
 const ZEILE =

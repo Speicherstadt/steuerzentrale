@@ -14,8 +14,8 @@ import type { Registrar } from "./zugang.ts";
 
 /*
  * The operator's notifications (BAULISTE.md Z-703; docs/plan.md, "Benachrichtigungen"): every role
- * reads mail server, quiet hours, recipients and the newest deliveries; owner and technik change
- * them with a reason and send a test message. The SMTP password and a webhook's URL and key go in
+ * reads mail server, quiet hours, recipients and the newest deliveries; the owner changes
+ * them with a reason and sends a test message. The SMTP password and a webhook's URL and key go in
  * and never come back: the password shows as `passwortGesetzt`, a webhook as its origin.
  */
 

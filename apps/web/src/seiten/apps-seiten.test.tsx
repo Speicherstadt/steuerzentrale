@@ -175,8 +175,8 @@ describe("the menu Mehr", () => {
 
   it("offers what the buttons offered, with the same rights", () => {
     expect(mehrEintraege(stand)).toEqual(["log", "backup", "pruef", "einstellungen"]);
-    // no support access opens anything to a role without the right (Z-1203)
-    expect(mehrEintraege({ ...stand, recht: false })).toEqual([]);
+    // a member takes a log excerpt and nothing else of "Mehr …" (Z-1204)
+    expect(mehrEintraege({ ...stand, recht: false })).toEqual(["log"]);
     expect(mehrEintraege({ ...stand, backup: false })).toEqual(["log", "pruef", "einstellungen"]);
   });
 });

@@ -63,7 +63,7 @@ test.describe("signing in", { tag: "@phone" }, () => {
     browser,
     page,
   }, info) => {
-    const hash = await einladungsLink(page, "technik");
+    const hash = await einladungsLink(page, "inhaber");
     const context = await browser.newContext(OHNE_SITZUNG);
     const neu = await context.newPage();
     await mitAuthenticator(context, neu);
@@ -87,9 +87,31 @@ test.describe("signing in", { tag: "@phone" }, () => {
   });
 });
 
+// BAULISTE.md Z-1204: an invitation offers exactly two roles, owner and member; there is no form to
+// invite in the interface, the owner's request names the role and the invitation's page shows it
+test.describe("an invitation", { tag: "@phone" }, () => {
+  test("offers only the roles Inhaber and Mitglied", async ({ browser, page }) => {
+    for (const rolle of ["technik", "support", "owner"]) {
+      const antwort = await page.request.post("/api/v1/einladungen", { data: { rolle } });
+      expect(antwort.status(), rolle).toBe(400);
+    }
+    for (const [rolle, name] of [
+      ["inhaber", "Inhaber"],
+      ["mitglied", "Mitglied"],
+    ] as const) {
+      const hash = await einladungsLink(page, rolle);
+      const context = await browser.newContext(OHNE_SITZUNG);
+      const neu = await context.newPage();
+      await neu.goto(`/einladung${hash}`);
+      await expect(neu.getByText(`mit der Rolle ${name}.`)).toBeVisible();
+      await context.close();
+    }
+  });
+});
+
 test.describe("an account without a second factor", () => {
   test("reaches only the setup", async ({ browser, page }) => {
-    const hash = await einladungsLink(page, "support");
+    const hash = await einladungsLink(page, "mitglied");
     const context = await browser.newContext(OHNE_SITZUNG);
     const neu = await context.newPage();
     await neu.goto(`/einladung${hash}`);

@@ -6,8 +6,8 @@ import { aufraeumen, dialog, knopf, oeffne, warten } from "./test-dom.tsx";
 
 /*
  * The actions of "Zu tun" (docs/plan.md, "Übersicht (Oberfläche 2026-11)") against the demo: a
- * broken app offers "Log ansehen" and "Neustart" with the rights they have on its page (owner and
- * technik; support none, Z-1203), each through its dialog with a reason; every
+ * broken app offers "Log ansehen" and "Neustart" with the rights they have on its page (both roles,
+ * Z-1204), each through its dialog with a reason; every
  * other row leads to its app or server.
  */
 
@@ -25,8 +25,8 @@ const zeile = (root: HTMLElement, text: string) =>
 const GESTOERT = "Schreibzeug bei IT Berger ist gestört";
 
 describe("the rows of Zu tun", () => {
-  it("offer log and restart of a broken app to technik, through the dialog with a reason", async () => {
-    rolle("technik");
+  it("offer log and restart of a broken app to the owner, through the dialog with a reason", async () => {
+    rolle("inhaber");
     const { root } = await oeffne("/");
     await warten();
     const z = zeile(root, GESTOERT) as HTMLElement;
@@ -36,19 +36,17 @@ describe("the rows of Zu tun", () => {
     expect(dialog().textContent).toContain("Grund");
   });
 
-  it("lead support only to the app, without an access of its own", async () => {
-    rolle("support");
+  it("offer a member restart and log too (Z-1204)", async () => {
+    rolle("mitglied");
     const { root } = await oeffne("/");
     await warten();
     const z = zeile(root, GESTOERT) as HTMLElement;
-    expect(knopf(z, "Neustart")).toBeUndefined();
-    expect(knopf(z, "Log ansehen")).toBeUndefined();
-    const oeffnen = [...z.querySelectorAll("a")].find((a) => a.textContent === "App öffnen");
-    expect(oeffnen?.getAttribute("href")).toBe("/apps/berger-schreibzeug");
+    expect(knopf(z, "Neustart")).toBeDefined();
+    expect(knopf(z, "Log ansehen")).toBeDefined();
   });
 
   it("lead a server's row to the server", async () => {
-    rolle("technik");
+    rolle("inhaber");
     const { root } = await oeffne("/");
     const z = zeile(root, "Server „Ingenieurbüro Kraft“ meldet sich nicht") as HTMLElement;
     const oeffnen = [...z.querySelectorAll("a")].find((a) => a.textContent === "Server öffnen");

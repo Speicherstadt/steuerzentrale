@@ -13,8 +13,8 @@ import { MitInstallationsRecht } from "./recht.tsx";
 
 /*
  * The recipients of the settings' tab "Benachrichtigungen" (BAULISTE.md Z-703): a mail address or a
- * webhook, each from a severity upwards. Owner and technik add one with a reason, send it a test
- * message and remove it with a reason; support sees the list. A webhook's signing key is made in
+ * webhook, each from a severity upwards. The owner adds one with a reason, send it a test
+ * message and remove it with a reason; a member sees the list. A webhook's signing key is made in
  * the browser and shown here once, before saving; afterwards the Zentrale shows only the URL's host.
  */
 

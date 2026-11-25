@@ -11,7 +11,7 @@ import { installationsFehler } from "./installieren-texte.ts";
  * "Einstellungen ändern" of an installation (BAULISTE.md Z-404; mockup, installation "Einstellungen
  * aus dem Manifest"): the values of the level `installation` as a form from its manifest, with the
  * operator's current values taken along, and a reason; the Zentrale sends the job "neu
- * konfigurieren", and the values apply once the agent reports success. Only for owner and technik
+ * konfigurieren", and the values apply once the agent reports success. Only for the owner
  * (docs/plan.md, "Rollen für Installationen"); the Zentrale refuses it in a freeze window and while
  * a job of the installation is open. Opened from "Mehr …" of an app's page (app-mehr.tsx).
  */

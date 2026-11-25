@@ -40,7 +40,7 @@ beforeEach(() => {
       betreiberWerte: [],
     }),
   );
-  rolle("technik");
+  rolle("inhaber");
   dnsQuelleEinsetzen(demoDns());
 });
 afterEach(aufraeumen);
@@ -155,8 +155,8 @@ describe("the dialog Installieren", () => {
     expect(feld<HTMLSelectElement>("Kunde").value).toBe("atelier-nord");
   });
 
-  it("is not offered to support", async () => {
-    rolle("support");
+  it("is not offered to a member", async () => {
+    rolle("mitglied");
     const { root } = await oeffne("/apps");
     expect(root.querySelector("main h1")?.textContent).toBe("Apps");
     expect(knopf(root, "App installieren")).toBeUndefined();
@@ -178,8 +178,8 @@ describe("a failed setup", () => {
     expect(root.textContent).toContain("an den Agenten zugestellt");
   });
 
-  it("offers no removal to support", async () => {
-    rolle("support");
+  it("offers no removal to a member", async () => {
+    rolle("mitglied");
     const { root } = await oeffne(`/apps/${GESCHEITERT}`);
     expect(root.textContent).toContain("Einrichtung gescheitert");
     expect(knopf(root, "Entfernen …")).toBeUndefined();

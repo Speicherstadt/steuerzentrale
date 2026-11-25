@@ -35,8 +35,8 @@ Eine Behebung (`…_behoben`, und `aussen_gruen` nach `aussen_rot` der Prüfung 
 die Schwere `info`, geht aber mit der Schwere des Ereignisses raus, das sie behebt: wer die Störung bekam, bekommt auch ihr Ende. Ein neuer Empfänger bekommt keine
 Ereignisse, die vor ihm geschrieben wurden.
 
-Empfänger legen Inhaber und Technik unter **Einstellungen → Benachrichtigungen** an, mit Grund;
-Support sieht sie nur. „Test senden“ schickt sofort eine Testnachricht an einen Empfänger, auch in der
+Empfänger legt der Inhaber unter **Einstellungen → Benachrichtigungen** an, mit Grund;
+ein Mitglied sieht sie nur. „Test senden“ schickt sofort eine Testnachricht an einen Empfänger, auch in der
 Ruhezeit, und zeigt, ob sie ankam.
 
 ## Mail
@@ -152,7 +152,7 @@ Audit-Log, ohne Passwort, Adresse oder Schlüssel eines Webhooks. Zustellungen b
 | Route | Rolle | Wirkung |
 | --- | --- | --- |
 | `GET /api/v1/benachrichtigungen` | alle | SMTP-Server (Passwort nur als `passwortGesetzt`), Ruhezeit, Empfänger (Webhook nur als Host), die 20 neuesten Zustellungen |
-| `PUT /api/v1/benachrichtigungen` | Inhaber, Technik | `smtp` (oder `null`) und `ruhezeit` (oder `null`) mit `grund`; ein fehlendes `passwort` behält das alte, solange Host und Benutzer gleich bleiben; mit einem anderen Host oder Benutzer ist es weg |
-| `POST /api/v1/benachrichtigungen/empfaenger` | Inhaber, Technik | `art` `mail` mit `adresse` oder `webhook` mit `url` und `schluessel` (32 bis 200 Zeichen), `abSchwere`, `grund` |
-| `DELETE /api/v1/benachrichtigungen/empfaenger/:id` | Inhaber, Technik | mit `grund`; wartende Zustellungen enden |
-| `POST /api/v1/benachrichtigungen/empfaenger/:id/test` | Inhaber, Technik | sendet sofort eine Testnachricht; `502` mit dem Grund, wenn sie nicht ankam |
+| `PUT /api/v1/benachrichtigungen` | Inhaber | `smtp` (oder `null`) und `ruhezeit` (oder `null`) mit `grund`; ein fehlendes `passwort` behält das alte, solange Host und Benutzer gleich bleiben; mit einem anderen Host oder Benutzer ist es weg |
+| `POST /api/v1/benachrichtigungen/empfaenger` | Inhaber | `art` `mail` mit `adresse` oder `webhook` mit `url` und `schluessel` (32 bis 200 Zeichen), `abSchwere`, `grund` |
+| `DELETE /api/v1/benachrichtigungen/empfaenger/:id` | Inhaber | mit `grund`; wartende Zustellungen enden |
+| `POST /api/v1/benachrichtigungen/empfaenger/:id/test` | Inhaber | sendet sofort eine Testnachricht; `502` mit dem Grund, wenn sie nicht ankam |

@@ -14,12 +14,11 @@ export const apiRolle: RollenQuelle = async () => {
   return antwort.ok ? { ...antwort, daten: antwort.daten.rolle } : antwort;
 };
 
-/** Owner and technik make and remove installations; support only reads */
-export const darfInstallieren = (rolle: Rolle): boolean =>
-  rolle === "inhaber" || rolle === "technik";
-
-/** Owner and technik read the audit log; the Zentrale refuses it to support (Z-102) */
-export const darfAuditLesen = (rolle: Rolle): boolean => rolle === "inhaber" || rolle === "technik";
+/**
+ * Only the owner changes anything: installations, customers, settings, secrets (Z-1204); a member
+ * sees everything and restarts an installation or takes its log excerpt, which every role may
+ */
+export const darfInstallieren = (rolle: Rolle): boolean => rolle === "inhaber";
 
 /** Only the owner marks a customer as internal (Z-501) */
 export const darfInternMarkieren = (rolle: Rolle): boolean => rolle === "inhaber";

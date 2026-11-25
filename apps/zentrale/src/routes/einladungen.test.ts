@@ -6,7 +6,7 @@ import { PASSWORT, TEST_URL, type TestServer, testServer } from "../testhilfen/s
 
 type Inhaber = Awaited<ReturnType<TestServer["inhaber"]>>;
 
-const einladen = async (inhaber: Inhaber, rolle = "technik") => {
+const einladen = async (inhaber: Inhaber, rolle = "inhaber") => {
   const { status, daten } = await inhaber.json("/api/v1/einladungen", { body: { rolle } });
   if (status !== 201) throw new Error(`einladen ${status}`);
   const antwort = daten as { einladungId: string; link: string; gueltigBis: number };
@@ -40,29 +40,29 @@ describe("an invitation", () => {
   it("tells what it is for, and is accepted with a new account in its role", async () => {
     const server = testServer();
     const inhaber = await server.inhaber();
-    const { token } = await einladen(inhaber, "support");
+    const { token } = await einladen(inhaber, "mitglied");
     const neu = server.browser();
     expect((await neu.json("/api/v1/einladung/ansehen", { body: { token } })).daten).toMatchObject({
       betreiber: "Teufel IT",
-      rolle: "support",
+      rolle: "mitglied",
     });
     const { status, daten } = await neu.json("/api/v1/einladung/annehmen", { body: konto(token) });
     expect(status).toBe(201);
     const { nutzerId } = daten as { nutzerId: string };
     expect(server.db.select().from(mitglieder).all()).toContainEqual(
-      expect.objectContaining({ betreiberId: inhaber.betreiberId, nutzerId, rolle: "support" }),
+      expect.objectContaining({ betreiberId: inhaber.betreiberId, nutzerId, rolle: "mitglied" }),
     );
     expect(server.db.select().from(member).all()).toContainEqual(
       expect.objectContaining({
         organizationId: inhaber.betreiberId,
         userId: nutzerId,
-        role: "support",
+        role: "mitglied",
       }),
     );
     // signed in, but first the second factor
     expect((await neu.json("/api/v1/ich")).daten).toEqual({ fehler: "zweiter_faktor_fehlt" });
     await server.totpEinrichten(neu);
-    expect((await neu.json("/api/v1/ich")).daten).toMatchObject({ rolle: "support", nutzerId });
+    expect((await neu.json("/api/v1/ich")).daten).toMatchObject({ rolle: "mitglied", nutzerId });
   });
 
   it("stands in the audit log: made by the owner, accepted by the new member", async () => {
@@ -121,7 +121,7 @@ describe("an invitation", () => {
     const inhaber = await server.inhaber();
     const { token, einladungId } = await einladen(inhaber);
     expect((await inhaber.json("/api/v1/einladungen")).daten).toMatchObject({
-      einladungen: [{ einladungId, rolle: "technik", abgelaufen: false }],
+      einladungen: [{ einladungId, rolle: "inhaber", abgelaufen: false }],
     });
     const weg = await inhaber.anfrage(`/api/v1/einladungen/${einladungId}`, { method: "DELETE" });
     expect(weg.status).toBe(204);
@@ -164,7 +164,7 @@ describe("an invitation", () => {
   it("refuses unknown roles and bad details", async () => {
     const server = testServer();
     const inhaber = await server.inhaber();
-    for (const rolle of ["owner", "admin", "", "inhaber,technik"])
+    for (const rolle of ["owner", "admin", "", "inhaber,inhaber2"])
       expect((await inhaber.json("/api/v1/einladungen", { body: { rolle } })).status, rolle).toBe(
         400,
       );
