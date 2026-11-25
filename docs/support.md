@@ -73,7 +73,6 @@ Kundenseite und später das Portal zeigen:
 Der Reiter **Support** auf der Seite eines Kunden zeigt die laufenden Zugänge zu seinen Apps mit
 Restzeit und die beendeten mit Dauer und dem, was geschah (Log-Auszug, Neustart oder kein
 Eingriff). Dieselbe Liste für alle Kunden steht unter **Kunden → Support-Zugänge** (`/support`).
-Die Reiter „Überblick“ und „Leistungen“ des Kunden nennen die Support-Minuten des laufenden Monats.
 Während des eigenen Zugangs zeigt der Kasten „Support-Zugang“ im Reiter „Technik“ der App die
 Restzeit, den Grund und „Zugang beenden“; „Zugang beenden“ steht dann auch unter „Mehr …“.
 

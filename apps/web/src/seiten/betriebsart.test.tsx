@@ -59,7 +59,7 @@ describe("the Betriebsart", () => {
   it("is switched by the owner with a reason and hides customers in the menu", async () => {
     const { root } = await oeffne("/einstellungen?tab=betriebsart");
     await reiter(root);
-    // support accesses and services are reached through Kunden, not the menu (Navigation 2026-11)
+    // support accesses are reached through Kunden, not the menu (Navigation 2026-11)
     expect(menue(root)).toContain("Kunden");
     const selbst = root.querySelector<HTMLInputElement>("input[name=betriebsart][value=selbst]");
     expect(root.querySelector<HTMLInputElement>("input[value=kunden]")?.checked).toBe(true);
@@ -69,8 +69,7 @@ describe("the Betriebsart", () => {
     await warten();
     expect(root.textContent).toContain("Betriebsart gespeichert.");
     const danach = menue(root);
-    for (const name of ["Kunden", "Support-Zugänge", "Leistungen"])
-      expect(danach).not.toContain(name);
+    for (const name of ["Kunden", "Support-Zugänge"]) expect(danach).not.toContain(name);
     expect(danach).toContain("Apps");
   });
 

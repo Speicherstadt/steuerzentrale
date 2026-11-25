@@ -1,4 +1,3 @@
-import { letzteMonate, monatText } from "@steuerzentrale/planung";
 import { Button, Icon, m, Tabs } from "@steuerzentrale/ui";
 import { CalendarX, Undo2 } from "@steuerzentrale/ui/icons";
 import { createFileRoute, useNavigate } from "@tanstack/solid-router";
@@ -8,13 +7,11 @@ import { appZeilen } from "../daten/apps-liste.ts";
 import { appsListeLaden } from "../daten/installationen-laden.ts";
 import { kundeStand } from "../daten/kunde-ansicht.ts";
 import { kundenQuelle } from "../daten/kunden.ts";
-import { leistungenQuelle } from "../daten/leistungen.ts";
 import { bestand } from "../daten/quelle.ts";
 import type { Kunde } from "../daten/typen.ts";
 import { datum } from "../format/zeit.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { KundeDialoge, KundeKopf, type Offen } from "../seiten/kunde-kopf.tsx";
-import { KundeLeistungen } from "../seiten/kunde-leistungen.tsx";
 import { KundeSupport } from "../seiten/kunde-support.tsx";
 import { KundeUeberblick } from "../seiten/kunde-ueberblick.tsx";
 import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
@@ -24,13 +21,12 @@ import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
 /**
  * One customer (BAULISTE.md Z-801; docs/plan.md, "Server und Kunden (Oberfläche 2026-11)"): its
  * head with its apps in one sentence, its contract and actions, the note of a notice, and its tabs
- * in the URL (`?tab=`): Überblick (apps, this month, contract, contact), Support (its accesses,
- * Z-802), Leistungen (the availability per month and app, Z-704, and what the contract includes)
- * and Verlauf (the events of its apps, Z-406). In "Nur für mich" the menu has no customers
+ * in the URL (`?tab=`): Überblick (apps, contract, contact), Support (its accesses, Z-802) and
+ * Verlauf (the events of its apps, Z-406). In "Nur für mich" the menu has no customers
  * (Z-805).
  */
 
-const REITER = ["ueberblick", "support", "leistungen", "verlauf"] as const;
+const REITER = ["ueberblick", "support", "verlauf"] as const;
 type Reiter = (typeof REITER)[number];
 
 const Gekuendigt = (props: { ende: number; oeffne: (dialog: Offen) => void }) => (
@@ -60,14 +56,6 @@ const Detail = (props: { k: Kunde; gespeichert: () => void }) => {
       ? appZeilen({ ...a.daten, jetzt: b.jetzt }).filter((z) => z.a.kundeId === props.k.id)
       : [];
   });
-  // this month as the page "Leistungen" counts it (Z-804)
-  const leistungen = createMemo(() =>
-    leistungenQuelle().imMonat(monatText(letzteMonate(b.jetzt, 1)[0] ?? { jahr: 0, monat: 1 })),
-  );
-  const monat = () => {
-    const l = leistungen();
-    return l.ok ? l.daten.kunden.find((x) => x.kundeId === props.k.id) : undefined;
-  };
   const fehler = () => {
     const a = antwort();
     return a.ok ? "" : fehlerText(a);
@@ -86,17 +74,12 @@ const Detail = (props: { k: Kunde; gespeichert: () => void }) => {
     {
       id: "ueberblick",
       label: m.app_ueberblick(),
-      content: () => <KundeUeberblick k={props.k} zeilen={zeilen()} monat={monat()} />,
+      content: () => <KundeUeberblick k={props.k} zeilen={zeilen()} />,
     },
     {
       id: "support",
       label: m.kunde_reiter_support(),
       content: () => <KundeSupport k={props.k} zeilen={zeilen()} />,
-    },
-    {
-      id: "leistungen",
-      label: m.nav_leistungen(),
-      content: () => <KundeLeistungen k={props.k} zeilen={zeilen()} monat={monat()} />,
     },
     {
       id: "verlauf",

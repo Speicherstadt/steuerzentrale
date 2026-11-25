@@ -31,8 +31,8 @@ wahlweise ein Passwort. Danach geht es direkt zur Einrichtung des zweiten Faktor
 Nach dem zweiten Faktor fragt die Zentrale den Inhaber einmal, wofür sie da ist (Seite
 `/betriebsart`):
 
-- **Nur für mich**: eigene Apps auf eigenen Servern. Kunden, Verträge, Kündigung, Support-Zugänge
-  und Leistungen verschwinden aus Seitenleiste (der Eintrag „Kunden“), Übersicht und Dialogen; „App installieren“ fragt keinen
+- **Nur für mich**: eigene Apps auf eigenen Servern. Kunden, Verträge, Kündigung und
+  Support-Zugänge verschwinden aus Seitenleiste (der Eintrag „Kunden“), Übersicht und Dialogen; „App installieren“ fragt keinen
   Kunden. Alle Installationen gehören einem festen internen Kunden des Betreibers, den die Zentrale
   dabei anlegt (`kunden.intern`), also gibt es nur eine Welle.
 - **Für Kunden**: Hosting für andere, mit allem, was dazugehört.

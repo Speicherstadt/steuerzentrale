@@ -20,7 +20,6 @@ import { Route as EinrichtungRouteImport } from './routes/einrichtung'
 import { Route as EinstellungenRouteImport } from './routes/einstellungen'
 import { Route as EreignisseRouteImport } from './routes/ereignisse'
 import { Route as ErsterInhaberRouteImport } from './routes/erster-inhaber'
-import { Route as LeistungenRouteImport } from './routes/leistungen'
 import { Route as ProtokollRouteImport } from './routes/protokoll'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as UpdatesRouteImport } from './routes/updates'
@@ -88,11 +87,6 @@ const EreignisseRoute = EreignisseRouteImport.update({
 const ErsterInhaberRoute = ErsterInhaberRouteImport.update({
   id: '/erster-inhaber',
   path: '/erster-inhaber',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeistungenRoute = LeistungenRouteImport.update({
-  id: '/leistungen',
-  path: '/leistungen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtokollRoute = ProtokollRouteImport.update({
@@ -173,7 +167,6 @@ export interface FileRoutesByFullPath {
   '/einstellungen': typeof EinstellungenRoute
   '/ereignisse': typeof EreignisseRoute
   '/erster-inhaber': typeof ErsterInhaberRoute
-  '/leistungen': typeof LeistungenRoute
   '/protokoll': typeof ProtokollRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
@@ -200,7 +193,6 @@ export interface FileRoutesByTo {
   '/einstellungen': typeof EinstellungenRoute
   '/ereignisse': typeof EreignisseRoute
   '/erster-inhaber': typeof ErsterInhaberRoute
-  '/leistungen': typeof LeistungenRoute
   '/protokoll': typeof ProtokollRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
@@ -228,7 +220,6 @@ export interface FileRoutesById {
   '/einstellungen': typeof EinstellungenRoute
   '/ereignisse': typeof EreignisseRoute
   '/erster-inhaber': typeof ErsterInhaberRoute
-  '/leistungen': typeof LeistungenRoute
   '/protokoll': typeof ProtokollRoute
   '/support': typeof SupportRoute
   '/updates': typeof UpdatesRoute
@@ -257,7 +248,6 @@ export interface FileRouteTypes {
     | '/einstellungen'
     | '/ereignisse'
     | '/erster-inhaber'
-    | '/leistungen'
     | '/protokoll'
     | '/support'
     | '/updates'
@@ -284,7 +274,6 @@ export interface FileRouteTypes {
     | '/einstellungen'
     | '/ereignisse'
     | '/erster-inhaber'
-    | '/leistungen'
     | '/protokoll'
     | '/support'
     | '/updates'
@@ -311,7 +300,6 @@ export interface FileRouteTypes {
     | '/einstellungen'
     | '/ereignisse'
     | '/erster-inhaber'
-    | '/leistungen'
     | '/protokoll'
     | '/support'
     | '/updates'
@@ -339,7 +327,6 @@ export interface RootRouteChildren {
   EinstellungenRoute: typeof EinstellungenRoute
   EreignisseRoute: typeof EreignisseRoute
   ErsterInhaberRoute: typeof ErsterInhaberRoute
-  LeistungenRoute: typeof LeistungenRoute
   ProtokollRoute: typeof ProtokollRoute
   SupportRoute: typeof SupportRoute
   UpdatesRoute: typeof UpdatesRoute
@@ -432,13 +419,6 @@ declare module '@tanstack/solid-router' {
       path: '/erster-inhaber'
       fullPath: '/erster-inhaber'
       preLoaderRoute: typeof ErsterInhaberRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/leistungen': {
-      id: '/leistungen'
-      path: '/leistungen'
-      fullPath: '/leistungen'
-      preLoaderRoute: typeof LeistungenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/protokoll': {
@@ -547,7 +527,6 @@ const rootRouteChildren: RootRouteChildren = {
   EinstellungenRoute: EinstellungenRoute,
   EreignisseRoute: EreignisseRoute,
   ErsterInhaberRoute: ErsterInhaberRoute,
-  LeistungenRoute: LeistungenRoute,
   ProtokollRoute: ProtokollRoute,
   SupportRoute: SupportRoute,
   UpdatesRoute: UpdatesRoute,

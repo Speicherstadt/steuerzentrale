@@ -25,7 +25,6 @@ import { ersterInhaberRouten } from "./routes/erster-inhaber.ts";
 import { installationenRouten } from "./routes/installationen.ts";
 import { kontoRouten } from "./routes/konto.ts";
 import { kundenRouten } from "./routes/kunden.ts";
-import { leistungenRouten } from "./routes/leistungen.ts";
 import { manifesteRouten } from "./routes/manifeste.ts";
 import { mitgliederRouten } from "./routes/mitglieder.ts";
 import { serverPlattenRouten, serverRouten } from "./routes/server.ts";
@@ -141,7 +140,6 @@ export const createApp = (deps: AppDeps): Hono<Anfrage> => {
   updateRouten(route, deps);
   benachrichtigungRouten(route, deps);
   supportRouten(route, deps);
-  leistungenRouten(route, deps);
   agentRouten(route, deps);
   verbindungRouten(route, deps);
   // The interface's files and the SPA's routes: only what no route took (Z-1004)

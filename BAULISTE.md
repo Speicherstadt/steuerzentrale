@@ -591,7 +591,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
 
 ## Phase 9 – Ausbau
 
-- [ ] **Z-1201 Leistungen entfernen** – Seite, Reiter am Kunden, CSV-Export, Modul und Routen
+- [x] **Z-1201 Leistungen entfernen** – Seite, Reiter am Kunden, CSV-Export, Modul und Routen
   (Z-804). Die Verfügbarkeit je App und Monat bleibt an der App (Z-704).
   Fertig, wenn: die Routen der Leistungen `404` antworten (Test), kein Menüpunkt dorthin führt und
   die Verfügbarkeit an der App weiter steht (Playwright).

@@ -108,8 +108,6 @@ export const ROUTEN = {
   "GET /api/v1/support-zugaenge": recht("support:lesen"),
   "POST /api/v1/support-zugaenge": fuerKunden("support:starten"),
   "POST /api/v1/support-zugaenge/:zugangId/beenden": recht("support:starten"),
-  // the services of each customer in a month (Z-804): read like the customers, by every role
-  "GET /api/v1/leistungen": fuerKunden("kunden:lesen"),
   // the operator's values of an app (Z-404): rights as for installations, which they serve
   "GET /api/v1/apps/:app/einstellungen": recht("installationen:lesen"),
   "PUT /api/v1/apps/:app/einstellungen": recht("installationen:schreiben"),

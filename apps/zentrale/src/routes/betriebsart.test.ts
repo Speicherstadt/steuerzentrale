@@ -155,7 +155,6 @@ describe("the Betriebsart", () => {
       ["DELETE", `/api/v1/kunden/${eigener}/kuendigung`, { grund: "g" }],
       ["PUT", `/api/v1/kunden/${eigener}/intern`, { intern: false, grund: "g" }],
       ["POST", "/api/v1/support-zugaenge", { installationId: "x", dauer: 30, grund: "g" }],
-      ["GET", "/api/v1/leistungen"],
     ];
     for (const [method, pfad, body] of anfragen)
       expect(await json(inhaber, pfad, { method, ...(body ? { body } : {}) })).toEqual({
@@ -175,7 +174,6 @@ describe("the Betriebsart", () => {
 
   it("leaves another operator untouched", async () => {
     expect(await ich(partner)).toMatchObject({ betriebsart: null, eigenerKundeId: null });
-    expect((await json(partner, "/api/v1/leistungen")).status).toBe(200);
     const kunden = (await json(partner, "/api/v1/kunden")).daten.kunden as unknown[];
     expect(kunden).toEqual([]);
   });
