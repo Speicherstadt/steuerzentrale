@@ -3,8 +3,11 @@ import { HEARTBEAT_MS, PROTOKOLL_VERSION, ROTIEREN_VOR_MS } from "@steuerzentral
 import { describe, expect, it } from "vitest";
 import { auditLog, heartbeats, server as serverTabelle } from "../../db/schema.ts";
 import { serverHinzufuegen } from "../../testhilfen/agent.ts";
+import { FAKTEN } from "../../testhilfen/installationen.ts";
 import { testServer } from "../../testhilfen/server.ts";
 import { agentAnfrage, agentBeitreten, fingerabdruckVon } from "../../testhilfen/tls.ts";
+import { schreiben } from "../audit/index.ts";
+import { dienstAnlegen } from "../dienste/dienste.ts";
 import { serverSperren, serverZumFingerabdruck } from "../server/index.ts";
 import { sitzung } from "./sitzung.ts";
 import type { Sockel } from "./verbindungen.ts";
@@ -150,5 +153,36 @@ describe("heartbeats", () => {
     server.stelleUhr(start + HEARTBEAT_MS);
     await s.nachricht(beat);
     expect(server.db.select().from(heartbeats).all()).toHaveLength(2);
+  });
+});
+
+describe("the units an observed server reads (Z-1103)", () => {
+  it("are sent after willkommen to an observed server, and nothing to a managed one", async () => {
+    const { server, fingerabdruck, oeffnen } = await aufgebaut();
+    const sv = serverZumFingerabdruck(server.db, fingerabdruck)?.server;
+    if (!sv) throw new Error("no server");
+    expect((await oeffnen()).gesendet.map((n) => n.typ)).toEqual(["willkommen"]);
+    const kontext = { betreiberId: sv.betreiberId, akteur: "t", jetzt: server.jetzt(), grund: "t" };
+    schreiben(server.schreibDb, kontext, "test", (w) =>
+      w.aendern(
+        "server",
+        { serverId: sv.serverId },
+        { fakten: JSON.stringify({ ...FAKTEN, nurBeobachten: true }), faktenAm: 1 },
+      ),
+    );
+    const innen = { serverId: sv.serverId, nutzer: null, units: ["caddy.service"] };
+    const r = dienstAnlegen(server.db, server.schreibDb, kontext, {
+      name: "Caddy",
+      host: "teufel-it.de",
+      pfad: "/",
+      kundeId: null,
+      innen: { ...innen, health: { art: "keine" } },
+    });
+    if (!r.ok) throw new Error(r.grund);
+    const { gesendet } = await oeffnen();
+    expect(gesendet.map((n) => n.typ)).toEqual(["willkommen", "beobachten"]);
+    expect(gesendet[1]?.dienste).toEqual([
+      { dienstId: r.dienst.id, nutzer: null, units: ["caddy.service"], health: { art: "keine" } },
+    ]);
   });
 });

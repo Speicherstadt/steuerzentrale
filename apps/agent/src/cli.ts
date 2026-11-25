@@ -30,6 +30,7 @@ import { anmeldungenFolgen } from "./ssh/anmeldungen.ts";
 import { echtFolgen } from "./ssh/journal.ts";
 import { echtOeffnen } from "./verbindung/sockel.ts";
 import { type Planer, verbindungsSchleife } from "./verbindung/verbinden.ts";
+import { type BeobachtetHalter, beobachtetHalter } from "./zustand/beobachtet.ts";
 import { echtLesen, echtVerbinden } from "./zustand/echt.ts";
 import { zustandMelder } from "./zustand/runde.ts";
 
@@ -88,12 +89,20 @@ const planen: Planer = (lauf, ms) => {
 const jsonLog = (msg: string, mehr: Record<string, unknown> = {}) =>
   console.log(JSON.stringify({ msg, ...mehr }));
 
-/** The checks of the installations (src/zustand, Z-403) on the record the jobs write */
-const zustandMelden = (gedaechtnis: Gedaechtnis, nutzer: NutzerLesen) =>
+/**
+ * The checks of the installations (src/zustand, Z-403) on the record the jobs write, and of the
+ * observed services (Z-1103)
+ */
+const zustandMelden = (
+  gedaechtnis: Gedaechtnis,
+  nutzer: NutzerLesen,
+  beobachtet: BeobachtetHalter,
+) =>
   zustandMelder(
     {
       gedaechtnis,
       nutzer,
+      beobachtet: beobachtet.lesen,
       spawn: echtSpawn,
       lesen: echtLesen,
       holen: (url, init) => fetch(url, init),
@@ -134,6 +143,8 @@ const dienstStarten: CliDeps["dienstStarten"] = (
   // one record of installations for jobs and checks, so a finished setup is checked at once
   const gedaechtnis = gedaechtnisOeffnen(echteDateien, pfade.installationen, Date.now);
   const nutzer = nutzerAusPasswd(echteHausDateien.lesen);
+  // the units the Zentrale names to read, kept only on an observed server (Z-1103)
+  const beobachtet = beobachtetHalter(nurBeobachten);
   const auftraege = auftraegeAnnehmen({
     dateien: echteDateien,
     pfad: pfade.auftraege,
@@ -195,7 +206,7 @@ const dienstStarten: CliDeps["dienstStarten"] = (
             cursorPfad: pfade.sshCursor,
             melden,
           }),
-        zustand: zustandMelden(gedaechtnis, nutzer),
+        zustand: zustandMelden(gedaechtnis, nutzer, beobachtet),
         backups: backupMelder({
           gedaechtnis,
           nutzer,
@@ -206,6 +217,7 @@ const dienstStarten: CliDeps["dienstStarten"] = (
         }),
       },
       auftraege,
+      beobachten: beobachtet.setzen,
       verbunden: () =>
         updateBestaetigen({
           dateien: echteDateien,

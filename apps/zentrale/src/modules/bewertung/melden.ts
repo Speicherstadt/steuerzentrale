@@ -3,6 +3,7 @@ import { bewertungFortschreiben, installationBewerten } from "@steuerzentrale/pl
 import type { NachrichtVomAgenten } from "@steuerzentrale/protokoll";
 import type { Db, SchreibDb } from "../../db/oeffnen.ts";
 import { bewertungSetzen } from "../audit/index.ts";
+import { dienstZustandAnnehmen } from "../dienste/innen-melden.ts";
 import { type Installation, installationenAufServer } from "../installationen/index.ts";
 import { standVon } from "./lesen.ts";
 import { fristAnwenden } from "./pruefung.ts";
@@ -12,7 +13,8 @@ import { stoerungFortschreiben } from "./stoerung.ts";
  * What the agent reports about the installations on its server every 30 seconds (BAULISTE.md
  * Z-403): each is rated (packages/planung), the rating kept as a measurement at the installation,
  * a change also in the history, and a fault checked. Only installations of this server and its
- * operator, not removed, are reached; a report of any other is dropped and logged.
+ * operator, not removed, are reached; a report of any other is dropped and logged. The observed
+ * services in the same message (Z-1103) go to modules/dienste (innen-melden.ts).
  */
 
 type Zustand = Extract<NachrichtVomAgenten, { typ: "zustand" }>;
@@ -81,4 +83,5 @@ export const zustandAnnehmen = (
     }
     eintragAnnehmen(deps, i, e, jetzt);
   }
+  if (n.dienste) dienstZustandAnnehmen(deps, server, n.dienste, jetzt);
 };

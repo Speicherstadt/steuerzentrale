@@ -122,6 +122,33 @@ describe("a round of checks", () => {
     expect(p.gerufen.lesen).toEqual([]);
   });
 
+  it("adds the observed services the Zentrale named, and no list without one (Z-1103)", async () => {
+    const { deps } = runde({});
+    const ohne = await zustandLesen(deps);
+    expect(ohne.ok && "dienste" in ohne.nachricht).toBe(false);
+    const dienst = {
+      dienstId: "d1",
+      nutzer: null,
+      units: ["caddy.service"],
+      health: { art: "keine" as const },
+    };
+    const r = await zustandLesen({ ...deps, beobachtet: () => [dienst] });
+    expect(r).toMatchObject({
+      ok: true,
+      nachricht: {
+        installationen: [],
+        dienste: [
+          {
+            dienstId: "d1",
+            units: [{ name: "caddy.service", aktiv: "unknown" }],
+            health: { zustand: "unbekannt", grund: "keine Prüfung" },
+          },
+        ],
+      },
+    });
+    if (r.ok) expect(() => schreiben(Zustand, r.nachricht)).not.toThrow();
+  });
+
   it("sends nothing while its record cannot be read: an empty list would read as no installations", async () => {
     const p = pruefDeps();
     const fs = speicher({ [PFAD]: "kaputt" });

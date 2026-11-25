@@ -1,64 +1,29 @@
-import { randomUUID } from "node:crypto";
 import {
-  type AussenGrund,
   type AussenStand,
   aussenBewerten,
   aussenFortschreiben,
   aussenMeldungPruefen,
   type Probe,
-  stoerungPruefen,
   stundeVon,
 } from "@steuerzentrale/planung";
-import type { Db, SchreibDb } from "../../db/oeffnen.ts";
-import { dienstAussenSetzen, schreiben } from "../audit/index.ts";
+import { dienstAussenSetzen } from "../audit/index.ts";
 import { AUSSEN_GRUEN_ART, AUSSEN_ROT_ART, letzteAussenMeldungAm } from "../aussen/lesen.ts";
-import { aussenGrundText } from "../aussen/text.ts";
-import { BEHOBEN_ART, STOERUNG_ART, stoerungOffenAm } from "../bewertung/lesen.ts";
+import { type DienstDeps, ereignis, grundText } from "./ereignis.ts";
 import { type DienstZeile, diensteZuPruefen, dienstStandLesen, dienstZiel } from "./lesen.ts";
+import { dienstStoerungFortschreiben } from "./stoerung.ts";
 
 /*
  * The check from outside of an observed service (BAULISTE.md Z-1101), in the same run as the
  * installations' (modules/aussen/pruefen.ts) and rated by the same pure functions (packages/planung):
  * DNS, certificate, connection and its health path, 200–399 healthy as an installation's health path.
  * The addresses are not compared with any server's: the service may sit behind Cloudflare. With no
- * agent inside, the fault is red outside for five minutes alone. Events `aussen_rot`,
+ * agent inside, the fault is red outside for five minutes alone; with one (Z-1103) inside too
+ * (stoerung.ts). Events `aussen_rot`,
  * `aussen_gruen`, `stoerung` and `stoerung_behoben` carry the target `dienst:<id>` and go to the
  * recipients like any other; no job is ever made.
  */
 
-type Deps = { db: Db; schreibDb: SchreibDb; neueId?: () => string };
-
-/** The reason in German for an event; there is no Pforte in front of an observed service */
-const grundText = (g: AussenGrund): string =>
-  g.code === "pforte" ? `Verbindung: ${g.werte.fehler ?? ""}` : aussenGrundText(g);
-
-const ereignis = (
-  deps: Deps,
-  d: DienstZeile,
-  jetzt: number,
-  e: {
-    aktion: string;
-    grund: string;
-    art: string;
-    schwere: "info" | "warn" | "fehler";
-    text: string;
-  },
-) =>
-  schreiben(
-    deps.schreibDb,
-    { betreiberId: d.betreiberId, akteur: "system", jetzt, grund: e.grund },
-    `ereignis.${e.aktion}`,
-    (s) =>
-      s.einfuegen("ereignisse", {
-        betreiberId: d.betreiberId,
-        ereignisId: (deps.neueId ?? randomUUID)(),
-        zeitpunkt: jetzt,
-        art: e.art,
-        schwere: e.schwere,
-        ziel: dienstZiel(d.dienstId),
-        text: e.text,
-      }),
-  );
+type Deps = DienstDeps;
 
 const wechselMelden = (deps: Deps, d: DienstZeile, stand: AussenStand, jetzt: number) => {
   const letzte = letzteAussenMeldungAm(deps.db, d.betreiberId, dienstZiel(d.dienstId));
@@ -78,28 +43,6 @@ const wechselMelden = (deps: Deps, d: DienstZeile, stand: AussenStand, jetzt: nu
       art: AUSSEN_GRUEN_ART,
       schwere: "info",
       text: `Von außen wieder grün: ${d.name} (${d.host})`,
-    });
-};
-
-const stoerungMelden = (deps: Deps, d: DienstZeile, stand: AussenStand, jetzt: number) => {
-  const offen = stoerungOffenAm(deps.db, d.betreiberId, dienstZiel(d.dienstId));
-  const ergebnis = stoerungPruefen(null, offen, jetzt, stand);
-  const minuten = Math.floor((jetzt - stand.seit) / 60_000);
-  if (ergebnis === "stoerung")
-    ereignis(deps, d, jetzt, {
-      aktion: "stoerung",
-      grund: "Dienst 5 Min. außen rot",
-      art: STOERUNG_ART,
-      schwere: "fehler",
-      text: `Störung ${d.name}: seit ${minuten} Min. außen rot; ${grundText(stand.grund)}`,
-    });
-  if (ergebnis === "behoben")
-    ereignis(deps, d, jetzt, {
-      aktion: "stoerung-behoben",
-      grund: "Dienst wieder grün",
-      art: BEHOBEN_ART,
-      schwere: "info",
-      text: `Störung ${d.name} behoben: wieder grün`,
     });
 };
 
@@ -126,7 +69,7 @@ export const dienstErgebnisAnnehmen = (
     stundeVon(jetzt),
   );
   wechselMelden(deps, d, stand, jetzt);
-  stoerungMelden(deps, d, stand, jetzt);
+  dienstStoerungFortschreiben(deps, d, jetzt);
 };
 
 /** One check to run: which host and path, what to log, and how to keep the answer */

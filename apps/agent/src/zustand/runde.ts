@@ -1,14 +1,20 @@
-import { type NachrichtVomAgenten, PROTOKOLL_VERSION } from "@steuerzentrale/protokoll";
+import {
+  type BeobachteterDienst,
+  type NachrichtVomAgenten,
+  PROTOKOLL_VERSION,
+} from "@steuerzentrale/protokoll";
 import type { Gedaechtnis, InstallationsEintrag } from "../einrichtung/gedaechtnis.ts";
 import { type NutzerLesen, nutzerName } from "../einrichtung/nutzer.ts";
+import { beobachteteLesen } from "./beobachtet.ts";
 import { type Health, healthPruefen, type PruefDeps, type Unit, unitsLesen } from "./pruefen.ts";
 
 /*
  * One round of checks (BAULISTE.md Z-403; docs/plan.md, "Health auf dem Server"): every
  * installation the agent's record names as `fertig`, its units and its health checked side by side
  * as its own user, all of them in one `zustand` message. An installation still `angelegt` is not
- * reported: it is being set up or torn down, and the job says how that went. The Zentrale judges
- * what the message says (packages/planung, installationBewerten).
+ * reported: it is being set up or torn down, and the job says how that went. The observed services
+ * the Zentrale named (Z-1103, beobachtet.ts) come in the same message. The Zentrale judges what the
+ * message says (packages/planung, installationBewerten).
  */
 
 export type ZustandNachricht = Extract<NachrichtVomAgenten, { typ: "zustand" }>;
@@ -17,6 +23,8 @@ export type ZustandDeps = PruefDeps & {
   gedaechtnis: Pick<Gedaechtnis, "lesen">;
   nutzer: NutzerLesen;
   jetzt: () => number;
+  /** The observed services of the newest `beobachten` (Z-1103); none without */
+  beobachtet?: () => readonly BeobachteterDienst[];
 };
 
 export type ZustandGelesen =
@@ -51,12 +59,20 @@ export const zustandLesen = async (deps: ZustandDeps): Promise<ZustandGelesen> =
   const fertig = [...g.stand]
     .filter(([, e]) => e.zustand === "fertig")
     .sort(([a], [b]) => (a < b ? -1 : 1));
-  const installationen = await Promise.all(
-    fertig.map(([name, e]) => installationPruefen(deps, name, e)),
-  );
+  const beobachtet = deps.beobachtet?.() ?? [];
+  const [installationen, dienste] = await Promise.all([
+    Promise.all(fertig.map(([name, e]) => installationPruefen(deps, name, e))),
+    beobachteteLesen(deps, beobachtet),
+  ]);
   return {
     ok: true,
-    nachricht: { typ: "zustand", protokoll: PROTOKOLL_VERSION, zeit: deps.jetzt(), installationen },
+    nachricht: {
+      typ: "zustand",
+      protokoll: PROTOKOLL_VERSION,
+      zeit: deps.jetzt(),
+      installationen,
+      ...(beobachtet.length > 0 ? { dienste } : {}),
+    },
   };
 };
 
