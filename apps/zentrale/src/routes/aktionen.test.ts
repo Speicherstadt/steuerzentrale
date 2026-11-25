@@ -113,20 +113,21 @@ describe("the actions of an installation", () => {
     });
   });
 
-  it("refuses support without a support access, and „nur lesen“ even with one (Z-802)", async () => {
+  it("refuses support every action: no support access opens one any more (Z-1203)", async () => {
     const id = await laufend("aktionen", "support.kanzlei.test");
     for (const a of ["log-auszug", "neustart", "nur-lesen"])
       expect(await ausloesen(support, id, a, "Anfrage")).toEqual({
         status: 403,
         daten: { fehler: "keine_berechtigung" },
       });
-    const zugang = await json(support, "/api/v1/support-zugaenge", {
-      body: { installationId: id, grund: "Anfrage aus dem Portal" },
-    });
-    expect(zugang.status).toBe(201);
-    expect((await ausloesen(support, id, "log-auszug", "Anfrage aus dem Portal")).status).toBe(201);
-    allesErledigt(id);
-    expect(await ausloesen(support, id, "nur-lesen", "Anfrage")).toEqual({
+    expect(
+      (
+        await json(support, "/api/v1/support-zugaenge", {
+          body: { installationId: id, grund: "Anfrage aus dem Portal" },
+        })
+      ).status,
+    ).toBe(404);
+    expect(await ausloesen(support, id, "log-auszug", "Anfrage aus dem Portal")).toEqual({
       status: 403,
       daten: { fehler: "keine_berechtigung" },
     });
@@ -164,14 +165,11 @@ describe("a restart", () => {
 });
 
 describe("a log excerpt", () => {
-  it("shows the agent's lines to every role, support during its access, once they arrived", async () => {
+  it("shows the agent's lines to owner and technik once they arrived, never to support", async () => {
     const id = await laufend("probe", "zeilen.kanzlei.test");
-    await json(support, "/api/v1/support-zugaenge", {
-      body: { installationId: id, grund: "Anmeldung langsam" },
-    });
-    const r = await ausloesen(support, id, "log-auszug", "Anmeldung langsam");
+    const r = await ausloesen(teufel, id, "log-auszug", "Anmeldung langsam");
     const auftragId = (r.daten.auftrag as { auftragId: string }).auftragId;
-    expect(await json(support, logPfad(id, auftragId))).toMatchObject({
+    expect(await json(teufel, logPfad(id, auftragId))).toMatchObject({
       status: 200,
       daten: { auftragId, zustand: "zugestellt", zeilen: null, zeitpunkt: null },
     });
@@ -180,11 +178,15 @@ describe("a log excerpt", () => {
     expect(
       logAuszugAnnehmen(server.deps, { betreiberId: teufel.betreiberId, serverId }, meldung, 5),
     ).toEqual({ ok: true });
-    for (const p of [teufel, technik, support])
+    for (const p of [teufel, technik])
       expect(await json(p, logPfad(id, auftragId))).toMatchObject({
         status: 200,
         daten: { auftragId, zeilen, zeitpunkt: 5 },
       });
+    expect(await json(support, logPfad(id, auftragId))).toEqual({
+      status: 403,
+      daten: { fehler: "keine_berechtigung" },
+    });
   });
 });
 

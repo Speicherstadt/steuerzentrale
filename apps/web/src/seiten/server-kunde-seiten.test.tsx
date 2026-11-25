@@ -135,12 +135,12 @@ describe("the page of a server", () => {
 });
 
 describe("the page of a customer", () => {
-  it("heads with its apps in a sentence and its contract, and has three tabs", async () => {
+  it("heads with its apps in a sentence and its contract, and has two tabs", async () => {
     const { root } = await oeffne("/kunden/atelier-nord");
     expect(root.querySelector("main h1")?.textContent).toBe("Atelier Nord");
     expect(root.textContent).toMatch(/\d+ Apps, (alle laufen|wird eingerichtet|davon)/);
     expect(root.textContent).toMatch(/· Vertrag seit \d\d\.\d\d\.\d{4}/);
-    expect(reiter(root)).toEqual(["Überblick", "Support", "Verlauf"]);
+    expect(reiter(root)).toEqual(["Überblick", "Verlauf"]);
     expect(root.querySelector('main [aria-haspopup="menu"]')?.textContent).toBe("Mehr …");
   });
 
@@ -162,9 +162,9 @@ describe("the page of a customer", () => {
     expect(root.textContent).not.toContain("Was der Vertrag enthält");
   });
 
-  it("lists its support accesses on Support", async () => {
+  it("has no tab Support any more (Z-1203)", async () => {
     const { root } = await oeffne("/kunden/atelier-nord?tab=support");
-    expect(root.textContent).toContain("Zeitlich begrenzte Zugänge zu seinen Apps");
-    expect(knopf(root, "Zugang starten")).toBeDefined();
+    expect(reiter(root)).not.toContain("Support");
+    expect(knopf(root, "Zugang starten")).toBeUndefined();
   });
 });

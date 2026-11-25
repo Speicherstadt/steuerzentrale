@@ -59,35 +59,37 @@ test.describe("servers and customers", { tag: "@phone" }, () => {
     }
   });
 
-  test("open a customer's page with its apps and support", async ({ page }) => {
+  test("open a customer's page with its apps", async ({ page }) => {
     const i = await installationAnlegen(page.request);
     try {
       await page.goto(`/kunden/${i.kunde.id}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(i.kunde.name);
-      await expect(page.getByRole("tab")).toHaveText(["Überblick", "Support", "Verlauf"]);
+      await expect(page.getByRole("tab")).toHaveText(["Überblick", "Verlauf"]);
       await expect(page.getByTestId("kunde-apps")).toContainText(i.host);
       await expect(page.getByText(/· Vertrag seit/)).toBeVisible();
-      await ohneBefund(page);
-
-      await page.getByRole("tab", { name: "Support" }).click();
-      await expect(page.getByRole("button", { name: "Zugang starten" })).toBeVisible();
       await ohneBefund(page);
     } finally {
       i.agent.trennen();
     }
   });
 
-  // Z-1201: the services are gone, from the menu and as a page; the availability per month stays
-  // at the app (Z-704)
-  test("find no services, and the availability at the app", async ({ page }) => {
+  // Z-1201 and Z-1203: services and support accesses are gone, from the menu and as pages; the
+  // availability per month stays at the app (Z-704)
+  test("find no services and no support accesses, and the availability at the app", async ({
+    page,
+  }) => {
     const i = await installationAnlegen(page.request, neuerHost("laeuft"));
     try {
       await page.goto("/kunden");
-      await expect(page.getByRole("link", { name: "Support-Zugänge", exact: true })).toBeVisible();
-      await expect(page.getByRole("link", { name: "Leistungen", exact: true })).toHaveCount(0);
-      expect((await page.request.get("/api/v1/leistungen")).status()).toBe(404);
-      await page.goto("/leistungen");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nicht gefunden");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Kunden");
+      for (const name of ["Support-Zugänge", "Leistungen"])
+        await expect(page.getByRole("link", { name, exact: true })).toHaveCount(0);
+      for (const pfad of ["/api/v1/leistungen", "/api/v1/support-zugaenge"])
+        expect((await page.request.get(pfad)).status(), pfad).toBe(404);
+      for (const pfad of ["/leistungen", "/support"]) {
+        await page.goto(pfad);
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nicht gefunden");
+      }
 
       await expect
         .poll(async () => {

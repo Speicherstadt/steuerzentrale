@@ -30,7 +30,6 @@ export const ohneDemo: Bestand = {
   installationen: [],
   ereignisse: [],
   auftraege: [],
-  zugaenge: [],
   audit: [],
   konten: [],
   plaene: [],

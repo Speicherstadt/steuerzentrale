@@ -78,8 +78,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
 | 🔔 [Benachrichtigungen](https://speicherstadt.org/steuerzentrale/benachrichtigungen.html) | Mail über dein SMTP und signierte Webhooks, eine Nachricht je Störung und eine zur Behebung, Ruhezeit |
 | ⚙️ [Aktionen](https://speicherstadt.org/steuerzentrale/aktionen.html) · [Einstellungen](https://speicherstadt.org/steuerzentrale/einstellungen.html) | Neustart, Log-Auszug, nur lesen, Einstellungen ändern, jeweils mit Grund im Audit-Log und nie in einer Sperrzeit |
 | 👥 [Kunden und Verträge](https://speicherstadt.org/steuerzentrale/kunden.html) | Ansprechperson, Vertragsbeginn und -ende; je Kunde Überblick, Support und Verlauf; nach der Kündigung letztes Backup, Archiv-Link für den Kunden und Löschung mit Protokoll |
-| 🛟 [Support-Zugang](https://speicherstadt.org/steuerzentrale/support.html) | Wer die Rolle Support hat, darf bei einer App eines Kunden das Log lesen und neu starten, aber nur mit einem Zugang: für diese eine App, ein paar Stunden lang, mit einem Grund, den der Kunde sieht; gestartet auf der Seite der App oder im Reiter „Support“ des Kunden |
-| 🏠 [Nur für mich oder für Kunden](https://speicherstadt.org/steuerzentrale/anmeldung.html#nur-fur-mich-oder-fur-kunden) | Einmal nach der Einrichtung gewählt, später vom Inhaber mit Grund geändert; „Nur für mich“ blendet Kunden, Verträge und Support-Zugänge aus |
+| 🏠 [Nur für mich oder für Kunden](https://speicherstadt.org/steuerzentrale/anmeldung.html#nur-fur-mich-oder-fur-kunden) | Einmal nach der Einrichtung gewählt, später vom Inhaber mit Grund geändert; „Nur für mich“ blendet Kunden und Verträge aus |
 | 🔐 [Anmeldung und Rollen](https://speicherstadt.org/steuerzentrale/anmeldung.html) | Passkey oder Passwort mit TOTP, Rollen Inhaber, Technik, Support; Oberfläche nur über WireGuard |
 | 🛡️ [Sicherheit](https://speicherstadt.org/steuerzentrale/sicherheit.html) | Bedrohungsmodell mit Test je Bedrohung, Notzugang per SSH, TOMs nach Art. 32 DSGVO |
 | 📐 [Manifest für App-Entwickler](https://speicherstadt.org/steuerzentrale/manifest.html) | Ein Schema für Units, Volumes, Secrets, Health, Backup, Aktionen und Einstellungen einer App |
@@ -96,7 +95,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-detail-dunkel.webp"><img src="docs/assets/screenshots/server-detail-hell.webp" alt="Seite eines Servers mit den Reitern Überblick, Auslastung, Apps, Verlauf und Technik und den Zeilen Auslastung, Betriebssystem, Wartungsfenster, Prüfungen und Agent"></picture><br><sub><b>Ein Server</b>: Auslastung, Betriebssystem, Wartungsfenster, Prüfungen und Agent</sub></td>
   </tr>
   <tr>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/kunden-dunkel.webp"><img src="docs/assets/screenshots/kunden-hell.webp" alt="Tabelle der Kunden mit Apps, Server und Vertrag, darüber die Reiter Kunden und Support-Zugänge"></picture><br><sub><b>Kunden</b>: Vertrag, Apps und Server je Kunde</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/kunden-dunkel.webp"><img src="docs/assets/screenshots/kunden-hell.webp" alt="Tabelle der Kunden mit Apps, Server und Vertrag"></picture><br><sub><b>Kunden</b>: Vertrag, Apps und Server je Kunde</sub></td>
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/katalog-dunkel.webp"><img src="docs/assets/screenshots/katalog-hell.webp" alt="Katalog mit einer Kachel je App: Version, wie oft sie läuft, neue Version oder fehlendes Manifest, „Installieren“"></picture><br><sub><b>Katalog</b>: die Apps, wie ihre Manifeste sie beschreiben, mit neuen Versionen</sub></td>
   </tr>
   <tr>
@@ -147,7 +146,7 @@ Zentrale kann auch auf einem Server laufen, der selbst Apps betreibt.
 
 Für alle, die mehr als eine Installation der Speicherstadt-Apps betreuen: IT-Dienstleister und Hoster mit Kunden,
 aber auch eine Firma mit mehreren Standorten. Wer die Apps nur für sich betreibt, wählt nach der Einrichtung „Nur für
-mich“: dann gibt es keine Kunden, Verträge und Support-Zugänge. Für eine einzelne App auf einem Server reicht deren
+mich“: dann gibt es keine Kunden und Verträge. Für eine einzelne App auf einem Server reicht deren
 eigene Anleitung.
 </details>
 

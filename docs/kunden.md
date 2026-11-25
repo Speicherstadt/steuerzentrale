@@ -12,8 +12,7 @@ zeigt später das Portal. Unter **Kunden** legt der Betreiber Kunden an, die nic
 kommen, ändert ihre Angaben und trägt eine Kündigung ein.
 
 Die Seite **Kunden** ist eine Tabelle: Kunde mit E-Mail-Adresse, Apps, Server und Vertrag
-(„seit …“, „intern“ oder „Gekündigt zum …“), mit Suche und **Kunde anlegen**. Darüber führt
-**Support-Zugänge** ([Support-Zugang](support.md)) zur Liste der Zugänge aller Kunden. Ein Klick auf einen Kunden öffnet
+(„seit …“, „intern“ oder „Gekündigt zum …“), mit Suche und **Kunde anlegen**. Ein Klick auf einen Kunden öffnet
 [seine Seite](#die-seite-eines-kunden).
 
 ## Was zu einem Kunden gehört
@@ -185,10 +184,9 @@ Löschung und **Kündigung zurücknehmen**. Die Reiter stehen in der Adresse (`?
 | Reiter | Inhalt | Woher |
 | --- | --- | --- |
 | Überblick | die Apps mit Adresse, Version, Server und Zustand; Vertrag und Kontakt | `GET /api/v1/installationen`, der Kunde |
-| Support | die Support-Zugänge zu seinen Apps, laufend und beendet, und „Zugang starten“ | `GET /api/v1/support-zugaenge?kundeId=…` |
 | Verlauf | die Ereignisse seiner Apps | `GET /api/v1/ereignisse` |
 
 Die Verfügbarkeit je Monat steht an jeder App (Reiter „Technik“, [Prüfung von außen](aussen.md)).
-In der Betriebsart „Nur für mich“ fehlt „Kunden“ in der Seitenleiste, und mit ihm die Support-Zugänge.
+In der Betriebsart „Nur für mich“ fehlt „Kunden“ in der Seitenleiste.
 `bun run dev:demo` zeigt Kunden aus den Demodaten; was man dort anlegt oder ändert, bleibt bis zum
 Neuladen der Seite im Browser.

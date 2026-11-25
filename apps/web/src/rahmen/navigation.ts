@@ -16,8 +16,7 @@ import type { Bestand } from "../daten/typen.ts";
 /**
  * The areas of the sidebar: eight in two groups, one home per thing (docs/plan.md, "Navigation
  * (Oberfläche 2026-11)"; DESIGN.md, "Bausteine"). Installations are called Apps, the manifests'
- * catalog Katalog. Pages without an entry of their own belong to an area: support accesses and
- * usage to Kunden, the backups to Apps.
+ * catalog Katalog. Pages without an entry of their own belong to an area: the backups to Apps.
  */
 
 export type Pfad =
@@ -65,11 +64,10 @@ export const GRUPPEN: Gruppe[] = [
 
 /** Pages reached from an area, not from the menu: their name and the area they belong to */
 const UNTERSEITEN: Record<string, { name: () => string; heimat: Pfad }> = {
-  "/support": { name: () => m.nav_support(), heimat: "/kunden" },
   "/backups": { name: () => m.nav_backups(), heimat: "/apps" },
 };
 
-/** What "Nur für mich" hides (Z-805): customers, and with them support accesses */
+/** What "Nur für mich" hides (Z-805): customers */
 export const NUR_FUER_KUNDEN: readonly Pfad[] = ["/kunden"];
 
 /** The groups of the sidebar for the Betriebsart; a group left empty goes too */
@@ -110,7 +108,7 @@ const objektName = (b: Bestand, bereich: Pfad, id: string): string | undefined =
 
 /**
  * The path in the header: the area, and on a detail page or a page below the area the object or
- * page below it ("Server › Gemeinsamer Server 1", "Kunden › Support-Zugänge"); only the last step is
+ * page below it ("Server › Gemeinsamer Server 1", "Apps › Backups"); only the last step is
  * not a link
  */
 export const pfadStufen = (b: Bestand, pathname: string): Stufe[] => {

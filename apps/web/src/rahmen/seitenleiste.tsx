@@ -54,7 +54,7 @@ const zahlen = (): ((art: Zaehler) => number) => {
 const Bereiche = () => {
   const zahl = zahlen();
   const ort = useLocation();
-  // "Nur für mich" hides the customers, with them support accesses and services (Z-805)
+  // "Nur für mich" hides the customers (Z-805)
   const art = createMemo(() => betriebsartLesen());
   return (
     <nav aria-label={m.nav_bereiche()} class="flex flex-col">
@@ -72,7 +72,7 @@ const Bereiche = () => {
                       <Link
                         to={bereich.pfad}
                         activeOptions={{ exact: bereich.pfad === "/" }}
-                        // a page below an area (Support-Zugänge under Kunden) marks its area too
+                        // a page below an area (Backups under Apps) marks its area too
                         aria-current={heimat(ort().pathname) === bereich.pfad ? "page" : undefined}
                         class="flex h-8 items-center gap-2 overflow-hidden rounded-md px-2 hover:bg-accent aria-[current=page]:bg-accent aria-[current=page]:font-medium"
                       >

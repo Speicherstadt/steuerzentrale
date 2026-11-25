@@ -47,19 +47,6 @@ export const MitInstallationsRecht = (props: { children: JSX.Element; sonst?: JS
 };
 
 /**
- * Shows its children to owner and technik, and to support while `zugang`: its own support access
- * to the installation runs (Z-802), as the Zentrale checks for log excerpt and restart
- */
-export const MitRechtOderZugang = (props: { zugang: boolean; children: JSX.Element }) => {
-  const darf = installationsRecht();
-  return (
-    <Loading fallback={null}>
-      <Show when={props.zugang || darf()}>{props.children}</Show>
-    </Loading>
-  );
-};
-
-/**
  * Shows its children only to the owner: marking a customer as internal (Z-501), changing the
  * Betriebsart (Z-805); `sonst` is what another role sees instead
  */

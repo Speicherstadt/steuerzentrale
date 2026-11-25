@@ -26,7 +26,8 @@ const laeuft = (request: APIRequestContext, id: string) =>
 // BAULISTE.md Z-405 against the real Zentrale with the first owner's session: restart and log
 // excerpt of a running installation, each with a reason; the stand-in agent (e2e/hilfen/agent.ts)
 // reports the restart done and sends the lines of the log excerpt, which the dialog then shows. An
-// action the manifest does not offer is not on the page. The agent's own side (journald, replacing
+// action the manifest does not offer is not on the page. Since Z-1203 no support access exists:
+// restart and log excerpt run without one, and the page offers none. The agent's own side (journald, replacing
 // the secrets, refusing what is not offered) runs in CI against Podman (apps/agent).
 test.describe("the actions of an installation", { tag: "@phone" }, () => {
   test("restarts with a reason and shows a log excerpt", async ({ page }) => {
@@ -38,6 +39,7 @@ test.describe("the actions of an installation", { tag: "@phone" }, () => {
       await page.getByRole("button", { name: "Mehr …" }).click();
       await expect(page.getByRole("menuitem", { name: "Log-Auszug" })).toBeVisible();
       await expect(page.getByRole("menuitem", { name: "Nur lesen" })).toHaveCount(0);
+      await expect(page.getByRole("menuitem", { name: /Support-Zugang|Zugang/ })).toHaveCount(0);
       await page.keyboard.press("Escape");
 
       await page.getByRole("button", { name: "Neustart" }).click();

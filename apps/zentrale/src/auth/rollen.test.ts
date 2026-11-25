@@ -34,22 +34,12 @@ describe("darf", () => {
     expect(darf("support", "server:anlegen")).toBe(false);
   });
 
-  it("lets owner and technik take a log excerpt and restart; support only through an access (Z-405, Z-802)", () => {
+  it("lets owner and technik take a log excerpt and restart; support not at all (Z-405, Z-1203)", () => {
     for (const recht of ["installationen:log_auszug", "installationen:schreiben"] as const) {
       expect(darf("inhaber", recht), recht).toBe(true);
       expect(darf("technik", recht), recht).toBe(true);
       expect(darf("support", recht), recht).toBe(false);
     }
-  });
-
-  it("lets every role see and start support accesses, owner and technik end others' (Z-802)", () => {
-    for (const rolle of ROLLEN) {
-      expect(darf(rolle, "support:lesen"), rolle).toBe(true);
-      expect(darf(rolle, "support:starten"), rolle).toBe(true);
-    }
-    expect(darf("inhaber", "support:verwalten")).toBe(true);
-    expect(darf("technik", "support:verwalten")).toBe(true);
-    expect(darf("support", "support:verwalten")).toBe(false);
   });
 
   it("lets only the owner update in a freeze window, with a reason (Z-503)", () => {

@@ -96,7 +96,7 @@ Disclosure, **D**enial of Service, **E**levation of Privilege. Tests ohne Pfad z
 | B-23 | Ein Mitglied tut mehr, als seine Rolle erlaubt | E | Rechte je Rolle (`auth/rollen.ts`), geprüft in jeder Route | `routes/zugang.test.ts` › <Route> › as inhaber/technik/support answers by the list (jede Route mit Recht in jeder Rolle, sonst `403 keine_berechtigung`); › gives every route that needs a right at least one role; `auth/rollen.test.ts` › darf |
 | B-24 | Ein Betreiber (Partner) sieht oder ändert Daten eines anderen | I, T | `betreiber_id` in jeder Tabelle und Abfrage; `schreiben` lehnt fremde Zeilen ab | `routes/mandanten.test.ts` › no operator reaches another's data; `routes/kunden-mandanten.test.ts`; `routes/betrieb-mandanten.test.ts`; `modules/audit/schreiben.test.ts` › refuses a row of another operator |
 | B-25 | Der Einrichtungscode des ersten Inhabers wird erraten oder wiederverwendet | S | Einmal, 24 h, nie im Log | `routes/erster-inhaber.test.ts` › refuses the code a second time; › refuses the code after 24 hours; › never writes the code into the request log |
-| B-26 | Ein Support-Zugang bleibt länger offen als vereinbart | E | Zugang mit Grund und Ende, Anfragen danach abgewiesen | `routes/support.test.ts` › after an access ran out › refuses every request it allowed, also at the very millisecond of its end |
+| B-26 | Support erreicht Log-Auszug oder Neustart (früher über einen Support-Zugang) | E | Support-Zugänge gibt es seit Z-1203 nicht mehr; die Rolle Support hat weder `installationen:log_auszug` noch `installationen:schreiben`, die Wache kennt keinen Ersatz für ein fehlendes Recht | `routes/aktionen.test.ts` › refuses support every action: no support access opens one any more; `routes/zugang.test.ts` › removed routes |
 | B-27 | Ein Angreifer auf `api.<domain>` probiert Tokens durch | S | Annahme: `api.<domain>` hat keine Route, die API für das Portal ist gestrichen (Bauliste, „Später, bei Bedarf“); käme sie, dann mit Tokens als Hash und einem Rate-Limit mit eigenem Test | – |
 | B-28 | Eine fremde Seite im Browser eines Mitglieds (etwa eine App unter derselben Domain) schreibt mit dessen Sitzung (CSRF) | S, E | Jede schreibende Anfrage mit Sitzung braucht den Origin der Oberfläche, sonst `403 fremder_ursprung` (Entscheidung „Schreiben nur vom eigenen Origin“); Better Auth prüft seine Pfade selbst gegen `STEUERZENTRALE_URL` | `routes/zugang.test.ts` › a write from a page of another origin › … is refused, with the member's session (jede schreibende Route) |
 
@@ -176,8 +176,7 @@ deren Zutrittskontrolle; der Betreiber hat keinen physischen Zugang.
 **Zugriffskontrolle**
 
 - Rollen Inhaber, Technik und Support mit festen Rechten je Route, Schreiben nur von der Oberfläche
-  selbst (B-22, B-23, B-28); Support-Zugang zu einer Installation nur befristet und mit Grund
-  (B-26).
+  selbst (B-22, B-23, B-28); kein Support-Zugang, der ein fehlendes Recht ersetzt (B-26).
 - Trennung der Betreiber durch `betreiber_id` in jeder Abfrage (B-24).
 - Auf den Servern läuft jede Installation unter einem eigenen Linux-Nutzer ohne Login-Shell, in
   einem eigenen Netz (B-34); der Agent führt nur signierte Manifeste aus (B-01 bis B-05).

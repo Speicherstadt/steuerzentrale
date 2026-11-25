@@ -12,7 +12,6 @@ import { datum } from "../format/zeit.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { KundeAnlegen } from "../seiten/kunden-dialoge.tsx";
 import { Seitenkopf } from "../teile/karte.tsx";
-import { KundenReiter } from "../teile/reiter-links.tsx";
 import { Reihe, Tabelle } from "../teile/tabelle.tsx";
 import { ZuKunde, ZuServer } from "../teile/verweise.tsx";
 import { AppZeichen, Marke } from "../teile/zeichen.tsx";
@@ -124,7 +123,6 @@ const Kunden = () => {
           </Button>
         }
       />
-      <KundenReiter />
       <div class="mt-2 w-full sm:w-72">
         <SearchInput
           label={m.kunden_suche()}

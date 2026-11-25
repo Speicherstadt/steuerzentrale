@@ -176,6 +176,13 @@
       "when": 1795614872487,
       "tag": "0024_ohne_sla",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1795615655727,
+      "tag": "0025_ohne_support_zugaenge",
+      "breakpoints": true
     }
   ]
 }

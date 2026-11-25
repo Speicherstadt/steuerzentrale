@@ -4,9 +4,8 @@ import { darf, type Recht, ROLLEN, type Rolle } from "../auth/rollen.ts";
 import type { Db } from "../db/oeffnen.ts";
 import { faktorenVon, zweiterFaktorVorhanden } from "../modules/anmeldung/faktoren.ts";
 import { nurFuerMich } from "../modules/betriebsart/index.ts";
-import { type Mitglied, mitgliedschaftenVon, mitgliedVon } from "../modules/mitglieder/index.ts";
+import { mitgliedschaftenVon, mitgliedVon } from "../modules/mitglieder/index.ts";
 import { serverZumFingerabdruck } from "../modules/server/index.ts";
-import { aktiverZugang } from "../modules/support/index.ts";
 import { agentFingerabdruck, FINGERABDRUCK_HEADER } from "../modules/verbindung/herkunft.ts";
 
 /**
@@ -23,23 +22,20 @@ export type Anfrage = {
  * any signed-in account, also one without its second factor (only the setup of that factor),
  * Better Auth itself (its own checks, AUTH_PFADE), a member whose role has the right, or an agent
  * with the client certificate of a server that is not revoked (the fingerprint from the Pforte).
- * `supportZugang`: a member whose role lacks the right reaches the route of an installation also
- * while a support access it started for that installation runs (Z-802).
+ * No access stands in for a right the role lacks (support accesses are gone since Z-1203).
  */
 export type Zugang =
   | { art: "oeffentlich" }
   | { art: "agent" }
   | { art: "einrichtung" }
   | { art: "better-auth" }
-  | { art: "recht"; recht: Recht; supportZugang?: true; nurKunden?: true };
+  | { art: "recht"; recht: Recht; nurKunden?: true };
 
 const oeffentlich = { art: "oeffentlich" } as const;
 const einrichtung = { art: "einrichtung" } as const;
 const betterAuth = { art: "better-auth" } as const;
 const agent = { art: "agent" } as const;
 const recht = (name: Recht) => ({ art: "recht", recht: name }) as const;
-/** A right that a running support access to the route's installation stands in for (Z-802) */
-const mitZugang = (name: Recht) => ({ art: "recht", recht: name, supportZugang: true }) as const;
 /** A route for customers only: in the Betriebsart `selbst` it answers `409 betriebsart` (Z-805) */
 const fuerKunden = (name: Recht) => ({ art: "recht", recht: name, nurKunden: true }) as const;
 
@@ -88,26 +84,20 @@ export const ROUTEN = {
   "POST /api/v1/installationen": recht("installationen:schreiben"),
   "DELETE /api/v1/installationen/:installationId": recht("installationen:schreiben"),
   "PUT /api/v1/installationen/:installationId/einstellungen": recht("installationen:schreiben"),
-  // the actions of an installation (Z-405): support takes a log excerpt and restarts only during a
-  // support access to the installation (Z-802), never "nur lesen"
-  "POST /api/v1/installationen/:installationId/neustart": mitZugang("installationen:schreiben"),
+  // the actions of an installation (Z-405): owner and technik; support takes none (Z-1203)
+  "POST /api/v1/installationen/:installationId/neustart": recht("installationen:schreiben"),
   "POST /api/v1/installationen/:installationId/nur-lesen": recht("installationen:schreiben"),
-  "POST /api/v1/installationen/:installationId/log-auszug": mitZugang("installationen:log_auszug"),
+  "POST /api/v1/installationen/:installationId/log-auszug": recht("installationen:log_auszug"),
   // after the contract's end (Z-604): every role sees where it stands; the link to the archive
   // for the customer only owner and technik, with a reason
   "GET /api/v1/installationen/:installationId/abwicklung": recht("installationen:lesen"),
   "POST /api/v1/installationen/:installationId/archiv-link": recht("installationen:schreiben"),
-  "GET /api/v1/installationen/:installationId/log-auszuege/:auftragId": mitZugang(
+  "GET /api/v1/installationen/:installationId/log-auszuege/:auftragId": recht(
     "installationen:log_auszug",
   ),
   // the check from outside and the availability (Z-704): read like the installation
   "GET /api/v1/installationen/:installationId/aussen": recht("installationen:lesen"),
   "GET /api/v1/installationen/:installationId/verfuegbarkeit": recht("installationen:lesen"),
-  // support accesses (Z-802): every role sees them and starts one for itself; its holder ends it,
-  // owner and technik also another's (checked in the route)
-  "GET /api/v1/support-zugaenge": recht("support:lesen"),
-  "POST /api/v1/support-zugaenge": fuerKunden("support:starten"),
-  "POST /api/v1/support-zugaenge/:zugangId/beenden": recht("support:starten"),
   // the operator's values of an app (Z-404): rights as for installations, which they serve
   "GET /api/v1/apps/:app/einstellungen": recht("installationen:lesen"),
   "PUT /api/v1/apps/:app/einstellungen": recht("installationen:schreiben"),
@@ -223,23 +213,6 @@ const agentWache =
   };
 
 /**
- * Whether a support access stands in for the right the role lacks: the route allows it, the role
- * may hold one, and one of the member's runs for the route's installation at this request's instant
- * (asked anew each time: an access that ran out or was ended opens nothing from that millisecond on)
- */
-const perSupportZugang = (
-  db: Db,
-  zugang: Extract<Zugang, { art: "recht" }>,
-  mitglied: Mitglied,
-  installationId: string | undefined,
-  jetzt: number,
-): boolean =>
-  zugang.supportZugang === true &&
-  installationId !== undefined &&
-  darf(mitglied.rolle, "support:starten") &&
-  aktiverZugang(db, mitglied.betreiberId, mitglied.nutzerId, installationId, jetzt) !== undefined;
-
-/**
  * Whether a write with the session cookie comes from a page of another origin (docs/sicherheit.md
  * B-39): a browser sends Origin with every cross-origin write ("null" for an opaque one), so a
  * foreign value is refused; without Origin (a client that is no browser) Sec-Fetch-Site decides,
@@ -258,7 +231,7 @@ const fremderUrsprung = (request: Request, ursprung: string): boolean => {
  * once. `ursprung` is the interface's origin (STEUERZENTRALE_URL), the only one a write may come from.
  */
 export const wache =
-  (auth: Auth, db: Db, socketAdresse: SocketAdresse, now: () => number, ursprung: string) =>
+  (auth: Auth, db: Db, socketAdresse: SocketAdresse, ursprung: string) =>
   (zugang: Zugang): MiddlewareHandler<Anfrage> =>
   async (c, next) => {
     if (zugang.art === "oeffentlich" || zugang.art === "better-auth") return next();
@@ -273,14 +246,7 @@ export const wache =
     const betreiberId = betreiberDerSitzung(db, sitzung);
     const mitglied = betreiberId ? mitgliedVon(db, betreiberId, sitzung.nutzerId) : undefined;
     if (!mitglied) return c.json({ fehler: "kein_betreiber" }, 403);
-    if (!darf(mitglied.rolle, zugang.recht)) {
-      // a support access is checked once the whole request is in (Hono keeps the body for the
-      // route), so a body that arrives after the access ended opens nothing
-      if (zugang.supportZugang === true) await c.req.text().catch(() => "");
-      const installationId = c.req.param("installationId");
-      if (!perSupportZugang(db, zugang, mitglied, installationId, now()))
-        return c.json({ fehler: "keine_berechtigung" }, 403);
-    }
+    if (!darf(mitglied.rolle, zugang.recht)) return c.json({ fehler: "keine_berechtigung" }, 403);
     if (zugang.nurKunden === true && nurFuerMich(db, mitglied.betreiberId))
       return c.json({ fehler: "betriebsart" }, 409);
     c.set("betreiberId", mitglied.betreiberId);

@@ -19,13 +19,13 @@ const menue = async (page: Page) => {
 };
 
 // BAULISTE.md Z-805 on the second Zentrale, whose owner answered "Nur für mich" (e2e/selbst.setup.ts):
-// the menu shows neither Kunden nor Support-Zugänge, and "App installieren" asks for
+// the menu shows no Kunden, and "App installieren" asks for
 // no customer; the installation goes to the fixed internal customer
 test.describe("Nur für mich", { tag: "@phone" }, () => {
-  test("hides customers and support accesses in the menu", async ({ page }) => {
+  test("hides customers in the menu", async ({ page }) => {
     await page.goto("/");
     const nav = await menue(page);
-    for (const name of ["Kunden", "Support-Zugänge"])
+    for (const name of ["Kunden"])
       await expect(nav.getByRole("link", { name, exact: true })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Einstellungen" })).toBeVisible();
   });

@@ -37,8 +37,6 @@ describe("demo fixtures", () => {
       if (ziel.art === "server") expect(server.has(ziel.id), ziel.id).toBe(true);
       if (ziel.art === "app") expect(apps.has(ziel.id), ziel.id).toBe(true);
     }
-    for (const z of demo.zugaenge)
-      expect(installationen.has(z.installationId), z.zugangId).toBe(true);
   });
 
   it("take each app's version from its newest released manifest", () => {

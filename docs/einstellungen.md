@@ -120,7 +120,7 @@ sehen sie nur.
 - **Zu „Nur für mich“**: Die Zentrale legt den festen internen Kunden an oder nimmt den von früher
   wieder. Das geht nur, solange keine Installation (außer entfernten) einem anderen Kunden gehört;
   sonst antwortet sie `409 fremde_installationen`. Danach antworten die ausgeblendeten Endpunkte mit
-  `409 betriebsart`: Kunden anlegen, ändern, kündigen, intern markieren, Support-Zugang starten;
+  `409 betriebsart`: Kunden anlegen, ändern, kündigen, intern markieren;
   eine Installation lässt sich nur für den internen Kunden anlegen. Lesen bleibt, was
   die Oberfläche noch braucht (Kunden, Installationen).
 - **Zu „Für Kunden“**: ändert nichts außer der Betriebsart; keine Installation geht verloren, der
@@ -163,11 +163,11 @@ Datenbank.
   fremder Kunden, `409 betriebsart` an jedem ausgeblendeten Endpunkt, ein anderer Betreiber bleibt
   unberührt.
 - `apps/web/src/seiten/betriebsart.test.tsx` und `apps/web/src/rahmen/navigation.test.ts`: der
-  Abschnitt je Rolle, das Menü ohne Kunden (und damit ohne Support-Zugänge), der
+  Abschnitt je Rolle, das Menü ohne Kunden, der
   Dialog ohne Kunden.
 - `e2e/selbst.setup.ts` und `e2e/betriebsart-selbst.spec.ts` (Desktop und Handy, gegen eine zweite
   Zentrale): die Frage kommt nach dem ersten Inhaber und ohne Antwort wieder; „Nur für mich“ zeigt
-  im Menü keine Kunden (und damit keine Support-Zugänge) und installiert ohne
+  im Menü keine Kunden und installiert ohne
   Kundenauswahl.
 - `e2e/einstellungen.spec.ts` (Desktop und Handy, axe): Werte des Betreibers im Dialog und neu
   konfigurieren; der Stellvertreter des Agenten meldet den Auftrag als erfolgreich. Den Agenten

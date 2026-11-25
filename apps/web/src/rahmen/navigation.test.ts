@@ -48,7 +48,6 @@ describe("navigation", () => {
     expect(heimat("/")).toBe("/");
     expect(heimat("/apps/lind-haben")).toBe("/apps");
     expect(heimat("/backups")).toBe("/apps");
-    expect(heimat("/support")).toBe("/kunden");
     expect(heimat("/katalog/haben")).toBe("/katalog");
     expect(heimat("/protokoll")).toBe("/protokoll");
   });
@@ -78,10 +77,6 @@ describe("navigation", () => {
   });
 
   it("shows a page without an entry below its area", () => {
-    expect(pfadStufen(demo, "/support")).toEqual([
-      { name: "Kunden", pfad: "/kunden" },
-      { name: "Support-Zugänge" },
-    ]);
     expect(pfadStufen(demo, "/backups")).toEqual([
       { name: "Apps", pfad: "/apps" },
       { name: "Backups" },

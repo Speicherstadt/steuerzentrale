@@ -56,7 +56,10 @@ describe("the migration without support accesses", () => {
     migrieren(sqlite, migrationen, 2);
     expect(tabellen(sqlite)).not.toContain("support_zugaenge");
     expect(
-      sqlite.query<{ art: string }, []>("SELECT art FROM ereignisse").all().map((e) => e.art),
+      sqlite
+        .query<{ art: string }, []>("SELECT art FROM ereignisse")
+        .all()
+        .map((e) => e.art),
     ).toEqual(["support_zugang"]);
   });
 });

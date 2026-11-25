@@ -600,7 +600,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   Fertig, wenn: ein Vertrag ohne SLA angelegt wird (Test, Playwright), die Migration vorhandene
   Verträge behält (Test auf einer Datenbank mit Verträgen) und `sla` in keinem Schema der API mehr
   vorkommt (Test).
-- [ ] **Z-1203 Support-Zugänge entfernen** – Tabelle, Modul, Routen, Seiten und Ereignisse (Z-802).
+- [x] **Z-1203 Support-Zugänge entfernen** – Tabelle, Modul, Routen, Seiten und Ereignisse (Z-802).
   Log-Auszug und Neustart bleiben Aktionen der App.
   Fertig, wenn: die Routen der Support-Zugänge `404` antworten (Test) und Log-Auszug und Neustart
   ohne Zugang laufen (Playwright).

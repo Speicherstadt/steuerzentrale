@@ -3,7 +3,7 @@ import { apps } from "./apps.ts";
 import { installationen } from "./installationen.ts";
 import { kunden } from "./kunden.ts";
 import { server } from "./server.ts";
-import { audit, auftraege, ereignisse, konten, zugaenge } from "./vorgaenge.ts";
+import { audit, auftraege, ereignisse, konten } from "./vorgaenge.ts";
 import { berlin, JETZT } from "./zeit.ts";
 
 /**
@@ -26,7 +26,6 @@ export const demo: Bestand = {
   installationen,
   ereignisse,
   auftraege,
-  zugaenge,
   audit,
   konten,
   plaene: [

@@ -12,7 +12,6 @@ import type { Kunde } from "../daten/typen.ts";
 import { datum } from "../format/zeit.ts";
 import { Fehler, fehlerText } from "../seiten/anmeldung-teile.tsx";
 import { KundeDialoge, KundeKopf, type Offen } from "../seiten/kunde-kopf.tsx";
-import { KundeSupport } from "../seiten/kunde-support.tsx";
 import { KundeUeberblick } from "../seiten/kunde-ueberblick.tsx";
 import { ZielEreignisse } from "../seiten/ziel-ereignisse.tsx";
 import { Hinweisbox, Karte, KartenInhalt, KartenKopf } from "../teile/karte.tsx";
@@ -21,12 +20,11 @@ import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
 /**
  * One customer (BAULISTE.md Z-801; docs/plan.md, "Server und Kunden (Oberfläche 2026-11)"): its
  * head with its apps in one sentence, its contract and actions, the note of a notice, and its tabs
- * in the URL (`?tab=`): Überblick (apps, contract, contact), Support (its accesses, Z-802) and
- * Verlauf (the events of its apps, Z-406). In "Nur für mich" the menu has no customers
+ * in the URL (`?tab=`): Überblick (apps, contract, contact) and Verlauf (the events of its apps, Z-406). In "Nur für mich" the menu has no customers
  * (Z-805).
  */
 
-const REITER = ["ueberblick", "support", "verlauf"] as const;
+const REITER = ["ueberblick", "verlauf"] as const;
 type Reiter = (typeof REITER)[number];
 
 const Gekuendigt = (props: { ende: number; oeffne: (dialog: Offen) => void }) => (
@@ -75,11 +73,6 @@ const Detail = (props: { k: Kunde; gespeichert: () => void }) => {
       id: "ueberblick",
       label: m.app_ueberblick(),
       content: () => <KundeUeberblick k={props.k} zeilen={zeilen()} />,
-    },
-    {
-      id: "support",
-      label: m.kunde_reiter_support(),
-      content: () => <KundeSupport k={props.k} zeilen={zeilen()} />,
     },
     {
       id: "verlauf",
