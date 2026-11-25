@@ -1,8 +1,7 @@
 # Notes for Claude
 
 Steuerzentrale: installs, updates, backs up and watches the Speicherstadt apps (Haben, Belegt,
-Kontext, Schreibzeug, Stellwerk, Fixpunkt, Kennwort, Soll) on servers: shared ones, one per
-customer, or one at the customer. One Zentrale (API and UI), one agent on every managed server that
+Kontext, Schreibzeug, Stellwerk, Fixpunkt, Kennwort, Soll) on the operator's own servers. One Zentrale (API and UI), one agent on every managed server that
 connects out to it and runs only the actions an app's manifest describes. No app is built in: the
 Zentrale knows only manifests. Open source (AGPL), contributions under the DCO.
 
@@ -205,8 +204,7 @@ behaviour.
   installation has its own `.network` and publishes its HTTP service only with
   `PublishPort=127.0.0.1:<port>:…`, the port assigned by the Zentrale; the client IP arrives in the
   Pforte's `X-Forwarded-For`. Podman 4.9 is the minimum: use only keys 4.9 knows.
-- The Zentrale has three hostnames: the UI only over WireGuard, `agent.<domain>` (mTLS per server)
-  and `api.<domain>` (tokens for the Portal). DNS records are set by the Zentrale through the
+- The Zentrale has two hostnames: the UI only over WireGuard and `agent.<domain>` (mTLS per server). DNS records are set by the Zentrale through the
   Cloudflare API, never by a server.
 - The Zentrale has exactly one operator (`betreiber`) and one Agent-CA; a second operator is refused.
 - Every table with an operator's data carries `betreiber_id` (exempt: manifests, Better Auth's

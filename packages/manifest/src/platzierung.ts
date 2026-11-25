@@ -3,7 +3,7 @@ import type { Manifest } from "./schema.ts";
 /*
  * Placement (docs/plan.md, "Platzierung"): whether an app with its options fits a server, as a pure
  * function of manifest, options, server facts, the installations already there, customer and
- * operator. The same function serves the UI, the API and later the portal. Every finding is a code
+ * operator. The same function serves the UI and the API. Every finding is a code
  * with values, so the UI words it in either language.
  */
 

@@ -7,7 +7,7 @@ Widerspruch gilt diese Datei; eine neue Regel kommt im selben Pull Request hierh
 
 ## Grundsätze
 
-- **Nur für Betreiber**: keine Ansicht für Kunden; was Kunden sehen, zeigt das Portal.
+- **Nur für Betreiber**: keine Ansicht für Kunden; Kunden melden sich nie an.
 - **Was Aufmerksamkeit braucht, steht oben**: die Übersicht sortiert nach Schwere (Störung, Warnung,
   Hinweis); jeder Eintrag führt zu seiner Ursache.
 - **Zustand mit Grund**: Grün, Gelb, Rot, Unbekannt immer mit einem Satz, warum („Backup älter als

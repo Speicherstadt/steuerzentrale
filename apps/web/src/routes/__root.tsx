@@ -8,8 +8,8 @@ import { NichtGefunden } from "../teile/nicht-gefunden.tsx";
 
 /**
  * The shell (DESIGN.md; design/mockup/, after shadcn's "dashboard-01"): the sidebar beside the page
- * from md on, the header with the path above the content. Only for operators; customers see the
- * portal. Sign-in, setup and invitation stand outside it; a page of the shell first asks whether
+ * from md on, the header with the path above the content. Only for operators; customers never sign
+ * in. Sign-in, setup and invitation stand outside it; a page of the shell first asks whether
  * the account may see it (src/anmeldung/sitzung.ts), the server checks every route anyway.
  */
 const Rahmen = () => (

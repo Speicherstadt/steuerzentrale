@@ -7,9 +7,8 @@ description: >-
 
 # Kunden und Verträge
 
-Ein Kunde ist, wem eine Installation gehört. Er meldet sich nie an der Zentrale an; was er sieht,
-zeigt später das Portal. Unter **Kunden** legt der Betreiber Kunden an, die nicht über das Portal
-kommen, ändert ihre Angaben und trägt eine Kündigung ein.
+Ein Kunde ist, wem eine Installation gehört. Er meldet sich nie an der Zentrale an. Unter **Kunden**
+legt der Betreiber Kunden an, ändert ihre Angaben und trägt eine Kündigung ein.
 
 Die Seite **Kunden** ist eine Tabelle: Kunde mit E-Mail-Adresse, Apps, Server und Vertrag
 („seit …“, „intern“ oder „Gekündigt zum …“), mit Suche und **Kunde anlegen**. Ein Klick auf einen Kunden öffnet

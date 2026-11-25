@@ -5,7 +5,7 @@ import {
 } from "../modules/benachrichtigung/signatur.ts";
 
 /*
- * A receiver of webhooks for the tests (BAULISTE.md Z-703), as the Portal will be one (Z-903): a Bun
+ * A receiver of webhooks for the tests (BAULISTE.md Z-703): a Bun
  * server on a free port of localhost that checks every request's signature with the key it shares
  * with the Zentrale (`signaturPruefen`) and answers 401 to one that does not hold; `scheitern(n)`
  * answers the next n requests with 503 as a receiver that is down. Every request is kept.
