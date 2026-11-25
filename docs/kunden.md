@@ -2,7 +2,7 @@
 title: Kunden und Verträge
 description: >-
   Kunden mit Ansprechperson und Vertrag (Beginn, Vertragsende) anlegen, ändern und kündigen;
-  jede Änderung mit Grund im Audit-Log.
+  jede Änderung im Audit-Log.
 ---
 
 # Kunden und Verträge
@@ -54,7 +54,7 @@ kuerzel_fest`); der Dialog zeigt das Feld dann gesperrt. Die Adresse einer beste
 Ein Kunde kann **intern** sein: das sind wir selbst, mit einer eigenen Installation jeder App. Seine
 Installationen bilden die Welle „intern“ ([Updates](updates.md)) und bekommen als einzige eine
 Vorabversion angeboten ([Katalog, Manifeste und Versionen](manifeste.md)). Markieren oder die Markierung
-aufheben darf nur der Inhaber, mit Grund, auf der Kundenseite unter „Mehr …“ („Als intern
+aufheben darf nur der Inhaber, auf der Kundenseite unter „Mehr …“ („Als intern
 markieren“, „Nicht mehr intern“). Die Kundenseite bietet einem internen Kunden keine Kündigung an.
 
 ## Kündigung
@@ -62,7 +62,7 @@ markieren“, „Nicht mehr intern“). Die Kundenseite bietet einem internen Ku
 Eine Kündigung ist das Vertragsende. Bis dahin läuft alles normal; danach folgen 30 Tage nur lesen
 und Export, soweit die Apps es anbieten, sonst bekommt der Kunde das letzte Backup. Gelöscht werden
 Installationen, Backups und DNS-Einträge 90 Tage nach dem Vertragsende, vorher ein Backup. Der Dialog
-zeigt den Tag der Löschung, sobald ein Vertragsende gewählt ist. Eine Kündigung lässt sich mit Grund
+zeigt den Tag der Löschung, sobald ein Vertragsende gewählt ist. Eine Kündigung lässt sich
 zurücknehmen; der Vertrag läuft dann weiter, die Löschung entfällt.
 
 ### Nach dem Vertragsende
@@ -80,7 +80,7 @@ gekündigten Kunden:
    eingerichtetes Backup gibt es kein Archiv. Scheitert es, versucht die Zentrale es später wieder
    und meldet `archiv_gescheitert` (Schwere `fehler`).
 2. **30 Tage lang** erzeugt der Inhaber auf der Seite der App (Reiter „Backups“,
-   Karte „Vertragsende“) mit Grund einen **Link für den Kunden**: je Datei ein vorsignierter
+   Karte „Vertragsende“) einen **Link für den Kunden**: je Datei ein vorsignierter
    S3-Link, signiert mit dem Zugang der Installation, gültig höchstens 7 Tage und nie über die 30
    Tage hinaus. Er erscheint nur in dieser Antwort; die Zentrale speichert ihn nicht und schreibt ihn
    in kein Log, das Audit-Log hält den Grund und die Gültigkeit fest. Nach seiner Frist lehnt S3 ihn
@@ -118,7 +118,7 @@ Jede schreibende Aktion fragt nach dem Grund („Vertrag vom 20.11.“, „Künd
 | `vertrag.zuruecknehmen` | Kündigung zurückgenommen |
 | `kunde.intern`, `kunde.nicht-intern` | als intern markiert oder Markierung aufgehoben; unverändert kein Eintrag |
 | `abwicklung.*` | ein Schritt nach dem Vertragsende (Akteur `system`) |
-| `installation.archiv-link` | Link für den Kunden erzeugt; mit Grund und Gültigkeit, ohne den Link |
+| `installation.archiv-link` | Link für den Kunden erzeugt; mit Gültigkeit, ohne den Link |
 
 ## Rollen
 
@@ -133,19 +133,19 @@ Jeder Betreiber sieht nur seine eigenen Kunden; eine fremde ID antwortet wie ein
 
 ## API
 
-Jede schreibende Route verlangt `grund` im Körper.
+Jede schreibende Route nimmt ein freiwilliges `grund` im Körper an (Z-1207).
 
 | Route | Wer | Körper |
 | --- | --- | --- |
 | `GET /api/v1/kunden` | alle Rollen | – |
 | `GET /api/v1/kunden/:kundeId` | alle Rollen | – |
-| `POST /api/v1/kunden` | Inhaber | `name`, `kontakt` (`name`, `email`, `telefon`?), `notiz`?, `kuerzel`?, `vertrag` (`beginn`), `grund`; ohne `kuerzel` schlägt die Zentrale eines vor |
-| `PUT /api/v1/kunden/:kundeId` | Inhaber | `name`, `kontakt`, `notiz`?, `kuerzel`?, `beginn`, `grund`; ersetzt die Angaben, ein fehlendes Feld mit `?` wird leer, ein fehlendes `kuerzel` bleibt |
-| `PUT /api/v1/kunden/:kundeId/kuendigung` | Inhaber | `ende`, `grund` |
-| `DELETE /api/v1/kunden/:kundeId/kuendigung` | Inhaber | `grund` |
-| `PUT /api/v1/kunden/:kundeId/intern` | Inhaber | `intern` (`true` oder `false`), `grund` |
+| `POST /api/v1/kunden` | Inhaber | `name`, `kontakt` (`name`, `email`, `telefon`?), `notiz`?, `kuerzel`?, `vertrag` (`beginn`), `grund`?; ohne `kuerzel` schlägt die Zentrale eines vor |
+| `PUT /api/v1/kunden/:kundeId` | Inhaber | `name`, `kontakt`, `notiz`?, `kuerzel`?, `beginn`, `grund`?; ersetzt die Angaben, ein fehlendes Feld mit `?` wird leer, ein fehlendes `kuerzel` bleibt |
+| `PUT /api/v1/kunden/:kundeId/kuendigung` | Inhaber | `ende`, `grund`? |
+| `DELETE /api/v1/kunden/:kundeId/kuendigung` | Inhaber | `grund`? |
+| `PUT /api/v1/kunden/:kundeId/intern` | Inhaber | `intern` (`true` oder `false`), `grund`? |
 | `GET /api/v1/installationen/:installationId/abwicklung` | alle Rollen | – |
-| `POST /api/v1/installationen/:installationId/archiv-link` | Inhaber | `grund` |
+| `POST /api/v1/installationen/:installationId/archiv-link` | Inhaber | `grund`? |
 
 `GET …/abwicklung` nennt `phase` (`laeuft`, `nur_lesen`, `wartet`, `loeschen`), `vertragsende`,
 `nurLesenBis`, `loeschenAb`, `schritt` (`archiv`, `warten`, `loeschen`, `repository`, `zugang`,
@@ -170,7 +170,7 @@ Die Antwort ist der Kunde:
 }
 ```
 
-Fehler: `400 ungueltig` (Feld fehlt oder passt nicht, auch ohne Grund oder mit einem Tag, der
+Fehler: `400 ungueltig` (Feld fehlt oder passt nicht, auch mit einem Tag, der
 nicht um 00:00 in Berlin beginnt), `404 kein_kunde`,
 `409 ende_vor_beginn`.
 

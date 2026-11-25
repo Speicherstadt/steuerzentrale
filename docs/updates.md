@@ -42,7 +42,7 @@ Freigabe von Hand: „intern“ ohne Installation wäre kein Test. Eine Vorabver
 
 Eine **Störung** (Health innen oder außen länger als 5 Minuten rot oder eine Rückkehr nach einem
 Update) hält beide Wellen an, auch ein dringendes Update. Apps ohne Health (`health: keine`) werden
-in keiner Welle aktualisiert, nur von Hand mit Grund.
+in keiner Welle aktualisiert, nur von Hand.
 
 ## Ein Update
 
@@ -80,7 +80,7 @@ oder auf der Seite der App mit **Aktualisieren …** in der Zeile „Version“ 
 wählen (die neueste steht oben) und einen Grund angeben, der im Audit-Log steht. So auch Apps ohne
 Health, die keine Welle aktualisiert. In einer Sperrzeit der App darf nur der Inhaber; das Update
 gilt dann als Freigabe und die Zentrale vermerkt es. Über die API: `POST
-/api/v1/installationen/:id/update` mit `version` und `grund`.
+/api/v1/installationen/:id/update` mit `version` und freiwilligem `grund`.
 
 ## Wartungsfenster
 
@@ -100,7 +100,7 @@ Grund, für eine Installation.
 
 Ein als `dringend` markiertes Update (Sicherheitslücke, Mindestversion von ERiC) läuft sofort durch
 beide Wellen, ohne die 24 Stunden und ohne auf ein Wartungsfenster zu warten. Eine Sperrzeit hält es
-trotzdem auf, bis sie endet, außer der Inhaber gibt die Installation mit Grund frei.
+trotzdem auf, bis sie endet, außer der Inhaber gibt die Installation frei.
 
 ## In der CI mit echten Apps
 

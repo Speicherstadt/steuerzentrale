@@ -663,7 +663,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   Fertig, wenn: nach dem ersten Inhaber keine Frage kommt (Playwright), kein Endpunkt mehr
   `409 betriebsart` antwortet (Test) und eine Installation für den internen Kunden ohne einen
   weiteren Kunden angelegt wird (Test).
-- [ ] **Z-1207 Grund nicht mehr fragen** – kein Dialog fragt einen Grund. Die API nimmt `grund`
+- [x] **Z-1207 Grund nicht mehr fragen** – kein Dialog fragt einen Grund. Die API nimmt `grund`
   weiter an, verlangt ihn aber nicht; das Audit-Log schreibt jede Änderung wie bisher, dann mit
   leerem Grund. Wiederherstellen, Kündigen, Entfernen und Zertifikat sperren behalten ihre
   Bestätigung.

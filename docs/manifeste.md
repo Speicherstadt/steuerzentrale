@@ -43,7 +43,7 @@ Anmeldung, Health, Backup), Sperrzeiten, Aktionen, Einstellungen (Anzahl je Eben
 Installationen.
 
 Im **Katalog** öffnet „Manifest importieren“ einen Dialog mit beiden Dateien und dem Grund.
-Importieren darf der Inhaber; der Import steht mit Grund im Audit-Log des Betreibers
+Importieren darf der Inhaber; der Import steht im Audit-Log des Betreibers
 (`manifest.importieren`, Text und Signatur nur als „[ausgelassen]“).
 
 ### Über den Befehl
@@ -119,7 +119,7 @@ Wer ein Manifest importiert hat, erfährt nur der eigene Betreiber; bei einem an
 | --- | --- | --- |
 | `GET /api/v1/apps` | alle Rollen | `{ apps: [{ app, versionen: [{ version, zustand, dringend, vorabversion, sha256, importiert }], registry }] }` |
 | `GET /api/v1/manifeste/:app/:version` | alle Rollen | Text des Manifests mit `dringend`, `vorabversion`, `importiert`; `404 kein_manifest` |
-| `POST /api/v1/manifeste` | Inhaber | `manifest` (Text), `signatur` (`.minisig`), `grund`; `201` neu, `200` schon vorhanden; `409 version_vergeben`, `422 signatur_ungueltig`, `422 manifest_ungueltig`, `503 kein_schluessel` |
+| `POST /api/v1/manifeste` | Inhaber | `manifest` (Text), `signatur` (`.minisig`), `grund`?; `201` neu, `200` schon vorhanden; `409 version_vergeben`, `422 signatur_ungueltig`, `422 manifest_ungueltig`, `503 kein_schluessel` |
 | `POST /api/v1/versionen/abfragen` | Inhaber | fragt alle Registries und antwortet wie `GET /api/v1/apps` |
 | `GET /api/v1/updates` | alle Rollen | `{ installationen: [{ installationId, kundeId, app, version, intern, angeboten }] }` der eigenen Installationen |
 

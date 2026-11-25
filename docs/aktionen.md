@@ -18,7 +18,7 @@ Agent prüfen es mit derselben Funktion (`aktionAngeboten` in `packages/manifest
 
 Die Seite einer laufenden App zeigt im Kopf **Neustart** und unter **Mehr …** Log-Auszug und „nur
 lesen“, soweit ihr Manifest sie anbietet. Jede Aktion verlangt einen **Grund**; die Zentrale legt einen Auftrag an
-und schreibt ihn mit Grund und Person ins Audit-Log ([Aufträge](auftraege.md)).
+und schreibt ihn mit Person ins Audit-Log ([Aufträge](auftraege.md)).
 
 | Aktion | Auftrag | Wer | Wann nicht |
 | --- | --- | --- | --- |
@@ -54,7 +54,8 @@ selbst ist aber ein offener Auftrag, bis der Agent ihn erledigt hat; so lange wa
 | `POST /api/v1/installationen/:id/log-auszug` | `installationen:log_auszug` | 201 `{ auftrag }` |
 | `GET /api/v1/installationen/:id/log-auszuege/:auftragId` | `installationen:log_auszug` | `{ auftragId, aktion, zustand, fehler, zeilen, zeitpunkt }`; `zeilen` ist `null`, bis der Agent sie geschickt hat |
 
-Jede `POST`-Route nimmt `{ grund }` (1 bis 500 Zeichen); ohne Grund antwortet sie 400. Weitere
+Jede `POST`-Route nimmt ein freiwilliges `{ grund }` (höchstens 500 Zeichen, Z-1207); ohne ihn steht
+der Eintrag im Audit-Log mit leerem Grund. Weitere
 Antworten: 404 `keine_installation` (auch für eine Installation eines anderen Betreibers), 409
 `laeuft_nicht`, `sperrzeit` (mit dem Grund der Sperrzeit als `detail`) oder `auftrag_offen`, 422
 `nicht_angeboten` oder `nicht_ausfuehrbar`. Die Seite einer Installation
