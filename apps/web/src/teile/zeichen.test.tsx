@@ -4,7 +4,7 @@ import { setLocale } from "@steuerzentrale/ui";
 import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Balken } from "./balken.tsx";
-import { HealthZeichen, ServerZeichen } from "./zeichen.tsx";
+import { HealthZeichen } from "./zeichen.tsx";
 
 let dispose = () => {};
 afterEach(() => {
@@ -31,11 +31,6 @@ describe("state badges", () => {
 
   it("show a cancelled installation as cancelled, whatever its health", () => {
     expect(mount(() => <HealthZeichen health="gruen" gekuendigt />).textContent).toBe("Gekündigt");
-  });
-
-  it("name a server's state in English too", () => {
-    setLocale("en", { reload: false });
-    expect(mount(() => <ServerZeichen zustand="agent" />).textContent).toBe("Agent silent");
   });
 });
 

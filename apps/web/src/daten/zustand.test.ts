@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { demo } from "../demo/index.ts";
-import { serverVon } from "./ableitungen.ts";
 import type { Bestand, Server } from "./typen.ts";
 import { pruefungen, pruefungenDerDemo, serverZustand, zaehler } from "./zustand.ts";
+
+const serverVon = (b: Bestand, id: string): Server => {
+  const sv = b.server.find((s) => s.id === id);
+  if (!sv) throw new Error(`server ${id} not found`);
+  return sv;
+};
 
 const mit = (id: string, aenderung: Partial<Server>): Bestand => ({
   ...demo,

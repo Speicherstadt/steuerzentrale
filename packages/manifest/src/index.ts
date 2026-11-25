@@ -9,33 +9,6 @@ export {
   unterDomain,
 } from "./adresse.ts";
 export {
-  befehlFuellen,
-  befehlZurAktion,
-  type Gefuellt,
-  STANDARD_ZEITLIMIT_S,
-  type Wert as ArgumentWert,
-} from "./befehl.ts";
-export { type Geprueft, manifestPruefen, signiertesManifestLaden } from "./laden.ts";
-export { type Befund, regelnPruefen } from "./pruefungen.ts";
-export {
-  type Argument,
-  type Befehl,
-  type Container,
-  IMAGE,
-  MAX_ZEITLIMIT_S,
-  type Manifest,
-  ManifestStruktur,
-} from "./schema.ts";
-export {
-  type OeffentlicherSchluessel,
-  type Signiert,
-  schluesselLesen,
-  signaturPruefen,
-} from "./signatur.ts";
-
-/** The manifest schema version this build reads (docs/plan.md, "Manifest": `schema: 1`) */
-export const MANIFEST_SCHEMA = 1;
-export {
   AGENT_APP,
   AGENT_DATEI,
   AGENT_UPDATE_AKTION,
@@ -125,6 +98,13 @@ export {
   backupRepository,
   type OrtGeprueft,
 } from "./backup-zugang.ts";
+export {
+  befehlFuellen,
+  befehlZurAktion,
+  type Gefuellt,
+  STANDARD_ZEITLIMIT_S,
+  type Wert as ArgumentWert,
+} from "./befehl.ts";
 export { AUFTRAGS_ARTEN, imBeobachtenErlaubt, NUR_BEOBACHTEN_AKTIONEN } from "./beobachten.ts";
 export {
   EINRICHTUNG_AKTIONEN,
@@ -161,6 +141,7 @@ export {
 } from "./einstellungen/formular.ts";
 export { geheimeEinstellungen } from "./einstellungen/geheim.ts";
 export { manifestJsonSchema } from "./json-schema.ts";
+export { type Geprueft, manifestPruefen, signiertesManifestLaden } from "./laden.ts";
 export {
   istPforteAktion,
   PFORTE_AKTIONEN,
@@ -203,6 +184,7 @@ export {
   WARNSCHWELLE,
 } from "./platzierung.ts";
 export { type OffenerPort, veroeffentlichtePorts } from "./ports.ts";
+export { type Befund, regelnPruefen } from "./pruefungen.ts";
 export { LABEL as QUADLET_LABEL } from "./quadlet/container.ts";
 export { HOST, INSTALLATIONS_NAME } from "./quadlet/eingabe.ts";
 export { type PforteRoute, STREAM_SCHLIESSEN_NACH } from "./quadlet/pforte.ts";
@@ -242,6 +224,15 @@ export {
   vorsignieren,
 } from "./s3/sigv4.ts";
 export {
+  type Argument,
+  type Befehl,
+  type Container,
+  IMAGE,
+  MAX_ZEITLIMIT_S,
+  type Manifest,
+  ManifestStruktur,
+} from "./schema.ts";
+export {
   BOOT_ID,
   KEIN_MANIFEST,
   SERVER_NEUSTART_AKTION,
@@ -252,5 +243,11 @@ export {
   type ServerNeustartGeprueft,
   serverNeustartAuftragPruefen,
 } from "./server-neustart.ts";
+export {
+  type OeffentlicherSchluessel,
+  type Signiert,
+  schluesselLesen,
+  signaturPruefen,
+} from "./signatur.ts";
 export { PFORTE_IMAGE, RESTIC_IMAGE, type SystemImage } from "./system.ts";
 export { schluesselVertrauen, TEST_SCHLUESSEL_ID, type Zweck } from "./vertrauen.ts";

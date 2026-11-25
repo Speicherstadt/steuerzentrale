@@ -26,9 +26,8 @@ Die Seite **Kunden** ist eine Tabelle: Kunde mit E-Mail-Adresse, Apps, Server un
 | Vertrag | Vertragsbeginn und, nach einer Kündigung, Vertragsende |
 
 Jeder Kunde hat genau einen Vertrag, der mit ihm angelegt wird. Er hat einen Beginn und, nach
-einer Kündigung, ein Ende, aber keine SLA: Updates kommen für alle Kunden nach der internen Welle
-([Updates](updates.md)). Die frühere Spalte `sla` hat eine Migration entfernt; vorhandene Verträge
-behalten Kunde, Beginn und Ende.
+einer Kündigung, ein Ende; Updates kommen für alle Kunden nach der internen Welle
+([Updates](updates.md)).
 
 Vertragsbeginn und Vertragsende sind Tage. Die Zentrale speichert den Beginn dieses Tages in
 `Europe/Berlin` als Zeitpunkt in UTC-Millisekunden; die Oberfläche zeigt ihn als TT.MM.JJJJ. Einen
@@ -42,8 +41,7 @@ Das Kürzel besteht aus Kleinbuchstaben, Ziffern und Bindestrichen (nicht am Anf
 schlägt die Zentrale eines aus dem Namen vor: Umlaute ausgeschrieben, Akzente weggelassen, jedes andere
 Zeichen ein Bindestrich, also „Praxis Dr. Müller & Söhne“ → `praxis-dr-mueller-soehne`; ist es schon
 vergeben, folgt `-2`, `-3` usw. Ein angegebenes Kürzel, das ein anderer Kunde hat, lehnt die API mit
-`409 kuerzel_vergeben` ab. Kunden, die es vor dem Kürzel schon gab, bekamen beim Update eines auf die
-gleiche Weise; bei gleichem Vorschlag hängt die Zentrale den Anfang der Kunden-ID an.
+`409 kuerzel_vergeben` ab.
 
 Solange eine Installation des Kunden läuft oder eingerichtet wird, bleibt das Kürzel fest (`409
 kuerzel_fest`); der Dialog zeigt das Feld dann gesperrt. Die Adresse einer bestehenden Installation
@@ -83,7 +81,7 @@ gekündigten Kunden:
    Karte „Vertragsende“) einen **Link für den Kunden**: je Datei ein vorsignierter
    S3-Link, signiert mit dem Zugang der Installation, gültig höchstens 7 Tage und nie über die 30
    Tage hinaus. Er erscheint nur in dieser Antwort; die Zentrale speichert ihn nicht und schreibt ihn
-   in kein Log, das Audit-Log hält den Grund und die Gültigkeit fest. Nach seiner Frist lehnt S3 ihn
+   in kein Log, das Audit-Log hält die Gültigkeit fest. Nach seiner Frist lehnt S3 ihn
    ab.
 3. **90 Tage nach dem Vertragsende** schickt sie ein letztes Backup und danach
    `installation_loeschen`. Der Agent baut die Installation ab wie ein gescheitertes Einrichten
@@ -105,10 +103,10 @@ gilt sie auch, wenn `installation_loeschen` auf dem Server gescheitert ist (ein 
 bleibt, wie die App es gesetzt hat. Hat die Löschung begonnen, antwortet die API mit
 `409 loeschung_laeuft`.
 
-## Grund und Audit-Log
+## Audit-Log
 
-Jede schreibende Aktion fragt nach dem Grund („Vertrag vom 20.11.“, „Kündigung per Mail vom
-18.11.“). Er steht mit Person, Zeitpunkt, Aktion und dem, was sich geändert hat, im Audit-Log:
+Jede schreibende Aktion steht mit Person, Zeitpunkt, Aktion und dem, was sich geändert hat, im
+Audit-Log; einen Grund fragt kein Dialog, die API nimmt ihn wahlweise an ([API](#api)):
 
 | Aktion | Wann |
 | --- | --- |
@@ -176,8 +174,8 @@ nicht um 00:00 in Berlin beginnt), `404 kein_kunde`,
 
 ## Die Seite eines Kunden
 
-Im Kopf stehen Name, die Apps in einem Satz („3 Apps, alle laufen“) und der Vertrag („Basis-Vertrag
-seit 14.03.2026“), daneben **App installieren**, **Ändern** und unter **Mehr …** „Kündigen …“ und
+Im Kopf stehen Name, die Apps in einem Satz („3 Apps, alle laufen“) und der Vertrag („Vertrag seit
+14.03.2026“), daneben **App installieren**, **Ändern** und unter **Mehr …** „Kündigen …“ und
 „Als intern markieren“. Nach einer Kündigung steht darunter das Vertragsende mit dem Tag der
 Löschung und **Kündigung zurücknehmen**. Die Reiter stehen in der Adresse (`?tab=`):
 

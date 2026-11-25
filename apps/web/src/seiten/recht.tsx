@@ -36,18 +36,3 @@ export const MitInstallationsRecht = (props: { children: JSX.Element; sonst?: JS
     </Loading>
   );
 };
-
-/**
- * Shows its children only to the owner: marking a customer as internal (Z-501); `sonst` is what
- * another role sees instead
- */
-export const NurInhaber = (props: { children: JSX.Element; sonst?: JSX.Element }) => {
-  const darf = recht(darfInternMarkieren);
-  return (
-    <Loading fallback={null}>
-      <Show when={darf()} fallback={props.sonst}>
-        {props.children}
-      </Show>
-    </Loading>
-  );
-};

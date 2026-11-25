@@ -28,7 +28,5 @@ env:
   - { name: PROBE_EXTRA, ebene: installation, option: extra }
 `;
 
-export const PROBE_SIGNATUR = "untrusted comment: demo\nRUR...\n";
-
 /** The probe app's next version as a pre-release: offered only to an internal customer (Z-501) */
 export const PROBE_VORAB = PROBE_MANIFEST.replace("version: 1.0.0", "version: 1.1.0-rc.1");

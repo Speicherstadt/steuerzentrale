@@ -77,7 +77,7 @@ HTTP-Dienst, richtet die Zentrale nach dem Update die Backups bzw. die Route der
 
 Der Inhaber aktualisiert eine Installation auf der Seite **Updates** mit **Aktualisieren…**
 oder auf der Seite der App mit **Aktualisieren …** in der Zeile „Version“ des Überblicks: Version
-wählen (die neueste steht oben) und einen Grund angeben, der im Audit-Log steht. So auch Apps ohne
+wählen (die neueste steht oben); das Update steht im Audit-Log. So auch Apps ohne
 Health, die keine Welle aktualisiert. In einer Sperrzeit der App darf nur der Inhaber; das Update
 gilt dann als Freigabe und die Zentrale vermerkt es. Über die API: `POST
 /api/v1/installationen/:id/update` mit `version` und freiwilligem `grund`.
@@ -93,8 +93,8 @@ der Umstellung auf die Winterzeit beginnt es mit dem ersten 02:00.
 
 Eine App kann Tage jedes Monats sperren (`sperrzeiten` im Manifest), z. B. Haben vom 7. bis 12. für
 die Umsatzsteuer-Voranmeldung. An diesen Tagen beginnt kein Update. Endet die Sperrzeit vor ihrem
-Anfang (`28-03`), reicht sie über den Monatswechsel. Eine Sperrzeit übergeht nur der Inhaber mit
-Grund, für eine Installation.
+Anfang (`28-03`), reicht sie über den Monatswechsel. Eine Sperrzeit übergeht nur der Inhaber, für eine
+Installation.
 
 ## Dringende Updates
 

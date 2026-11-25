@@ -1,6 +1,6 @@
 import type { Handler, Hono, MiddlewareHandler } from "hono";
 import type { Auth } from "../auth/auth.ts";
-import { darf, type Recht, ROLLEN, type Rolle } from "../auth/rollen.ts";
+import { darf, type Recht } from "../auth/rollen.ts";
 import type { Db } from "../db/oeffnen.ts";
 import { faktorenVon, zweiterFaktorVorhanden } from "../modules/anmeldung/faktoren.ts";
 import { mitgliedschaftenVon, mitgliedVon } from "../modules/mitglieder/index.ts";
@@ -178,12 +178,6 @@ export const AUTH_PFADE: Readonly<Record<string, "oeffentlich" | "sitzung">> = {
   "POST /passkey/verify-registration": "sitzung",
   "GET /passkey/list-user-passkeys": "sitzung",
   "POST /two-factor/enable": "sitzung",
-};
-
-/** The roles that reach a route; for a public one or the setup: every role; an agent's: none */
-export const rollenFuer = (zugang: Zugang): readonly Rolle[] => {
-  if (zugang.art === "agent") return [];
-  return zugang.art === "recht" ? ROLLEN.filter((rolle) => darf(rolle, zugang.recht)) : ROLLEN;
 };
 
 /**

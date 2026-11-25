@@ -15,8 +15,8 @@ import { ZuServer } from "../teile/verweise.tsx";
 
 /**
  * Every server in one table (BAULISTE.md Z-304; docs/plan.md, "Server und Kunden (Oberfläche
- * 2026-11)"): its name and kind in words, its state in words with an icon, CPU and RAM where
- * something measured them (the agent does not report them yet: the demo's values), how full its
+ * 2026-11)"): its name, its state in words with an icon, CPU and RAM where
+ * something measured them, how full its
  * disk is from the agent's facts, its apps and their customers, and its operating system; what
  * needs attention first, the whole row opens the server.
  */

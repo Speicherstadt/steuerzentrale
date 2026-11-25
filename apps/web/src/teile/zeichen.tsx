@@ -7,17 +7,14 @@ import {
   CircleHelp,
   CircleX,
   ClockAlert,
-  HardDrive,
   type IconNode,
   LoaderCircle,
-  Power,
   TriangleAlert,
   Unplug,
 } from "@steuerzentrale/ui/icons";
 import { Show } from "solid-js";
 import type { Anzeige } from "../daten/installation-ansicht.ts";
 import type { AgentZustand, Health, Manifest } from "../daten/typen.ts";
-import type { ServerZustand } from "../daten/zustand.ts";
 import { appIcon } from "./app-icon.ts";
 
 /*
@@ -108,22 +105,6 @@ export const InstallationsZeichen = (props: { anzeige: Anzeige; gekuendigt: bool
     </Show>
   );
 };
-
-const SERVER: Record<ServerZustand, Darstellung> = {
-  ok: { icon: CircleCheck, farbe: "text-ok", text: () => m.server_zustand_ok() },
-  neustart: { icon: Power, farbe: "text-warn", text: () => m.server_zustand_neustart() },
-  platte: { icon: HardDrive, farbe: "text-warn", text: () => m.server_zustand_platte() },
-  pruefen: { icon: TriangleAlert, farbe: "text-warn", text: () => m.server_zustand_pruefen() },
-  agent: { icon: Unplug, farbe: "text-destructive", text: () => m.server_zustand_agent() },
-};
-
-export const ServerZeichen = (props: { zustand: ServerZustand }) => (
-  <Zustand
-    icon={SERVER[props.zustand].icon}
-    farbe={SERVER[props.zustand].farbe}
-    text={SERVER[props.zustand].text()}
-  />
-);
 
 const AGENT: Record<AgentZustand, Omit<Darstellung, "text">> = {
   verbunden: { icon: CircleCheck, farbe: "text-ok" },

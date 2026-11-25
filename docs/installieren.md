@@ -117,8 +117,7 @@ ihrer Kachel und auf ihrer Seite), nur dem Inhaber. Der Dialog fragt:
   für alle Installationen der App ([Einstellungen](einstellungen.md));
 - **Adresse** (Host), vorgeschlagen als `<app>.<kürzel>.<domain>` aus der App des Manifests, dem
   Kürzel des Kunden und der Domain der DNS-Einstellungen; ohne Domain bleibt das Feld leer. Ein neuer
-  Kunde oder ein neues Manifest bringt einen neuen Vorschlag ([DNS](dns.md));
-- **Grund** fürs Audit-Log.
+  Kunde oder ein neues Manifest bringt einen neuen Vorschlag ([DNS](dns.md)).
 
 Sobald Kunde, Server, App und Version gewählt sind, fragt der Dialog die **Platzierung** ab und
 wiederholt das bei jeder Änderung von Kunde, Server, App, Version oder Optionen; nur dieses

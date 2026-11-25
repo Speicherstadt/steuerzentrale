@@ -1,6 +1,6 @@
 import { setLocale } from "@steuerzentrale/ui";
 import { beforeEach, describe, expect, it } from "vitest";
-import { grundText, grundZeigen, unitOk } from "./bewertung.ts";
+import { grundText, unitOk } from "./bewertung.ts";
 
 describe("grundText", () => {
   beforeEach(() => setLocale("de", { reload: false }));
@@ -38,15 +38,5 @@ describe("unitOk", () => {
       false,
       false,
     ]);
-  });
-});
-
-describe("grundZeigen", () => {
-  it("shows the reason for every state but green", () => {
-    expect(
-      ["gruen", "gelb", "rot", "unbekannt"].map((zustand) =>
-        grundZeigen({ zustand: zustand as "gruen" }),
-      ),
-    ).toEqual([false, true, true, true]);
   });
 });

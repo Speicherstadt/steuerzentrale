@@ -74,8 +74,7 @@ Installation wie bisher mit `passt_nicht` und dem Namen ab.
 ## Neu konfigurieren
 
 Auf der Seite einer laufenden App öffnet **Einstellungen ändern** unter „Mehr …“ (nur der Inhaber)
-das Formular der Ebene `installation` mit den Optionen der Installation und ihren aktuellen Werten;
-dazu ein Grund. Die Zentrale
+das Formular der Ebene `installation` mit den Optionen der Installation und ihren aktuellen Werten. Die Zentrale
 
 1. nimmt das nur für eine Installation im Zustand `laeuft` an (`laeuft_nicht`, 409), nie in einer
    Sperrzeit ihres Manifests (`sperrzeit`, 409, der Grund der Sperrzeit im `detail`; geprüft mit
