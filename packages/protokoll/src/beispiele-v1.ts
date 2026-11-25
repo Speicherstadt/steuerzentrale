@@ -58,6 +58,20 @@ export const VOM_AGENTEN_V1: readonly Record<string, unknown>[] = [
       },
     ],
   },
+  // Z-1103, still before the first release: the observed units of a service
+  {
+    typ: "zustand",
+    protokoll: 1,
+    zeit: 1_795_000_000_000,
+    installationen: [],
+    dienste: [
+      {
+        dienstId: "d-1",
+        units: [{ name: "kontext.service", aktiv: "active" }],
+        health: { zustand: "gruen", grund: "HTTP 200" },
+      },
+    ],
+  },
   { typ: "bestaetigt", protokoll: 1, auftragId: "a-1" },
   {
     typ: "fortschritt",
@@ -201,5 +215,19 @@ export const VON_DER_ZENTRALE_V1: readonly Record<string, unknown>[] = [
     manifest: "-",
     signatur: "-",
     zeitlimitS: 600,
+  },
+  // Z-1103, still before the first release: the observed units of a server, read only
+  {
+    typ: "beobachten",
+    protokoll: 1,
+    dienste: [
+      {
+        dienstId: "d-1",
+        nutzer: "tristan",
+        units: ["kontext.service"],
+        health: { art: "http", port: 3000, pfad: "/health" },
+      },
+      { dienstId: "d-2", nutzer: null, units: ["caddy.service"], health: { art: "keine" } },
+    ],
   },
 ];

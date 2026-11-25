@@ -14,6 +14,17 @@ export {
 } from "./auftraege.ts";
 export { BEITRITT_PFAD, BeitrittAnfrage, BeitrittAntwort } from "./beitritt.ts";
 export {
+  BEOBACHTET_MAX,
+  Beobachten,
+  BeobachteterDienst,
+  BeobachtetHealth,
+  healthPfadGueltig,
+  linuxNutzerGueltig,
+  PFAD_MAX,
+  UNITS_MAX,
+  unitGueltig,
+} from "./beobachten.ts";
+export {
   AELTESTE_VERSION,
   AUFWERTUNGEN,
   type Aufwertung,

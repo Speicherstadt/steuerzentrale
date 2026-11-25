@@ -9,7 +9,7 @@ import { migrieren } from "./migrieren.ts";
  * an owner stays an owner. An invitation not yet accepted gets the least rights: technik and support
  * both become member, so a link sent before the update grants no owner's rights.
  */
-const TAG = "0027_zwei_rollen";
+const TAG = "0028_zwei_rollen";
 
 const vorher = migrationen.slice(
   0,

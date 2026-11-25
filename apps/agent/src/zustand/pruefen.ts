@@ -51,7 +51,7 @@ const HOST = "127.0.0.1";
 type MitFrist<T> = { ok: true; wert: T } | { ok: false; abgelaufen: boolean };
 
 /** Runs f with a signal that aborts after ms; whether it ended, ran out of time, or threw */
-const mitFrist = async <T>(
+export const mitFrist = async <T>(
   planen: Planer,
   ms: number,
   f: (signal: AbortSignal) => Promise<T>,
@@ -165,8 +165,8 @@ const AKTIV: ReadonlySet<string> = new Set<Unit["aktiv"]>([
 ]);
 
 /** `systemctl show` output: blocks of Key=Value lines, one block per unit, blank line between */
-export const zustaendeLesen = (aus: string): Map<string, string> => {
-  const zustaende = new Map<string, string>();
+export const bloeckeLesen = (aus: string): Map<string, Map<string, string>> => {
+  const bloecke = new Map<string, Map<string, string>>();
   for (const block of aus.split(/\n\s*\n/)) {
     const werte = new Map(
       block
@@ -175,11 +175,24 @@ export const zustaendeLesen = (aus: string): Map<string, string> => {
         .map((z) => [z.slice(0, z.indexOf("=")), z.slice(z.indexOf("=") + 1)] as const),
     );
     const id = werte.get("Id");
+    if (id !== undefined) bloecke.set(id, werte);
+  }
+  return bloecke;
+};
+
+/** The ActiveState of each unit by its Id */
+export const zustaendeLesen = (aus: string): Map<string, string> => {
+  const zustaende = new Map<string, string>();
+  for (const [id, werte] of bloeckeLesen(aus)) {
     const aktiv = werte.get("ActiveState");
-    if (id !== undefined && aktiv !== undefined) zustaende.set(id, aktiv);
+    if (aktiv !== undefined) zustaende.set(id, aktiv);
   }
   return zustaende;
 };
+
+/** An ActiveState as the protocol knows it, anything else "unknown" */
+export const aktivVon = (aktiv: string | undefined): Unit["aktiv"] =>
+  aktiv !== undefined && AKTIV.has(aktiv) ? (aktiv as Unit["aktiv"]) : "unknown";
 
 export const unitsLesen = async (
   deps: PruefDeps,
@@ -201,11 +214,5 @@ export const unitsLesen = async (
   const r = await mitFrist(deps.planen, UNITS_MS, (signal) => deps.lesen(argv, signal));
   if (!r.ok || r.wert.code !== 0) return unbekannte();
   const zustaende = zustaendeLesen(r.wert.aus);
-  return units.map((name): Unit => {
-    const aktiv = zustaende.get(name);
-    return {
-      name,
-      aktiv: aktiv !== undefined && AKTIV.has(aktiv) ? (aktiv as Unit["aktiv"]) : "unknown",
-    };
-  });
+  return units.map((name): Unit => ({ name, aktiv: aktivVon(zustaende.get(name)) }));
 };

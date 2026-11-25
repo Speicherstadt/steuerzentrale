@@ -77,6 +77,9 @@ Auftrag aus (`409 nur_beobachten`), plant keinen Neustart, und die Platzierung l
 (`nur_beobachten`). Die Prüfung „offene Ports, die kein Manifest nennt“ meldet auf ihm nichts: was
 dort lauscht, ist nicht ihres. Heartbeat, Fakten, die übrigen Prüfungen und SSH-Anmeldungen kommen
 wie von jedem Server. Die Seite des Servers zeigt „nur beobachtet“ und bietet keinen Neustart an.
+Was dort von Hand läuft, liest der Agent auf Wunsch mit: die systemd-Units eines beobachteten
+Dienstes, nur mit `systemctl show` ([Units auf einem beobachteten
+Server](aussen.md#units-auf-einem-beobachteten-server)).
 
 Ein zweiter Lauf behält den Modus, mit oder ohne Schalter. Einen Server, der als verwalteter
 beigetreten ist, stellt `--nur-beobachten` nicht um (Abbruch, nichts geändert). Wer einen

@@ -1,5 +1,6 @@
 import { Button, Icon, m } from "@steuerzentrale/ui";
 import {
+  CircleAlert,
   CircleCheck,
   CircleHelp,
   CircleX,
@@ -15,6 +16,7 @@ import {
   type DienstStufe,
   diensteGeordnet,
   diensteQuelle,
+  dienstInnenText,
   dienstStufe,
   dienstZustandText,
 } from "../daten/dienste.ts";
@@ -30,11 +32,14 @@ import { inhaberRecht } from "./recht.tsx";
  * Observed services on the page "Apps" (BAULISTE.md Z-1101): each with the mark "beobachtet", its
  * customer, its state from outside and its availability this month; no version, backup, update or
  * actions, as the Zentrale did not install it. The owner adds, changes and removes one; every role
- * sees them. Nobody is asked for a reason (BAULISTE.md, Stufe 2).
+ * sees them. Nobody is asked for a reason (BAULISTE.md, Stufe 2). Where the agent of an observed
+ * server reads its units (Z-1103), the state inside stands below the one from outside, and the
+ * units under the address.
  */
 
 const ZEICHEN: Record<DienstStufe, { icon: IconNode; farbe: string; text: string }> = {
   rot: { icon: CircleX, farbe: "text-destructive", text: "text-destructive" },
+  gelb: { icon: CircleAlert, farbe: "text-warn", text: "" },
   unbekannt: { icon: CircleHelp, farbe: "text-muted-foreground", text: "" },
   gut: { icon: CircleCheck, farbe: "text-ok", text: "text-muted-foreground" },
 };
@@ -46,8 +51,27 @@ const Zustand = (props: { d: Dienst }) => (
       size={15}
       class={`shrink-0 ${ZEICHEN[dienstStufe(props.d)].farbe}`}
     />
-    <span class={ZEICHEN[dienstStufe(props.d)].text}>{dienstZustandText(props.d)}</span>
+    <span class="grid gap-0.5">
+      <span class={ZEICHEN[dienstStufe(props.d)].text}>{dienstZustandText(props.d)}</span>
+      <Show when={dienstInnenText(props.d)}>
+        {(text) => <span class="text-xs text-muted-foreground">{text()}</span>}
+      </Show>
+    </span>
   </span>
+);
+
+/** The units the agent reads, with their user or the system */
+const Units = (props: { d: Dienst }) => (
+  <Show when={props.d.innen}>
+    {(innen) => (
+      <span class="font-mono text-xs text-muted-foreground">
+        {m.dienst_units_von({
+          wer: innen().nutzer ?? m.dienst_system(),
+          units: innen().units.join(", "),
+        })}
+      </span>
+    )}
+  </Show>
 );
 
 const Verfuegbarkeit = (props: { d: Dienst }) => {
@@ -80,6 +104,7 @@ const Zeile = (props: {
           {props.d.host}
           {props.d.pfad === "/" ? "" : props.d.pfad}
         </span>
+        <Units d={props.d} />
       </div>
     </td>
     <Show when={props.mitKunde}>

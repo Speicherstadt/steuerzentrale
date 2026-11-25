@@ -3,17 +3,22 @@ import { createMemo, createSignal, createUniqueId, For, Loading, Show } from "so
 import { type Dienst, type DienstAngaben, diensteQuelle } from "../daten/dienste.ts";
 import { kundenQuelle } from "../daten/kunden.ts";
 import { Fehler, felder } from "./anmeldung-teile.tsx";
+import { InnenFelder, innenAusFeldern } from "./dienst-innen-felder.tsx";
 
 /*
  * The dialogs of the observed services (BAULISTE.md Z-1101; DESIGN.md, "Dialog"): adding or changing
- * one with its name, address, health path and customer, and removing one. Nobody is asked for a
- * reason (BAULISTE.md, Stufe 2); the Zentrale's refusal stays in the dialog.
+ * one with its name, address, health path, customer and, on an observed server, the units its agent
+ * reads (Z-1103), and removing one. Nobody is asked for a reason (BAULISTE.md, Stufe 2); the
+ * Zentrale's refusal stays in the dialog.
  */
 
 const FEHLER: Record<string, () => string> = {
   ungueltig: m.dienst_fehler_ungueltig,
   kein_dienst: m.dienst_fehler_kein_dienst,
   kein_kunde: m.dienst_fehler_kein_kunde,
+  kein_server: m.dienst_fehler_kein_server,
+  server_verwaltet: m.dienst_fehler_server_verwaltet,
+  server_voll: m.dienst_fehler_server_voll,
   keine_berechtigung: m.fehler_keine_berechtigung,
   netz: m.fehler_netz,
 };
@@ -72,6 +77,7 @@ const Formular = (props: FormularProps) => {
       pfad: w.pfad ?? "/",
       // without customers ("Nur für mich") a service keeps what it had
       kundeId: props.mitKunde ? (w.kundeId ?? null) : (props.dienst?.kundeId ?? null),
+      innen: innenAusFeldern(w, props.dienst?.innen ?? null),
     };
     setLaeuft(true);
     const antwort = props.dienst
@@ -116,6 +122,7 @@ const Formular = (props: FormularProps) => {
       <Show when={props.mitKunde}>
         <KundenWahl vorgabe={props.dienst?.kundeId ?? null} />
       </Show>
+      <InnenFelder innen={props.dienst?.innen ?? null} />
       <Fehler text={fehler()} />
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button onClick={() => props.onClose()}>{m.knopf_abbrechen()}</Button>

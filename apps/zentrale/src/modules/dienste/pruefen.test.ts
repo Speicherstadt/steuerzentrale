@@ -58,6 +58,7 @@ const umgebung = () => {
       host,
       pfad,
       kundeId: null,
+      innen: null,
     });
     if (!r.ok) throw new Error(r.grund);
     return r.dienst.id;
