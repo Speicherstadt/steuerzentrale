@@ -41,8 +41,6 @@ const anfrage = (aenderung: Aenderung = {}): PlatzAnfrage => ({
   ...aenderung,
   server: {
     betreiberId: "b1",
-    art: "gemeinsam",
-    kundeId: null,
     agentVerbunden: true,
     nurBeobachten: false,
     architektur: "amd64",
@@ -331,15 +329,9 @@ describe("placement", () => {
   });
 
   describe("server of another customer or operator", () => {
-    it("passt on a shared server and on the customer's own", () => {
+    it("passt for installations of two customers on one server (Z-1205)", () => {
       expect(codes(anfrage()).art).toBe("passt");
-      expect(codes(anfrage({ server: { art: "eigen", kundeId: "k1" } })).art).toBe("passt");
-    });
-    it("Grenze: a server at the customer belongs to that customer only", () => {
-      expect(codes(anfrage({ server: { art: "beim_kunden", kundeId: "k1" } })).art).toBe("passt");
-      expect(codes(anfrage({ server: { art: "beim_kunden", kundeId: "k2" } })).gruende).toEqual([
-        "server_anderer_kunde",
-      ]);
+      expect(codes(anfrage({ installationen: [andere({ kundeId: "k2" })] })).art).toBe("passt");
     });
     it("passt nicht on another operator's server, even a shared one", () => {
       expect(codes(anfrage({ server: { betreiberId: "b2" } })).gruende).toEqual([

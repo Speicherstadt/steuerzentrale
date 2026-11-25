@@ -5,7 +5,6 @@ import type { Browser } from "./browser.ts";
 /** What a test gives to the interface's dialog: a shared server, maintenance 03:30 to 04:30 */
 export const NEUER_SERVER = {
   name: "Gemeinsamer Server 3",
-  art: "gemeinsam",
   wartungsfenster: { tage: [0, 1, 2, 3, 4, 5, 6], von: "03:30", bis: "04:30" },
   grund: "neuer Server",
 };

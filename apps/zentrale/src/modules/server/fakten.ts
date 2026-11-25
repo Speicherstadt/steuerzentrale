@@ -46,7 +46,7 @@ export type PlatzServerErgebnis =
  * not filled in. The architecture falls back to the one the agent named in `hallo`.
  */
 export const platzServer = (
-  sv: Pick<Server, "betreiberId" | "art" | "kundeId" | "architektur">,
+  sv: Pick<Server, "betreiberId" | "architektur">,
   f: ServerFakten | null,
   agentVerbunden: boolean,
 ): PlatzServerErgebnis => {
@@ -65,8 +65,6 @@ export const platzServer = (
     ok: true,
     server: {
       betreiberId: sv.betreiberId,
-      art: sv.art as PlatzServer["art"],
-      kundeId: sv.kundeId,
       agentVerbunden,
       nurBeobachten: f.nurBeobachten === true,
       architektur,

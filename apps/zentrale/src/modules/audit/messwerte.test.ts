@@ -45,7 +45,6 @@ describe("faktenAnfuegen", () => {
           betreiberId,
           serverId: "s1",
           name: "S",
-          art: "gemeinsam",
           wartungsfenster: "{}",
           angelegtVon: "k",
           angelegtAm: 1,

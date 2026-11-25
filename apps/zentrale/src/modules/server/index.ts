@@ -26,7 +26,6 @@ export {
   zertifikatRotieren,
 } from "./rotieren.ts";
 export {
-  ARTEN,
   BEITRITT_GUELTIG_MS,
   BEITRITT_ZWECK,
   type NeuerServer,

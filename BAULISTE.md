@@ -646,7 +646,7 @@ Phase 8 und Phase 9 hängen nicht voneinander ab und laufen parallel.
   lehnt jede andere Rolle mit `400` ab, die Seite der Einladung nennt „Inhaber“ oder „Mitglied“; eine
   Oberfläche zum Einladen gibt es nicht).
   Sicherheitsrelevant: Anmeldung, Rollen und Rechte.
-- [ ] **Z-1205 Server-Art entfernen** – jeder Server ist ein eigener Server des Betreibers für
+- [x] **Z-1205 Server-Art entfernen** – jeder Server ist ein eigener Server des Betreibers für
   mehrere Kunden. „Eigen“ (ein Kunde) und „beim Kunden“ entfallen, mit dem Kunden am Server und der
   Platzierungsregel dazu.
   Fertig, wenn: „Server hinzufügen“ keine Art fragt (Playwright), Installationen zweier Kunden auf

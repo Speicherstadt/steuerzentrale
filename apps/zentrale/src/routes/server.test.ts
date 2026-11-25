@@ -1,4 +1,3 @@
-import { tagesbeginn } from "@steuerzentrale/planung";
 import { describe, expect, it } from "vitest";
 import { VOM_AGENTEN_V1 } from "../../../../packages/protokoll/src/beispiele-v1.ts";
 import { auditLog, server as serverTabelle, tokens } from "../db/schema.ts";
@@ -6,20 +5,6 @@ import { faktenAnfuegen } from "../modules/audit/index.ts";
 import { BEITRITT_GUELTIG_MS } from "../modules/server/index.ts";
 import { NEUER_SERVER, serverHinzufuegen, testAnfrage } from "../testhilfen/agent.ts";
 import { TEST_AGENT_URL, testServer } from "../testhilfen/server.ts";
-
-/** A customer of the person's operator, through the API of Z-801; its id */
-const kundeAnlegen = async (person: { json: (pfad: string, init?: never) => Promise<unknown> }) => {
-  const { status, daten } = (await person.json("/api/v1/kunden", {
-    body: {
-      name: "Kanzlei Berger",
-      kontakt: { name: "Bea Berger", email: "bea@berger.test" },
-      vertrag: { beginn: tagesbeginn(1_800_000_000_000) },
-      grund: "Vertrag",
-    },
-  } as never)) as { status: number; daten: { id: string } };
-  if (status !== 201) throw new Error(`kunde ${status}`);
-  return daten.id;
-};
 
 // BAULISTE.md Z-302: adding a server makes a one-time token, valid 24 hours, kept only as a hash
 describe("adding a server", () => {
@@ -35,8 +20,6 @@ describe("adding a server", () => {
         betreiberId: inhaber.betreiberId,
         serverId,
         name: NEUER_SERVER.name,
-        art: "gemeinsam",
-        kundeId: null,
         fingerabdruck: null,
         wartungsfenster: JSON.stringify(NEUER_SERVER.wartungsfenster),
         angelegtVon: inhaber.nutzerId,
@@ -65,36 +48,28 @@ describe("adding a server", () => {
     ).toBe(true);
   });
 
-  it("takes the customer of a server of its own or at the customer", async () => {
-    const server = testServer();
-    const inhaber2 = await server.eingeladen(await server.inhaber(), "inhaber");
-    const kundeId = await kundeAnlegen(inhaber2);
-    await serverHinzufuegen(inhaber2, { ...NEUER_SERVER, art: "beim_kunden", kundeId } as never);
-    expect(server.db.select().from(serverTabelle).all()).toEqual([
-      expect.objectContaining({ art: "beim_kunden", kundeId }),
-    ]);
-  });
-
-  it("refuses a customer that does not exist or is another operator's", async () => {
+  it("asks no kind and no customer: every server is the operator's own (Z-1205)", async () => {
     const server = testServer();
     const inhaber = await server.inhaber();
-    const partner = await server.weitererBetreiber("Partner GmbH", "pia@partner.test");
-    const fremderKunde = await kundeAnlegen(partner);
-    for (const kundeId of ["gibt-es-nicht", fremderKunde]) {
-      const { status, daten } = await inhaber.json("/api/v1/server", {
-        body: { ...NEUER_SERVER, art: "eigen", kundeId },
+    for (const extra of [
+      { art: "gemeinsam" },
+      { art: "eigen", kundeId: "k1" },
+      { kundeId: "k1" },
+    ]) {
+      const { status } = await inhaber.json("/api/v1/server", {
+        body: { ...NEUER_SERVER, ...extra },
       });
-      expect({ status, daten }, kundeId).toEqual({ status: 404, daten: { fehler: "kein_kunde" } });
+      expect(status, JSON.stringify(extra)).toBe(400);
     }
-    expect(server.db.select().from(serverTabelle).all()).toEqual([]);
+    const { serverId } = await serverHinzufuegen(inhaber);
+    const { daten } = await inhaber.json(`/api/v1/server/${serverId}`);
+    expect(daten).not.toHaveProperty("art");
+    expect(daten).not.toHaveProperty("kundeId");
   });
 
   it.each([
-    ["a shared server with a customer", { kundeId: "kanzlei-berger" }],
-    ["a server of its own without one", { art: "eigen" }],
     ["no name", { name: " " }],
     ["no reason", { grund: "" }],
-    ["an unknown kind", { art: "fremd" }],
     ["a time that is none", { wartungsfenster: { tage: [1], von: "24:00", bis: "01:00" } }],
     ["no weekday", { wartungsfenster: { tage: [], von: "03:30", bis: "04:30" } }],
     ["a weekday twice", { wartungsfenster: { tage: [1, 1], von: "03:30", bis: "04:30" } }],
@@ -123,8 +98,6 @@ describe("the servers of the operator", () => {
         {
           serverId,
           name: NEUER_SERVER.name,
-          art: "gemeinsam",
-          kundeId: null,
           wartungsfenster: NEUER_SERVER.wartungsfenster,
           angelegtAm: server.jetzt(),
           beigetretenAm: null,

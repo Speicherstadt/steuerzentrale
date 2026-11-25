@@ -58,7 +58,6 @@ export const serverMitAgent = async (
   const { daten } = await json(p, "/api/v1/server", {
     body: {
       name: "Server A",
-      art: "gemeinsam",
       wartungsfenster: { tage: [0], von: "03:00", bis: "04:00" },
       grund: "neu",
     },

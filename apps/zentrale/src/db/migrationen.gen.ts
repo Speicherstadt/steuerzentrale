@@ -115,5 +115,9 @@ export const migrationen: readonly { tag: string; sql: string }[] = [
   {
     "tag": "0028_zwei_rollen",
     "sql": "-- Z-1204: two roles. technik becomes inhaber, support becomes mitglied, in the Zentrale's mirror and\n-- in Better Auth's member. An invitation not yet accepted gets the least rights: both old roles\n-- become mitglied, so a link sent before the update grants no owner's rights.\nUPDATE `mitglieder` SET `rolle` = 'inhaber' WHERE `rolle` = 'technik';--> statement-breakpoint\nUPDATE `mitglieder` SET `rolle` = 'mitglied' WHERE `rolle` = 'support';--> statement-breakpoint\nUPDATE `member` SET `role` = 'inhaber' WHERE `role` = 'technik';--> statement-breakpoint\nUPDATE `member` SET `role` = 'mitglied' WHERE `role` = 'support';--> statement-breakpoint\nUPDATE `einladungen` SET `rolle` = 'mitglied' WHERE `rolle` IN ('technik', 'support');--> statement-breakpoint\nUPDATE `invitation` SET `role` = 'mitglied' WHERE `role` IN ('technik', 'support');\n"
+  },
+  {
+    "tag": "0029_ohne_serverart",
+    "sql": "ALTER TABLE `server` DROP COLUMN `art`;--> statement-breakpoint\nALTER TABLE `server` DROP COLUMN `kunde_id`;"
   }
 ];

@@ -39,7 +39,6 @@ const mitBestand = async () => {
   const offen = testDatenbank(bund);
   const neu = serverAnlegen(offen.schreibDb, kontext, {
     name: "s1",
-    art: "gemeinsam",
     wartungsfenster: { tage: [1], von: "03:30", bis: "04:30" },
   });
   const ca = await agentCa(offen.db, offen.schreibDb, bund, kontext);

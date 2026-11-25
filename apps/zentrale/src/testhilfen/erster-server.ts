@@ -55,7 +55,6 @@ if (befehl === "einrichten") {
   });
   const server = await anfrage("/api/v1/server", {
     name: "zentrale",
-    art: "gemeinsam",
     wartungsfenster: { tage: [1], von: "03:00", bis: "04:00" },
     grund: "CI",
   });

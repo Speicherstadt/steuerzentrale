@@ -10,7 +10,7 @@
 **Open-Source-Betrieb für die Apps der Speicherstadt: installieren, aktualisieren, sichern und überwachen, auf deinen eigenen Servern.**
 
 Für IT-Dienstleister und Hoster, die Haben, Belegt, Kontext, Schreibzeug, Stellwerk, Fixpunkt, Kennwort und Soll für
-sich oder ihre Kunden betreiben: auf gemeinsamen Servern, auf einem Server je Kunde oder beim Kunden im Haus.
+sich oder ihre Kunden betreiben, auf eigenen Servern für mehrere Kunden.
 
 ![Status: In Entwicklung](https://img.shields.io/badge/Status-In%20Entwicklung-red)
 [![CI](https://github.com/Speicherstadt/steuerzentrale/actions/workflows/ci.yml/badge.svg)](https://github.com/Speicherstadt/steuerzentrale/actions/workflows/ci.yml)
@@ -91,7 +91,7 @@ Kurz je Bereich; die Details stehen auf der verlinkten Seite der [Dokumentation]
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/app-dunkel.webp"><img src="docs/assets/screenshots/app-hell.webp" alt="Seite einer App mit Zustand und Adresse im Kopf, „Öffnen“, „Neustart“ und „Mehr …“, den Reitern Überblick bis Technik und den Zeilen Erreichbar, Version, Backup, Verfügbarkeit und Server"></picture><br><sub><b>App</b>: Erreichbarkeit, Version, Backup, Verfügbarkeit und Server im Überblick, alles Weitere in Reitern</sub></td>
   </tr>
   <tr>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-dunkel.webp"><img src="docs/assets/screenshots/server-hell.webp" alt="Tabelle der Server mit Art und Zustand in Worten, CPU, RAM, Platte, Apps und System"></picture><br><sub><b>Server</b>: gemeinsam, eigen oder beim Kunden, mit Zustand in Worten und voller Platte zuerst</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-dunkel.webp"><img src="docs/assets/screenshots/server-hell.webp" alt="Tabelle der Server mit Zustand in Worten, CPU, RAM, Platte, Apps und System"></picture><br><sub><b>Server</b>: gemeinsam, eigen oder beim Kunden, mit Zustand in Worten und voller Platte zuerst</sub></td>
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-detail-dunkel.webp"><img src="docs/assets/screenshots/server-detail-hell.webp" alt="Seite eines Servers mit den Reitern Überblick, Auslastung, Apps, Verlauf und Technik und den Zeilen Auslastung, Betriebssystem, Wartungsfenster, Prüfungen und Agent"></picture><br><sub><b>Ein Server</b>: Auslastung, Betriebssystem, Wartungsfenster, Prüfungen und Agent</sub></td>
   </tr>
   <tr>

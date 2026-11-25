@@ -9,8 +9,7 @@ description: >-
 # Projektplan
 
 Die Steuerzentrale installiert, aktualisiert, sichert und überwacht die Apps der Speicherstadt auf
-Servern: auf gemeinsamen Servern, auf einem eigenen Server je Kunde oder auf einem Server beim
-Kunden. Sie ist das Werkzeug für Hosting, Wartung und Support, Open Source unter der AGPL. Was
+eigenen Servern, jeder für mehrere Kunden. Sie ist das Werkzeug für Hosting, Wartung und Support, Open Source unter der AGPL. Was
 gebaut wird und in welcher Reihenfolge, steht in der
 [Bauliste](https://github.com/Speicherstadt/steuerzentrale/blob/main/BAULISTE.md).
 
@@ -75,7 +74,7 @@ deren API); Fernwartung von Geräten beim Kunden (Kontext-Box, Stellwerk-Agenten
 
 ### Ablauf: Server hinzufügen
 
-1. In der Zentrale „Server hinzufügen“: Name, Art (gemeinsam, eigen, beim Kunden), Wartungsfenster.
+1. In der Zentrale „Server hinzufügen“: Name, Wartungsfenster.
 2. Die Zentrale zeigt einen Befehl mit Einmal-Token (24 h):
    `curl -fsSL https://agent.<domain>/install.sh | sudo sh -s -- --token …`
 3. Das Skript prüft Debian 13 oder Ubuntu 24.04 (amd64, arm64; Podman ab 4.9), cgroup-v2-Delegation und Uhrzeit, installiert Podman, minisign, unattended-upgrades und den
@@ -229,7 +228,7 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Pforte | Caddy rootless unter `sz-pforte` mit `Network=host`; jede Installation hat ein eigenes `.network` und veröffentlicht ihren HTTP-Dienst nur per `PublishPort=127.0.0.1:<port>:…`, den Port vergibt die Zentrale; die Client-IP kommt im Header `X-Forwarded-For` der Pforte an; `net.ipv4.ip_unprivileged_port_start=80`; die Admin-API nur über einen Unix-Socket („Admin-API der Pforte“) | ein Caddy kann den Netzen anderer Nutzer nicht beitreten; App und Datenbank teilen das Netz ihrer Installation |
 | Ressourcen | `ram_mb` ist eine Grenze (`MemoryMax`) und die Platzierung rechnet mit Überbuchung 1,0; `platte_gb` ist in Stufe 1 nur Planwert, Z-702 misst die Belegung und warnt | rootless Volumes auf ext4 kennen keine Größenquote; ein Kunde darf den RAM nicht füllen |
 | Ports | feste Ports (Mail) nur einmal je Server; Ports mit `fest: false` vergibt die Zentrale je Installation | ein zweiter Stellwerk-Kunde passt auf denselben Server |
-| Mehrere Kunden auf einem Server | erlaubt („gemeinsam“); eine Installation gehört genau einem Kunden | einfache Trennung, einfaches Löschen |
+| Mehrere Kunden auf einem Server | erlaubt, jeder Server ist dafür da (Z-1205); eine Installation gehört genau einem Kunden | einfache Trennung, einfaches Löschen |
 | Server beim Kunden | mit Portweiterleitung 80/443 (und den Ports der App) auf den Server; kein Cloudflare Tunnel in 1.0 | ein Tunnel von Cloudflare beendet TLS und sieht die Daten (Unterauftragsverarbeiter in den USA); ein eigener Relay kommt später |
 | DNS | Cloudflare als DNS-Anbieter, nur DNS, kein Proxy; die Zentrale setzt A und AAAA für `<app>.<kunde>.<domain>` per API; Server bekommen nie einen DNS-Token; eigene Domains des Kunden per CNAME, aktiv erst nach Prüfung; Zertifikate per HTTP-01 an der Pforte | ein übernommener Server darf keine Kunden umleiten können; Let's Encrypt erlaubt 50 neue Zertifikate je Domain und Woche, genug für den Start |
 | Mail (Kontext) | die Zentrale zeigt MX, SPF, DKIM, DMARC und PTR aus dem Manifest und prüft sie; setzt sie selbst, wenn die Domain bei uns liegt | sonst landet Mail im Spam |
@@ -293,7 +292,7 @@ Der Loop entscheidet danach und trägt neue Entscheidungen hier mit Grund ein.
 | Schlüssel in `install.sh` | die Zentrale setzt beim Ausliefern ihre Adresse für Agenten und den öffentlichen Schlüssel aus `minisign.pub` in `STEUERZENTRALE_AGENT_DATEIEN` ein (nur Werte in fester Form, die die Anführungszeichen nicht verlassen können); derselbe Schlüssel prüft Agent-Binaries und Manifeste; den Test-Schlüssel nehmen Skript und Agent nur mit `--testmodus`, HTTP statt HTTPS ebenso; ein beigetretener Server behält seinen Schlüssel, auch wenn das Skript noch einmal läuft | ein neuer Server muss der Zentrale beim ersten Mal ohnehin vertrauen (`curl … \| sh`); ein eingebetteter Release-Schlüssel kommt mit Z-1004; danach kann eine übernommene Zentrale den Schlüssel bestehender Server nicht tauschen |
 | Adresse für Agenten | `STEUERZENTRALE_AGENT_URL` ist Pflicht, ohne Vorgabe (nur Origin) | sie steht im Befehl und im Skript; eine falsche Vorgabe fiele erst auf dem Server auf |
 | `@peculiar/x509` | Hauptversion 1, die `@simplewebauthn/server` für die Passkeys nutzt | zwei Hauptversionen in einem Binary teilen sich den Container von tsyringe, und die Algorithmen der einen brechen das ASN.1 der anderen (im kompilierten Binary gesehen, Test in `binary.test.ts`) |
-| Kunde eines Servers | ein eigener Server und einer beim Kunden tragen `kunde_id`, ein gemeinsamer keinen; die Zentrale nimmt nur einen Kunden des eigenen Betreibers an (sonst `404 kein_kunde`), der Dialog bietet die Kunden mit laufendem Vertrag aus der Kunden-API an | ein Server darf nicht auf einen Kunden eines anderen Betreibers zeigen |
+| Server-Art entfernt (Z-1205) | jeder Server ist ein eigener Server des Betreibers für mehrere Kunden: keine Art und kein Kunde am Server (Migration `0029_ohne_serverart` entfernt `art` und `kunde_id`, behält jeden Server), „Server hinzufügen“ fragt beides nicht, `POST /api/v1/server` lehnt `art` und `kundeId` mit `400` ab; die Platzierungsregel „Server eines anderen Kunden“ entfällt, die zum anderen Betreiber bleibt | der eigene Betrieb hat weder Server einzelner Kunden noch Server beim Kunden; eine Art, die nichts entscheidet, wäre nur ein weiteres Feld |
 | Testserver in der CI | je eine Incus-VM mit Debian 13 und Ubuntu 24.04 auf dem Runner; die Zentrale läuft auf dem Runner, ein Hilfsskript (`testhilfen/testserver.ts`) legt den Server direkt in ihrer Datenbank an und liest den Fingerabdruck zurück; `install.sh` läuft im Testmodus mit den Dateien, die die CI mit dem Test-Schlüssel signiert; die Zentrale hört nur auf 127.0.0.1, davor steht auf der Brücke der VMs die Test-Pforte (`testhilfen/ci-pforte.ts`: TLS, Client-Zertifikat gegen die CA des Betreibers, Fingerabdruck-Header vom Loopback), deren Test-CA die VM für `curl` im System und für den Agenten über `NODE_EXTRA_CA_CERTS` (Drop-in seines Dienstes) vertraut, damit die Verbindung des Agenten echt aufgeht | die Anmeldung mit Passkey oder TOTP prüfen die E2E-Tests; hier zählt, dass Skript, Dienst und Zertifikat auf echten Systemen laufen |
 | Signaturen in Tests | ein Test-Schlüsselpaar liegt unter `test/schluessel/`, als öffentlich bekannt markiert; die CI signiert damit die Manifeste der Beispiel-App zur Testzeit und Release-Kandidaten; ein Build für ein Release und der Agent außerhalb von Tests lehnen den Test-Schlüssel ab | der echte Schlüssel liegt offline beim Inhaber |
 | Podman | ab 4.9 (Ubuntu 24.04; Debian 13 hat 5.x); Units nutzen nur Schlüssel, die 4.9 kennt | der GitHub-Runner und Ubuntu 24.04 haben 4.9 |

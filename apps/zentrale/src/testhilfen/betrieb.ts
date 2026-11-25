@@ -43,7 +43,6 @@ export const serverEinfuegen = (
       betreiberId,
       serverId,
       name: teil.name ?? serverId,
-      art: "gemeinsam",
       wartungsfenster: JSON.stringify({ tage: [0], von: "03:00", bis: "04:00" }),
       beigetretenAm: teil.beigetretenAm ?? null,
       angelegtVon: "test",

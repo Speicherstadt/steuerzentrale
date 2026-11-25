@@ -198,7 +198,7 @@ nicht kennt, kommt nicht durch.
 
 ## 8. Der Agent desselben Servers
 
-In der Oberfläche unter Server einen Server anlegen (Art „gemeinsam“ oder „eigen“) und den
+In der Oberfläche unter Server einen Server anlegen und den
 angezeigten Befehl auf diesem Server ausführen ([Server hinzufügen](server-hinzufuegen.md)). Der
 Agent holt sich sein Zertifikat, verbindet sich über `agent.example.de` mit der Zentrale und erscheint
 in der Oberfläche als verbunden. Von da an ist der Server ein Server wie jeder andere: Apps darauf

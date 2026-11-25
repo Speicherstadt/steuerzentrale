@@ -5,7 +5,6 @@ import { kundeLesen } from "../modules/kunden/index.ts";
 import { neustartAnlegen, neustartStand } from "../modules/neustart/index.ts";
 import { pruefungenLesen } from "../modules/pruefungen/index.ts";
 import {
-  ARTEN,
   lastVerlauf,
   letzteHeartbeats,
   plattenVerlauf,
@@ -35,16 +34,11 @@ const wartungsfenster = z
 const anlegenSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
-    art: z.enum(ARTEN),
-    kundeId: z.string().min(1).max(200).optional(),
     wartungsfenster,
     grund: z.string().trim().min(1).max(500),
   })
-  .strict()
-  // a server of its own and one at the customer belong to a customer; a shared one to none
-  .refine((s) => (s.art === "gemeinsam") === (s.kundeId === undefined), {
-    message: "kundeId with eigen and beim_kunden only",
-  });
+  // every server is the operator's own for several customers: no kind, no customer (Z-1205)
+  .strict();
 
 /** `tage` as a whole number from 1 to the days the facts are kept, all of them without it */
 const tageAusText = (text: string | undefined): number | undefined => {
@@ -79,8 +73,6 @@ export const serverAntwort = (
 ) => ({
   serverId: sv.serverId,
   name: sv.name,
-  art: sv.art,
-  kundeId: sv.kundeId,
   wartungsfenster: JSON.parse(sv.wartungsfenster) as unknown,
   angelegtAm: sv.angelegtAm,
   beigetretenAm: sv.beigetretenAm,
@@ -225,9 +217,6 @@ export const serverRouten = (route: Registrar, deps: RoutenDeps): void => {
     const angaben = await eingabe(c, anlegenSchema);
     if (!angaben) return c.json({ fehler: "ungueltig" }, 400);
     const { grund, ...neu } = angaben;
-    // the customer must be one of the operator's own (Z-801): never another operator's
-    if (neu.kundeId !== undefined && !kundeLesen(deps.db, c.get("betreiberId"), neu.kundeId))
-      return c.json({ fehler: "kein_kunde" }, 404);
     const kontext = {
       betreiberId: c.get("betreiberId"),
       akteur: c.get("nutzerId"),
@@ -239,7 +228,6 @@ export const serverRouten = (route: Registrar, deps: RoutenDeps): void => {
       {
         serverId: server.serverId,
         name: server.name,
-        art: server.art,
         gueltigBis,
         befehl: installBefehl(deps.agentUrl, token),
       },

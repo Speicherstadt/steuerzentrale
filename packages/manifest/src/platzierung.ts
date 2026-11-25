@@ -8,14 +8,10 @@ import type { Manifest } from "./schema.ts";
  */
 
 export type Architektur = "amd64" | "arm64";
-export type Serverart = "gemeinsam" | "eigen" | "beim_kunden";
 
 /** What placement needs of a server: its facts (Z-304) and what the Zentrale knows of it */
 export type PlatzServer = {
   betreiberId: string;
-  art: Serverart;
-  /** The customer a server of its own or at the customer belongs to */
-  kundeId: string | null;
   agentVerbunden: boolean;
   /** Only observed (Z-1102): its agent takes no job that changes it, so nothing is placed there */
   nurBeobachten: boolean;
@@ -202,8 +198,6 @@ const fuerSich: Regel = (a) => {
 const besitz: Regel = (a) => {
   if (a.server.betreiberId !== a.kunde.betreiberId)
     return nur([befund("server_anderer_betreiber")]);
-  if (a.server.art !== "gemeinsam" && a.server.kundeId !== a.kunde.id)
-    return nur([befund("server_anderer_kunde")]);
   return nur();
 };
 
