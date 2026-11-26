@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { testPforte } from "./testpforte.ts";
+import { antwortKopfUmschreiben, testPforte } from "./testpforte.ts";
 import { pforteTls } from "./tls.ts";
 
 /*
@@ -36,4 +36,33 @@ describe("testPforte", () => {
     const gesendet = await fetch(url, { method: "POST", body: gross, tls: { ca: tls.ca } });
     expect(await gesendet.text()).toBe(String(gross.length));
   }, 30_000);
+
+  it("tells the client the connection closes, so it does not send a second request on it", async () => {
+    const ziel = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("ja") });
+    const tls = await pforteTls();
+    const pforte = testPforte({ ziel: ziel.port ?? 0, ...tls, clientCas: [tls.ca] });
+    aufraeumen.push(
+      () => pforte.stoppen(),
+      () => ziel.stop(true),
+    );
+    const antwort = await fetch(`https://127.0.0.1:${pforte.port}/`, { tls: { ca: tls.ca } });
+    expect(antwort.headers.get("connection")).toBe("close");
+    expect(await antwort.text()).toBe("ja");
+  });
+});
+
+describe("antwortKopfUmschreiben", () => {
+  it("replaces the connection header of an answer with close", () => {
+    expect(
+      antwortKopfUmschreiben(
+        "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-Length: 1\r\n\r\n",
+      ),
+    ).toBe("HTTP/1.1 200 OK\r\nContent-Length: 1\r\nconnection: close\r\n\r\n");
+  });
+
+  it("leaves a WebSocket upgrade as it is", () => {
+    const kopf =
+      "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n";
+    expect(antwortKopfUmschreiben(kopf)).toBe(kopf);
+  });
 });
