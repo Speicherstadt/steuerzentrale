@@ -8,8 +8,10 @@ import { FINGERABDRUCK_HEADER } from "../modules/verbindung/herkunft.ts";
  * with the certificate's SHA-256 in FINGERABDRUCK_HEADER, removing whatever the client put there.
  * Bun.serve verifies client certificates but does not tell the handler which one was shown; a TLS
  * socket of Bun.listen does (getPeerX509Certificate), so the stand-in is a small TCP proxy. It
- * rewrites only the first request head of a connection: a plain request gets `Connection: close`,
- * a WebSocket upgrade becomes a stream of frames after it.
+ * rewrites only the first request head and the first answer head of a connection: a plain request
+ * and its answer get `Connection: close`, so the client opens a new connection for its next request
+ * instead of sending it to a Zentrale that has closed (Bun.serve does not say so itself); a WebSocket
+ * upgrade becomes a stream of frames after it.
  */
 
 export type TestPforte = { port: number; stoppen: () => void };
@@ -50,6 +52,8 @@ const beenden = (socket: Socket<unknown>, puffer: Puffer): void => {
 type Strom = {
   /** The request head until it is complete; undefined once it went on */
   kopf: Uint8Array | undefined;
+  /** The same for the answer's head */
+  antwortKopf: Uint8Array | undefined;
   fingerabdruck: string | undefined;
   oben: Socket<undefined> | undefined;
   /** What arrived while the connection to the Zentrale was being opened */
@@ -75,13 +79,32 @@ const zusammen = (a: Uint8Array, b: Uint8Array): Uint8Array => {
   return neu;
 };
 
+/** A head still arriving, or the complete head and the bytes after it */
+type Kopf = { bisher: Uint8Array } | { kopf: string; rest: Uint8Array };
+
+const kopfSammeln = (bisher: Uint8Array, daten: Uint8Array): Kopf => {
+  const alles = zusammen(bisher, daten);
+  const ende = kopfEnde(alles);
+  if (ende < 0) return { bisher: alles };
+  return { kopf: new TextDecoder().decode(alles.subarray(0, ende)), rest: alles.subarray(ende) };
+};
+
+const zeilenName = (zeile: string) => zeile.split(":")[0]?.trim().toLowerCase() ?? "";
+
+/** An answer's head with `connection: close`; a WebSocket upgrade (101) stays as it is */
+export const antwortKopfUmschreiben = (kopf: string): string => {
+  const [status = "", ...zeilen] = kopf.replace(/\r\n\r\n$/, "").split("\r\n");
+  if (/^HTTP\/1\.1 101 /.test(status)) return kopf;
+  const behalten = zeilen.filter((z) => zeilenName(z) !== "connection");
+  return `${[status, ...behalten, "connection: close"].join("\r\n")}\r\n\r\n`;
+};
+
 /** The head with the fingerprint header set by the Pforte alone */
 export const kopfUmschreiben = (kopf: string, fingerabdruck: string | undefined): string => {
   const [anfrage = "", ...zeilen] = kopf.replace(/\r\n\r\n$/, "").split("\r\n");
-  const name = (zeile: string) => zeile.split(":")[0]?.trim().toLowerCase() ?? "";
-  const upgrade = zeilen.some((z) => name(z) === "upgrade" && /websocket/i.test(z));
+  const upgrade = zeilen.some((z) => zeilenName(z) === "upgrade" && /websocket/i.test(z));
   const behalten = zeilen.filter(
-    (z) => name(z) !== FINGERABDRUCK_HEADER && (upgrade || name(z) !== "connection"),
+    (z) => zeilenName(z) !== FINGERABDRUCK_HEADER && (upgrade || zeilenName(z) !== "connection"),
   );
   if (fingerabdruck) behalten.push(`${FINGERABDRUCK_HEADER}: ${fingerabdruck}`);
   if (!upgrade) behalten.push("connection: close");
@@ -106,7 +129,18 @@ export const testPforte = (optionen: {
       hostname: "127.0.0.1",
       port: optionen.ziel,
       socket: {
-        data: (_o, daten) => schreiben(unten, unten.data.nachUnten, daten),
+        data: (_o, daten) => {
+          const bisher = unten.data.antwortKopf;
+          if (bisher === undefined) return schreiben(unten, unten.data.nachUnten, daten);
+          const gesammelt = kopfSammeln(bisher, daten);
+          if ("bisher" in gesammelt) {
+            unten.data.antwortKopf = gesammelt.bisher;
+            return;
+          }
+          unten.data.antwortKopf = undefined;
+          const kopf = new TextEncoder().encode(antwortKopfUmschreiben(gesammelt.kopf));
+          schreiben(unten, unten.data.nachUnten, zusammen(kopf, gesammelt.rest));
+        },
         drain: (o) => leeren(o, unten.data.nachOben),
         close: () => beenden(unten, unten.data.nachUnten),
         error: () => beenden(unten, unten.data.nachUnten),
@@ -135,6 +169,7 @@ export const testPforte = (optionen: {
       open: (s) => {
         s.data = {
           kopf: new Uint8Array(0),
+          antwortKopf: new Uint8Array(0),
           fingerabdruck: undefined,
           oben: undefined,
           wartend: [],
@@ -151,19 +186,15 @@ export const testPforte = (optionen: {
       data: (s, daten) => {
         if (s.data.oben) return schreiben(s.data.oben, s.data.nachOben, daten);
         if (s.data.kopf === undefined) return void s.data.wartend.push(daten.slice());
-        const bisher = zusammen(s.data.kopf, daten);
-        const ende = kopfEnde(bisher);
-        if (ende < 0) {
-          s.data.kopf = bisher;
+        const gesammelt = kopfSammeln(s.data.kopf, daten);
+        if ("bisher" in gesammelt) {
+          s.data.kopf = gesammelt.bisher;
           return;
         }
-        const kopf = kopfUmschreiben(
-          new TextDecoder().decode(bisher.subarray(0, ende)),
-          s.data.fingerabdruck,
-        );
+        const kopf = kopfUmschreiben(gesammelt.kopf, s.data.fingerabdruck);
         // from now on everything goes on unchanged
         s.data.kopf = undefined;
-        void weiter(s, zusammen(new TextEncoder().encode(kopf), bisher.subarray(ende)));
+        void weiter(s, zusammen(new TextEncoder().encode(kopf), gesammelt.rest));
       },
       close: (s) => {
         s.data.offen = false;
