@@ -1,0 +1,15 @@
+{
+  "$kommentar": "Skills aus https://github.com/Speicherstadt/werkbank; der Sync ersetzt sie, Änderungen dort machen",
+  "skills": [
+    "beitrag",
+    "beitrag-pruefen",
+    "board-pflegen",
+    "doku-pruefen",
+    "fehler-eingrenzen",
+    "fork-pushen",
+    "issue-schreiben",
+    "prs-abarbeiten",
+    "release",
+    "vorhaben-klaeren"
+  ]
+}
