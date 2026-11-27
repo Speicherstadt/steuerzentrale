@@ -45,7 +45,7 @@ export const geheimnisSetzen = (
     });
 };
 
-/** The plain text of an operator's secret; only the Zentrale reads it, never the API (CLAUDE.md) */
+/** The plain text of an operator's secret; only the Zentrale reads it, never the API (AGENTS.md) */
 export const geheimnisLesen = (
   db: Db,
   bund: Schluesselbund,

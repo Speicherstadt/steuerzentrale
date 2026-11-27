@@ -1,5 +1,5 @@
 /**
- * One JSON line per request, without secrets (CLAUDE.md, "Never"): no part of the query (a token
+ * One JSON line per request, without secrets (AGENTS.md, "Nie"): no part of the query (a token
  * can stand there as key or value), no headers at all (Authorization, cookies, client certificates)
  * and no bodies. Modelled on Speicherstadt/soll, apps/server/src/log.ts.
  */

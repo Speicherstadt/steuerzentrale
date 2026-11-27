@@ -1,19 +1,12 @@
 /**
- * Runs the rules of regel.ts on the pull request of the GitHub event (.github/workflows/pr-regeln.yml):
- * title and draft state from the event, commits and files from git between base and head.
+ * Runs the rules of regel.ts on the pull request of the GitHub event (.github/workflows/pr-regeln.yml,
+ * job projekt): title and draft state from the event, commits and files from git between base and
+ * head.
  * Errors and warnings go out as workflow annotations; any error fails the run.
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import {
-  type Commit,
-  checkSignOff,
-  checkTicked,
-  checkTitle,
-  hints,
-  itemOf,
-  type Report,
-} from "./regel.ts";
+import { type Commit, checkSignOff, checkTicked, hints, itemOf, type Report } from "./regel.ts";
 
 type Event = {
   pull_request: { title: string; draft: boolean; base: { sha: string }; head: { sha: string } };
@@ -39,13 +32,9 @@ export function run(event: Event, read: (args: string[]) => string): Report[] {
   const files = read(["diff", "--name-only", range]).split("\n").filter(Boolean);
   const bauliste = files.includes("BAULISTE.md") ? read(["diff", range, "--", "BAULISTE.md"]) : "";
   return [
-    ...checkTitle(title),
     ...checkSignOff(commits),
     ...checkTicked(itemOf(title), draft, bauliste),
-    ...hints(
-      files,
-      commits.map((commit) => commit.subject),
-    ),
+    ...hints(files),
   ];
 }
 

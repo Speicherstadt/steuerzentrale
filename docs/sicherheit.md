@@ -244,7 +244,7 @@ den Server ihrer Installation (B-12) und nie über die API (B-31).
 - Jede Bedrohung auf dieser Seite hat einen automatischen Test, der bei jeder Änderung in der CI
   läuft; eine Änderung an Agent, Signaturen, Anmeldung, Rechten, Geheimnissen, Trennung der
   Betreiber, Audit-Log, Verbindung, Pforte oder `install.sh` braucht zusätzlich ein unabhängiges
-  Review (`CLAUDE.md`, „Pull requests“).
+  Review (`docs/mitwirken.md`, „Review“).
 - Abhängigkeiten hält Renovate aktuell (`SECURITY.md`); neue Laufzeit-Abhängigkeiten brauchen eine
   Begründung in `allowed-dependencies.json`.
 - Vierteljährlich prüft der Inhaber: Mitglieder und Rollen, SSH-Schlüssel auf den Servern und die

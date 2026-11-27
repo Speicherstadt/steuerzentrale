@@ -5,8 +5,9 @@ import { tokens } from "../../db/schema.ts";
 import type { Schreiber } from "../audit/index.ts";
 
 /**
- * Tokens (join tokens of servers, later API tokens) are stored only as their SHA-256 (CLAUDE.md,
- * "Secrets"). 32 random bytes need no slow hash: guessing one is as hard as guessing the key.
+ * Tokens (join tokens of servers, later API tokens) are stored only as their SHA-256
+ * (docs/entwicklung.md). 32 random bytes need no slow hash: guessing one is as hard as guessing the
+ * key.
  */
 export const tokenHash = (token: string): string =>
   createHash("sha256").update(token, "utf8").digest("hex");

@@ -1,32 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { run } from "./pruefen.ts";
-import { checkSignOff, checkTicked, checkTitle, hints, itemOf } from "./regel.ts";
+import { checkSignOff, checkTicked, hints, itemOf } from "./regel.ts";
 
 const signed = "Signed-off-by: Jana Beispiel <jana@example.com>";
 
-describe("checkTitle", () => {
-  it.each([
-    "Z-205: Quadlets rendern",
-    "Z-1004: Release",
-    "Doku: Manifest-Felder erklärt",
-    "CI: Podman-Job",
-    "Solid 2.0: Doku im Repo",
-  ])("passes %s", (title) => {
-    expect(checkTitle(title)).toEqual([]);
-  });
-
-  it.each([
-    "feat: quadlets",
-    "Quadlets rendern",
-    "Z-205 Quadlets rendern",
-    "Z-205: Quadlets rendern.",
-  ])("fails %s", (title) => {
-    expect(checkTitle(title)).toHaveLength(1);
-  });
-
+describe("itemOf", () => {
   it("finds the Bauliste item", () => {
     expect(itemOf("Z-205: Quadlets rendern")).toBe("Z-205");
+    expect(itemOf("Z-1004: Release")).toBe("Z-1004");
     expect(itemOf("Doku: Manifest")).toBeUndefined();
+    expect(itemOf("Z-205 Quadlets rendern")).toBeUndefined();
   });
 });
 
@@ -60,23 +43,20 @@ describe("checkTicked", () => {
 });
 
 describe("hints", () => {
-  it("warns about code without docs and a fix without a test", () => {
-    const reports = hints(["apps/agent/src/jobs.ts"], ["fix: retry"]);
-    expect(reports.map((report) => report.level)).toEqual(["warning", "warning"]);
-  });
-
   it("warns about a schema change without docs/manifest.md", () => {
-    const reports = hints(["packages/manifest/src/schema.ts", "docs/plan.md"], ["feat: field"]);
-    expect(reports.map((report) => report.message).join()).toContain("docs/manifest.md");
+    const reports = hints(["packages/manifest/src/schema.ts", "docs/plan.md"]);
+    expect(reports).toHaveLength(1);
+    expect(reports[0]?.message).toContain("docs/manifest.md");
   });
 
-  it("stays quiet for tests and docs", () => {
-    expect(hints(["apps/agent/src/jobs.test.ts", "docs/plan.md"], ["test: retry"])).toEqual([]);
+  it("stays quiet when docs/manifest.md changes with it, and for other code", () => {
+    expect(hints(["packages/manifest/src/schema.ts", "docs/manifest.md"])).toEqual([]);
+    expect(hints(["apps/agent/src/jobs.ts"])).toEqual([]);
   });
 });
 
 describe("run", () => {
-  it("combines title, sign-off and tick from git output", () => {
+  it("combines sign-off, tick and hints from git output", () => {
     const event = {
       pull_request: {
         title: "Z-205: Quadlets rendern",

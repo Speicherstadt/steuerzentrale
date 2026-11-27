@@ -7,7 +7,7 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 /*
  * BAULISTE.md Z-1106 over HTTP: CPU, load and memory of a server and of an installation's Linux
  * user, per hour the highest reading, from the history of the server's facts; every role reads; no
- * operator sees another's (a test per endpoint, CLAUDE.md).
+ * operator sees another's (a test per endpoint, docs/entwicklung.md).
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 

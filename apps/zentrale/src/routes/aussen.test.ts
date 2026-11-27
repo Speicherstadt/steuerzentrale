@@ -9,7 +9,7 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 /*
  * BAULISTE.md Z-704 over HTTP: the page of an installation reads its check from outside and its
  * availability of 13 months; every role may; no operator sees another's, even of an installation
- * of the same name (a test per endpoint, CLAUDE.md).
+ * of the same name (a test per endpoint, docs/entwicklung.md).
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 type Monat = { jahr: number; monat: number; gemessen: number; rot: number; anteil: number | null };

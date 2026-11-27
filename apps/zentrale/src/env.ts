@@ -90,7 +90,7 @@ const registryFeld = z
     return z.NEVER;
   });
 
-/** The settings of the Zentrale from the environment; dev uses port 18300 (CLAUDE.md, "Working rules") */
+/** The settings of the Zentrale from the environment; dev uses port 18300 (skill checks) */
 const EnvSchema = z
   .object({
     STEUERZENTRALE_PORT: z.coerce.number().int().min(1).max(65535).default(8300),

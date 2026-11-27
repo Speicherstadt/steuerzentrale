@@ -219,7 +219,7 @@ describe("the backup before an update", () => {
   });
 
   it("sends no update into a freeze window that began while the backup before ran", async () => {
-    // CLAUDE.md "Never": update during an app's freeze window; a backup run may take hours
+    // AGENTS.md "Nie": update during an app's freeze window; a backup run may take hours
     const u = updateUmgebung(minio);
     // the 6th of a month, 22:00 UTC: the manifest's window from the 7th to the 12th is not yet
     u.uhr.ms = Date.UTC(2027, 1, 6, 22, 0, 0);

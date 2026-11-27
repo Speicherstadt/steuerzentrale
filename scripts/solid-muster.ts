@@ -1,7 +1,7 @@
 /**
  * Finds Solid 1.x patterns that Solid 2.0 removed or renamed (docs/solid-2.0/MIGRATION.md, section
  * "Quick rename / removal map", and docs/solid-2.0/CHEATSHEET.md, "What changed from 1.x").
- * Part of `bun run lint`; CLAUDE.md, section "Solid 2.0", lists the same patterns for people.
+ * Part of `bun run lint`; the skill solid-2 lists the same patterns for agents.
  * Behaviour that compiles but works differently (batching, writes in owned scope, top-level reads)
  * cannot be seen in the text; the review checks it.
  */

@@ -7,8 +7,8 @@ import { oeffneDatenbank } from "./oeffnen.ts";
 import type { Schluesselbund } from "./schluessel.ts";
 
 /**
- * A fresh, migrated database in a temporary file for the running test (CLAUDE.md: SQLite in a temporary
- * file, never real data); removed after the test. From Speicherstadt/soll.
+ * A fresh, migrated database in a temporary file for the running test (skill checks: SQLite in a
+ * temporary file, never real data); removed after the test. From Speicherstadt/soll.
  */
 /** A fixed key for tests only (publicly known, never a real installation's) */
 export const testSchluessel = (fuellung = 7) => {

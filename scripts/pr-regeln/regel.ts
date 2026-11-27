@@ -1,39 +1,14 @@
 /*
- * Rules for pull requests from CLAUDE.md and BAULISTE.md that can be checked on the pull request
- * itself. Errors stop the pull request; hints appear as warnings only. Modelled on
- * Speicherstadt/haben, scripts/pr-regeln/regel.ts.
+ * Rules for pull requests from docs/mitwirken.md and BAULISTE.md that only this project has and
+ * that can be checked on the pull request itself. Title, issue references, code without docs and a
+ * fix without a test are checked by the Werkbank (Speicherstadt/werkbank, werkzeug/pr-regeln),
+ * called from the same workflow. Errors stop the pull request; hints appear as warnings only.
  */
 
 export type Report = { level: "error" | "warning"; message: string };
 
-const CONVENTIONAL = /^(feat|fix|docs|test|refactor|chore|style|perf|build|ci|revert)(\(.*\))?!?:/;
 /** A Bauliste item: "Z-205: Quadlets rendern" */
 const ITEM = /^(Z-\d{3,4}): \S.*$/;
-/** Anything else: "Bereich: was sich ändert", one to three words before the colon; a word may carry a version ("Solid 2.0") */
-const AREA = /^\p{L}[\p{L}\d.-]*(?: [\p{L}\d.-]+){0,2}: \S.*$/u;
-
-/** The squash merge turns the title into the commit on main */
-export function checkTitle(title: string): Report[] {
-  const trimmed = title.trim();
-  const example = "„Z-205: Quadlets rendern“ oder „Doku: Manifest-Felder erklärt“";
-  if (CONVENTIONAL.test(trimmed))
-    return [
-      {
-        level: "error",
-        message: `Titel „${trimmed}“: Conventional Commits gelten für Commits im Pull Request, der Titel heißt ${example}.`,
-      },
-    ];
-  if (!ITEM.test(trimmed) && !AREA.test(trimmed))
-    return [
-      {
-        level: "error",
-        message: `Titel „${trimmed}“ folgt nicht „Z-xxx: was gebaut wird“ oder „Bereich: was sich ändert“, etwa ${example}.`,
-      },
-    ];
-  if (trimmed.endsWith("."))
-    return [{ level: "error", message: `Titel „${trimmed}“ endet ohne Punkt.` }];
-  return [];
-}
 
 /** The Bauliste item a title names, or undefined */
 export const itemOf = (title: string): string | undefined => title.trim().match(ITEM)?.[1];
@@ -71,34 +46,18 @@ export function checkTicked(
       ];
 }
 
-const isTest = (file: string) => /\.(test|spec)\.tsx?$/.test(file) || file.startsWith("e2e/");
-const isCode = (file: string) =>
-  /^(apps|packages)\/[^/]+\/src\/.*\.tsx?$/.test(file) && !isTest(file);
-const isFix = (subject: string) => /^fix(\(.*\))?!?:/.test(subject);
-
-/** Rules that cannot be decided for sure: code without docs, a fix without a test */
-export function hints(files: string[], commitSubjects: string[]): Report[] {
-  const reports: Report[] = [];
-  if (files.some(isCode) && !files.some((file) => file.startsWith("docs/")))
-    reports.push({
-      level: "warning",
-      message:
-        "Code geändert, aber nichts in docs/: Beschreibt eine Doku-Seite das geänderte Verhalten?",
-    });
-  if (commitSubjects.some(isFix) && !files.some(isTest))
-    reports.push({
-      level: "warning",
-      message:
-        "fix-Commit ohne geänderten Test: Ein Bugfix beginnt mit einem Test, der fehlschlägt (CLAUDE.md).",
-    });
+/** A change to the manifest schema comes with its docs (AGENTS.md, „Bei jeder Änderung“) */
+export function hints(files: string[]): Report[] {
   if (
     files.some((file) => file.startsWith("packages/manifest/src/")) &&
     !files.includes("docs/manifest.md")
   )
-    reports.push({
-      level: "warning",
-      message:
-        "packages/manifest geändert, docs/manifest.md nicht: Ändert sich das Schema, gehört die Doku dazu (CLAUDE.md).",
-    });
-  return reports;
+    return [
+      {
+        level: "warning",
+        message:
+          "packages/manifest geändert, docs/manifest.md nicht: Ändert sich das Schema, gehört die Doku dazu (AGENTS.md).",
+      },
+    ];
+  return [];
 }

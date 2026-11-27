@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 // What a user does, on the desktop and on a phone: every spec runs on `desktop`, specs tagged @phone
 // also on `phone`. The e2e ports (Zentrale 28300, Vite 5182) keep clear of a running dev server
-// (CLAUDE.md, "Working rules"). Layout from Speicherstadt/kennwort, playwright.config.ts.
+// (skill checks). Layout from Speicherstadt/kennwort, playwright.config.ts.
 const port = 5182;
 const zentralePort = 28300;
 // The stand-in for Cloudflare's API (Z-407, apps/zentrale/src/testhilfen/cloudflare.ts): no DNS

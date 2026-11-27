@@ -5,8 +5,8 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 /*
  * BAULISTE.md Z-1101: observed services through the API. The owner makes, changes and removes
  * them, every role reads them (BAULISTE.md, Stufe 2: owner writes, both read); the address is
- * `https://<host>` and nothing else; no operator sees or changes another's (CLAUDE.md, "Project
- * specifics": a test per endpoint); nothing asks for a reason; no job for an agent ever comes of it.
+ * `https://<host>` and nothing else; no operator sees or changes another's (docs/entwicklung.md:
+ * a test per endpoint); nothing asks for a reason; no job for an agent ever comes of it.
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;
 type Dienst = { id: string; name: string; adresse: string; pfad: string; kundeId: string | null };

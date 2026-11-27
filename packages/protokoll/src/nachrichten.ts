@@ -6,7 +6,7 @@ import { pem } from "./pem.ts";
  * The messages between the Zentrale and the agent over the WebSocket (docs/plan.md, "Verbindung"),
  * shared by both so they cannot drift apart. Every message is a JSON object with `typ` and the
  * protocol version `protokoll` of its sender. A job names a manifest action and its arguments, never
- * a command (CLAUDE.md, "Project specifics"); it carries the manifest and its signature, which the
+ * a command (docs/entwicklung.md); it carries the manifest and its signature, which the
  * agent checks itself.
  */
 
