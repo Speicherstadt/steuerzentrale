@@ -3,8 +3,8 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
 
-// A static SPA; the Hono server of the Zentrale serves the API (CLAUDE.md, "Code style"). Vite passes
-// /api and /health on to it under the app's own origin (dev 18300, e2e 28300; CLAUDE.md, "Working rules").
+// A static SPA; the Hono server of the Zentrale serves the API (docs/entwicklung.md). Vite passes
+// /api and /health on to it under the app's own origin (dev 18300, e2e 28300; skill checks).
 const api = `http://127.0.0.1:${process.env.STEUERZENTRALE_API_PORT ?? "18300"}`;
 const proxy = { "/api": api, "/health": api };
 

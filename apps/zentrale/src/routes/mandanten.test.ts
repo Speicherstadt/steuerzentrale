@@ -6,7 +6,7 @@ import { type TestServer, testServer } from "../testhilfen/server.ts";
 type Person = Pick<Awaited<ReturnType<TestServer["inhaber"]>>, "json">;
 
 /*
- * No operator sees or changes another's members and invitations (CLAUDE.md, "Project specifics": a
+ * No operator sees or changes another's members and invitations (docs/entwicklung.md: a
  * test per endpoint). In stage 1 there is one operator; the second comes in as a partner will.
  */
 const zwei = async () => {

@@ -88,7 +88,7 @@ export const archivKette = (
 
 /**
  * At the deletion: the last backup, then taking the installation down; without a backup set up
- * only when the manifest names nothing to back up (CLAUDE.md, "Never": no deletion without one)
+ * only when the manifest names nothing to back up (AGENTS.md, "Nie": no deletion without one)
  */
 export const loeschKette = (deps: AuftragDeps, kontext: Kontext, i: Installation): Kette => {
   const m = manifestPruefen(i.manifest);

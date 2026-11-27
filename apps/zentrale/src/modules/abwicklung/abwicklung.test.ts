@@ -255,7 +255,7 @@ describe("after a contract's end", () => {
     ).toContain("loeschung_gescheitert");
   });
 
-  // review of #45: CLAUDE.md, "Never": delete a customer's data without a backup
+  // review of #45: AGENTS.md, "Nie": delete a customer's data without a backup
   it("deletes nothing of an installation with parts to back up whose backup is not set up", async () => {
     const u = backupUmgebung(minio);
     uhr.ms = u.uhr.ms;

@@ -2,8 +2,9 @@
  * What the pages read: the operator's servers, installations, customers and what happens to them
  * (docs/plan.md, "Datenmodell"), and the manifests of the apps, as the demo fixtures in src/demo/
  * hold them. Signed in, the pages read the API's own shapes from the sources in src/daten/ (Z-406);
- * these types stay for `dev:demo` and what has no API yet. Instants are UTC milliseconds (CLAUDE.md,
- * "Times"); local times of day (maintenance windows) are written "HH:MM" in Europe/Berlin.
+ * these types stay for `dev:demo` and what has no API yet. Instants are UTC milliseconds
+ * (docs/entwicklung.md); local times of day (maintenance windows) are written "HH:MM" in
+ * Europe/Berlin.
  */
 
 /** A monthly freeze window of an app: no update, no reboot from day `von` to day `bis` */
@@ -156,7 +157,7 @@ export type Ereignis = { zeit: number; schwere: Schwere; ziel: Ziel; text: strin
 
 export type AuftragZustand = "wartet" | "laeuft" | "fertig" | "gescheitert" | "geplant";
 
-/** A job names an action of the manifest, never a command (CLAUDE.md, "Project specifics") */
+/** A job names an action of the manifest, never a command (docs/entwicklung.md) */
 export type Auftrag = {
   id: string;
   aktion: "update" | "neustart" | "neustart_server" | "pruef_restore" | "backup";

@@ -10,7 +10,7 @@ import { dienstAnlegen, dienstLesen } from "./dienste.ts";
 /*
  * BAULISTE.md Z-1101 on a real TLS connection: an observed service turns green against a test
  * server with a certificate of a test CA; a name that resolves to an address that is not public is
- * never asked, however the test server would answer. The resolver is a fake (CLAUDE.md, "Never":
+ * never asked, however the test server would answer. The resolver is a fake (AGENTS.md, "Nie":
  * no real servers in tests).
  */
 

@@ -1,7 +1,7 @@
 /**
  * Translates an image tag into its digest through the registry's HTTP API (OCI Distribution Spec,
  * "Pulling manifests"; token auth as docker.io and ghcr.io answer it, distribution/distribution
- * docs/spec/auth/token.md). Manifests name images only by digest (CLAUDE.md, "Never"); the app
+ * docs/spec/auth/token.md). Manifests name images only by digest (AGENTS.md, "Nie"); the app
  * repositories name tags, so this records which digest a tag had and when (docs/plan.md,
  * "Entscheidungen", "Manifeste"; Z-203).
  *

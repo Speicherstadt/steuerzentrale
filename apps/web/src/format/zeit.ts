@@ -1,9 +1,9 @@
 import { getLocale, m } from "@steuerzentrale/ui";
 
 /*
- * Instants are UTC milliseconds and shown in Europe/Berlin (CLAUDE.md, "Times"); dates as TT.MM.JJJJ
- * in every language (DESIGN.md, "Sprache"). formatToParts keeps the shape independent of the
- * browser's locale data.
+ * Instants are UTC milliseconds and shown in Europe/Berlin (docs/entwicklung.md); dates as
+ * TT.MM.JJJJ in every language (DESIGN.md, "Sprache"). formatToParts keeps the shape independent of
+ * the browser's locale data.
  */
 
 const ZONE = "Europe/Berlin";

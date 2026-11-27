@@ -1,9 +1,9 @@
 /*
  * Local time in Europe/Berlin without a time zone library: the runtime's Intl data gives the offset
- * of an instant; a local wall time is found from it. Instants are UTC milliseconds (CLAUDE.md,
- * "Times"). A wall time that does not exist (the hour skipped in spring) moves forward by the
- * length of the gap, as Temporal's "compatible" does; one that exists twice (the hour repeated in
- * autumn) is its first occurrence.
+ * of an instant; a local wall time is found from it. Instants are UTC milliseconds
+ * (docs/entwicklung.md). A wall time that does not exist (the hour skipped in spring) moves forward
+ * by the length of the gap, as Temporal's "compatible" does; one that exists twice (the hour repeated
+ * in autumn) is its first occurrence.
  */
 export const ZEITZONE = "Europe/Berlin";
 

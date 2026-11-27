@@ -32,7 +32,7 @@ Die Liste, die der Agenten-Loop abarbeitet, in der Reihenfolge der Bauphasen aus
    ist die CI.
 5. **Unabhängiges Review nur bei Sicherheit**: Berührt der Punkt, was der Agent ausführen darf,
    Anmeldung, Rechte, Geheimnisse, die Trennung der Betreiber, das Audit-Log, die Verbindung des
-   Agenten, die Pforte oder `install.sh` (Liste in `CLAUDE.md`, „Pull requests“), prüft ihn ein eigener
+   Agenten, die Pforte oder `install.sh` (Liste in `docs/mitwirken.md`, „Review“), prüft ihn ein eigener
    Sub-Agent (Skill `tdd-review`): ein Befund braucht einen fehlschlagenden Test; Befunde fixen, bis
    keine mehr kommen. Alles andere wird gemergt, sobald die CI grün ist.
 6. **CI grün → selbst mergen** (Squash), den Punkt hier im selben Pull Request abhaken. Der Loop

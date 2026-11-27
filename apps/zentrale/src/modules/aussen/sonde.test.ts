@@ -6,7 +6,7 @@ import { type Aufloeser, dnsFragen, type SondenDeps, sonde } from "./sonde.ts";
 /*
  * BAULISTE.md Z-704: the steps of the check from outside on a real TLS connection, against a
  * Pforte stand-in on 127.0.0.1 with a certificate of a test CA for `localhost`; the resolver is a
- * fake, so no test asks a real name server (CLAUDE.md, "Never": no real servers in tests).
+ * fake, so no test asks a real name server (AGENTS.md, "Nie": no real servers in tests).
  */
 
 const lokal: Aufloeser = {

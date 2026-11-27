@@ -4,7 +4,7 @@ import { installationEinfuegen, kundeUndServer } from "../testhilfen/bewertung.t
 import { testServer } from "../testhilfen/server.ts";
 
 /*
- * No operator reads another's overview, jobs, events or audit log (CLAUDE.md, "Project specifics": a
+ * No operator reads another's overview, jobs, events or audit log (docs/entwicklung.md: a
  * test per endpoint; BAULISTE.md Z-406). The partner's rows carry the same ids as the owner's, so a
  * filter by id alone would let them through.
  */

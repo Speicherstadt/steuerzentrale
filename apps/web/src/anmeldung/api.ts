@@ -1,6 +1,6 @@
 /**
  * Calls of the Zentrale's API under the interface's own origin (Vite passes /api on). Errors come
- * back as values (CLAUDE.md): status 0 means no answer at all. After Speicherstadt/soll,
+ * back as values (docs/entwicklung.md): status 0 means no answer at all. After Speicherstadt/soll,
  * apps/web/src/api.ts.
  */
 

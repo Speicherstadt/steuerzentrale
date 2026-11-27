@@ -12,7 +12,7 @@ import { type BackupAnfrage, type BackupTeil, backupTeile } from "./auftraege.ts
  * - `installation_loeschen`: the agent takes down an installation it set up and finished, but only
  *   after a successful backup run of it in the last two hours (the Zentrale sends `installation_backup`
  *   right before), so nothing is deleted without a backup first; with parts to back up in the
- *   manifest and its backup not set up, it deletes nothing (CLAUDE.md, "Never").
+ *   manifest and its backup not set up, it deletes nothing (AGENTS.md, "Nie").
  * Pure: the Zentrale checks a job with it when it makes one, the agent again after key and signature.
  */
 

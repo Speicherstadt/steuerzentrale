@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 /*
- * Encrypted columns (CLAUDE.md, "Secrets"): AES-256-GCM with the key from STEUERZENTRALE_SECRET_KEY.
+ * Encrypted columns (docs/entwicklung.md): AES-256-GCM with the key from STEUERZENTRALE_SECRET_KEY.
  * Every value carries the id of its key, so the key can be rotated; the purpose (table, operator and
  * row) and the key id are the additional data, so a value cannot be moved into another row.
  * Stored as "v1.<key id>." + base64url(nonce ‖ tag ‖ ciphertext). Modelled on Speicherstadt/soll,

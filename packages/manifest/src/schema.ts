@@ -12,7 +12,7 @@ const port = z.number().int().min(1).max(65535);
 const architektur = z.enum(["amd64", "arm64"]);
 
 /**
- * An image only by digest: a tag can change under the same name (CLAUDE.md, "Never"). The first part
+ * An image only by digest: a tag can change under the same name (AGENTS.md, "Nie"). The first part
  * is a registry only with a dot, a port or as localhost (distribution/reference, normalize.go); else
  * Podman would resolve a short name through the search registries
  */

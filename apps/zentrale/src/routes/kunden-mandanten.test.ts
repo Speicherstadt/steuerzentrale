@@ -3,7 +3,7 @@ import { auditLog, kunden, vertraege } from "../db/schema.ts";
 import { type TestServer, testServer } from "../testhilfen/server.ts";
 
 /*
- * No operator reaches another's customers (BAULISTE.md Z-801; CLAUDE.md, "Project specifics": a
+ * No operator reaches another's customers (BAULISTE.md Z-801; docs/entwicklung.md: a
  * test per endpoint). The partner knows the id of Teufel IT's customer and tries every route on it.
  */
 type Person = Awaited<ReturnType<TestServer["inhaber"]>>;

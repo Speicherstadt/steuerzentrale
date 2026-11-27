@@ -59,7 +59,7 @@ const loeschen = async (
   const inst = await fertigeInstallation(deps, a.name);
   if (!inst.ok) return fehler(inst.grund);
   const eingerichtet = await deps.haus.existiert(backupDateiPfad(homeVon(a.name)));
-  // parts to back up and no backup set up: deleting would lose the customer's data (CLAUDE.md)
+  // parts to back up and no backup set up: deleting would lose the customer's data (AGENTS.md)
   if (!eingerichtet && a.mitBackup)
     return fehler(
       `abgelehnt: das Backup von ${a.name} ist nicht eingerichtet; gelöscht wird erst nach einem Backup`,

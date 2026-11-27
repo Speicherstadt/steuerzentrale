@@ -7,7 +7,7 @@ import { machine, type NetworkInterfaceInfo, networkInterfaces } from "node:os";
 /*
  * Where the agent reads its server's facts from (BAULISTE.md Z-304), passed in so every fact can be
  * tested without a real server. Only files (/proc, /sys, /etc, /boot), system calls and commands as
- * a fixed argv: never a shell, never a command line as a string (CLAUDE.md, "Never").
+ * a fixed argv: never a shell, never a command line as a string (AGENTS.md, "Nie").
  */
 
 export type Ausgabe = { code: number; aus: string };
