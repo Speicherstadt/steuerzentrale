@@ -162,9 +162,8 @@ Verhalten.
 - Jede Tabelle mit Daten eines Betreibers trägt `betreiber_id` (ausgenommen: Manifeste, die Tabellen von Better
   Auth); jede Abfrage filtert danach; ein Test je Endpunkt beweist, dass kein Betreiber die Daten eines anderen
   sieht. Geschrieben wird über eine Funktion, die in derselben Transaktion ans Audit-Log anfügt.
-- Geheimnisse: verschlüsselte Spalten mit dem Schlüssel aus `STEUERZENTRALE_SECRET_KEY` (32 Bytes, Base64); ohne
-  ihn startet die Zentrale nicht. Zertifikate der Agenten stehen als Fingerabdruck, API-Tokens als Hash in der
-  Datenbank; der Schlüssel lässt sich rotieren (Schlüssel-ID an jedem Chiffrat).
+- Geheimnisse: verschlüsselte Spalten (Schlüssel, Tokens und Rotieren unter [Umgebung](#umgebung)); Zertifikate der
+  Agenten stehen als Fingerabdruck in der Datenbank.
 - Zeiten: Zeitpunkte als UTC-Millisekunden; Sperrzeiten und Wartungsfenster in `Europe/Berlin`, die Zeitumstellung
   getestet.
 
