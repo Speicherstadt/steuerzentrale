@@ -1,0 +1,21 @@
+{
+  "$kommentar": "Einstellungen für die Werkbank (https://github.com/Speicherstadt/werkbank); Standards in werkzeug/konfiguration.ts. heikel: die sicherheitsrelevanten Teile aus docs/mitwirken.md, Review",
+  "board": null,
+  "anleitung": "https://speicherstadt.org/steuerzentrale/mitwirken.html#wenn-eine-pruefung-anschlaegt",
+  "uebernehmen": "https://speicherstadt.org/steuerzentrale/mitwirken.html#etwas-uebernehmen",
+  "konventionen": "docs/entwicklung.md, Konventionen",
+  "erzeugt": ["routeTree\\.gen\\.ts$", "migrationen\\.gen\\.ts$"],
+  "heikel": [
+    "^packages/manifest/src/(signatur|vertrauen|befehl|aktionen)\\.ts$",
+    "^packages/protokoll/src/",
+    "^apps/agent/src/(aktionen|auftraege|verbindung|beitritt|pforte)/",
+    "^packages/manifest/src/pforte/",
+    "^apps/zentrale/src/auth/",
+    "^apps/zentrale/src/routes/zugang\\.ts$",
+    "^apps/zentrale/src/modules/(access|anmeldung|mitglieder|geheim|audit|verbindung|auftraege)/",
+    "^apps/zentrale/src/db/schema\\.ts$",
+    "^install/",
+    "^test/schluessel/",
+    "^scripts/(minisign|release-schluessel|manifeste-signieren)\\.ts$"
+  ]
+}

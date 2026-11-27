@@ -33,6 +33,10 @@ Der Workflow `Release` läuft auf dem Tag:
 3. ein **Entwurf** des GitHub-Release mit den Agent-Binaries (`linux-x64`, `linux-arm64`),
    `install.sh`, `VERSION`, der Quadlet-Unit `steuerzentrale.container` mit dem Digest des Images,
    `DIGEST` und `SHA256SUMS` über alle Dateien.
+4. bei einer Version ohne Zusatz: die Issues schließen, die seit der vorigen solchen Version mit
+   `Umgesetzt #…` gemergt wurden, je mit einem Kommentar mit Link auf den Release (Job
+   `issues-schliessen` aus der [Werkbank](https://github.com/Speicherstadt/werkbank)). Der Link
+   geht erst, wenn der Entwurf veröffentlicht ist (Schritt 3).
 
 `SHA256SUMS` ist im Entwurf **nicht signiert**. `install.sh` und der Agent nehmen ohne gültige
 Signatur nichts an, ein Entwurf erreicht also keinen Server.

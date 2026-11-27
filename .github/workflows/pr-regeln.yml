@@ -1,12 +1,11 @@
-# Checks rules on the pull request itself (scripts/pr-regeln): title „Z-xxx: …“ or „Bereich: …“,
-# Signed-off-by on every commit (DCO), the Bauliste item ticked; hints on code without docs and a fix
-# without a test. Runs, unlike ci.yml, also for drafts and docs-only changes, because the title becomes
-# the commit on main with the squash merge. With pull_request, not pull_request_target: code from forks
-# runs with read access only. Modelled on Speicherstadt/haben, .github/workflows/pr-regeln.yml.
+# Regeln am Pull Request, aus der Werkbank (https://github.com/Speicherstadt/werkbank). Läuft auch für Entwürfe
+# und reine Doku-Änderungen, denn der Titel wird beim Squash-Merge zum Commit auf main. Mit pull_request, nicht
+# pull_request_target: Code aus Forks läuft nur mit Leserecht.
 name: PR-Regeln
 
 on:
   pull_request:
+    # converted_to_draft for the job projekt: a draft only reserves its Bauliste item
     types: [opened, edited, synchronize, reopened, ready_for_review, converted_to_draft]
 
 permissions:
@@ -18,6 +17,12 @@ concurrency:
 
 jobs:
   pr-regeln:
+    uses: Speicherstadt/werkbank/.github/workflows/pr-regeln.yml@main
+
+  # What only this project checks (scripts/pr-regeln): Signed-off-by on every commit (DCO), the Bauliste
+  # item ticked, docs/manifest.md with a change to packages/manifest. Title, issue references, code without
+  # docs and a fix without a test are checked by the Werkbank above.
+  projekt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
