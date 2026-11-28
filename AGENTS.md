@@ -34,7 +34,7 @@ wann er selbst mergt und dass er nie auf einen Menschen wartet.
 Die Schritte für wiederkehrende Aufgaben stehen in [`.agents/skills`](.agents/skills); jeder Agent folgt denselben
 Dateien. Aus der [Werkbank](https://github.com/Speicherstadt/werkbank) (gleich in allen Projekten, Änderungen dort):
 `beitrag` (Branch, Commits, Pull Request als Entwurf, dann Selbstprüfung und Review), `beitrag-pruefen` (gewollt,
-Quellen, einfachste Lösung, Regeln), `doku-pruefen` (Review des Markdowns), `fork-pushen` (Push auf den Fork einer
+Quellen, einfachste Lösung, Regeln), `doku-pruefen` (Review des Markdowns), `design-pruefen` (Oberfläche gegen `DESIGN.md`, Screenshots und Barrierefreiheit prüfen), `fork-pushen` (Push auf den Fork einer
 anderen Person), `prs-abarbeiten` (alle offenen Pull Requests, vom einfachsten Merge an), `issue-schreiben`,
 `board-pflegen` (das Board auf GitHub), `release`, `fehler-eingrenzen` (Ursache eines Fehlers über eine rote
 Prüfung finden) und `vorhaben-klaeren` (einen Plan vor dem Bauen mit der Person durchfragen).
